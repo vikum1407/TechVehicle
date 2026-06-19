@@ -284,7 +284,7 @@ TechVehicle is not just a logging app — it is an intelligent vehicle companion
 | Layer | Technology | Reason |
 |---|---|---|
 | Mobile | React Native (Expo) | Single codebase for iOS + Android |
-| Backend | Node.js + PostgreSQL | Relational data suits vehicle history well |
+| Backend | Node.js + PostgreSQL (Neon) | Relational data suits vehicle history well |
 | Auth + Push | Firebase | Native phone number auth, push notifications |
 | Photo Storage | S3 or Firebase Storage (compressed) | Must be cloud for Sell/Share to work |
 | AI / ML | To be decided in Phase 2 | Python-based ML service or third-party AI API |
@@ -353,7 +353,7 @@ Current machine has limited space and performance. Entire development runs in th
 | Service | Purpose | Free Tier | Cost Beyond Free |
 |---|---|---|---|
 | **GitHub Codespaces** | Code editor + terminal in browser (VS Code) | 60 hrs/month | $4/month (Pro) for 180 hrs |
-| **Supabase** | PostgreSQL database | 500 MB, pauses after 7 days inactivity | $25/month (Pro) |
+| **Neon** | PostgreSQL database | 0.5 GB, never pauses, serverless | $19/month (Pro) |
 | **Firebase** | Phone number auth + push notifications | 10,000 SMS/month, unlimited push | Pay-as-you-go, very low cost |
 | **Cloudflare R2** | Photo/file storage | 10 GB/month, zero download fees | ~$0.015/GB beyond free |
 | **Expo Go** (phone app) | Live mobile preview during development | Free, unlimited | Free |
@@ -368,7 +368,7 @@ Your Browser (Codespace)          Your Phone (Expo Go)
 ─────────────────────────         ────────────────────
 VS Code editor                    Live preview of mobile app
 Node.js backend server            Updates instantly on save
-PostgreSQL via Supabase ──────────────────────────────────►  See changes in real time
+PostgreSQL via Neon ──────────────────────────────────────►  See changes in real time
 Firebase auth
 Cloudflare R2 storage
 ```
