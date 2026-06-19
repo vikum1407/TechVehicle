@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import authRoutes from './routes/auth'
 
 dotenv.config()
 
@@ -17,6 +18,8 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   })
 })
+
+app.use('/auth', authRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)
