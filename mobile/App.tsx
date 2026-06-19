@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
-import HomeScreen from './src/screens/HomeScreen'
+import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
+import AddVehicleScreen from './src/screens/AddVehicleScreen'
 
-type Screen = 'login' | 'otp' | 'home'
+type Screen = 'login' | 'otp' | 'vehicles' | 'addVehicle'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
@@ -19,7 +20,7 @@ export default function App() {
   const handleVerified = (authToken: string, phone: string) => {
     setToken(authToken)
     setPhoneNumber(phone)
-    setScreen('home')
+    setScreen('vehicles')
   }
 
   const handleLogout = () => {
@@ -41,8 +42,19 @@ export default function App() {
           onBack={() => setScreen('login')}
         />
       )}
-      {screen === 'home' && (
-        <HomeScreen phoneNumber={phoneNumber} onLogout={handleLogout} />
+      {screen === 'vehicles' && (
+        <MyVehiclesScreen
+          token={token}
+          phoneNumber={phoneNumber}
+          onAddVehicle={() => setScreen('addVehicle')}
+          onLogout={handleLogout}
+        />
+      )}
+      {screen === 'addVehicle' && (
+        <AddVehicleScreen
+          token={token}
+          onVehicleAdded={() => setScreen('vehicles')}
+        />
       )}
     </>
   )
