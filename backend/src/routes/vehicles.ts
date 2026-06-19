@@ -16,7 +16,8 @@ router.get('/', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' },
     })
     res.json(vehicles)
-  } catch {
+  } catch (error) {
+    console.error('GET /vehicles error:', error)
     res.status(500).json({ error: 'Failed to fetch vehicles' })
   }
 })
