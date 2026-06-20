@@ -349,6 +349,30 @@ These are structured data fields captured inside service records that feed the p
 
 ---
 
+### 4. AC System Condition & Fuel Consumption
+
+**What it is:** The AC system is one of the largest fuel consumers in a vehicle — typically adding 10–20% to fuel consumption when running. Tracking AC service history, refrigerant type, and component condition over time gives a direct window into one hidden driver of fuel costs.
+
+**Why it matters:**
+- A leaking AC system that loses refrigerant gradually makes the compressor work harder, burning more fuel
+- A failing AC compressor can increase engine load significantly
+- AC gas type (R134a vs R1234yf) matters for environmental compliance and refill cost
+- Frequency of AC gas refills tells the story of refrigerant leaks — too frequent = compressor or seal problem
+- Dirty cabin filters and AC filters reduce airflow, increasing compressor load
+- Comparing fuel cost before/after AC compressor replacement or gas refill can confirm the impact
+
+**What to capture (structured):**
+- AC Gas Refill: refrigerant type (R134a / R1234yf / R22), quantity filled (grams), km at refill
+- AC Compressor: brand, km at replacement
+- AC Service: what was done, km at service
+- Cabin / AC Filter: brand, km at replacement
+
+**Future insight example:** "You've refilled AC gas 3 times in 18 months — average refrigerant loss suggests a seal or compressor issue. A leak test at your next service could save LKR 15,000/year in fuel."
+
+**Cross-analysis with fuel logs:** Once fuel fill-up logging is active, the app can correlate AC service events with fuel consumption changes — showing owners exactly what impact AC repairs had on their running costs.
+
+---
+
 ### Implementation Note
 
 These three data points require **dedicated structured input fields** when the relevant service type is selected — not just a notes field. The service record form should detect when "Tyre Change", "Wheel Alignment", "Oil Change", or "Emission Test / Carbon Test" is selected and show the appropriate structured sub-form automatically.
