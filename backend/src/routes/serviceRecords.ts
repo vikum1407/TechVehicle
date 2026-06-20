@@ -9,9 +9,10 @@ router.use(authMiddleware)
 
 // GET /service-records/:vehicleId — get all service records for a vehicle
 router.get('/:vehicleId', async (req: AuthRequest, res) => {
+  const vehicleId = req.params.vehicleId as string
   try {
     const vehicle = await prisma.vehicle.findFirst({
-      where: { id: req.params.vehicleId, ownerPhone: req.phoneNumber },
+      where: { id: vehicleId, ownerPhone: req.phoneNumber! },
     })
     if (!vehicle) {
       res.status(404).json({ error: 'Vehicle not found' })
@@ -19,7 +20,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     }
 
     const records = await prisma.serviceRecord.findMany({
-      where: { vehicleId: req.params.vehicleId },
+      where: { vehicleId },
       orderBy: { date: 'desc' },
     })
     res.json(records)
@@ -31,6 +32,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
 
 // POST /service-records/:vehicleId — add a service record
 router.post('/:vehicleId', async (req: AuthRequest, res) => {
+  const vehicleId = req.params.vehicleId as string
   const { date, description, mileage, parts, brand, cost, notes } = req.body
 
   if (!date || !description) {
@@ -40,7 +42,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
 
   try {
     const vehicle = await prisma.vehicle.findFirst({
-      where: { id: req.params.vehicleId, ownerPhone: req.phoneNumber },
+      where: { id: vehicleId, ownerPhone: req.phoneNumber! },
     })
     if (!vehicle) {
       res.status(404).json({ error: 'Vehicle not found' })
@@ -49,7 +51,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
 
     const record = await prisma.serviceRecord.create({
       data: {
-        vehicleId: req.params.vehicleId,
+        vehicleId,
         date: new Date(date),
         description,
         mileage: mileage ? Number(mileage) : null,
@@ -63,7 +65,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
     // Update vehicle mileage if new mileage is higher
     if (mileage && Number(mileage) > vehicle.mileage) {
       await prisma.vehicle.update({
-        where: { id: req.params.vehicleId },
+        where: { id: vehicleId },
         data: { mileage: Number(mileage) },
       })
     }
