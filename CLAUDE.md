@@ -279,6 +279,84 @@ TechVehicle is not just a logging app — it is an intelligent vehicle companion
 
 ---
 
+## Special Analytics Data Points
+
+These are structured data fields captured inside service records that feed the prediction and AI engines. They are not just text — they are specific, queryable data points that unlock deeper intelligence. Every screen that touches these must treat them as first-class structured data, not free text.
+
+### 1. Tyre Change & Wheel Alignment Ratio
+
+**What it is:** The interval in km between tyre changes and the frequency of wheel alignments between each tyre set.
+
+**Why it matters:**
+- Km per tyre set = real tyre consumption rate for this vehicle and this owner
+- Alignment frequency between tyre changes = tells the story of driving conditions (rough roads = more alignments)
+- Ratio of alignments to tyre sets = proxy for how aggressive the roads or driving style are
+- If a vehicle gets 5 alignments per tyre set, it is either on very bad roads or has a suspension problem
+
+**What to capture (structured):**
+- When "Tyre Change" is logged: tyre brand, tyre size (e.g. 185/65R15), km at change
+- When "Wheel Alignment" is logged: km at alignment
+- Analytics engine derives: km-per-tyre-set, alignments-per-tyre-set, trend over time
+
+**Future insight example:** "Your tyres lasted 35,000 km — 18% less than average for your model. You also had 4 alignments this set. Possible cause: road conditions or suspension wear."
+
+---
+
+### 2. Oil Grade vs Manufacturer Recommendation
+
+**What it is:** The actual engine oil brand AND grade (viscosity spec) used at each oil change, compared against what the vehicle manufacturer recommends for the model and climate.
+
+**Why it matters:**
+- Using the wrong grade is one of the most common causes of premature engine wear
+- Many Sri Lankan owners use whatever oil the garage recommends, which may not match the manufacturer spec
+- Over time, consistent use of wrong-grade oil shows up as increased oil consumption, poor fuel economy, and engine damage
+- The app can flag this proactively: "Your last 3 oil changes used 20W-50. Toyota recommends 0W-20 for your Prius."
+
+**What to capture (structured):**
+- Oil brand (e.g. Castrol)
+- Oil grade / viscosity spec (e.g. 10W-40, 5W-30, 0W-20, 20W-50)
+- Oil type (Mineral / Semi-synthetic / Full synthetic)
+- Km at change and km since last change (oil change interval)
+
+**Data source needed:** Manufacturer-recommended oil spec database per make/model/year — this feeds the comparison engine.
+
+**Future insight example:** "You changed your oil every 4,200 km on average. Your manufacturer recommends 5,000 km. You could save LKR 18,000/year by extending your interval."
+
+---
+
+### 3. Emission / Carbon Test Results
+
+**What it is:** The numerical results from a vehicle emission test (carbon test). In Sri Lanka, this is required annually for the revenue licence (registration renewal). The readings include CO%, HC ppm, CO2%, and Lambda (air-fuel ratio).
+
+**Why it matters:**
+- These numbers are a direct window into engine health and combustion efficiency
+- Rising HC (hydrocarbons) = engine burning oil or misfiring
+- Rising CO (carbon monoxide) = rich fuel mixture, injector issues, or catalytic converter failure
+- Poor Lambda (air-fuel ratio off from 1.0) = fuel system problems
+- Trend over time = early warning of deteriorating engine health before expensive failure
+- Driving style correlation: high-mileage highway drivers vs city drivers show different emission profiles
+
+**What to capture (structured):**
+- Test date and km at test
+- CO% (carbon monoxide percentage)
+- HC ppm (hydrocarbon parts per million)
+- CO2% (carbon dioxide percentage)
+- Lambda / Air-fuel ratio (if available)
+- Test result: Pass / Fail
+- Testing station name (optional)
+
+**Future insight example:** "Your HC reading has increased from 85 ppm (2023) to 210 ppm (2024). This may indicate early oil burning. Consider a compression test at your next service."
+
+---
+
+### Implementation Note
+
+These three data points require **dedicated structured input fields** when the relevant service type is selected — not just a notes field. The service record form should detect when "Tyre Change", "Wheel Alignment", "Oil Change", or "Emission Test / Carbon Test" is selected and show the appropriate structured sub-form automatically.
+
+The `ServiceRecord` database model will need a `structuredData` JSON field to store these values in a queryable format alongside the free-text description.
+
+---
+
 ## Recommended Tech Stack
 
 | Layer | Technology | Reason |
