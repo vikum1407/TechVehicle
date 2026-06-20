@@ -32,9 +32,10 @@ type Props = {
   onBack: () => void
   onAddRecord: () => void
   onLogFuel: () => void
+  onAddExpense: () => void
 }
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -144,6 +145,9 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
             <Text style={styles.quickBtnText}>🔧 Add Service</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
+            <Text style={styles.quickBtnText}>💰 Add Expense</Text>
           </TouchableOpacity>
         </View>
       </View>
