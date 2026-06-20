@@ -18,6 +18,19 @@ type SelectedItem = {
   brand: string
 }
 
+// Items that are labour/service only — no physical part replaced, no brand needed
+const NO_BRAND_ITEMS = new Set([
+  'Wheel Alignment', 'Wheel Balancing', 'Tyre Rotation', 'Spare Tyre Check',
+  'Inspection', 'Wash & Polish', 'Full Service', 'General Repair', 'Modification',
+  'Handbrake Adjustment', 'Body Work', 'Dent Repair', 'Paint Job',
+  'Seat / Upholstery', 'Dashboard Repair', 'Audio System',
+  'Injector Clean', 'Throttle Body Clean', 'Fuel System Clean',
+  'Engine Flush', 'Radiator Service', 'Valve Service',
+  'Transmission Service', 'AC Service', 'Turbo Service', 'Intercooler Service',
+  'Engine Rebuild', 'Gearbox Overhaul', 'Wiring Repair',
+  'Exhaust Service', 'Muffler Repair',
+])
+
 const SERVICE_CATEGORIES = [
   {
     title: 'Engine & Oil',
@@ -47,8 +60,7 @@ const SERVICE_CATEGORIES = [
       'Gear Oil (Manual)', 'Transmission Oil (Auto)', 'Transmission Service',
       'Clutch Plate', 'Clutch Kit', 'Pressure Plate', 'Clutch Bearing',
       'CV Joint', 'CV Boot', 'Drive Shaft',
-      'Differential Oil', 'Transfer Case Oil',
-      'Gearbox Overhaul',
+      'Differential Oil', 'Transfer Case Oil', 'Gearbox Overhaul',
     ],
   },
   {
@@ -58,16 +70,15 @@ const SERVICE_CATEGORIES = [
       'Springs (Front)', 'Springs (Rear)',
       'Ball Joints', 'Tie Rod Ends', 'Wheel Bearings',
       'Bush Replacement', 'Sway Bar Links',
-      'Power Steering Fluid', 'Power Steering Pump',
-      'Steering Rack',
+      'Power Steering Fluid', 'Power Steering Pump', 'Steering Rack',
     ],
   },
   {
     title: 'Tyres & Wheels',
     items: [
       'Tyre Change', 'Tyre Puncture Repair',
-      'Wheel Alignment', 'Wheel Balancing', 'Tyre Rotation',
-      'Spare Tyre Check', 'Wheel Nuts & Bolts',
+      'Wheel Alignment', 'Wheel Balancing',
+      'Tyre Rotation', 'Spare Tyre Check', 'Wheel Nuts & Bolts',
     ],
   },
   {
@@ -114,8 +125,8 @@ const CATEGORY_BRANDS: Record<string, string[]> = {
   'Tyres & Wheels': ['Michelin', 'Bridgestone', 'Yokohama', 'Apollo', 'CEAT', 'MRF', 'Dunlop'],
   'Electrical': ['Amaron', 'Exide', 'Bosch', 'Panasonic', 'GS Battery', 'Varta', 'Denso'],
   'AC & Cooling': ['Denso', 'Sanden', 'Delphi', 'Toyota OEM', 'Honda OEM'],
-  'Body & Exterior': ['3M', 'Toyota OEM', 'Honda OEM', 'Genuine Parts'],
-  'General & Other': ['Toyota OEM', 'Honda OEM', 'Genuine Parts', 'Local'],
+  'Body & Exterior': ['3M', 'Toyota OEM', 'Honda OEM'],
+  'General & Other': ['Toyota OEM', 'Honda OEM', 'Genuine Parts'],
 }
 
 const today = () => {
@@ -144,17 +155,13 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
   }
 
   const setBrandForItem = (itemName: string, brand: string) => {
-    setSelectedItems(prev =>
-      prev.map(i => i.name === itemName ? { ...i, brand } : i)
-    )
+    setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand } : i))
     setCustomBrands(prev => ({ ...prev, [itemName]: '' }))
   }
 
   const setCustomBrandForItem = (itemName: string, value: string) => {
     setCustomBrands(prev => ({ ...prev, [itemName]: value }))
-    setSelectedItems(prev =>
-      prev.map(i => i.name === itemName ? { ...i, brand: value } : i)
-    )
+    setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand: value } : i))
   }
 
   const parseDate = (str: string): string | null => {
@@ -167,7 +174,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
   }
 
   const handleSubmit = async () => {
-    const extras = otherText.trim() ? [{ name: otherText.trim(), category: 'General & Other', brand: '' }] : []
+    const extras = otherText.trim()
+      ? [{ name: otherText.trim(), category: 'General & Other', brand: '' }]
+      : []
     const allItems = [...selectedItems, ...extras]
 
     if (allItems.length === 0) {
@@ -203,6 +212,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
       setLoading(false)
     }
   }
+
+  // Only items where a physical part is replaced need brand selection
+  const itemsNeedingBrand = selectedItems.filter(i => !NO_BRAND_ITEMS.has(i.name))
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -245,12 +257,12 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
         placeholder="Type anything else that was done..."
       />
 
-      {selectedItems.length > 0 && (
+      {itemsNeedingBrand.length > 0 && (
         <View style={styles.brandsSection}>
-          <Text style={styles.brandsSectionTitle}>Set Brand Per Item (optional)</Text>
-          <Text style={styles.brandsSectionSub}>Tap the brand used for each service</Text>
+          <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
+          <Text style={styles.brandsSectionSub}>Select brand for each replaced part</Text>
 
-          {selectedItems.map(item => {
+          {itemsNeedingBrand.map(item => {
             const brands = CATEGORY_BRANDS[item.category] || CATEGORY_BRANDS['General & Other']
             return (
               <View key={item.name} style={styles.brandRow}>
@@ -323,7 +335,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
 
       {selectedItems.length > 0 && (
         <View style={styles.summary}>
-          <Text style={styles.summaryLabel}>Summary — {selectedItems.length} service{selectedItems.length > 1 ? 's' : ''} selected</Text>
+          <Text style={styles.summaryLabel}>{selectedItems.length} service{selectedItems.length > 1 ? 's' : ''} selected</Text>
           {selectedItems.map(i => (
             <Text key={i.name} style={styles.summaryLine}>
               • {i.name}{i.brand ? ` — ${i.brand}` : ''}
@@ -370,7 +382,7 @@ const styles = StyleSheet.create({
     padding: 16, marginTop: 24,
     borderWidth: 1, borderColor: '#e8f0fe',
   },
-  brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 4 },
+  brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 2 },
   brandsSectionSub: { fontSize: 12, color: '#888', marginBottom: 12 },
   brandRow: {
     borderTopWidth: 1, borderTopColor: '#f0f0f0',

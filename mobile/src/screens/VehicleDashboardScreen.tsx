@@ -36,6 +36,7 @@ type Props = {
 export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const loadRecords = async () => {
     setLoading(true)
@@ -56,26 +57,70 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
-  const renderRecord = ({ item }: { item: ServiceRecord }) => (
-    <View style={styles.recordCard}>
-      <View style={styles.recordHeader}>
-        <Text style={styles.recordDate}>{formatDate(item.date)}</Text>
-        {item.cost != null && (
-          <Text style={styles.recordCost}>LKR {item.cost.toLocaleString()}</Text>
+  const parseServices = (description: string) => {
+    return description.split(',').map(s => s.trim()).filter(Boolean)
+  }
+
+  const renderRecord = ({ item }: { item: ServiceRecord }) => {
+    const isExpanded = expandedId === item.id
+    const services = parseServices(item.description)
+    const preview = services.slice(0, 2)
+    const extra = services.length - 2
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => setExpandedId(isExpanded ? null : item.id)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.cardTop}>
+          <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
+          {item.cost != null && (
+            <Text style={styles.cardCost}>LKR {item.cost.toLocaleString()}</Text>
+          )}
+        </View>
+
+        {!isExpanded ? (
+          // Compact view
+          <View>
+            <View style={styles.tagRow}>
+              {preview.map((s, i) => (
+                <View key={i} style={styles.tag}>
+                  <Text style={styles.tagText} numberOfLines={1}>{s}</Text>
+                </View>
+              ))}
+              {extra > 0 && (
+                <View style={styles.tagMore}>
+                  <Text style={styles.tagMoreText}>+{extra} more</Text>
+                </View>
+              )}
+            </View>
+            {item.mileage != null && (
+              <Text style={styles.cardMeta}>{item.mileage.toLocaleString()} km</Text>
+            )}
+          </View>
+        ) : (
+          // Expanded view
+          <View>
+            {services.map((s, i) => (
+              <Text key={i} style={styles.expandedItem}>• {s}</Text>
+            ))}
+            {item.mileage != null && (
+              <Text style={styles.cardMeta}>{item.mileage.toLocaleString()} km</Text>
+            )}
+            {item.notes && (
+              <Text style={styles.cardNotes}>{item.notes}</Text>
+            )}
+            <Text style={styles.collapseHint}>Tap to collapse</Text>
+          </View>
         )}
-      </View>
-      <Text style={styles.recordDesc}>{item.description}</Text>
-      {item.mileage != null && (
-        <Text style={styles.recordMeta}>{item.mileage.toLocaleString()} km</Text>
-      )}
-      {item.parts && (
-        <Text style={styles.recordMeta}>
-          Parts: {item.parts}{item.brand ? ` (${item.brand})` : ''}
-        </Text>
-      )}
-      {item.notes && <Text style={styles.recordNotes}>{item.notes}</Text>}
-    </View>
-  )
+
+        {!isExpanded && services.length > 2 && (
+          <Text style={styles.expandHint}>Tap to see all</Text>
+        )}
+      </TouchableOpacity>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -133,8 +178,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
   regNo: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
   vehicleCard: {
-    backgroundColor: '#1a73e8', margin: 16, borderRadius: 14,
-    padding: 20,
+    backgroundColor: '#1a73e8', margin: 16, borderRadius: 14, padding: 20,
   },
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
   vehicleRow: { flexDirection: 'row', gap: 16 },
@@ -153,16 +197,30 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 16, fontWeight: '600', color: '#555', marginBottom: 8 },
   emptySubText: { fontSize: 13, color: '#888', textAlign: 'center' },
-  list: { padding: 16 },
-  recordCard: {
+  list: { padding: 16, paddingTop: 8 },
+  card: {
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
-    marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05,
-    shadowRadius: 6, elevation: 2,
+    marginBottom: 10, shadowColor: '#000',
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
-  recordHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  recordDate: { fontSize: 12, color: '#888', fontWeight: '600' },
-  recordCost: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
-  recordDesc: { fontSize: 15, fontWeight: '600', color: '#1a1a1a', marginBottom: 4 },
-  recordMeta: { fontSize: 12, color: '#888', marginTop: 2 },
-  recordNotes: { fontSize: 12, color: '#aaa', marginTop: 4, fontStyle: 'italic' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  cardDate: { fontSize: 12, color: '#888', fontWeight: '600' },
+  cardCost: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  tag: {
+    backgroundColor: '#f0f4ff', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 5,
+    maxWidth: 200,
+  },
+  tagText: { fontSize: 13, color: '#1a1a1a', fontWeight: '500' },
+  tagMore: {
+    backgroundColor: '#e8f0fe', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  tagMoreText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  cardMeta: { fontSize: 12, color: '#aaa', marginTop: 4 },
+  cardNotes: { fontSize: 12, color: '#aaa', marginTop: 6, fontStyle: 'italic' },
+  expandHint: { fontSize: 11, color: '#bbb', marginTop: 6 },
+  collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8 },
+  expandedItem: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
 })
