@@ -64,6 +64,33 @@ export const api = {
     return data
   },
 
+  getFuelLogs: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/fuel-logs/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch fuel logs')
+    return data
+  },
+
+  addFuelLog: async (token: string, vehicleId: string, log: {
+    date: string
+    mileage: number
+    litres?: number
+    cost?: number
+    fullTank?: boolean
+    station?: string
+  }) => {
+    const res = await fetch(`${API_URL}/fuel-logs/${vehicleId}`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(log),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to log fuel')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

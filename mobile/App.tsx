@@ -8,8 +8,9 @@ import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
 import AddVehicleScreen from './src/screens/AddVehicleScreen'
 import VehicleDashboardScreen from './src/screens/VehicleDashboardScreen'
 import AddServiceRecordScreen from './src/screens/AddServiceRecordScreen'
+import LogFuelScreen from './src/screens/LogFuelScreen'
 
-type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
+type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel'
 
 type Vehicle = {
   id: string
@@ -108,6 +109,7 @@ export default function App() {
           vehicle={selectedVehicle}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
+          onLogFuel={() => setScreen('logFuel')}
         />
       )}
       {screen === 'addServiceRecord' && selectedVehicle && (
@@ -115,6 +117,15 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           onRecordAdded={() => setScreen('vehicleDashboard')}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'logFuel' && selectedVehicle && (
+        <LogFuelScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          currentMileage={selectedVehicle.mileage}
+          onLogged={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}

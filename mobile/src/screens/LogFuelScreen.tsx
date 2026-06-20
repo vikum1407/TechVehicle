@@ -1,0 +1,204 @@
+import React, { useState } from 'react'
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, ActivityIndicator, Alert
+} from 'react-native'
+import { api } from '../config/api'
+
+type Props = {
+  token: string
+  vehicleId: string
+  currentMileage: number
+  onLogged: () => void
+  onBack: () => void
+}
+
+const today = () => {
+  const d = new Date()
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
+const parseDate = (str: string): string | null => {
+  const parts = str.split('/')
+  if (parts.length !== 3) return null
+  const [d, m, y] = parts
+  const parsed = new Date(`${y}-${m}-${d}`)
+  if (isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
+}
+
+export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogged, onBack }: Props) {
+  const [date, setDate] = useState(today())
+  const [mileage, setMileage] = useState(String(currentMileage))
+  const [litres, setLitres] = useState('')
+  const [cost, setCost] = useState('')
+  const [fullTank, setFullTank] = useState(true)
+  const [station, setStation] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const kmSinceLast = mileage && parseInt(mileage) > currentMileage
+    ? parseInt(mileage) - currentMileage
+    : null
+
+  const kmPerLitre = kmSinceLast && litres && parseFloat(litres) > 0
+    ? (kmSinceLast / parseFloat(litres)).toFixed(1)
+    : null
+
+  const handleSubmit = async () => {
+    if (!mileage || parseInt(mileage) < currentMileage) {
+      Alert.alert('Check mileage', `Odometer reading must be ${currentMileage.toLocaleString()} km or higher.`)
+      return
+    }
+    const isoDate = parseDate(date)
+    if (!isoDate) {
+      Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await api.addFuelLog(token, vehicleId, {
+        date: isoDate,
+        mileage: parseInt(mileage),
+        litres: litres ? parseFloat(litres) : undefined,
+        cost: cost ? parseFloat(cost) : undefined,
+        fullTank,
+        station: station.trim() || undefined,
+      })
+      onLogged()
+    } catch (error: any) {
+      Alert.alert('Error', error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.topRow}>
+        <TouchableOpacity onPress={onBack}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.title}>Log Fuel Fill-up</Text>
+      <Text style={styles.subtitle}>Last recorded: {currentMileage.toLocaleString()} km</Text>
+
+      <Text style={styles.label}>Odometer Reading (km) *</Text>
+      <TextInput
+        style={styles.input}
+        value={mileage}
+        onChangeText={setMileage}
+        keyboardType="number-pad"
+        placeholder="Current odometer reading"
+      />
+
+      {kmSinceLast && (
+        <View style={styles.insight}>
+          <Text style={styles.insightText}>
+            {kmSinceLast.toLocaleString()} km since last fill-up
+            {kmPerLitre ? `  ·  ${kmPerLitre} km/L` : ''}
+          </Text>
+        </View>
+      )}
+
+      <Text style={styles.label}>Litres filled</Text>
+      <TextInput
+        style={styles.input}
+        value={litres}
+        onChangeText={setLitres}
+        keyboardType="decimal-pad"
+        placeholder="e.g. 35.5"
+      />
+
+      <Text style={styles.label}>Total Cost (LKR)</Text>
+      <TextInput
+        style={styles.input}
+        value={cost}
+        onChangeText={setCost}
+        keyboardType="number-pad"
+        placeholder="e.g. 9800"
+      />
+
+      <Text style={styles.label}>Tank</Text>
+      <View style={styles.toggleRow}>
+        <TouchableOpacity
+          style={[styles.toggleBtn, fullTank && styles.toggleBtnActive]}
+          onPress={() => setFullTank(true)}
+        >
+          <Text style={[styles.toggleText, fullTank && styles.toggleTextActive]}>Full tank</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleBtn, !fullTank && styles.toggleBtnActive]}
+          onPress={() => setFullTank(false)}
+        >
+          <Text style={[styles.toggleText, !fullTank && styles.toggleTextActive]}>Partial</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.label}>Date</Text>
+      <TextInput
+        style={styles.input}
+        value={date}
+        onChangeText={setDate}
+        placeholder="DD/MM/YYYY"
+        keyboardType="numbers-and-punctuation"
+      />
+
+      <Text style={styles.label}>Fuel Station (optional)</Text>
+      <TextInput
+        style={styles.input}
+        value={station}
+        onChangeText={setStation}
+        placeholder="e.g. Ceylon Petroleum, IOC"
+      />
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>Save Fill-up</Text>
+        }
+      </TouchableOpacity>
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  content: { padding: 24, paddingBottom: 48 },
+  topRow: { marginTop: 48, marginBottom: 8 },
+  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
+  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 20 },
+  input: {
+    backgroundColor: '#fff', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 14,
+    fontSize: 15, color: '#1a1a1a',
+    borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  insight: {
+    backgroundColor: '#e8f5e9', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
+  },
+  insightText: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
+  toggleRow: { flexDirection: 'row', gap: 12 },
+  toggleBtn: {
+    flex: 1, paddingVertical: 13, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#ddd',
+    backgroundColor: '#fff', alignItems: 'center',
+  },
+  toggleBtnActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  toggleText: { fontSize: 14, color: '#555', fontWeight: '600' },
+  toggleTextActive: { color: '#fff' },
+  button: {
+    backgroundColor: '#1a73e8', borderRadius: 12,
+    paddingVertical: 18, alignItems: 'center', marginTop: 32,
+  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+})

@@ -27,6 +27,7 @@ model Vehicle {
   updatedAt      DateTime        @updatedAt
   owner          User            @relation(fields: [ownerPhone], references: [phoneNumber])
   serviceRecords ServiceRecord[]
+  fuelLogs       FuelLog[]
 }
 
 model ServiceRecord {
@@ -41,4 +42,17 @@ model ServiceRecord {
   notes       String?
   createdAt   DateTime @default(now())
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model FuelLog {
+  id        String   @id @default(cuid())
+  vehicleId String
+  date      DateTime
+  mileage   Int
+  litres    Float?
+  cost      Float?
+  fullTank  Boolean  @default(true)
+  station   String?
+  createdAt DateTime @default(now())
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }

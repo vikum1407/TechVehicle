@@ -31,9 +31,10 @@ type Props = {
   vehicle: Vehicle
   onBack: () => void
   onAddRecord: () => void
+  onLogFuel: () => void
 }
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -137,6 +138,14 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
           <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
         </View>
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
+            <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
+            <Text style={styles.quickBtnText}>🔧 Add Service</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.sectionHeader}>
@@ -181,8 +190,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a73e8', margin: 16, borderRadius: 14, padding: 20,
   },
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  vehicleRow: { flexDirection: 'row', gap: 16 },
+  vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  quickActions: { flexDirection: 'row', gap: 10 },
+  quickBtn: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8, paddingVertical: 10, alignItems: 'center',
+  },
+  quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   sectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, marginBottom: 8,
