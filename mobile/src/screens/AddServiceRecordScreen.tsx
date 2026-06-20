@@ -12,20 +12,60 @@ type Props = {
   onBack: () => void
 }
 
+const SERVICE_CATEGORIES = [
+  {
+    title: 'Engine',
+    items: ['Oil Change', 'Oil Filter', 'Air Filter', 'Fuel Filter', 'Spark Plugs', 'Timing Belt', 'Timing Belt Kit', 'Coolant Flush', 'Engine Flush'],
+  },
+  {
+    title: 'Brakes',
+    items: ['Brake Pads (Front)', 'Brake Pads (Rear)', 'Brake Discs (Front)', 'Brake Discs (Rear)', 'Brake Fluid', 'Brake Drums'],
+  },
+  {
+    title: 'Transmission',
+    items: ['Gear Oil', 'Transmission Service', 'Clutch Plate', 'Clutch Kit'],
+  },
+  {
+    title: 'Suspension',
+    items: ['Shock Absorbers (Front)', 'Shock Absorbers (Rear)', 'CV Joint', 'CV Boot', 'Wheel Alignment', 'Wheel Balancing', 'Tyre Rotation'],
+  },
+  {
+    title: 'Electrical',
+    items: ['Battery', 'Alternator', 'Starter Motor'],
+  },
+  {
+    title: 'AC & Comfort',
+    items: ['AC Service', 'AC Filter', 'Cabin Filter', 'Wiper Blades'],
+  },
+  {
+    title: 'General',
+    items: ['Full Service', 'Body Work', 'Wash & Polish', 'General Repair', 'Inspection'],
+  },
+]
+
+const BRANDS = ['Castrol', 'Mobil', 'Shell', 'Total', 'Motul', 'Denso', 'NGK', 'Bosch', 'Toyota OEM', 'Honda OEM', '3M']
+
 const today = () => {
   const d = new Date()
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
 export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded, onBack }: Props) {
-  const [date, setDate] = useState(today())
-  const [description, setDescription] = useState('')
-  const [mileage, setMileage] = useState('')
-  const [parts, setParts] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
+  const [otherText, setOtherText] = useState('')
   const [brand, setBrand] = useState('')
+  const [customBrand, setCustomBrand] = useState('')
+  const [date, setDate] = useState(today())
+  const [mileage, setMileage] = useState('')
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const toggleService = (item: string) => {
+    setSelected(prev =>
+      prev.includes(item) ? prev.filter(s => s !== item) : [...prev, item]
+    )
+  }
 
   const parseDate = (str: string): string | null => {
     const parts = str.split('/')
@@ -37,8 +77,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
   }
 
   const handleSubmit = async () => {
-    if (!description.trim()) {
-      Alert.alert('Required', 'Please describe what was done.')
+    const allServices = [...selected, ...(otherText.trim() ? [otherText.trim()] : [])]
+    if (allServices.length === 0) {
+      Alert.alert('Select a service', 'Please select at least one service or type in the Other field.')
       return
     }
     const isoDate = parseDate(date)
@@ -47,14 +88,16 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
       return
     }
 
+    const description = allServices.join(', ')
+    const finalBrand = customBrand.trim() || brand
+
     setLoading(true)
     try {
       await api.addServiceRecord(token, vehicleId, {
         date: isoDate,
-        description: description.trim(),
+        description,
         mileage: mileage ? parseInt(mileage) : undefined,
-        parts: parts.trim() || undefined,
-        brand: brand.trim() || undefined,
+        brand: finalBrand || undefined,
         cost: cost ? parseFloat(cost) : undefined,
         notes: notes.trim() || undefined,
       })
@@ -75,53 +118,82 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
       </View>
 
       <Text style={styles.title}>Add Service Record</Text>
-      <Text style={styles.subtitle}>Log what was done to your vehicle</Text>
+      <Text style={styles.subtitle}>Tap everything that was done</Text>
 
-      <Text style={styles.label}>Date <Text style={styles.required}>*</Text></Text>
+      {SERVICE_CATEGORIES.map(cat => (
+        <View key={cat.title}>
+          <Text style={styles.catLabel}>{cat.title}</Text>
+          <View style={styles.chipRow}>
+            {cat.items.map(item => {
+              const isSelected = selected.includes(item)
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => toggleService(item)}
+                  activeOpacity={0.7}
+                >
+                  {isSelected && <Text style={styles.checkmark}>✓ </Text>}
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{item}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
+      ))}
+
+      <Text style={styles.catLabel}>Other (type anything not listed)</Text>
       <TextInput
         style={styles.input}
-        value={date}
-        onChangeText={setDate}
-        placeholder="DD/MM/YYYY"
-        keyboardType="numbers-and-punctuation"
+        value={otherText}
+        onChangeText={setOtherText}
+        placeholder="e.g. Radiator flush, Turbo service..."
       />
 
-      <Text style={styles.label}>What was done <Text style={styles.required}>*</Text></Text>
+      <Text style={styles.catLabel}>Part Brand</Text>
+      <View style={styles.chipRow}>
+        {BRANDS.map(b => (
+          <TouchableOpacity
+            key={b}
+            style={[styles.chip, brand === b && styles.chipSelected]}
+            onPress={() => { setBrand(b); setCustomBrand('') }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.chipText, brand === b && styles.chipTextSelected]}>{b}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       <TextInput
-        style={[styles.input, styles.multiline]}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="e.g. Engine oil change, Brake pad replacement"
-        multiline
-        numberOfLines={3}
+        style={[styles.input, { marginTop: 8 }]}
+        value={customBrand}
+        onChangeText={text => { setCustomBrand(text); setBrand('') }}
+        placeholder="Or type a brand..."
       />
 
-      <Text style={styles.label}>Mileage at service (km) <Text style={styles.optional}>optional</Text></Text>
-      <TextInput
-        style={styles.input}
-        value={mileage}
-        onChangeText={setMileage}
-        placeholder="e.g. 45000"
-        keyboardType="number-pad"
-      />
+      <View style={styles.row}>
+        <View style={styles.halfField}>
+          <Text style={styles.catLabel}>Date</Text>
+          <TextInput
+            style={styles.input}
+            value={date}
+            onChangeText={setDate}
+            placeholder="DD/MM/YYYY"
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+        <View style={styles.halfField}>
+          <Text style={styles.catLabel}>Mileage (km)</Text>
+          <TextInput
+            style={styles.input}
+            value={mileage}
+            onChangeText={setMileage}
+            placeholder="e.g. 45000"
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
 
-      <Text style={styles.label}>Parts replaced <Text style={styles.optional}>optional</Text></Text>
-      <TextInput
-        style={styles.input}
-        value={parts}
-        onChangeText={setParts}
-        placeholder="e.g. Engine oil, Oil filter"
-      />
-
-      <Text style={styles.label}>Part brand <Text style={styles.optional}>optional</Text></Text>
-      <TextInput
-        style={styles.input}
-        value={brand}
-        onChangeText={setBrand}
-        placeholder="e.g. Castrol, Denso, NGK"
-      />
-
-      <Text style={styles.label}>Cost (LKR) <Text style={styles.optional}>optional</Text></Text>
+      <Text style={styles.catLabel}>Cost (LKR)</Text>
       <TextInput
         style={styles.input}
         value={cost}
@@ -130,7 +202,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
         keyboardType="number-pad"
       />
 
-      <Text style={styles.label}>Notes <Text style={styles.optional}>optional</Text></Text>
+      <Text style={styles.catLabel}>Notes (optional)</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
         value={notes}
@@ -139,6 +211,13 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
         multiline
         numberOfLines={2}
       />
+
+      {selected.length > 0 && (
+        <View style={styles.summary}>
+          <Text style={styles.summaryLabel}>Selected services:</Text>
+          <Text style={styles.summaryText}>{selected.join(' · ')}</Text>
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
@@ -156,24 +235,41 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 48 },
-  topRow: { marginTop: 16, marginBottom: 8 },
+  content: { padding: 20, paddingBottom: 48 },
+  topRow: { marginTop: 48, marginBottom: 8 },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4, marginTop: 8 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 16 },
-  required: { color: '#e53935' },
-  optional: { color: '#aaa', fontWeight: '400' },
+  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 20 },
+  catLabel: { fontSize: 13, fontWeight: '700', color: '#444', marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 22, borderWidth: 1.5,
+    borderColor: '#ddd', backgroundColor: '#fff',
+  },
+  chipSelected: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  checkmark: { fontSize: 13, color: '#fff' },
+  chipText: { fontSize: 14, color: '#444' },
+  chipTextSelected: { color: '#fff', fontWeight: '600' },
   input: {
     backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
+    paddingHorizontal: 14, paddingVertical: 13,
     fontSize: 15, color: '#1a1a1a',
     borderWidth: 1, borderColor: '#e0e0e0',
   },
-  multiline: { height: 90, textAlignVertical: 'top' },
+  multiline: { height: 80, textAlignVertical: 'top' },
+  row: { flexDirection: 'row', gap: 12 },
+  halfField: { flex: 1 },
+  summary: {
+    backgroundColor: '#e8f0fe', borderRadius: 10,
+    padding: 14, marginTop: 20,
+  },
+  summaryLabel: { fontSize: 12, fontWeight: '700', color: '#1a73e8', marginBottom: 4 },
+  summaryText: { fontSize: 13, color: '#333', lineHeight: 20 },
   button: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 16, alignItems: 'center', marginTop: 32,
+    backgroundColor: '#1a73e8', borderRadius: 12,
+    paddingVertical: 18, alignItems: 'center', marginTop: 24,
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
