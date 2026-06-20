@@ -19,10 +19,11 @@ type Props = {
   token: string
   phoneNumber: string
   onAddVehicle: () => void
+  onSelectVehicle: (vehicle: Vehicle) => void
   onLogout: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onLogout }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onSelectVehicle, onLogout }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -41,7 +42,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onL
   useEffect(() => { loadVehicles() }, [])
 
   const renderVehicle = ({ item }: { item: Vehicle }) => (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => onSelectVehicle(item)}>
       <View style={styles.cardHeader}>
         <Text style={styles.regNo}>{item.registrationNo}</Text>
         <Text style={styles.fuelType}>{item.fuelType}</Text>

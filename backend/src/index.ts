@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth'
 import vehicleRoutes from './routes/vehicles'
+import serviceRecordRoutes from './routes/serviceRecords'
 
 dotenv.config()
 
@@ -22,6 +23,7 @@ app.get('/health', (req, res) => {
 
 app.use('/auth', authRoutes)
 app.use('/vehicles', vehicleRoutes)
+app.use('/service-records', serviceRecordRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)

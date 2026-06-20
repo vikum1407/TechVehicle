@@ -6,13 +6,26 @@ import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
 import AddVehicleScreen from './src/screens/AddVehicleScreen'
+import VehicleDashboardScreen from './src/screens/VehicleDashboardScreen'
+import AddServiceRecordScreen from './src/screens/AddServiceRecordScreen'
 
-type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle'
+type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
+
+type Vehicle = {
+  id: string
+  registrationNo: string
+  make: string
+  model: string
+  year: number
+  fuelType: string
+  mileage: number
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [token, setToken] = useState('')
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
 
   useEffect(() => {
     AsyncStorage.multiGet(['token', 'phoneNumber']).then(([tokenEntry, phoneEntry]) => {
@@ -44,7 +57,13 @@ export default function App() {
     await AsyncStorage.multiRemove(['token', 'phoneNumber'])
     setToken('')
     setPhoneNumber('')
+    setSelectedVehicle(null)
     setScreen('login')
+  }
+
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle)
+    setScreen('vehicleDashboard')
   }
 
   if (screen === 'loading') {
@@ -73,6 +92,7 @@ export default function App() {
           token={token}
           phoneNumber={phoneNumber}
           onAddVehicle={() => setScreen('addVehicle')}
+          onSelectVehicle={handleSelectVehicle}
           onLogout={handleLogout}
         />
       )}
@@ -80,6 +100,22 @@ export default function App() {
         <AddVehicleScreen
           token={token}
           onVehicleAdded={() => setScreen('vehicles')}
+        />
+      )}
+      {screen === 'vehicleDashboard' && selectedVehicle && (
+        <VehicleDashboardScreen
+          token={token}
+          vehicle={selectedVehicle}
+          onBack={() => setScreen('vehicles')}
+          onAddRecord={() => setScreen('addServiceRecord')}
+        />
+      )}
+      {screen === 'addServiceRecord' && selectedVehicle && (
+        <AddServiceRecordScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          onRecordAdded={() => setScreen('vehicleDashboard')}
+          onBack={() => setScreen('vehicleDashboard')}
         />
       )}
     </>

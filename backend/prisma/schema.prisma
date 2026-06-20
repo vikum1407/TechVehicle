@@ -15,15 +15,30 @@ model User {
 }
 
 model Vehicle {
-  id             String   @id @default(cuid())
-  registrationNo String   @unique
+  id             String          @id @default(cuid())
+  registrationNo String          @unique
   make           String
   model          String
   year           Int
   fuelType       String
   mileage        Int
   ownerPhone     String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  owner          User     @relation(fields: [ownerPhone], references: [phoneNumber])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  owner          User            @relation(fields: [ownerPhone], references: [phoneNumber])
+  serviceRecords ServiceRecord[]
+}
+
+model ServiceRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  date        DateTime
+  description String
+  mileage     Int?
+  parts       String?
+  brand       String?
+  cost        Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }

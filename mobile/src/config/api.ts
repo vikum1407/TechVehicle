@@ -54,4 +54,32 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to add vehicle')
     return data
   },
+
+  getServiceRecords: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/service-records/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch service records')
+    return data
+  },
+
+  addServiceRecord: async (token: string, vehicleId: string, record: {
+    date: string
+    description: string
+    mileage?: number
+    parts?: string
+    brand?: string
+    cost?: number
+    notes?: string
+  }) => {
+    const res = await fetch(`${API_URL}/service-records/${vehicleId}`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(record),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to add service record')
+    return data
+  },
 }
