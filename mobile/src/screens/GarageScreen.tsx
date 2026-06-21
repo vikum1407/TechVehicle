@@ -290,16 +290,11 @@ export default function GarageScreen({ token, onBack }: Props) {
                             )}
                           </View>
                           <View style={styles.tagRow}>
-                            {services.slice(0, 3).map((s, i) => (
+                            {services.map((s, i) => (
                               <View key={i} style={styles.tag}>
                                 <Text style={styles.tagText}>{s}</Text>
                               </View>
                             ))}
-                            {services.length > 3 && (
-                              <View style={styles.tagMore}>
-                                <Text style={styles.tagMoreText}>+{services.length - 3}</Text>
-                              </View>
-                            )}
                           </View>
                           {r.mileage && <Text style={styles.sharedRecordMileage}>{r.mileage.toLocaleString()} km</Text>}
                         </View>
