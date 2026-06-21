@@ -29,6 +29,7 @@ type SharedRecord = {
 
 type IncomingShare = {
   id: string
+  vehicleId: string
   createdAt: string
   ownerPhone: string
   avgFuelEfficiency: number | null
@@ -59,6 +60,15 @@ export default function GarageScreen({ token, onBack }: Props) {
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [brNumber, setBrNumber] = useState('')
+
+  const [activeSubmitId, setActiveSubmitId] = useState<string | null>(null)
+  const [subDesc, setSubDesc] = useState('')
+  const [subParts, setSubParts] = useState('')
+  const [subBrand, setSubBrand] = useState('')
+  const [subCost, setSubCost] = useState('')
+  const [subNotes, setSubNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     api.getGarage(token)
@@ -123,6 +133,34 @@ export default function GarageScreen({ token, onBack }: Props) {
 
   const parseServices = (desc: string) =>
     desc.split(',').map(s => s.trim()).filter(Boolean)
+
+  const openSubmitForm = (shareId: string) => {
+    setActiveSubmitId(shareId)
+    setSubDesc(''); setSubParts(''); setSubBrand(''); setSubCost(''); setSubNotes('')
+  }
+
+  const handleSubmitService = async (share: IncomingShare) => {
+    if (!subDesc.trim()) { Alert.alert('Required', 'Please describe the services performed.'); return }
+    setSubmitting(true)
+    try {
+      await api.submitService(token, {
+        shareSessionId: share.id,
+        vehicleId: share.vehicleId,
+        description: subDesc.trim(),
+        parts: subParts.trim() || undefined,
+        brand: subBrand.trim() || undefined,
+        cost: subCost ? Number(subCost) : undefined,
+        notes: subNotes.trim() || undefined,
+      })
+      setSubmittedIds(prev => new Set(prev).add(share.id))
+      setActiveSubmitId(null)
+      Alert.alert('Submitted', 'Service record sent to the vehicle owner for acceptance.')
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color="#1a73e8" /></View>
@@ -345,7 +383,78 @@ export default function GarageScreen({ token, onBack }: Props) {
                         </View>
                       )
                     })}
-                    <Text style={styles.collapseHint}>Tap to collapse</Text>
+                    {/* Submission area */}
+                    <View style={styles.submitArea}>
+                      {submittedIds.has(share.id) ? (
+                        <View style={styles.submittedBadge}>
+                          <Text style={styles.submittedText}>✓ Submitted to owner</Text>
+                        </View>
+                      ) : activeSubmitId === share.id ? (
+                        <View style={styles.submitForm}>
+                          <Text style={styles.submitFormTitle}>Submit Completed Service</Text>
+                          <Text style={styles.submitLabel}>Services Performed *</Text>
+                          <TextInput
+                            style={styles.submitInput}
+                            value={subDesc}
+                            onChangeText={setSubDesc}
+                            placeholder="e.g. Oil Change, Brake Pad Replacement"
+                            multiline
+                          />
+                          <Text style={styles.submitLabel}>Parts Used (optional)</Text>
+                          <TextInput
+                            style={styles.submitInput}
+                            value={subParts}
+                            onChangeText={setSubParts}
+                            placeholder="e.g. Oil Filter, Brake Pads"
+                          />
+                          <Text style={styles.submitLabel}>Brand (optional)</Text>
+                          <TextInput
+                            style={styles.submitInput}
+                            value={subBrand}
+                            onChangeText={setSubBrand}
+                            placeholder="e.g. Castrol, Bosch"
+                          />
+                          <Text style={styles.submitLabel}>Total Cost — LKR (optional)</Text>
+                          <TextInput
+                            style={styles.submitInput}
+                            value={subCost}
+                            onChangeText={setSubCost}
+                            placeholder="e.g. 8500"
+                            keyboardType="numeric"
+                          />
+                          <Text style={styles.submitLabel}>Notes (optional)</Text>
+                          <TextInput
+                            style={styles.submitInput}
+                            value={subNotes}
+                            onChangeText={setSubNotes}
+                            placeholder="Any additional notes for the owner"
+                            multiline
+                          />
+                          <TouchableOpacity
+                            style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+                            onPress={() => handleSubmitService(share)}
+                            disabled={submitting}
+                          >
+                            {submitting
+                              ? <ActivityIndicator color="#fff" size="small" />
+                              : <Text style={styles.submitBtnText}>Submit to Owner</Text>
+                            }
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => setActiveSubmitId(null)} style={styles.cancelSubmit}>
+                            <Text style={styles.cancelSubmitText}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.openSubmitBtn}
+                          onPress={() => openSubmitForm(share.id)}
+                        >
+                          <Text style={styles.openSubmitBtnText}>Submit Completed Service</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <Text style={styles.collapseHint}>Tap card to collapse</Text>
                   </View>
                 )}
 
@@ -455,4 +564,27 @@ const styles = StyleSheet.create({
   profileValue: { fontSize: 13, color: '#1a1a1a', fontWeight: '600' },
   profileValueHighlight: { fontSize: 14, color: '#1a73e8', fontWeight: '800' },
   recordsSectionTitle: { fontSize: 12, fontWeight: '700', color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  submitArea: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 14 },
+  submittedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
+  submittedText: { fontSize: 14, color: '#2e7d32', fontWeight: '700' },
+  openSubmitBtn: {
+    backgroundColor: '#2e7d32', borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  openSubmitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  submitForm: { backgroundColor: '#f9f9f9', borderRadius: 10, padding: 14 },
+  submitFormTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 12 },
+  submitLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 10 },
+  submitInput: {
+    backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 14, color: '#1a1a1a', borderWidth: 1, borderColor: '#ddd',
+  },
+  submitBtn: {
+    backgroundColor: '#2e7d32', borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center', marginTop: 16,
+  },
+  submitBtnDisabled: { opacity: 0.5 },
+  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  cancelSubmit: { alignItems: 'center', marginTop: 10 },
+  cancelSubmitText: { fontSize: 13, color: '#888' },
 })

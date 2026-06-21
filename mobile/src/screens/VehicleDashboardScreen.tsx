@@ -37,20 +37,49 @@ type Props = {
   onShare: () => void
 }
 
+type Submission = {
+  id: string
+  description: string
+  parts: string | null
+  brand: string | null
+  cost: number | null
+  notes: string | null
+  createdAt: string
+  garage: { name: string; verified: boolean }
+}
+
 export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [accepting, setAccepting] = useState<string | null>(null)
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const data = await api.getServiceRecords(token, vehicle.id)
-      setRecords(data)
+      const [recs, subs] = await Promise.all([
+        api.getServiceRecords(token, vehicle.id),
+        api.getVehicleSubmissions(token, vehicle.id),
+      ])
+      setRecords(recs)
+      setSubmissions(subs)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAccept = async (submissionId: string) => {
+    setAccepting(submissionId)
+    try {
+      await api.acceptSubmission(token, submissionId)
+      await loadRecords()
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setAccepting(null)
     }
   }
 
@@ -157,6 +186,49 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         </View>
       </View>
 
+      {submissions.length > 0 && (
+        <View style={styles.submissionsSection}>
+          <Text style={styles.submissionsSectionTitle}>
+            Pending from Garage ({submissions.length})
+          </Text>
+          {submissions.map(sub => (
+            <View key={sub.id} style={styles.submissionCard}>
+              <View style={styles.submissionHeader}>
+                <Text style={styles.submissionGarage}>
+                  {sub.garage.name}{sub.garage.verified ? ' ✅' : ''}
+                </Text>
+                <Text style={styles.submissionDate}>
+                  {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Text>
+              </View>
+              <View style={styles.tagRow}>
+                {sub.description.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => (
+                  <View key={i} style={styles.tag}>
+                    <Text style={styles.tagText}>{s}</Text>
+                  </View>
+                ))}
+              </View>
+              {sub.parts && <Text style={styles.submissionMeta}>Parts: {sub.parts}</Text>}
+              {sub.brand && <Text style={styles.submissionMeta}>Brand: {sub.brand}</Text>}
+              {sub.cost != null && (
+                <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
+              )}
+              {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
+              <TouchableOpacity
+                style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
+                onPress={() => handleAccept(sub.id)}
+                disabled={accepting === sub.id}
+              >
+                {accepting === sub.id
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.acceptBtnText}>Accept — Add to History</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Service History</Text>
         <View style={styles.sectionActions}>
@@ -258,4 +330,25 @@ const styles = StyleSheet.create({
   expandHint: { fontSize: 11, color: '#bbb', marginTop: 6 },
   collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8 },
   expandedItem: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
+  submissionsSection: { marginHorizontal: 16, marginBottom: 12 },
+  submissionsSectionTitle: {
+    fontSize: 13, fontWeight: '700', color: '#e65100',
+    marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  submissionCard: {
+    backgroundColor: '#fff8f0', borderRadius: 12, padding: 14,
+    marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#e65100',
+  },
+  submissionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' },
+  submissionGarage: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', flex: 1 },
+  submissionDate: { fontSize: 12, color: '#888' },
+  submissionMeta: { fontSize: 12, color: '#555', marginTop: 4 },
+  submissionCost: { fontSize: 14, fontWeight: '700', color: '#e65100', marginTop: 6 },
+  submissionNotes: { fontSize: 12, color: '#888', fontStyle: 'italic', marginTop: 4 },
+  acceptBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', marginTop: 12,
+  },
+  acceptBtnDisabled: { opacity: 0.5 },
+  acceptBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 })

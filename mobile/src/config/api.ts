@@ -206,6 +206,44 @@ export const api = {
     return data
   },
 
+  submitService: async (token: string, payload: {
+    shareSessionId: string
+    vehicleId: string
+    description: string
+    parts?: string
+    brand?: string
+    cost?: number
+    notes?: string
+  }) => {
+    const res = await fetch(`${API_URL}/service-submissions`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to submit service')
+    return data
+  },
+
+  getVehicleSubmissions: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/service-submissions/vehicle/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch submissions')
+    return data
+  },
+
+  acceptSubmission: async (token: string, submissionId: string) => {
+    const res = await fetch(`${API_URL}/service-submissions/${submissionId}/accept`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to accept submission')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

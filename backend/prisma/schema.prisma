@@ -16,21 +16,22 @@ model User {
 }
 
 model Vehicle {
-  id             String          @id @default(cuid())
-  registrationNo String          @unique
+  id             String              @id @default(cuid())
+  registrationNo String              @unique
   make           String
   model          String
   year           Int
   fuelType       String
   mileage        Int
   ownerPhone     String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  owner          User            @relation(fields: [ownerPhone], references: [phoneNumber])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  owner          User                @relation(fields: [ownerPhone], references: [phoneNumber])
   serviceRecords ServiceRecord[]
   fuelLogs       FuelLog[]
   expenses       Expense[]
   shareSessions  ShareSession[]
+  submissions    ServiceSubmission[]
 }
 
 model ServiceRecord {
@@ -74,16 +75,17 @@ model FuelLog {
 }
 
 model Garage {
-  id            String         @id @default(cuid())
-  ownerPhone    String         @unique
+  id            String              @id @default(cuid())
+  ownerPhone    String              @unique
   name          String
   address       String?
   brNumber      String?
-  verified      Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  owner         User           @relation(fields: [ownerPhone], references: [phoneNumber])
+  verified      Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  owner         User                @relation(fields: [ownerPhone], references: [phoneNumber])
   shareSessions ShareSession[]
+  submissions   ServiceSubmission[]
 }
 
 model ShareSession {
@@ -96,4 +98,21 @@ model ShareSession {
   createdAt       DateTime @default(now())
   vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage          Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
+}
+
+model ServiceSubmission {
+  id             String   @id @default(cuid())
+  shareSessionId String
+  vehicleId      String
+  garageId       String
+  ownerPhone     String
+  description    String
+  parts          String?
+  brand          String?
+  cost           Float?
+  notes          String?
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  garage         Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
 }
