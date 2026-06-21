@@ -1,5 +1,32 @@
 # TechVehicle — Project Context & Vision
 
+---
+
+## Current Development State (updated 2026-06-20)
+
+### Completed & Working ✅
+- Phone auth (OTP via console in dev, JWT stored in AsyncStorage)
+- Add vehicle + My Vehicles screen
+- Vehicle Dashboard (blue card, quick action buttons)
+- Add Service Record (tap-to-select categories, per-item brands, compact history cards)
+- Log Fuel (odometer, litres, cost, km/L insight card)
+- Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
+- All data persists to Neon (PostgreSQL via Prisma)
+- All committed and pushed to GitHub
+
+### Database tables in Neon ✅
+`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`
+
+### Next Session — Start Here
+**Analytics screen (Phase 2)** — shows expense breakdown by category (pie/bar chart), total spend, fuel cost trend, cost per km. Build this next before moving to Share/Sell (Phase 3).
+
+Libraries to add for charts: `react-native-gifted-charts` or `victory-native`
+
+### Known Workflow Note
+Files edited by Claude locally (C:\Vikum\TechVehicle) are NOT automatically in the Codespace. Always use Python/bash commands to write/update files directly in `/workspaces/TechVehicle/` in the Codespace terminal, then commit and push from there.
+
+---
+
 ## Origin Story
 
 The idea came from a real experience: buying a used vehicle whose previous owner had maintained a physical file of all repair bills and maintenance records. That single act of diligence created immediate trust and gave the new owner a clear picture of the vehicle's history. This app is the digital version of that file — done right.
