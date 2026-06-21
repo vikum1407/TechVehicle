@@ -2,15 +2,16 @@
 
 ---
 
-## Current Development State (updated 2026-06-20)
+## Current Development State (updated 2026-06-21)
 
 ### Completed & Working ✅
 - Phone auth (OTP via console in dev, JWT stored in AsyncStorage)
 - Add vehicle + My Vehicles screen
-- Vehicle Dashboard (blue card, quick action buttons)
+- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Analytics)
 - Add Service Record (tap-to-select categories, per-item brands, compact history cards)
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
+- Analytics screen (total spend, cost/km, fuel economy, spending by category bars, monthly bar chart, record counts)
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
@@ -18,12 +19,11 @@
 `User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`
 
 ### Next Session — Start Here
-**Analytics screen (Phase 2)** — shows expense breakdown by category (pie/bar chart), total spend, fuel cost trend, cost per km. Build this next before moving to Share/Sell (Phase 3).
-
-Libraries to add for charts: `react-native-gifted-charts` or `victory-native`
+**Phase 3 — Share & Sell engines.**
+First feature: Garage account registration (separate account type, BR number optional, verified/unverified badge). Then the Share flow (owner selects records → sends read-only view to garage → garage submits completed service → owner accepts).
 
 ### Known Workflow Note
-Files edited by Claude locally (C:\Vikum\TechVehicle) are NOT automatically in the Codespace. Always use Python/bash commands to write/update files directly in `/workspaces/TechVehicle/` in the Codespace terminal, then commit and push from there.
+Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git (git IS initialised here). Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
 
 ---
 
