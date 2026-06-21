@@ -7,6 +7,7 @@ import serviceRecordRoutes from './routes/serviceRecords'
 import fuelLogRoutes from './routes/fuelLogs'
 import expenseRoutes from './routes/expenses'
 import analyticsRoutes from './routes/analytics'
+import garageRoutes from './routes/garages'
 
 dotenv.config()
 
@@ -30,6 +31,7 @@ app.use('/service-records', serviceRecordRoutes)
 app.use('/fuel-logs', fuelLogRoutes)
 app.use('/expenses', expenseRoutes)
 app.use('/analytics', analyticsRoutes)
+app.use('/garages', garageRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)

@@ -21,9 +21,10 @@ type Props = {
   onAddVehicle: () => void
   onSelectVehicle: (vehicle: Vehicle) => void
   onLogout: () => void
+  onGarage: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onSelectVehicle, onLogout }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onSelectVehicle, onLogout, onGarage }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -59,9 +60,14 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
           <Text style={styles.logo}>TechVehicle</Text>
           <Text style={styles.phone}>{phoneNumber}</Text>
         </View>
-        <TouchableOpacity onPress={onLogout}>
-          <Text style={styles.logout}>Log out</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.garageBtn} onPress={onGarage}>
+            <Text style={styles.garageBtnText}>🏪 Garage</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onLogout}>
+            <Text style={styles.logout}>Log out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -101,6 +107,12 @@ const styles = StyleSheet.create({
   },
   logo: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
   phone: { fontSize: 12, color: '#888', marginTop: 2 },
+  headerRight: { alignItems: 'flex-end', gap: 8 },
+  garageBtn: {
+    backgroundColor: '#e8f0fe', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  garageBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
   logout: { fontSize: 14, color: '#888' },
   loader: { flex: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },

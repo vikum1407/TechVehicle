@@ -64,6 +64,37 @@ export const api = {
     return data
   },
 
+  getGarage: async (token: string) => {
+    const res = await fetch(`${API_URL}/garages/me`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch garage')
+    return data
+  },
+
+  registerGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string }) => {
+    const res = await fetch(`${API_URL}/garages/register`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(garage),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to register garage')
+    return data
+  },
+
+  updateGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string }) => {
+    const res = await fetch(`${API_URL}/garages/me`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(garage),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update garage')
+    return data
+  },
+
   getAnalytics: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/analytics/${vehicleId}`, {
       headers: authHeaders(token),
