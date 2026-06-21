@@ -30,11 +30,15 @@ type SharedRecord = {
 type IncomingShare = {
   id: string
   createdAt: string
+  ownerPhone: string
+  avgFuelEfficiency: number | null
+  totalServiceCost: number
   vehicle: {
     registrationNo: string
     make: string
     model: string
     year: number
+    fuelType: string
     mileage: number
   }
   records: SharedRecord[]
@@ -279,6 +283,47 @@ export default function GarageScreen({ token, onBack }: Props) {
 
                 {isExpanded && (
                   <View style={styles.shareRecords}>
+                    {/* Vehicle Profile */}
+                    <View style={styles.profileSection}>
+                      <Text style={styles.profileSectionTitle}>Vehicle Profile</Text>
+                      <View style={styles.profileGrid}>
+                        <View style={styles.profileItem}>
+                          <Text style={styles.profileLabel}>Registration</Text>
+                          <Text style={styles.profileValueHighlight}>{share.vehicle.registrationNo}</Text>
+                        </View>
+                        <View style={styles.profileItem}>
+                          <Text style={styles.profileLabel}>Fuel Type</Text>
+                          <Text style={styles.profileValue}>{share.vehicle.fuelType}</Text>
+                        </View>
+                        <View style={styles.profileItem}>
+                          <Text style={styles.profileLabel}>Current Mileage</Text>
+                          <Text style={styles.profileValue}>{share.vehicle.mileage.toLocaleString()} km</Text>
+                        </View>
+                        <View style={styles.profileItem}>
+                          <Text style={styles.profileLabel}>Fuel Economy</Text>
+                          <Text style={styles.profileValue}>
+                            {share.avgFuelEfficiency != null
+                              ? `${share.avgFuelEfficiency} km/L`
+                              : 'No data yet'}
+                          </Text>
+                        </View>
+                        <View style={styles.profileItem}>
+                          <Text style={styles.profileLabel}>Owner Contact</Text>
+                          <Text style={styles.profileValue}>{share.ownerPhone}</Text>
+                        </View>
+                        {share.totalServiceCost > 0 && (
+                          <View style={styles.profileItem}>
+                            <Text style={styles.profileLabel}>Total Service Cost</Text>
+                            <Text style={styles.profileValue}>LKR {share.totalServiceCost.toLocaleString()}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Shared Records */}
+                    <Text style={styles.recordsSectionTitle}>
+                      Shared Service Records ({share.records.length})
+                    </Text>
                     {share.records.map(r => {
                       const services = parseServices(r.description)
                       return (
@@ -400,4 +445,14 @@ const styles = StyleSheet.create({
   tagMoreText: { fontSize: 12, color: '#1a73e8', fontWeight: '600' },
   sharedRecordMileage: { fontSize: 11, color: '#aaa' },
   collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8, textAlign: 'center' },
+  profileSection: {
+    backgroundColor: '#f0f6ff', borderRadius: 10, padding: 14, marginBottom: 14,
+  },
+  profileSectionTitle: { fontSize: 12, fontWeight: '700', color: '#1a73e8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  profileItem: { width: '47%' },
+  profileLabel: { fontSize: 11, color: '#888', fontWeight: '600', marginBottom: 2 },
+  profileValue: { fontSize: 13, color: '#1a1a1a', fontWeight: '600' },
+  profileValueHighlight: { fontSize: 14, color: '#1a73e8', fontWeight: '800' },
+  recordsSectionTitle: { fontSize: 12, fontWeight: '700', color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 })

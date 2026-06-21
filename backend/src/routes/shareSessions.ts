@@ -75,14 +75,49 @@ router.get('/incoming', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' },
     })
 
-    // For each session, fetch the actual shared records
+    // For each session, fetch records + vehicle profile stats
     const withRecords = await Promise.all(sessions.map(async session => {
       const recordIds: string[] = JSON.parse(session.sharedRecordIds)
       const records = await prisma.serviceRecord.findMany({
         where: { id: { in: recordIds } },
         orderBy: { date: 'desc' },
       })
-      return { ...session, records }
+
+      // Avg fuel efficiency from consecutive full-tank logs
+      const fuelLogs = await prisma.fuelLog.findMany({
+        where: { vehicleId: session.vehicleId, fullTank: true, litres: { not: null } },
+        orderBy: { mileage: 'asc' },
+      })
+      let avgFuelEfficiency: number | null = null
+      if (fuelLogs.length >= 2) {
+        const intervals: number[] = []
+        for (let i = 1; i < fuelLogs.length; i++) {
+          const km = fuelLogs[i].mileage - fuelLogs[i - 1].mileage
+          const litres = fuelLogs[i].litres!
+          if (km > 0 && litres > 0) intervals.push(km / litres)
+        }
+        if (intervals.length > 0) {
+          avgFuelEfficiency = Math.round((intervals.reduce((a, b) => a + b, 0) / intervals.length) * 10) / 10
+        }
+      }
+
+      const totalServiceCost = records.reduce((sum, r) => sum + (r.cost || 0), 0)
+
+      return {
+        ...session,
+        vehicle: {
+          registrationNo: session.vehicle.registrationNo,
+          make: session.vehicle.make,
+          model: session.vehicle.model,
+          year: session.vehicle.year,
+          fuelType: session.vehicle.fuelType,
+          mileage: session.vehicle.mileage,
+        },
+        ownerPhone: session.ownerPhone,
+        avgFuelEfficiency,
+        totalServiceCost,
+        records,
+      }
     }))
 
     res.json(withRecords)
