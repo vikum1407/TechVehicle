@@ -47,7 +47,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
 // GET /service-submissions/vehicle/:vehicleId — owner sees pending submissions for a vehicle
 router.get('/vehicle/:vehicleId', async (req: AuthRequest, res) => {
-  const { vehicleId } = req.params
+  const vehicleId = req.params.vehicleId as string
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: vehicleId, ownerPhone: req.phoneNumber! },
@@ -68,7 +68,7 @@ router.get('/vehicle/:vehicleId', async (req: AuthRequest, res) => {
 
 // POST /service-submissions/:id/accept — owner accepts → creates permanent service record
 router.post('/:id/accept', async (req: AuthRequest, res) => {
-  const { id } = req.params
+  const id = req.params.id as string
   try {
     const submission = await prisma.serviceSubmission.findFirst({
       where: { id, ownerPhone: req.phoneNumber!, status: 'pending' },
