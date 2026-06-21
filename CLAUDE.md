@@ -12,15 +12,21 @@
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
 - Analytics screen (total spend, cost/km, fuel economy, spending by category bars, monthly bar chart, record counts)
+- Garage registration (verified/unverified badge via BR number)
+- Share flow: owner selects records → searches garage → confirms → shares read-only view
+- Garage incoming shares view: vehicle profile (reg, mileage, fuel type, fuel economy, owner contact), shared service records
+- Garage service submission: full tap-to-select form (same as Add Service Record) → sends to owner
+- Owner acceptance: pending submissions appear on vehicle dashboard → Accept saves as permanent service record
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
 ### Database tables in Neon ✅
-`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`
+`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`
 
 ### Next Session — Start Here
-**Phase 3 — Share & Sell engines.**
-First feature: Garage account registration (separate account type, BR number optional, verified/unverified badge). Then the Share flow (owner selects records → sends read-only view to garage → garage submits completed service → owner accepts).
+**Phase 3 remaining:** Sell / Transfer engine — owner enters buyer's mobile number, all records transfer irreversibly to buyer, buyer must Accept to complete.
+
+**Then Phase 4:** Garage booking system (availability calendar, booking creation, confirmation, reminders).
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git (git IS initialised here). Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
@@ -622,6 +628,34 @@ Each feature is built end-to-end (backend API + mobile screen) before moving to 
 - Anomaly detection and cost forecasting
 - Vehicle marketplace with verified history listings
 - OBD-II Bluetooth integration (premium tier)
+
+---
+
+## Backlog Ideas (Vikum's Notes)
+
+### Service Record Engine — Vehicle-Type-Aware Categories
+
+**Idea (noted 2026-06-21):** The service category list should be filtered by vehicle type so users only see categories relevant to their vehicle. A motorcycle doesn't have AC or a transmission fluid option the same way a car does; a three-wheeler has very different service needs to an SUV.
+
+**Vehicle types to support** (not just home-use cars):
+- Motorcycle / Motorbike
+- Car — Petrol
+- Car — Diesel
+- SUV / Jeep — Petrol
+- SUV / Jeep — Diesel
+- Three-Wheeler (Bajaj, TVS, etc.)
+- Van / Minivan (e.g. Toyota KDH)
+- Pickup Truck
+- Bus / Large vehicle
+- Electric vehicle
+
+**What changes:**
+1. Add a `vehicleType` field to the `Vehicle` model (e.g. `"car-petrol"`, `"motorcycle"`, `"three-wheeler"`)
+2. Move `SERVICE_CATEGORIES` from the hardcoded mobile constants file (`serviceData.ts`) to a **backend-served endpoint** — `GET /service-categories?vehicleType=motorcycle` — so categories can be updated without an app release
+3. The mobile form fetches categories from the API on mount, filtered by the vehicle's type
+4. The `Vehicle` add flow gets an extra step: select vehicle type (with icons, before or after make/model)
+
+**Architecture note:** Keep Service Records as a well-isolated engine within the monolith for now. Extract as a microservice only when the platform has real multi-tenant scale. The category config moving to the backend is the most important step — it decouples content from app releases.
 
 ---
 
