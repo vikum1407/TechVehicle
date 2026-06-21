@@ -95,6 +95,54 @@ export const api = {
     return data
   },
 
+  searchGarages: async (token: string, name: string) => {
+    const res = await fetch(`${API_URL}/garages/search?name=${encodeURIComponent(name)}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to search garages')
+    return data
+  },
+
+  createShare: async (token: string, payload: { vehicleId: string; garageId: string; recordIds: string[] }) => {
+    const res = await fetch(`${API_URL}/share-sessions`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to create share')
+    return data
+  },
+
+  getVehicleShares: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/share-sessions/vehicle/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch shares')
+    return data
+  },
+
+  getIncomingShares: async (token: string) => {
+    const res = await fetch(`${API_URL}/share-sessions/incoming`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch incoming shares')
+    return data
+  },
+
+  revokeShare: async (token: string, sessionId: string) => {
+    const res = await fetch(`${API_URL}/share-sessions/${sessionId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to revoke share')
+    return data
+  },
+
   getAnalytics: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/analytics/${vehicleId}`, {
       headers: authHeaders(token),

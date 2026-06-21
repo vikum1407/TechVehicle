@@ -12,8 +12,9 @@ import LogFuelScreen from './src/screens/LogFuelScreen'
 import AddExpenseScreen from './src/screens/AddExpenseScreen'
 import AnalyticsScreen from './src/screens/AnalyticsScreen'
 import GarageScreen from './src/screens/GarageScreen'
+import ShareScreen from './src/screens/ShareScreen'
 
-type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage'
+type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'share'
 
 type Vehicle = {
   id: string
@@ -116,6 +117,7 @@ export default function App() {
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
+          onShare={() => setScreen('share')}
         />
       )}
       {screen === 'addServiceRecord' && selectedVehicle && (
@@ -133,6 +135,14 @@ export default function App() {
           currentMileage={selectedVehicle.mileage}
           onLogged={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'share' && selectedVehicle && (
+        <ShareScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          onBack={() => setScreen('vehicleDashboard')}
+          onShared={() => setScreen('vehicleDashboard')}
         />
       )}
       {screen === 'garage' && (

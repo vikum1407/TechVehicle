@@ -34,9 +34,10 @@ type Props = {
   onLogFuel: () => void
   onAddExpense: () => void
   onAnalytics: () => void
+  onShare: () => void
 }
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -158,9 +159,14 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Service History</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={onAddRecord}>
-          <Text style={styles.addBtnText}>+ Add Record</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionActions}>
+          <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
+            <Text style={styles.shareBtnText}>🔗 Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={onAddRecord}>
+            <Text style={styles.addBtnText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -211,6 +217,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, marginBottom: 8,
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  sectionActions: { flexDirection: 'row', gap: 8 },
+  shareBtn: {
+    backgroundColor: '#e8f0fe', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  shareBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '700' },
   addBtn: {
     backgroundColor: '#1a73e8', borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 8,

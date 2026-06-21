@@ -71,4 +71,23 @@ router.put('/me', async (req: AuthRequest, res) => {
   }
 })
 
+// GET /garages/search?name=xxx — search garages by name (public-ish, still requires auth)
+router.get('/search', async (req: AuthRequest, res) => {
+  const name = (req.query.name as string || '').trim()
+  if (name.length < 2) {
+    res.status(400).json({ error: 'Search term must be at least 2 characters' }); return
+  }
+  try {
+    const garages = await prisma.garage.findMany({
+      where: { name: { contains: name, mode: 'insensitive' } },
+      select: { id: true, name: true, address: true, verified: true },
+      take: 10,
+    })
+    res.json(garages)
+  } catch (error) {
+    console.error('GET /garages/search error:', error)
+    res.status(500).json({ error: 'Failed to search garages' })
+  }
+})
+
 export default router
