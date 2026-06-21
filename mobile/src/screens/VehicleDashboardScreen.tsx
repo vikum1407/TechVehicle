@@ -32,9 +32,11 @@ type Props = {
   onBack: () => void
   onAddRecord: () => void
   onLogFuel: () => void
+  onAddExpense: () => void
+  onAnalytics: () => void
 }
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -145,6 +147,12 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
             <Text style={styles.quickBtnText}>🔧 Add Service</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
+            <Text style={styles.quickBtnText}>💰 Add Expense</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
+            <Text style={styles.quickBtnText}>📊 Analytics</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -192,9 +200,9 @@ const styles = StyleSheet.create({
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
   vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
-  quickActions: { flexDirection: 'row', gap: 10 },
+  quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   quickBtn: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.2)',
+    width: '47%', backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
   },
   quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },

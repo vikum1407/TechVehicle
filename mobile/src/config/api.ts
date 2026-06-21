@@ -64,6 +64,42 @@ export const api = {
     return data
   },
 
+  getAnalytics: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/analytics/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch analytics')
+    return data
+  },
+
+  getExpenses: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/expenses/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch expenses')
+    return data
+  },
+
+  addExpense: async (token: string, vehicleId: string, expense: {
+    date: string
+    category: string
+    amount: number
+    description?: string
+    mileage?: number
+    notes?: string
+  }) => {
+    const res = await fetch(`${API_URL}/expenses/${vehicleId}`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(expense),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to add expense')
+    return data
+  },
+
   getFuelLogs: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/fuel-logs/${vehicleId}`, {
       headers: authHeaders(token),
