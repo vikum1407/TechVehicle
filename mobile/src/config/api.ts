@@ -127,26 +127,6 @@ export const api = {
     return data
   },
 
-  getExpenses: async (token, vehicleId) => {
-    const res = await fetch(`${API_URL}/expenses/${vehicleId}`, {
-      headers: authHeaders(token),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to fetch expenses')
-    return data
-  },
-
-  addExpense: async (token, vehicleId, expense) => {
-    const res = await fetch(`${API_URL}/expenses/${vehicleId}`, {
-      method: 'POST',
-      headers: authHeaders(token),
-      body: JSON.stringify(expense),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to add expense')
-    return data
-  },
-
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string
