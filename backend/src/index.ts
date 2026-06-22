@@ -11,6 +11,8 @@ import garageRoutes from './routes/garages'
 import shareSessionRoutes from './routes/shareSessions'
 import serviceSubmissionRoutes from './routes/serviceSubmissions'
 import transferRoutes from './routes/transfers'
+import availabilityRoutes from './routes/availability'
+import bookingRoutes from './routes/bookings'
 
 dotenv.config()
 
@@ -38,6 +40,8 @@ app.use('/garages', garageRoutes)
 app.use('/share-sessions', shareSessionRoutes)
 app.use('/service-submissions', serviceSubmissionRoutes)
 app.use('/transfers', transferRoutes)
+app.use('/availability', availabilityRoutes)
+app.use('/bookings', bookingRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)

@@ -302,6 +302,89 @@ export const api = {
     return data
   },
 
+  getAvailabilityDates: async (token: string, garageId: string) => {
+    const res = await fetch(`${API_URL}/availability/${garageId}/dates`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch dates')
+    return data
+  },
+
+  setAvailability: async (token: string, workDays: number[], maxPerDay: number) => {
+    const res = await fetch(`${API_URL}/availability`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify({ workDays, maxPerDay }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to set availability')
+    return data
+  },
+
+  getGarageAvailability: async (token: string, garageId: string) => {
+    const res = await fetch(`${API_URL}/availability/${garageId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch availability')
+    return data
+  },
+
+  createBooking: async (token: string, payload: {
+    vehicleId: string
+    garageId: string
+    date: string
+    notes?: string
+  }) => {
+    const res = await fetch(`${API_URL}/bookings`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to create booking')
+    return data
+  },
+
+  getMyBookings: async (token: string) => {
+    const res = await fetch(`${API_URL}/bookings/mine`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch bookings')
+    return data
+  },
+
+  getGarageBookings: async (token: string) => {
+    const res = await fetch(`${API_URL}/bookings/garage`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch bookings')
+    return data
+  },
+
+  confirmBooking: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/confirm`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to confirm booking')
+    return data
+  },
+
+  cancelBooking: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to cancel booking')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

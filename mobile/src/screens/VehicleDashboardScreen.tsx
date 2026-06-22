@@ -37,6 +37,7 @@ type Props = {
   onAnalytics: () => void
   onShare: () => void
   onSell: () => void
+  onBookService: () => void
 }
 
 type PendingTransfer = {
@@ -114,7 +115,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare, onSell }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare, onSell, onBookService }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -294,6 +295,9 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
             <Text style={styles.quickBtnText}>📊 Analytics</Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.bookBtn} onPress={onBookService}>
+          <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Sparkline mini-charts */}
@@ -452,6 +456,12 @@ const styles = StyleSheet.create({
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
   },
   quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  bookBtn: {
+    marginTop: 10, backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  bookBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   // Sparkline cards
   sparkRow: {

@@ -49,7 +49,22 @@ type IncomingShare = {
   records: SharedRecord[]
 }
 
-type Tab = 'profile' | 'shared'
+type Tab = 'profile' | 'bookings' | 'shared'
+
+type Booking = {
+  id: string
+  date: string
+  status: string
+  notes: string | null
+  ownerPhone: string
+  vehicle: {
+    registrationNo: string
+    make: string
+    model: string
+    year: number
+    mileage: number
+  }
+}
 
 export default function GarageScreen({ token, onBack }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
@@ -61,6 +76,10 @@ export default function GarageScreen({ token, onBack }: Props) {
   const [sharesLoading, setSharesLoading] = useState(false)
   const [expandedShare, setExpandedShare] = useState<string | null>(null)
   const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
+
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   // Garage profile form
   const [name, setName] = useState('')
@@ -104,8 +123,33 @@ export default function GarageScreen({ token, onBack }: Props) {
     }
   }
 
+  const loadBookings = async () => {
+    setBookingsLoading(true)
+    try {
+      const data = await api.getGarageBookings(token)
+      setBookings(data)
+    } catch (e: any) {
+      if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
+    } finally {
+      setBookingsLoading(false)
+    }
+  }
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    setConfirmingId(bookingId)
+    try {
+      await api.confirmBooking(token, bookingId)
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'confirmed' } : b))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
   useEffect(() => {
     if (tab === 'shared' && garage) loadShares()
+    if (tab === 'bookings' && garage) loadBookings()
   }, [tab, garage])
 
   const handleRegister = async () => {
@@ -393,10 +437,16 @@ export default function GarageScreen({ token, onBack }: Props) {
             <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.tab, tab === 'bookings' && styles.tabActive]}
+            onPress={() => setTab('bookings')}
+          >
+            <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.tab, tab === 'shared' && styles.tabActive]}
             onPress={() => setTab('shared')}
           >
-            <Text style={[styles.tabText, tab === 'shared' && styles.tabTextActive]}>Shared With Me</Text>
+            <Text style={[styles.tabText, tab === 'shared' && styles.tabTextActive]}>Shared</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -485,6 +535,75 @@ export default function GarageScreen({ token, onBack }: Props) {
               </TouchableOpacity>
             </>
           )}
+        </ScrollView>
+      )}
+
+      {tab === 'bookings' && garage && (
+        <ScrollView contentContainerStyle={styles.content}>
+          {bookingsLoading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
+          ) : bookings.length === 0 ? (
+            <View style={styles.emptyShares}>
+              <Text style={styles.emptySharesTitle}>No bookings yet</Text>
+              <Text style={styles.emptySharesText}>
+                When vehicle owners book a service appointment, they will appear here.
+              </Text>
+            </View>
+          ) : bookings.map(booking => {
+            const d = new Date(booking.date)
+            const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+            const isPending = booking.status === 'pending'
+            const isConfirmed = booking.status === 'confirmed'
+            return (
+              <View key={booking.id} style={styles.bookingCard}>
+                <View style={styles.bookingHeader}>
+                  <View>
+                    <Text style={styles.bookingVehicle}>
+                      {booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}
+                    </Text>
+                    <Text style={styles.bookingReg}>{booking.vehicle.registrationNo}</Text>
+                  </View>
+                  <View style={[
+                    styles.bookingBadge,
+                    isPending ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
+                  ]}>
+                    <Text style={styles.bookingBadgeText}>
+                      {isPending ? 'Pending' : 'Confirmed'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.bookingMeta}>
+                  <Text style={styles.bookingDate}>📅 {dateStr}</Text>
+                  <Text style={styles.bookingOwner}>Owner: {booking.ownerPhone}</Text>
+                  <Text style={styles.bookingMileage}>{booking.vehicle.mileage.toLocaleString()} km</Text>
+                </View>
+
+                {booking.notes ? (
+                  <Text style={styles.bookingNotes}>"{booking.notes}"</Text>
+                ) : null}
+
+                {isPending && (
+                  <TouchableOpacity
+                    style={[styles.confirmBookingBtn, confirmingId === booking.id && styles.confirmBookingBtnDisabled]}
+                    onPress={() => handleConfirmBooking(booking.id)}
+                    disabled={confirmingId === booking.id}
+                  >
+                    {confirmingId === booking.id
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={styles.confirmBookingBtnText}>Confirm Appointment</Text>
+                    }
+                  </TouchableOpacity>
+                )}
+
+                {isConfirmed && (
+                  <View style={styles.confirmedBadge}>
+                    <Text style={styles.confirmedText}>✓ Appointment confirmed</Text>
+                  </View>
+                )}
+              </View>
+            )
+          })}
         </ScrollView>
       )}
 
@@ -771,4 +890,29 @@ const styles = StyleSheet.create({
   submittedText: { fontSize: 14, color: '#2e7d32', fontWeight: '700' },
   openSubmitBtn: { backgroundColor: '#2e7d32', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   openSubmitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  // Booking cards
+  bookingCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  bookingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  bookingVehicle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
+  bookingReg: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  bookingBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+  bookingBadgePending: { backgroundColor: '#fff8e1' },
+  bookingBadgeConfirmed: { backgroundColor: '#e6f4ea' },
+  bookingBadgeText: { fontSize: 12, fontWeight: '700', color: '#555' },
+  bookingMeta: { gap: 3, marginBottom: 10 },
+  bookingDate: { fontSize: 14, fontWeight: '600', color: '#333' },
+  bookingOwner: { fontSize: 13, color: '#888' },
+  bookingMileage: { fontSize: 13, color: '#888' },
+  bookingNotes: { fontSize: 13, color: '#555', fontStyle: 'italic', marginBottom: 12, lineHeight: 18 },
+  confirmBookingBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
+  },
+  confirmBookingBtnDisabled: { opacity: 0.6 },
+  confirmBookingBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  confirmedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
+  confirmedText: { fontSize: 13, color: '#2e7d32', fontWeight: '700' },
 })

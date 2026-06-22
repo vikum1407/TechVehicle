@@ -14,8 +14,9 @@ import AnalyticsScreen from './src/screens/AnalyticsScreen'
 import GarageScreen from './src/screens/GarageScreen'
 import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
+import BookingScreen from './src/screens/BookingScreen'
 
-type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'share' | 'sell'
+type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'share' | 'sell' | 'booking'
 
 type Vehicle = {
   id: string
@@ -123,6 +124,7 @@ export default function App() {
           onAnalytics={() => setScreen('analytics')}
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
+          onBookService={() => setScreen('booking')}
         />
       )}
       {screen === 'addServiceRecord' && selectedVehicle && (
@@ -162,6 +164,14 @@ export default function App() {
           vehicle={selectedVehicle}
           onBack={() => setScreen('vehicleDashboard')}
           onTransferInitiated={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'booking' && selectedVehicle && (
+        <BookingScreen
+          token={token}
+          vehicle={selectedVehicle}
+          onBack={() => setScreen('vehicleDashboard')}
+          onBooked={() => setScreen('vehicleDashboard')}
         />
       )}
       {screen === 'analytics' && selectedVehicle && (
