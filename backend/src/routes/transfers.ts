@@ -129,6 +129,37 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
   }
 })
 
+// GET /transfers/:id/records — buyer previews vehicle records before accepting
+router.get('/:id/records', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const transfer = await prisma.vehicleTransfer.findFirst({
+      where: { id, buyerPhone: req.phoneNumber!, status: 'pending' },
+    })
+    if (!transfer) { res.status(404).json({ error: 'Transfer not found' }); return }
+
+    const [serviceRecords, fuelLogs, expenses] = await Promise.all([
+      prisma.serviceRecord.findMany({
+        where: { vehicleId: transfer.vehicleId },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.fuelLog.findMany({
+        where: { vehicleId: transfer.vehicleId },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.expense.findMany({
+        where: { vehicleId: transfer.vehicleId },
+        orderBy: { date: 'desc' },
+      }),
+    ])
+
+    res.json({ serviceRecords, fuelLogs, expenses })
+  } catch (error) {
+    console.error('GET /transfers/:id/records error:', error)
+    res.status(500).json({ error: 'Failed to fetch records' })
+  }
+})
+
 // DELETE /transfers/:id — seller cancels a pending transfer
 router.delete('/:id', async (req: AuthRequest, res) => {
   const id = req.params.id as string

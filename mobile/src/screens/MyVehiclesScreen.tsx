@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert, ScrollView
+  FlatList, ActivityIndicator, Alert, ScrollView, Modal
 } from 'react-native'
 import { api } from '../config/api'
 
@@ -31,6 +31,34 @@ type IncomingTransfer = {
   }
 }
 
+type TransferRecords = {
+  serviceRecords: {
+    id: string
+    date: string
+    description: string
+    mileage?: number
+    parts?: string
+    brand?: string
+    cost?: number
+    notes?: string
+  }[]
+  fuelLogs: {
+    id: string
+    date: string
+    mileage: number
+    litres?: number
+    cost?: number
+    station?: string
+  }[]
+  expenses: {
+    id: string
+    date: string
+    category: string
+    amount: number
+    description?: string
+  }[]
+}
+
 type Props = {
   token: string
   phoneNumber: string
@@ -45,6 +73,9 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<string | null>(null)
+  const [previewTransfer, setPreviewTransfer] = useState<IncomingTransfer | null>(null)
+  const [previewRecords, setPreviewRecords] = useState<TransferRecords | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
 
   const loadAll = async () => {
     setLoading(true)
@@ -64,6 +95,21 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
 
   useEffect(() => { loadAll() }, [])
 
+  const handleViewHistory = async (transfer: IncomingTransfer) => {
+    setPreviewTransfer(transfer)
+    setPreviewRecords(null)
+    setLoadingPreview(true)
+    try {
+      const data = await api.getTransferRecords(token, transfer.id)
+      setPreviewRecords(data)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+      setPreviewTransfer(null)
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
   const handleAcceptTransfer = async (transfer: IncomingTransfer) => {
     Alert.alert(
       'Accept Vehicle Transfer',
@@ -74,6 +120,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
           text: 'Accept',
           onPress: async () => {
             setAccepting(transfer.id)
+            setPreviewTransfer(null)
             try {
               await api.acceptTransfer(token, transfer.id)
               await loadAll()
@@ -131,7 +178,6 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
           refreshing={loading}
           ListHeaderComponent={
             <>
-              {/* Incoming transfers */}
               {incomingTransfers.length > 0 && (
                 <View style={styles.transfersSection}>
                   <Text style={styles.transfersSectionTitle}>
@@ -156,16 +202,24 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
                         </View>
                       </View>
                       <Text style={styles.transferFrom}>From {transfer.sellerPhone} · {formatDate(transfer.createdAt)}</Text>
-                      <TouchableOpacity
-                        style={[styles.acceptBtn, accepting === transfer.id && styles.acceptBtnDisabled]}
-                        onPress={() => handleAcceptTransfer(transfer)}
-                        disabled={accepting === transfer.id}
-                      >
-                        {accepting === transfer.id
-                          ? <ActivityIndicator color="#fff" size="small" />
-                          : <Text style={styles.acceptBtnText}>Accept Transfer</Text>
-                        }
-                      </TouchableOpacity>
+                      <View style={styles.transferActions}>
+                        <TouchableOpacity
+                          style={styles.viewHistoryBtn}
+                          onPress={() => handleViewHistory(transfer)}
+                        >
+                          <Text style={styles.viewHistoryBtnText}>View History</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.acceptBtn, accepting === transfer.id && styles.acceptBtnDisabled]}
+                          onPress={() => handleAcceptTransfer(transfer)}
+                          disabled={accepting === transfer.id}
+                        >
+                          {accepting === transfer.id
+                            ? <ActivityIndicator color="#fff" size="small" />
+                            : <Text style={styles.acceptBtnText}>Accept</Text>
+                          }
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -186,6 +240,114 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
           }
         />
       )}
+
+      {/* History Preview Modal */}
+      <Modal
+        visible={previewTransfer !== null}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setPreviewTransfer(null)}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal header */}
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setPreviewTransfer(null)}>
+              <Text style={styles.modalBack}>✕ Close</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Vehicle History</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          {previewTransfer && (
+            <View style={styles.modalVehicleBanner}>
+              <Text style={styles.modalBannerReg}>{previewTransfer.vehicle.registrationNo}</Text>
+              <Text style={styles.modalBannerName}>
+                {previewTransfer.vehicle.year} {previewTransfer.vehicle.make} {previewTransfer.vehicle.model}
+              </Text>
+              <Text style={styles.modalBannerMeta}>
+                {previewTransfer.vehicle.mileage.toLocaleString()} km · {previewTransfer.vehicle.fuelType}
+              </Text>
+            </View>
+          )}
+
+          {loadingPreview ? (
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
+          ) : previewRecords ? (
+            <ScrollView style={styles.modalScroll} contentContainerStyle={{ paddingBottom: 120 }}>
+              {/* Service Records */}
+              <Text style={styles.modalSectionTitle}>
+                🔧 Service Records ({previewRecords.serviceRecords.length})
+              </Text>
+              {previewRecords.serviceRecords.length === 0 ? (
+                <Text style={styles.modalEmpty}>No service records</Text>
+              ) : previewRecords.serviceRecords.map(r => (
+                <View key={r.id} style={styles.recordCard}>
+                  <View style={styles.recordCardRow}>
+                    <Text style={styles.recordDate}>{formatDate(r.date)}</Text>
+                    {r.cost != null && <Text style={styles.recordCost}>LKR {r.cost.toLocaleString()}</Text>}
+                  </View>
+                  <Text style={styles.recordDesc}>{r.description}</Text>
+                  {r.mileage != null && <Text style={styles.recordMeta}>{r.mileage.toLocaleString()} km</Text>}
+                  {r.parts && <Text style={styles.recordMeta}>Parts: {r.parts}</Text>}
+                  {r.brand && <Text style={styles.recordMeta}>Brand: {r.brand}</Text>}
+                  {r.notes && <Text style={styles.recordNotes}>{r.notes}</Text>}
+                </View>
+              ))}
+
+              {/* Fuel Logs */}
+              <Text style={styles.modalSectionTitle}>
+                ⛽ Fuel Logs ({previewRecords.fuelLogs.length})
+              </Text>
+              {previewRecords.fuelLogs.length === 0 ? (
+                <Text style={styles.modalEmpty}>No fuel logs</Text>
+              ) : previewRecords.fuelLogs.map(f => (
+                <View key={f.id} style={styles.recordCard}>
+                  <View style={styles.recordCardRow}>
+                    <Text style={styles.recordDate}>{formatDate(f.date)}</Text>
+                    {f.cost != null && <Text style={styles.recordCost}>LKR {f.cost.toLocaleString()}</Text>}
+                  </View>
+                  <Text style={styles.recordMeta}>{f.mileage.toLocaleString()} km</Text>
+                  {f.litres != null && <Text style={styles.recordMeta}>{f.litres} L</Text>}
+                  {f.station && <Text style={styles.recordMeta}>{f.station}</Text>}
+                </View>
+              ))}
+
+              {/* Expenses */}
+              <Text style={styles.modalSectionTitle}>
+                💰 Expenses ({previewRecords.expenses.length})
+              </Text>
+              {previewRecords.expenses.length === 0 ? (
+                <Text style={styles.modalEmpty}>No expenses</Text>
+              ) : previewRecords.expenses.map(e => (
+                <View key={e.id} style={styles.recordCard}>
+                  <View style={styles.recordCardRow}>
+                    <Text style={styles.recordDate}>{formatDate(e.date)}</Text>
+                    <Text style={styles.recordCost}>LKR {e.amount.toLocaleString()}</Text>
+                  </View>
+                  <Text style={styles.recordDesc}>{e.category}</Text>
+                  {e.description && <Text style={styles.recordMeta}>{e.description}</Text>}
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {/* Accept button pinned to bottom */}
+          {previewTransfer && !loadingPreview && (
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalAcceptBtn, accepting === previewTransfer.id && styles.acceptBtnDisabled]}
+                onPress={() => handleAcceptTransfer(previewTransfer)}
+                disabled={accepting === previewTransfer.id}
+              >
+                {accepting === previewTransfer.id
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.modalAcceptBtnText}>Accept Transfer</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -243,10 +405,58 @@ const styles = StyleSheet.create({
   transferCounts: { alignItems: 'flex-end', gap: 4 },
   transferCountItem: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
   transferFrom: { fontSize: 12, color: '#888', marginBottom: 12 },
+  transferActions: { flexDirection: 'row', gap: 10 },
+  viewHistoryBtn: {
+    flex: 1, borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center', backgroundColor: '#fff',
+  },
+  viewHistoryBtnText: { color: '#1a73e8', fontSize: 14, fontWeight: '700' },
   acceptBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 12, alignItems: 'center',
+    flex: 1, backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center',
   },
   acceptBtnDisabled: { opacity: 0.5 },
   acceptBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  // Modal styles
+  modalContainer: { flex: 1, backgroundColor: '#f5f5f5' },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: '#eee',
+  },
+  modalBack: { fontSize: 14, color: '#888', fontWeight: '600', width: 60 },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  modalVehicleBanner: {
+    backgroundColor: '#1a73e8', paddingHorizontal: 20, paddingVertical: 14,
+  },
+  modalBannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  modalBannerName: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
+  modalBannerMeta: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
+  modalScroll: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  modalSectionTitle: {
+    fontSize: 13, fontWeight: '700', color: '#555',
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: 16, marginBottom: 8,
+  },
+  modalEmpty: { fontSize: 13, color: '#aaa', fontStyle: 'italic', marginBottom: 8 },
+  recordCard: {
+    backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 8,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  },
+  recordCardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  recordDate: { fontSize: 12, color: '#888' },
+  recordCost: { fontSize: 13, fontWeight: '700', color: '#1a73e8' },
+  recordDesc: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', marginBottom: 4 },
+  recordMeta: { fontSize: 12, color: '#888', marginTop: 2 },
+  recordNotes: { fontSize: 12, color: '#888', fontStyle: 'italic', marginTop: 4 },
+  modalFooter: {
+    backgroundColor: '#fff', padding: 16, paddingBottom: 32,
+    borderTopWidth: 1, borderTopColor: '#eee',
+  },
+  modalAcceptBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 12,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  modalAcceptBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 })

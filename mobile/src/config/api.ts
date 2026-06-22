@@ -218,6 +218,15 @@ export const api = {
     return data
   },
 
+  getTransferRecords: async (token: string, transferId: string) => {
+    const res = await fetch(`${API_URL}/transfers/${transferId}/records`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch records')
+    return data
+  },
+
   cancelTransfer: async (token: string, transferId: string) => {
     const res = await fetch(`${API_URL}/transfers/${transferId}`, {
       method: 'DELETE',
