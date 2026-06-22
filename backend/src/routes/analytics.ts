@@ -80,9 +80,39 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       return { month: label, amount }
     })
 
+    // Mileage trend — odometer readings over time
+    const mileageTrend = fuelLogs.slice(-12).map(l => ({
+      mileage: l.mileage,
+      label: new Date(l.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+    }))
+
+    // Fuel efficiency per fill-up interval (km/L)
+    const efficiencyPoints: { kmPerL: number; label: string }[] = []
+    for (let i = 1; i < fuelLogs.length; i++) {
+      const prev = fuelLogs[i - 1]
+      const curr = fuelLogs[i]
+      if (curr.litres && curr.litres > 0 && curr.mileage > prev.mileage) {
+        efficiencyPoints.push({
+          kmPerL: parseFloat(((curr.mileage - prev.mileage) / curr.litres).toFixed(1)),
+          label: new Date(curr.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        })
+      }
+    }
+    const fuelEfficiencyTrend = efficiencyPoints.slice(-12)
+
+    // Fuel cost per fill-up
+    const fuelCostTrend = fuelLogs
+      .filter(l => l.cost != null && (l.cost as number) > 0)
+      .slice(-10)
+      .map(l => ({
+        cost: l.cost as number,
+        label: new Date(l.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      }))
+
     res.json({
       totalSpend, serviceCost, fuelCost, expenseTotal,
       expenseBreakdown, avgFuelEfficiency, costPerKm, monthlySpend,
+      mileageTrend, fuelEfficiencyTrend, fuelCostTrend,
       recordCounts: {
         services: serviceRecords.length,
         fuelLogs: fuelLogs.length,
