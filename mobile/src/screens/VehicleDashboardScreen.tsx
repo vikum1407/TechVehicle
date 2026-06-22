@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert
 } from 'react-native'
+import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
 
 type Vehicle = {
@@ -55,6 +56,64 @@ type Submission = {
   garage: { name: string; verified: boolean }
 }
 
+type MiniAnalytics = {
+  mileageTrend: { mileage: number; label: string }[]
+  fuelEfficiencyTrend: { kmPerL: number; label: string }[]
+  avgFuelEfficiency: number | null
+}
+
+// ── Sparkline SVG ─────────────────────────────────────────────────────────────
+
+function Sparkline({ data, color, gradId }: {
+  data: number[]
+  color: string
+  gradId: string
+}) {
+  if (data.length < 2) return <View style={{ height: 52 }} />
+
+  const W = 140, H = 52
+  const pL = 2, pR = 2, pT = 4, pB = 4
+  const plotW = W - pL - pR, plotH = H - pT - pB
+
+  const minV = Math.min(...data), maxV = Math.max(...data)
+  const range = maxV - minV || 1
+
+  const px = (i: number) => pL + (i / (data.length - 1)) * plotW
+  const py = (v: number) => pT + plotH - ((v - minV) / range) * plotH
+  const pts = data.map((v, i) => ({ x: px(i), y: py(v) }))
+
+  let linePath = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+  for (let i = 1; i < pts.length; i++) {
+    const cpx = ((pts[i - 1].x + pts[i].x) / 2).toFixed(1)
+    linePath += ` C ${cpx} ${pts[i - 1].y.toFixed(1)} ${cpx} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`
+  }
+  const fillPath = linePath + ` L ${pts[pts.length - 1].x} ${pT + plotH} L ${pts[0].x} ${pT + plotH} Z`
+
+  return (
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      <Defs>
+        <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <Stop offset="100%" stopColor={color} stopOpacity="0" />
+        </LinearGradient>
+      </Defs>
+      <Path d={fillPath} fill={`url(#${gradId})`} />
+      <Path d={linePath} stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  )
+}
+
+function getTrend(data: number[], higherIsBetter: boolean) {
+  if (data.length < 2) return { arrow: '→', label: 'Not enough data', color: '#aaa' }
+  const first = data[0], last = data[data.length - 1]
+  const pct = ((last - first) / (Math.abs(first) || 1)) * 100
+  if (pct > 3) return { arrow: '↑', label: 'Increasing', color: higherIsBetter ? '#34a853' : '#e65100' }
+  if (pct < -3) return { arrow: '↓', label: 'Declining', color: higherIsBetter ? '#e65100' : '#34a853' }
+  return { arrow: '→', label: 'Stable', color: '#888' }
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
 export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare, onSell }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -63,18 +122,27 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
   const [accepting, setAccepting] = useState<string | null>(null)
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
   const [cancellingTransfer, setCancellingTransfer] = useState(false)
+  const [miniAnalytics, setMiniAnalytics] = useState<MiniAnalytics | null>(null)
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs, transfer] = await Promise.all([
+      const [recs, subs, transfer, analytics] = await Promise.all([
         api.getServiceRecords(token, vehicle.id),
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
+        api.getAnalytics(token, vehicle.id).catch(() => null),
       ])
       setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
+      if (analytics) {
+        setMiniAnalytics({
+          mileageTrend: analytics.mileageTrend ?? [],
+          fuelEfficiencyTrend: analytics.fuelEfficiencyTrend ?? [],
+          avgFuelEfficiency: analytics.avgFuelEfficiency ?? null,
+        })
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
@@ -130,6 +198,14 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
     return description.split(',').map(s => s.trim()).filter(Boolean)
   }
 
+  // Sparkline data
+  const mileageValues = miniAnalytics?.mileageTrend.map(d => d.mileage) ?? []
+  const effValues = miniAnalytics?.fuelEfficiencyTrend.map(d => d.kmPerL) ?? []
+  const mileageTrend = getTrend(mileageValues, true)
+  const effTrend = getTrend(effValues, true)
+
+  const showSparklines = mileageValues.length >= 2 || effValues.length >= 2
+
   const renderRecord = ({ item }: { item: ServiceRecord }) => {
     const isExpanded = expandedId === item.id
     const services = parseServices(item.description)
@@ -150,7 +226,6 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         </View>
 
         {!isExpanded ? (
-          // Compact view
           <View>
             <View style={styles.tagRow}>
               {preview.map((s, i) => (
@@ -169,7 +244,6 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
             )}
           </View>
         ) : (
-          // Expanded view
           <View>
             {services.map((s, i) => (
               <Text key={i} style={styles.expandedItem}>• {s}</Text>
@@ -221,6 +295,39 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Sparkline mini-charts */}
+      {showSparklines && (
+        <View style={styles.sparkRow}>
+          {/* Mileage sparkline */}
+          <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+            <Text style={styles.sparkTitle}>Mileage</Text>
+            <Sparkline data={mileageValues} color="#1a73e8" gradId="dashMileage" />
+            <Text style={styles.sparkValue}>
+              {vehicle.mileage.toLocaleString()}
+              <Text style={styles.sparkUnit}> km</Text>
+            </Text>
+            <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
+              {mileageTrend.arrow} {mileageTrend.label}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Fuel efficiency sparkline */}
+          <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+            <Text style={styles.sparkTitle}>Fuel Economy</Text>
+            <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
+            <Text style={styles.sparkValue}>
+              {miniAnalytics?.avgFuelEfficiency != null
+                ? miniAnalytics.avgFuelEfficiency.toFixed(1)
+                : '—'}
+              <Text style={styles.sparkUnit}> km/L</Text>
+            </Text>
+            <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
+              {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {pendingTransfer && (
         <View style={styles.transferBanner}>
@@ -334,7 +441,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
   regNo: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
   vehicleCard: {
-    backgroundColor: '#1a73e8', margin: 16, borderRadius: 14, padding: 20,
+    backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14, padding: 20,
   },
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
   vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
@@ -345,6 +452,21 @@ const styles = StyleSheet.create({
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
   },
   quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+
+  // Sparkline cards
+  sparkRow: {
+    flexDirection: 'row', gap: 10,
+    marginHorizontal: 16, marginBottom: 10,
+  },
+  sparkCard: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  sparkTitle: { fontSize: 11, fontWeight: '700', color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
+  sparkValue: { fontSize: 16, fontWeight: '800', color: '#1a1a1a', marginTop: 6 },
+  sparkUnit: { fontSize: 11, fontWeight: '500', color: '#888' },
+  sparkTrend: { fontSize: 11, fontWeight: '600', marginTop: 3 },
+
   sectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, marginBottom: 8,
@@ -377,8 +499,7 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   tag: {
     backgroundColor: '#f0f4ff', borderRadius: 6,
-    paddingHorizontal: 10, paddingVertical: 5,
-    maxWidth: 200,
+    paddingHorizontal: 10, paddingVertical: 5, maxWidth: 200,
   },
   tagText: { fontSize: 13, color: '#1a1a1a', fontWeight: '500' },
   tagMore: {
