@@ -34,9 +34,10 @@ export default function App() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
 
   useEffect(() => {
-    AsyncStorage.multiGet(['token', 'phoneNumber']).then(([tokenEntry, phoneEntry]) => {
-      const savedToken = tokenEntry[1]
-      const savedPhone = phoneEntry[1]
+    Promise.all([
+      AsyncStorage.getItem('token'),
+      AsyncStorage.getItem('phoneNumber'),
+    ]).then(([savedToken, savedPhone]) => {
       if (savedToken && savedPhone) {
         setToken(savedToken)
         setPhoneNumber(savedPhone)
@@ -53,14 +54,16 @@ export default function App() {
   }
 
   const handleVerified = async (authToken: string, phone: string) => {
-    await AsyncStorage.multiSet([['token', authToken], ['phoneNumber', phone]])
+    await AsyncStorage.setItem('token', authToken)
+    await AsyncStorage.setItem('phoneNumber', phone)
     setToken(authToken)
     setPhoneNumber(phone)
     setScreen('vehicles')
   }
 
   const handleLogout = async () => {
-    await AsyncStorage.multiRemove(['token', 'phoneNumber'])
+    await AsyncStorage.removeItem('token')
+    await AsyncStorage.removeItem('phoneNumber')
     setToken('')
     setPhoneNumber('')
     setSelectedVehicle(null)
