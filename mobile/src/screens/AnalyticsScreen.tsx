@@ -259,7 +259,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
       </View>
 
       {/* Mileage growth chart */}
-      {data.mileageTrend.length > 0 && (
+      {(data.mileageTrend?.length ?? 0) > 0 && (
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
@@ -273,7 +273,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
       )}
 
       {/* Fuel efficiency trend */}
-      {(data.fuelEfficiencyTrend.length > 0 || data.fuelCostTrend.length > 0) && (
+      {((data.fuelEfficiencyTrend?.length ?? 0) > 0 || (data.fuelCostTrend?.length ?? 0) > 0) && (
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
@@ -282,12 +282,12 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
             </View>
             <View style={[styles.chartDot, { backgroundColor: '#34a853' }]} />
           </View>
-          <EfficiencyChart data={data.fuelEfficiencyTrend} />
+          <EfficiencyChart data={data.fuelEfficiencyTrend ?? []} />
         </View>
       )}
 
       {/* Cost per fill-up */}
-      {data.fuelCostTrend.length > 0 && (
+      {(data.fuelCostTrend?.length ?? 0) > 0 && (
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
