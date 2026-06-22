@@ -297,8 +297,8 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
       </View>
 
       {!pendingTransfer && (
-        <TouchableOpacity style={styles.sellRow} onPress={onSell}>
-          <Text style={styles.sellRowText}>Sell or Transfer this Vehicle →</Text>
+        <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
+          <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
         </TouchableOpacity>
       )}
 
@@ -405,8 +405,12 @@ const styles = StyleSheet.create({
   },
   cancelTransferBtnDisabled: { opacity: 0.5 },
   cancelTransferBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
-  sellRow: { alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 8 },
-  sellRowText: { fontSize: 12, color: '#888', textDecorationLine: 'underline' },
+  sellBtn: {
+    marginHorizontal: 16, marginBottom: 10,
+    borderWidth: 1.5, borderColor: '#c62828', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff',
+  },
+  sellBtnText: { fontSize: 14, color: '#c62828', fontWeight: '700' },
   submissionsSection: { marginHorizontal: 16, marginBottom: 12 },
   submissionsSectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#e65100',
