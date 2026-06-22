@@ -2,31 +2,55 @@
 
 ---
 
-## Current Development State (updated 2026-06-21)
+## Current Development State (updated 2026-06-22)
 
 ### Completed & Working ✅
-- Phone auth (OTP via console in dev, JWT stored in AsyncStorage)
+- Phone auth (OTP via console in dev, JWT stored in SecureStore)
 - Add vehicle + My Vehicles screen
-- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Analytics)
+- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Analytics + Book Service button)
 - Add Service Record (tap-to-select categories, per-item brands, compact history cards)
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
-- Analytics screen (total spend, cost/km, fuel economy, spending by category bars, monthly bar chart, record counts)
+- Analytics screen (SVG charts: Mileage Growth, Fuel Efficiency, Cost per Fill-up) + sparkline mini-cards on dashboard
 - Garage registration (verified/unverified badge via BR number)
 - Share flow: owner selects records → searches garage → confirms → shares read-only view
-- Garage incoming shares view: vehicle profile (reg, mileage, fuel type, fuel economy, owner contact), shared service records
-- Garage service submission: full tap-to-select form (same as Add Service Record) → sends to owner
-- Owner acceptance: pending submissions appear on vehicle dashboard → Accept saves as permanent service record
+- Garage incoming shares view: vehicle profile + shared service records
+- Garage service submission: full tap-to-select form → sends to owner
+- Owner acceptance: pending submissions on vehicle dashboard → Accept saves as permanent service record
+- Sell / Transfer engine: owner enters buyer phone → all records transfer → buyer accepts
+- Buyer can preview vehicle history before accepting transfer
+- Phase 4 — Garage Booking System (fully built):
+  - Garage Schedule tab: work days toggle, max per day counter, time slots editor, monthly calendar with per-day override editor (Open/Closed/Holiday, custom slot count, coloured notice messages)
+  - Owner BookingScreen: search garage → date picker (14 days, shows override messages with colour indicators) → time slot selection → confirm with Normal/Urgent note toggle
+  - Garage Bookings tab: see incoming bookings with slot label, confirm pending, urgent notes highlighted red
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
 ### Database tables in Neon ✅
-`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`
+`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking`
 
 ### Next Session — Start Here
-**Phase 3 remaining:** Sell / Transfer engine — owner enters buyer's mobile number, all records transfer irreversibly to buyer, buyer must Accept to complete.
+**Agreed next step:** Bottom tab bar navigation — add persistent tabs at the bottom of the app:
+- 🚗 My Vehicles (vehicle owner dashboard)
+- 🏭 Garage (garage dashboard — Profile, Schedule, Bookings, Shared tabs)
 
-**Then Phase 4:** Garage booking system (availability calendar, booking creation, confirmation, reminders).
+This separates the vehicle owner experience from the garage owner experience cleanly. Currently the Garage is buried behind a button on My Vehicles. Discussed and agreed to implement next session.
+
+**After that — Phase 4 remaining:**
+- Push notifications: when owner books → notify garage; when garage confirms → notify owner. Use `expo-notifications` (works in Expo Go). Needs `pushToken` column on User and token registration at login.
+- Share records inside booking: optional "Attach service records" step in BookingScreen (same record selector as Share screen, tied to the booking).
+
+### Known Workflow Note
+Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
+
+**IMPORTANT — Start of every Codespace session:** The `.env` file is wiped on Codespace restart. Run this before `npm run dev`:
+```bash
+cat > /workspaces/TechVehicle/backend/.env << 'EOF'
+PORT=3001
+JWT_SECRET=dev-secret-change-in-production
+DATABASE_URL="postgresql://neondb_owner:npg_rTfoMUK98SFD@ep-falling-salad-ao50kj3h-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+EOF
+```
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git (git IS initialised here). Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
