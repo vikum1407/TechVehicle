@@ -9,7 +9,7 @@ router.use(authMiddleware)
 
 // POST /bookings — owner creates a booking
 router.post('/', async (req: AuthRequest, res) => {
-  const { vehicleId, garageId, date, notes, shareSessionId } = req.body
+  const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId } = req.body
   if (!vehicleId || !garageId || !date) {
     res.status(400).json({ error: 'vehicleId, garageId and date are required' })
     return
@@ -45,7 +45,9 @@ router.post('/', async (req: AuthRequest, res) => {
         garageId,
         ownerPhone: req.phoneNumber!,
         date: bookingDate,
+        slotLabel: slotLabel || null,
         notes: notes || null,
+        noteType: noteType || 'normal',
         shareSessionId: shareSessionId || null,
       },
       include: { vehicle: true, garage: true },

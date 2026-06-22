@@ -302,8 +302,9 @@ export const api = {
     return data
   },
 
-  getAvailabilityDates: async (token: string, garageId: string) => {
-    const res = await fetch(`${API_URL}/availability/${garageId}/dates`, {
+  getAvailabilityDates: async (token: string, garageId: string, days?: number) => {
+    const q = days ? `?days=${days}` : ''
+    const res = await fetch(`${API_URL}/availability/${garageId}/dates${q}`, {
       headers: authHeaders(token),
     })
     const data = await res.json()
@@ -311,11 +312,11 @@ export const api = {
     return data
   },
 
-  setAvailability: async (token: string, workDays: number[], maxPerDay: number) => {
+  setAvailability: async (token: string, workDays: number[], maxPerDay: number, timeSlots: string[]) => {
     const res = await fetch(`${API_URL}/availability`, {
       method: 'PUT',
       headers: authHeaders(token),
-      body: JSON.stringify({ workDays, maxPerDay }),
+      body: JSON.stringify({ workDays, maxPerDay, timeSlots }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to set availability')
@@ -331,11 +332,50 @@ export const api = {
     return data
   },
 
+  getCalendarOverrides: async (token: string, garageId: string, month: string) => {
+    const res = await fetch(`${API_URL}/availability/${garageId}/overrides?month=${month}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch overrides')
+    return data
+  },
+
+  setCalendarOverride: async (token: string, override: {
+    date: string
+    status: string
+    maxSlots?: number | null
+    message?: string
+    messageColor?: string
+  }) => {
+    const res = await fetch(`${API_URL}/availability/override`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(override),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to set override')
+    return data
+  },
+
+  deleteCalendarOverride: async (token: string, date: string) => {
+    const res = await fetch(`${API_URL}/availability/override`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+      body: JSON.stringify({ date }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to remove override')
+    return data
+  },
+
   createBooking: async (token: string, payload: {
     vehicleId: string
     garageId: string
     date: string
+    slotLabel?: string
     notes?: string
+    noteType?: string
   }) => {
     const res = await fetch(`${API_URL}/bookings`, {
       method: 'POST',

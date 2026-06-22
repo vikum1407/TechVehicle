@@ -49,7 +49,16 @@ type IncomingShare = {
   records: SharedRecord[]
 }
 
-type Tab = 'profile' | 'bookings' | 'shared'
+type Tab = 'profile' | 'schedule' | 'bookings' | 'shared'
+
+type CalendarOverride = {
+  id: string
+  date: string
+  status: string
+  maxSlots: number | null
+  message: string | null
+  messageColor: string | null
+}
 
 type Booking = {
   id: string
@@ -80,6 +89,30 @@ export default function GarageScreen({ token, onBack }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+
+  // Schedule tab state
+  const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
+  const [schedMaxPerDay, setSchedMaxPerDay] = useState(5)
+  const [schedSlots, setSchedSlots] = useState<string[]>(['Morning', 'Afternoon'])
+  const [newSlot, setNewSlot] = useState('')
+  const [savingSchedule, setSavingSchedule] = useState(false)
+
+  // Calendar override state
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date(); d.setDate(1); return d
+  })
+  const [overrides, setOverrides] = useState<CalendarOverride[]>([])
+  const [overridesLoading, setOverridesLoading] = useState(false)
+  const [editingOverride, setEditingOverride] = useState<{
+    date: string
+    displayDate: string
+    existing: CalendarOverride | null
+  } | null>(null)
+  const [ovStatus, setOvStatus] = useState<'open' | 'closed' | 'holiday'>('closed')
+  const [ovMaxSlots, setOvMaxSlots] = useState('')
+  const [ovMessage, setOvMessage] = useState('')
+  const [ovColor, setOvColor] = useState('#FF9800')
+  const [savingOverride, setSavingOverride] = useState(false)
 
   // Garage profile form
   const [name, setName] = useState('')
@@ -147,9 +180,87 @@ export default function GarageScreen({ token, onBack }: Props) {
     }
   }
 
+  const loadSchedule = async () => {
+    if (!garage) return
+    try {
+      const data = await api.getGarageAvailability(token, garage.id)
+      setSchedWorkDays(JSON.parse(data.workDays || '[1,2,3,4,5]'))
+      setSchedMaxPerDay(data.maxPerDay ?? 5)
+      setSchedSlots(JSON.parse(data.timeSlots || '["Morning","Afternoon"]'))
+    } catch {}
+  }
+
+  const loadOverrides = async (month: Date) => {
+    if (!garage) return
+    setOverridesLoading(true)
+    const monthStr = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+    try {
+      const data = await api.getCalendarOverrides(token, garage.id, monthStr)
+      setOverrides(data)
+    } catch {} finally {
+      setOverridesLoading(false)
+    }
+  }
+
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true)
+    try {
+      await api.setAvailability(token, schedWorkDays, schedMaxPerDay, schedSlots)
+      Alert.alert('Saved', 'Your schedule settings have been updated.')
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSavingSchedule(false)
+    }
+  }
+
+  const openOverrideEditor = (dateStr: string, displayDate: string) => {
+    const existing = overrides.find(o => o.date === dateStr) || null
+    setOvStatus((existing?.status as any) || 'closed')
+    setOvMaxSlots(existing?.maxSlots?.toString() || '')
+    setOvMessage(existing?.message || '')
+    setOvColor(existing?.messageColor || '#FF9800')
+    setEditingOverride({ date: dateStr, displayDate, existing })
+  }
+
+  const handleSaveOverride = async () => {
+    if (!editingOverride) return
+    setSavingOverride(true)
+    try {
+      await api.setCalendarOverride(token, {
+        date: editingOverride.date,
+        status: ovStatus,
+        maxSlots: ovMaxSlots ? parseInt(ovMaxSlots) : null,
+        message: ovMessage.trim() || undefined,
+        messageColor: ovColor,
+      })
+      await loadOverrides(calMonth)
+      setEditingOverride(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleRemoveOverride = async () => {
+    if (!editingOverride?.existing) return
+    setSavingOverride(true)
+    try {
+      await api.deleteCalendarOverride(token, editingOverride.date)
+      await loadOverrides(calMonth)
+      setEditingOverride(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
   useEffect(() => {
     if (tab === 'shared' && garage) loadShares()
     if (tab === 'bookings' && garage) loadBookings()
+    if (tab === 'schedule' && garage) { loadSchedule(); loadOverrides(calMonth) }
   }, [tab, garage])
 
   const handleRegister = async () => {
@@ -416,6 +527,105 @@ export default function GarageScreen({ token, onBack }: Props) {
     )
   }
 
+  // ── Override editor (full-screen) ───────────────────────────────────────
+  if (editingOverride) {
+    const colorOptions = [
+      { color: '#FF9800', label: 'Orange' },
+      { color: '#e53935', label: 'Red' },
+      { color: '#8B00FF', label: 'Purple' },
+      { color: '#2e7d32', label: 'Green' },
+    ]
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.formTopRow}>
+          <TouchableOpacity onPress={() => setEditingOverride(null)}>
+            <Text style={styles.backText}>← Back to Calendar</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.formTitle}>Set Day Override</Text>
+        <View style={styles.overrideDateBanner}>
+          <Text style={styles.overrideDateText}>{editingOverride.displayDate}</Text>
+        </View>
+
+        <Text style={styles.catLabel}>Day Status</Text>
+        <View style={styles.statusRow}>
+          {(['open', 'closed', 'holiday'] as const).map(s => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.statusBtn, ovStatus === s && styles.statusBtnActive]}
+              onPress={() => setOvStatus(s)}
+            >
+              <Text style={[styles.statusBtnText, ovStatus === s && styles.statusBtnTextActive]}>
+                {s === 'open' ? '✅ Open' : s === 'closed' ? '🔒 Closed' : '🎉 Holiday'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {ovStatus === 'open' && (
+          <>
+            <Text style={styles.catLabel}>Max Vehicles This Day (optional)</Text>
+            <TextInput
+              style={styles.fInput}
+              value={ovMaxSlots}
+              onChangeText={setOvMaxSlots}
+              placeholder={`Leave blank to use default (${schedMaxPerDay})`}
+              keyboardType="number-pad"
+            />
+          </>
+        )}
+
+        <Text style={styles.catLabel}>Notice Message (optional)</Text>
+        <TextInput
+          style={[styles.fInput, styles.multiline]}
+          value={ovMessage}
+          onChangeText={setOvMessage}
+          placeholder="e.g. Half day only — closing at 1pm for Vesak"
+          multiline
+          numberOfLines={2}
+        />
+
+        {ovMessage.length > 0 && (
+          <>
+            <Text style={styles.catLabel}>Message Colour</Text>
+            <View style={styles.colorRow}>
+              {colorOptions.map(opt => (
+                <TouchableOpacity
+                  key={opt.color}
+                  style={[styles.colorBtn, { backgroundColor: opt.color }, ovColor === opt.color && styles.colorBtnSelected]}
+                  onPress={() => setOvColor(opt.color)}
+                >
+                  {ovColor === opt.color && <Text style={styles.colorBtnCheck}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity
+          style={[styles.submitServiceBtn, savingOverride && styles.submitServiceBtnDisabled]}
+          onPress={handleSaveOverride}
+          disabled={savingOverride}
+        >
+          {savingOverride
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.submitServiceBtnText}>Save Override</Text>
+          }
+        </TouchableOpacity>
+
+        {editingOverride.existing && (
+          <TouchableOpacity
+            style={[styles.removeOverrideBtn, savingOverride && styles.submitServiceBtnDisabled]}
+            onPress={handleRemoveOverride}
+            disabled={savingOverride}
+          >
+            <Text style={styles.removeOverrideBtnText}>Remove Override (use default)</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    )
+  }
+
   // ── Normal garage view ───────────────────────────────────────────────────
   const showForm = !garage || editing
 
@@ -435,6 +645,12 @@ export default function GarageScreen({ token, onBack }: Props) {
             onPress={() => setTab('profile')}
           >
             <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'schedule' && styles.tabActive]}
+            onPress={() => setTab('schedule')}
+          >
+            <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'bookings' && styles.tabActive]}
@@ -538,6 +754,197 @@ export default function GarageScreen({ token, onBack }: Props) {
         </ScrollView>
       )}
 
+      {tab === 'schedule' && garage && (
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* ── Work days ── */}
+          <Text style={styles.schedSection}>Working Days</Text>
+          <View style={styles.dayRow}>
+            {[
+              { d: 1, label: 'Mon' }, { d: 2, label: 'Tue' }, { d: 3, label: 'Wed' },
+              { d: 4, label: 'Thu' }, { d: 5, label: 'Fri' }, { d: 6, label: 'Sat' }, { d: 0, label: 'Sun' },
+            ].map(({ d, label }) => {
+              const on = schedWorkDays.includes(d)
+              return (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.dayBtn, on && styles.dayBtnOn]}
+                  onPress={() => setSchedWorkDays(prev =>
+                    on ? prev.filter(x => x !== d) : [...prev, d]
+                  )}
+                >
+                  <Text style={[styles.dayBtnText, on && styles.dayBtnTextOn]}>{label}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {/* ── Max per day ── */}
+          <Text style={styles.schedSection}>Max Vehicles Per Day</Text>
+          <View style={styles.counterRow}>
+            <TouchableOpacity
+              style={styles.counterBtn}
+              onPress={() => setSchedMaxPerDay(v => Math.max(1, v - 1))}
+            >
+              <Text style={styles.counterBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.counterValue}>{schedMaxPerDay}</Text>
+            <TouchableOpacity
+              style={styles.counterBtn}
+              onPress={() => setSchedMaxPerDay(v => v + 1)}
+            >
+              <Text style={styles.counterBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Time slots ── */}
+          <Text style={styles.schedSection}>Time Slots</Text>
+          <View style={styles.chipRow}>
+            {schedSlots.map(slot => (
+              <TouchableOpacity
+                key={slot}
+                style={styles.slotChip}
+                onPress={() => setSchedSlots(prev => prev.filter(s => s !== slot))}
+              >
+                <Text style={styles.slotChipText}>{slot}  ✕</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.addSlotRow}>
+            <TextInput
+              style={styles.addSlotInput}
+              value={newSlot}
+              onChangeText={setNewSlot}
+              placeholder="e.g. 9:00 AM or Morning"
+            />
+            <TouchableOpacity
+              style={styles.addSlotBtn}
+              onPress={() => {
+                const s = newSlot.trim()
+                if (s && !schedSlots.includes(s)) setSchedSlots(prev => [...prev, s])
+                setNewSlot('')
+              }}
+            >
+              <Text style={styles.addSlotBtnText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, savingSchedule && styles.saveBtnDisabled]}
+            onPress={handleSaveSchedule}
+            disabled={savingSchedule}
+          >
+            {savingSchedule
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.saveBtnText}>Save Schedule Settings</Text>
+            }
+          </TouchableOpacity>
+
+          {/* ── Monthly calendar ── */}
+          <View style={styles.calHeader}>
+            <TouchableOpacity
+              style={styles.calNavBtn}
+              onPress={() => {
+                const m = new Date(calMonth)
+                m.setMonth(m.getMonth() - 1)
+                setCalMonth(m)
+                loadOverrides(m)
+              }}
+            >
+              <Text style={styles.calNavText}>‹</Text>
+            </TouchableOpacity>
+            <Text style={styles.calMonthLabel}>
+              {calMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity
+              style={styles.calNavBtn}
+              onPress={() => {
+                const m = new Date(calMonth)
+                m.setMonth(m.getMonth() + 1)
+                setCalMonth(m)
+                loadOverrides(m)
+              }}
+            >
+              <Text style={styles.calNavText}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Day-of-week header */}
+          <View style={styles.calDowRow}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <Text key={d} style={styles.calDow}>{d}</Text>
+            ))}
+          </View>
+
+          {overridesLoading ? (
+            <ActivityIndicator style={{ marginTop: 24 }} color="#1a73e8" />
+          ) : (() => {
+            const year = calMonth.getFullYear()
+            const month = calMonth.getMonth()
+            const firstDow = new Date(year, month, 1).getDay()
+            const totalDays = new Date(year, month + 1, 0).getDate()
+            const cells: (number | null)[] = [
+              ...Array(firstDow).fill(null),
+              ...Array.from({ length: totalDays }, (_, i) => i + 1),
+            ]
+            while (cells.length % 7 !== 0) cells.push(null)
+            const overrideMap = new Map(overrides.map(o => [o.date, o]))
+            const today = new Date(); today.setHours(0,0,0,0)
+
+            return (
+              <View style={styles.calGrid}>
+                {cells.map((day, idx) => {
+                  if (!day) return <View key={idx} style={styles.calCell} />
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const override = overrideMap.get(dateStr)
+                  const cellDate = new Date(year, month, day)
+                  const isPast = cellDate < today
+                  const dotColor = override
+                    ? override.status === 'open'
+                      ? (override.messageColor || '#FF9800')
+                      : override.status === 'holiday' ? '#e91e63' : '#e53935'
+                    : null
+
+                  return (
+                    <TouchableOpacity
+                      key={dateStr}
+                      style={[styles.calCell, isPast && styles.calCellPast]}
+                      onPress={() => !isPast && openOverrideEditor(
+                        dateStr,
+                        cellDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+                      )}
+                      disabled={isPast}
+                      activeOpacity={isPast ? 1 : 0.7}
+                    >
+                      <Text style={[styles.calDayNum, isPast && styles.calDayNumPast]}>{day}</Text>
+                      {dotColor && <View style={[styles.calDot, { backgroundColor: dotColor }]} />}
+                      {override?.status === 'closed' && <Text style={styles.calClosed}>✕</Text>}
+                      {override?.status === 'holiday' && <Text style={styles.calHoliday}>★</Text>}
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            )
+          })()}
+
+          {/* Legend */}
+          <View style={styles.calLegend}>
+            <View style={styles.calLegendItem}>
+              <View style={[styles.calLegendDot, { backgroundColor: '#FF9800' }]} />
+              <Text style={styles.calLegendText}>Custom notice</Text>
+            </View>
+            <View style={styles.calLegendItem}>
+              <Text style={styles.calLegendIcon}>✕</Text>
+              <Text style={styles.calLegendText}>Closed</Text>
+            </View>
+            <View style={styles.calLegendItem}>
+              <Text style={styles.calLegendIcon}>★</Text>
+              <Text style={styles.calLegendText}>Holiday</Text>
+            </View>
+          </View>
+          <Text style={styles.calTip}>Tap any future date to set or edit an override.</Text>
+        </ScrollView>
+      )}
+
       {tab === 'bookings' && garage && (
         <ScrollView contentContainerStyle={styles.content}>
           {bookingsLoading ? (
@@ -575,12 +982,20 @@ export default function GarageScreen({ token, onBack }: Props) {
 
                 <View style={styles.bookingMeta}>
                   <Text style={styles.bookingDate}>📅 {dateStr}</Text>
+                  {(booking as any).slotLabel && (
+                    <Text style={styles.bookingSlot}>⏰ {(booking as any).slotLabel}</Text>
+                  )}
                   <Text style={styles.bookingOwner}>Owner: {booking.ownerPhone}</Text>
                   <Text style={styles.bookingMileage}>{booking.vehicle.mileage.toLocaleString()} km</Text>
                 </View>
 
                 {booking.notes ? (
-                  <Text style={styles.bookingNotes}>"{booking.notes}"</Text>
+                  <Text style={[
+                    styles.bookingNotes,
+                    (booking as any).noteType === 'urgent' && styles.bookingNotesUrgent,
+                  ]}>
+                    {(booking as any).noteType === 'urgent' ? '🚨 ' : ''}&ldquo;{booking.notes}&rdquo;
+                  </Text>
                 ) : null}
 
                 {isPending && (
@@ -915,4 +1330,100 @@ const styles = StyleSheet.create({
   confirmBookingBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   confirmedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
   confirmedText: { fontSize: 13, color: '#2e7d32', fontWeight: '700' },
+  bookingSlot: { fontSize: 13, color: '#555' },
+  bookingNotesUrgent: { color: '#e53935', fontWeight: '700' },
+
+  // Override editor
+  overrideDateBanner: {
+    backgroundColor: '#1a73e8', borderRadius: 12, padding: 16, marginBottom: 8,
+  },
+  overrideDateText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  statusRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  statusBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff',
+  },
+  statusBtnActive: { borderColor: '#1a73e8', backgroundColor: '#e8f0fe' },
+  statusBtnText: { fontSize: 13, fontWeight: '600', color: '#888' },
+  statusBtnTextActive: { color: '#1a1a1a' },
+  colorRow: { flexDirection: 'row', gap: 14, marginTop: 8, marginBottom: 4 },
+  colorBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  colorBtnSelected: { borderWidth: 3, borderColor: '#1a1a1a' },
+  colorBtnCheck: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  removeOverrideBtn: {
+    borderWidth: 1.5, borderColor: '#e53935', borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center', marginTop: 12,
+  },
+  removeOverrideBtnText: { fontSize: 15, color: '#e53935', fontWeight: '700' },
+
+  // Schedule tab
+  schedSection: {
+    fontSize: 12, fontWeight: '700', color: '#555', marginTop: 20, marginBottom: 12,
+    textTransform: 'uppercase', letterSpacing: 0.6,
+  },
+  dayRow: { flexDirection: 'row', gap: 6 },
+  dayBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center',
+    backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#ddd',
+  },
+  dayBtnOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  dayBtnText: { fontSize: 11, fontWeight: '700', color: '#888' },
+  dayBtnTextOn: { color: '#fff' },
+  counterRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  counterBtn: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff',
+    borderWidth: 1.5, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center',
+  },
+  counterBtnText: { fontSize: 22, fontWeight: '700', color: '#1a73e8' },
+  counterValue: { fontSize: 28, fontWeight: '800', color: '#1a1a1a', minWidth: 40, textAlign: 'center' },
+  slotChip: {
+    backgroundColor: '#e8f0fe', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  slotChipText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  addSlotRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  addSlotInput: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 10,
+    borderWidth: 1, borderColor: '#ddd',
+    paddingHorizontal: 14, paddingVertical: 11, fontSize: 14,
+  },
+  addSlotBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingHorizontal: 18, justifyContent: 'center',
+  },
+  addSlotBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  // Calendar
+  calHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: 28, marginBottom: 16,
+  },
+  calNavBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center',
+  },
+  calNavText: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
+  calMonthLabel: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  calDowRow: { flexDirection: 'row', marginBottom: 4 },
+  calDow: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: '#888' },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCell: {
+    width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center',
+    borderRadius: 8,
+  },
+  calCellPast: { opacity: 0.35 },
+  calDayNum: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
+  calDayNumPast: { color: '#bbb' },
+  calDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  calClosed: { fontSize: 10, color: '#e53935', fontWeight: '900', marginTop: 1 },
+  calHoliday: { fontSize: 10, color: '#e91e63', fontWeight: '900', marginTop: 1 },
+  calLegend: { flexDirection: 'row', gap: 16, marginTop: 14, justifyContent: 'center' },
+  calLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  calLegendDot: { width: 8, height: 8, borderRadius: 4 },
+  calLegendIcon: { fontSize: 10, color: '#555', fontWeight: '700' },
+  calLegendText: { fontSize: 11, color: '#888' },
+  calTip: { fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
 })
