@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert
+  FlatList, ActivityIndicator, Alert, ScrollView
 } from 'react-native'
 import { api } from '../config/api'
 
@@ -15,6 +15,22 @@ type Vehicle = {
   mileage: number
 }
 
+type IncomingTransfer = {
+  id: string
+  sellerPhone: string
+  createdAt: string
+  vehicle: {
+    id: string
+    registrationNo: string
+    make: string
+    model: string
+    year: number
+    fuelType: string
+    mileage: number
+    _count: { serviceRecords: number; fuelLogs: number; expenses: number }
+  }
+}
+
 type Props = {
   token: string
   phoneNumber: string
@@ -26,13 +42,19 @@ type Props = {
 
 export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onSelectVehicle, onLogout, onGarage }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
+  const [accepting, setAccepting] = useState<string | null>(null)
 
-  const loadVehicles = async () => {
+  const loadAll = async () => {
     setLoading(true)
     try {
-      const data = await api.getVehicles(token)
-      setVehicles(data)
+      const [vehicleData, transferData] = await Promise.all([
+        api.getVehicles(token),
+        api.getIncomingTransfers(token),
+      ])
+      setVehicles(vehicleData)
+      setIncomingTransfers(transferData)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
@@ -40,7 +62,34 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
     }
   }
 
-  useEffect(() => { loadVehicles() }, [])
+  useEffect(() => { loadAll() }, [])
+
+  const handleAcceptTransfer = async (transfer: IncomingTransfer) => {
+    Alert.alert(
+      'Accept Vehicle Transfer',
+      `Accept ${transfer.vehicle.registrationNo} (${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}) from ${transfer.sellerPhone}?\n\nAll service history will be added to your account.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Accept',
+          onPress: async () => {
+            setAccepting(transfer.id)
+            try {
+              await api.acceptTransfer(token, transfer.id)
+              await loadAll()
+            } catch (e: any) {
+              Alert.alert('Error', e.message)
+            } finally {
+              setAccepting(null)
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
   const renderVehicle = ({ item }: { item: Vehicle }) => (
     <TouchableOpacity style={styles.card} onPress={() => onSelectVehicle(item)}>
@@ -72,24 +121,68 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
 
       {loading ? (
         <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
-      ) : vehicles.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No vehicles yet</Text>
-          <Text style={styles.emptySubtitle}>Add your first vehicle to get started</Text>
-          <TouchableOpacity style={styles.addButton} onPress={onAddVehicle}>
-            <Text style={styles.addButtonText}>+ Add Vehicle</Text>
-          </TouchableOpacity>
-        </View>
       ) : (
         <FlatList
           data={vehicles}
           keyExtractor={item => item.id}
           renderItem={renderVehicle}
           contentContainerStyle={styles.list}
+          onRefresh={loadAll}
+          refreshing={loading}
           ListHeaderComponent={
-            <TouchableOpacity style={styles.addButton} onPress={onAddVehicle}>
-              <Text style={styles.addButtonText}>+ Add Vehicle</Text>
-            </TouchableOpacity>
+            <>
+              {/* Incoming transfers */}
+              {incomingTransfers.length > 0 && (
+                <View style={styles.transfersSection}>
+                  <Text style={styles.transfersSectionTitle}>
+                    Incoming Vehicle Transfers ({incomingTransfers.length})
+                  </Text>
+                  {incomingTransfers.map(transfer => (
+                    <View key={transfer.id} style={styles.transferCard}>
+                      <View style={styles.transferCardTop}>
+                        <View>
+                          <Text style={styles.transferReg}>{transfer.vehicle.registrationNo}</Text>
+                          <Text style={styles.transferVehicle}>
+                            {transfer.vehicle.year} {transfer.vehicle.make} {transfer.vehicle.model}
+                          </Text>
+                          <Text style={styles.transferMeta}>
+                            {transfer.vehicle.mileage.toLocaleString()} km · {transfer.vehicle.fuelType}
+                          </Text>
+                        </View>
+                        <View style={styles.transferCounts}>
+                          <Text style={styles.transferCountItem}>🔧 {transfer.vehicle._count.serviceRecords}</Text>
+                          <Text style={styles.transferCountItem}>⛽ {transfer.vehicle._count.fuelLogs}</Text>
+                          <Text style={styles.transferCountItem}>💰 {transfer.vehicle._count.expenses}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.transferFrom}>From {transfer.sellerPhone} · {formatDate(transfer.createdAt)}</Text>
+                      <TouchableOpacity
+                        style={[styles.acceptBtn, accepting === transfer.id && styles.acceptBtnDisabled]}
+                        onPress={() => handleAcceptTransfer(transfer)}
+                        disabled={accepting === transfer.id}
+                      >
+                        {accepting === transfer.id
+                          ? <ActivityIndicator color="#fff" size="small" />
+                          : <Text style={styles.acceptBtnText}>Accept Transfer</Text>
+                        }
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.addButton} onPress={onAddVehicle}>
+                <Text style={styles.addButtonText}>+ Add Vehicle</Text>
+              </TouchableOpacity>
+            </>
+          }
+          ListEmptyComponent={
+            incomingTransfers.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>No vehicles yet</Text>
+                <Text style={styles.emptySubtitle}>Add your first vehicle to get started</Text>
+              </View>
+            ) : null
           }
         />
       )}
@@ -115,10 +208,10 @@ const styles = StyleSheet.create({
   garageBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
   logout: { fontSize: 14, color: '#888' },
   loader: { flex: 1 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  list: { padding: 16 },
+  empty: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: '#888', marginBottom: 32, textAlign: 'center' },
-  list: { padding: 16 },
   card: {
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
     marginBottom: 12, shadowColor: '#000',
@@ -134,4 +227,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginBottom: 16,
   },
   addButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  transfersSection: { marginBottom: 16 },
+  transfersSectionTitle: {
+    fontSize: 13, fontWeight: '700', color: '#1a73e8',
+    marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  transferCard: {
+    backgroundColor: '#e8f0fe', borderRadius: 12, padding: 16,
+    marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#1a73e8',
+  },
+  transferCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  transferReg: { fontSize: 16, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
+  transferVehicle: { fontSize: 13, color: '#555', marginBottom: 2 },
+  transferMeta: { fontSize: 12, color: '#888' },
+  transferCounts: { alignItems: 'flex-end', gap: 4 },
+  transferCountItem: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  transferFrom: { fontSize: 12, color: '#888', marginBottom: 12 },
+  acceptBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  acceptBtnDisabled: { opacity: 0.5 },
+  acceptBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 })

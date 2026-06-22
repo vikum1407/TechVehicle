@@ -35,6 +35,13 @@ type Props = {
   onAddExpense: () => void
   onAnalytics: () => void
   onShare: () => void
+  onSell: () => void
+}
+
+type PendingTransfer = {
+  id: string
+  buyerPhone: string
+  createdAt: string
 }
 
 type Submission = {
@@ -48,22 +55,26 @@ type Submission = {
   garage: { name: string; verified: boolean }
 }
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare, onSell }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
+  const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
+  const [cancellingTransfer, setCancellingTransfer] = useState(false)
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs] = await Promise.all([
+      const [recs, subs, transfer] = await Promise.all([
         api.getServiceRecords(token, vehicle.id),
         api.getVehicleSubmissions(token, vehicle.id),
+        api.getVehicleTransfer(token, vehicle.id),
       ])
       setRecords(recs)
       setSubmissions(subs)
+      setPendingTransfer(transfer)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
@@ -81,6 +92,31 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
     } finally {
       setAccepting(null)
     }
+  }
+
+  const handleCancelTransfer = () => {
+    if (!pendingTransfer) return
+    Alert.alert(
+      'Cancel Transfer',
+      'Cancel the pending transfer request?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          onPress: async () => {
+            setCancellingTransfer(true)
+            try {
+              await api.cancelTransfer(token, pendingTransfer.id)
+              setPendingTransfer(null)
+            } catch (e: any) {
+              Alert.alert('Error', e.message)
+            } finally {
+              setCancellingTransfer(false)
+            }
+          },
+        },
+      ]
+    )
   }
 
   useEffect(() => { loadRecords() }, [])
@@ -186,6 +222,25 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         </View>
       </View>
 
+      {pendingTransfer && (
+        <View style={styles.transferBanner}>
+          <View style={styles.transferBannerLeft}>
+            <Text style={styles.transferBannerTitle}>Transfer Pending</Text>
+            <Text style={styles.transferBannerSub}>Waiting for {pendingTransfer.buyerPhone} to accept</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
+            onPress={handleCancelTransfer}
+            disabled={cancellingTransfer}
+          >
+            {cancellingTransfer
+              ? <ActivityIndicator color="#c62828" size="small" />
+              : <Text style={styles.cancelTransferBtnText}>Cancel</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      )}
+
       {submissions.length > 0 && (
         <View style={styles.submissionsSection}>
           <Text style={styles.submissionsSectionTitle}>
@@ -240,6 +295,12 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           </TouchableOpacity>
         </View>
       </View>
+
+      {!pendingTransfer && (
+        <TouchableOpacity style={styles.sellRow} onPress={onSell}>
+          <Text style={styles.sellRowText}>Sell or Transfer this Vehicle →</Text>
+        </TouchableOpacity>
+      )}
 
       {loading ? (
         <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
@@ -330,6 +391,22 @@ const styles = StyleSheet.create({
   expandHint: { fontSize: 11, color: '#bbb', marginTop: 6 },
   collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8 },
   expandedItem: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
+  transferBanner: {
+    backgroundColor: '#fff3e0', marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 10, padding: 14, flexDirection: 'row',
+    alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#e65100',
+  },
+  transferBannerLeft: { flex: 1 },
+  transferBannerTitle: { fontSize: 13, fontWeight: '700', color: '#e65100', marginBottom: 2 },
+  transferBannerSub: { fontSize: 12, color: '#795548' },
+  cancelTransferBtn: {
+    borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6, marginLeft: 10,
+  },
+  cancelTransferBtnDisabled: { opacity: 0.5 },
+  cancelTransferBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
+  sellRow: { alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 8 },
+  sellRowText: { fontSize: 12, color: '#888', textDecorationLine: 'underline' },
   submissionsSection: { marginHorizontal: 16, marginBottom: 12 },
   submissionsSectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#e65100',

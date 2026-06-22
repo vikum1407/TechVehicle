@@ -179,6 +179,55 @@ export const api = {
     return data
   },
 
+  initiateTransfer: async (token: string, vehicleId: string, buyerPhone: string) => {
+    const res = await fetch(`${API_URL}/transfers`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ vehicleId, buyerPhone }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to initiate transfer')
+    return data
+  },
+
+  getIncomingTransfers: async (token: string) => {
+    const res = await fetch(`${API_URL}/transfers/incoming`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch transfers')
+    return data
+  },
+
+  getVehicleTransfer: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/transfers/vehicle/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch transfer')
+    return data
+  },
+
+  acceptTransfer: async (token: string, transferId: string) => {
+    const res = await fetch(`${API_URL}/transfers/${transferId}/accept`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to accept transfer')
+    return data
+  },
+
+  cancelTransfer: async (token: string, transferId: string) => {
+    const res = await fetch(`${API_URL}/transfers/${transferId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to cancel transfer')
+    return data
+  },
+
   getFuelLogs: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/fuel-logs/${vehicleId}`, {
       headers: authHeaders(token),

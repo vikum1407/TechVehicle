@@ -32,6 +32,7 @@ model Vehicle {
   expenses       Expense[]
   shareSessions  ShareSession[]
   submissions    ServiceSubmission[]
+  transfers      VehicleTransfer[]
 }
 
 model ServiceRecord {
@@ -98,6 +99,16 @@ model ShareSession {
   createdAt       DateTime @default(now())
   vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage          Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
+}
+
+model VehicleTransfer {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  sellerPhone String
+  buyerPhone  String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
 
 model ServiceSubmission {

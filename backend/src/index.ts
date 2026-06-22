@@ -10,6 +10,7 @@ import analyticsRoutes from './routes/analytics'
 import garageRoutes from './routes/garages'
 import shareSessionRoutes from './routes/shareSessions'
 import serviceSubmissionRoutes from './routes/serviceSubmissions'
+import transferRoutes from './routes/transfers'
 
 dotenv.config()
 
@@ -36,6 +37,7 @@ app.use('/analytics', analyticsRoutes)
 app.use('/garages', garageRoutes)
 app.use('/share-sessions', shareSessionRoutes)
 app.use('/service-submissions', serviceSubmissionRoutes)
+app.use('/transfers', transferRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)
