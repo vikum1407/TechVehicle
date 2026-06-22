@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as SecureStore from 'expo-secure-store'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
@@ -35,8 +35,8 @@ export default function App() {
 
   useEffect(() => {
     Promise.all([
-      AsyncStorage.getItem('token'),
-      AsyncStorage.getItem('phoneNumber'),
+      SecureStore.getItemAsync('token'),
+      SecureStore.getItemAsync('phoneNumber'),
     ]).then(([savedToken, savedPhone]) => {
       if (savedToken && savedPhone) {
         setToken(savedToken)
@@ -54,16 +54,16 @@ export default function App() {
   }
 
   const handleVerified = async (authToken: string, phone: string) => {
-    await AsyncStorage.setItem('token', authToken)
-    await AsyncStorage.setItem('phoneNumber', phone)
+    await SecureStore.setItemAsync('token', authToken)
+    await SecureStore.setItemAsync('phoneNumber', phone)
     setToken(authToken)
     setPhoneNumber(phone)
     setScreen('vehicles')
   }
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('token')
-    await AsyncStorage.removeItem('phoneNumber')
+    await SecureStore.deleteItemAsync('token')
+    await SecureStore.deleteItemAsync('phoneNumber')
     setToken('')
     setPhoneNumber('')
     setSelectedVehicle(null)
