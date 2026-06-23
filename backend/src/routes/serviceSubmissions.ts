@@ -43,7 +43,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const submission = await prisma.serviceSubmission.create({
       data: {
-        shareSessionId: resolvedShareId,
+        shareSessionId: resolvedShareId as string,
         vehicleId,
         garageId: garage.id,
         ownerPhone,
