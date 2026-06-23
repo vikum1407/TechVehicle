@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
@@ -42,6 +42,14 @@ type DateSlot = {
   slots: { label: string; booked: number; available: boolean }[]
 }
 
+type ServiceRecord = {
+  id: string
+  date: string
+  description: string
+  mileage: number | null
+  cost: number | null
+}
+
 type Step = 'search' | 'dates' | 'slots' | 'confirm'
 
 export default function BookingScreen({ token, vehicle, onBack, onBooked }: Props) {
@@ -62,6 +70,37 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [notes, setNotes] = useState('')
   const [noteType, setNoteType] = useState<'normal' | 'urgent'>('normal')
   const [booking, setBooking] = useState(false)
+
+  // Share history state
+  const [shareEnabled, setShareEnabled] = useState(false)
+  const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([])
+  const [recordsLoading, setRecordsLoading] = useState(false)
+  const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set())
+
+  // Load service records when entering confirm step
+  useEffect(() => {
+    if (step === 'confirm') {
+      setRecordsLoading(true)
+      api.getServiceRecords(token, vehicle.id)
+        .then((records: ServiceRecord[]) => {
+          setServiceRecords(records)
+          // Pre-select latest 3
+          const latest = records.slice(0, 3).map((r: ServiceRecord) => r.id)
+          setSelectedRecordIds(new Set(latest))
+        })
+        .catch(() => {})
+        .finally(() => setRecordsLoading(false))
+    }
+  }, [step])
+
+  const toggleRecord = (id: string) => {
+    setSelectedRecordIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -112,6 +151,17 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     if (!selectedGarage || !selectedDate) return
     setBooking(true)
     try {
+      let shareSessionId: string | undefined
+
+      if (shareEnabled && selectedRecordIds.size > 0) {
+        const share = await api.createShare(token, {
+          vehicleId: vehicle.id,
+          garageId: selectedGarage.id,
+          recordIds: Array.from(selectedRecordIds),
+        })
+        shareSessionId = share.id
+      }
+
       await api.createBooking(token, {
         vehicleId: vehicle.id,
         garageId: selectedGarage.id,
@@ -119,6 +169,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         slotLabel: selectedSlot || undefined,
         notes: notes.trim() || undefined,
         noteType,
+        shareSessionId,
       })
       Alert.alert(
         'Booking Sent',
@@ -267,7 +318,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             </View>
           )}
 
-          {/* Legend */}
           {!datesLoading && (
             <View style={styles.legend}>
               <View style={styles.legendItem}>
@@ -409,9 +459,80 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>Notes for Garage (optional)</Text>
+        {/* ── Share history section ── */}
+        <Text style={styles.sectionLabel}>Share History with Garage</Text>
 
-        {/* Urgent toggle */}
+        <TouchableOpacity
+          style={[styles.shareToggleCard, shareEnabled && styles.shareToggleCardOn]}
+          onPress={() => setShareEnabled(prev => !prev)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.shareToggleLeft}>
+            <Text style={styles.shareToggleIcon}>📋</Text>
+            <View style={styles.shareToggleText}>
+              <Text style={[styles.shareToggleTitle, shareEnabled && styles.shareToggleTitleOn]}>
+                Attach recent service records
+              </Text>
+              <Text style={styles.shareToggleDesc}>
+                Let the garage see your vehicle's service history
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.togglePill, shareEnabled && styles.togglePillOn]}>
+            <Text style={styles.togglePillText}>{shareEnabled ? 'ON' : 'OFF'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {shareEnabled && (
+          <>
+            {recordsLoading ? (
+              <ActivityIndicator style={{ marginVertical: 16 }} color="#1a73e8" />
+            ) : serviceRecords.length === 0 ? (
+              <View style={styles.noRecordsBox}>
+                <Text style={styles.noRecordsText}>No service records found for this vehicle.</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.recordHint}>
+                  Select records to share ({selectedRecordIds.size} selected):
+                </Text>
+                {serviceRecords.map(record => {
+                  const selected = selectedRecordIds.has(record.id)
+                  return (
+                    <TouchableOpacity
+                      key={record.id}
+                      style={[styles.recordCard, selected && styles.recordCardOn]}
+                      onPress={() => toggleRecord(record.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.recordCheck, selected && styles.recordCheckOn]}>
+                        {selected && <Text style={styles.recordCheckMark}>✓</Text>}
+                      </View>
+                      <View style={styles.recordInfo}>
+                        <Text style={styles.recordDate}>
+                          {new Date(record.date).toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short', year: 'numeric'
+                          })}
+                        </Text>
+                        <Text style={styles.recordDesc} numberOfLines={1}>{record.description}</Text>
+                        {record.mileage != null && (
+                          <Text style={styles.recordMileage}>{record.mileage.toLocaleString()} km</Text>
+                        )}
+                      </View>
+                      {record.cost != null && (
+                        <Text style={styles.recordCost}>LKR {record.cost.toLocaleString()}</Text>
+                      )}
+                    </TouchableOpacity>
+                  )
+                })}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── Notes section ── */}
+        <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Notes for Garage (optional)</Text>
+
         <View style={styles.noteTypeRow}>
           <TouchableOpacity
             style={[styles.noteTypeBtn, noteType === 'normal' && styles.noteTypeBtnActive]}
@@ -532,7 +653,6 @@ const styles = StyleSheet.create({
   selectedDateLabel: { fontSize: 14, color: '#1a73e8', fontWeight: '600' },
   verifiedLabel: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
 
-  // Date grid
   dateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   dateCell: {
     width: '30%', backgroundColor: '#fff', borderRadius: 12, padding: 10,
@@ -553,20 +673,17 @@ const styles = StyleSheet.create({
   dateFullText: { fontSize: 10, color: '#e53935', fontWeight: '700', marginTop: 2 },
   msgDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
 
-  // Legend
   legend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 11, color: '#888' },
 
-  // Message banner
   msgBanner: {
     backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 16,
     borderLeftWidth: 4,
   },
   msgBannerText: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
 
-  // Slot cards
   slotCard: {
     backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 10,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -580,7 +697,6 @@ const styles = StyleSheet.create({
   slotSelectArrow: { fontSize: 14, color: '#1a73e8', fontWeight: '700' },
   slotFullText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
 
-  // Confirm
   summaryCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 24,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
@@ -591,6 +707,54 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', textAlign: 'right', flex: 1, marginLeft: 12 },
   summaryValueSub: { fontSize: 13, color: '#666', textAlign: 'right', flex: 1, marginLeft: 12 },
   divider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 12 },
+
+  // Share toggle
+  shareToggleCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1.5, borderColor: '#e0e0e0',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  },
+  shareToggleCardOn: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
+  shareToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  shareToggleIcon: { fontSize: 24 },
+  shareToggleText: { flex: 1 },
+  shareToggleTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
+  shareToggleTitleOn: { color: '#1a73e8' },
+  shareToggleDesc: { fontSize: 12, color: '#888', lineHeight: 17 },
+  togglePill: {
+    backgroundColor: '#e0e0e0', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8,
+  },
+  togglePillOn: { backgroundColor: '#1a73e8' },
+  togglePillText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  noRecordsBox: {
+    backgroundColor: '#f5f5f5', borderRadius: 10, padding: 16,
+    alignItems: 'center', marginBottom: 12,
+  },
+  noRecordsText: { fontSize: 14, color: '#888' },
+
+  recordHint: { fontSize: 13, color: '#555', marginBottom: 10, fontWeight: '500' },
+
+  recordCard: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#e0e0e0',
+    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
+  },
+  recordCardOn: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
+  recordCheck: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#ccc',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  recordCheckOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  recordCheckMark: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  recordInfo: { flex: 1 },
+  recordDate: { fontSize: 12, color: '#888', marginBottom: 2 },
+  recordDesc: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', marginBottom: 2 },
+  recordMileage: { fontSize: 12, color: '#666' },
+  recordCost: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginLeft: 8 },
 
   noteTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   noteTypeBtn: {

@@ -387,6 +387,7 @@ export const api = {
     slotLabel?: string
     notes?: string
     noteType?: string
+    shareSessionId?: string
   }) => {
     const res = await fetch(`${API_URL}/bookings`, {
       method: 'POST',
