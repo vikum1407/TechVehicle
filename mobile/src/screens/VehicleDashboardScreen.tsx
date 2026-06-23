@@ -215,6 +215,7 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
 
     return (
       <TouchableOpacity
+        key={item.id}
         style={styles.card}
         onPress={() => setExpandedId(isExpanded ? null : item.id)}
         activeOpacity={0.85}
