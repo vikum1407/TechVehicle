@@ -388,7 +388,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               </View>
               {slot.available
                 ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: '#E65100' }]}>Select →</Text>
-                : <Text style={styles.slotFullText}>Full</Text>
+                : <Text style={styles.slotFullText}>Already Booked</Text>
               }
             </TouchableOpacity>
           ))}
