@@ -49,7 +49,7 @@ type IncomingShare = {
   records: SharedRecord[]
 }
 
-type Tab = 'profile' | 'schedule' | 'bookings' | 'shared'
+type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar'
 
 type CalendarOverride = {
   id: string
@@ -89,6 +89,8 @@ export default function GarageScreen({ token, onBack }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
+  const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null)
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -258,9 +260,9 @@ export default function GarageScreen({ token, onBack }: Props) {
   }
 
   useEffect(() => {
-    if (tab === 'shared' && garage) loadShares()
-    if (tab === 'bookings' && garage) loadBookings()
+    if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
     if (tab === 'schedule' && garage) { loadSchedule(); loadOverrides(calMonth) }
+    if (tab === 'calendar' && garage) { loadBookings(); loadSchedule(); loadOverrides(calMonth) }
   }, [tab, garage])
 
   const handleRegister = async () => {
@@ -659,10 +661,10 @@ export default function GarageScreen({ token, onBack }: Props) {
             <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, tab === 'shared' && styles.tabActive]}
-            onPress={() => setTab('shared')}
+            style={[styles.tab, tab === 'calendar' && styles.tabActive]}
+            onPress={() => setTab('calendar')}
           >
-            <Text style={[styles.tabText, tab === 'shared' && styles.tabTextActive]}>Shared</Text>
+            <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -961,29 +963,50 @@ export default function GarageScreen({ token, onBack }: Props) {
             const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
             const isPending = booking.status === 'pending'
             const isConfirmed = booking.status === 'confirmed'
+            const isExpanded = expandedBooking === booking.id
+            const bAny = booking as any
+            const attachedShare = bAny.shareSessionId
+              ? shares.find((s: IncomingShare) => s.id === bAny.shareSessionId) || null
+              : null
+            const alreadySubmitted = attachedShare && submittedIds.has(attachedShare.id)
+
             return (
-              <View key={booking.id} style={styles.bookingCard}>
+              <TouchableOpacity
+                key={booking.id}
+                style={[
+                  styles.bookingCard,
+                  isPending && styles.bookingCardPending,
+                  isConfirmed && styles.bookingCardConfirmed,
+                ]}
+                onPress={() => setExpandedBooking(isExpanded ? null : booking.id)}
+                activeOpacity={0.85}
+              >
                 <View style={styles.bookingHeader}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.bookingVehicle}>
                       {booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}
                     </Text>
                     <Text style={styles.bookingReg}>{booking.vehicle.registrationNo}</Text>
                   </View>
-                  <View style={[
-                    styles.bookingBadge,
-                    isPending ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
-                  ]}>
-                    <Text style={styles.bookingBadgeText}>
-                      {isPending ? 'Pending' : 'Confirmed'}
-                    </Text>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <View style={[
+                      styles.bookingBadge,
+                      isPending ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
+                    ]}>
+                      <Text style={styles.bookingBadgeText}>
+                        {isPending ? 'Pending' : 'Confirmed'}
+                      </Text>
+                    </View>
+                    {attachedShare && (
+                      <Text style={styles.shareAttachedTag}>📎 History attached</Text>
+                    )}
                   </View>
                 </View>
 
                 <View style={styles.bookingMeta}>
                   <Text style={styles.bookingDate}>📅 {dateStr}</Text>
-                  {(booking as any).slotLabel && (
-                    <Text style={styles.bookingSlot}>⏰ {(booking as any).slotLabel}</Text>
+                  {bAny.slotLabel && (
+                    <Text style={styles.bookingSlot}>⏰ {bAny.slotLabel}</Text>
                   )}
                   <Text style={styles.bookingOwner}>Owner: {booking.ownerPhone}</Text>
                   <Text style={styles.bookingMileage}>{booking.vehicle.mileage.toLocaleString()} km</Text>
@@ -992,16 +1015,16 @@ export default function GarageScreen({ token, onBack }: Props) {
                 {booking.notes ? (
                   <Text style={[
                     styles.bookingNotes,
-                    (booking as any).noteType === 'urgent' && styles.bookingNotesUrgent,
+                    bAny.noteType === 'urgent' && styles.bookingNotesUrgent,
                   ]}>
-                    {(booking as any).noteType === 'urgent' ? '🚨 ' : ''}&ldquo;{booking.notes}&rdquo;
+                    {bAny.noteType === 'urgent' ? '🚨 ' : ''}"{booking.notes}"
                   </Text>
                 ) : null}
 
                 {isPending && (
                   <TouchableOpacity
                     style={[styles.confirmBookingBtn, confirmingId === booking.id && styles.confirmBookingBtnDisabled]}
-                    onPress={() => handleConfirmBooking(booking.id)}
+                    onPress={(e) => { e.stopPropagation?.(); handleConfirmBooking(booking.id) }}
                     disabled={confirmingId === booking.id}
                   >
                     {confirmingId === booking.id
@@ -1011,140 +1034,259 @@ export default function GarageScreen({ token, onBack }: Props) {
                   </TouchableOpacity>
                 )}
 
-                {isConfirmed && (
+                {isConfirmed && !attachedShare && (
                   <View style={styles.confirmedBadge}>
                     <Text style={styles.confirmedText}>✓ Appointment confirmed</Text>
                   </View>
                 )}
-              </View>
-            )
-          })}
-        </ScrollView>
-      )}
 
-      {tab === 'shared' && garage && (
-        <ScrollView contentContainerStyle={styles.content}>
-          {sharesLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
-          ) : shares.length === 0 ? (
-            <View style={styles.emptyShares}>
-              <Text style={styles.emptySharesTitle}>No shared records yet</Text>
-              <Text style={styles.emptySharesText}>
-                When vehicle owners share their service history with your garage, it will appear here.
-              </Text>
-            </View>
-          ) : shares.map(share => {
-            const isExpanded = expandedShare === share.id
-            return (
-              <TouchableOpacity
-                key={share.id}
-                style={styles.shareCard}
-                onPress={() => setExpandedShare(isExpanded ? null : share.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.shareCardTop}>
-                  <View>
-                    <Text style={styles.shareVehicle}>
-                      {share.vehicle.year} {share.vehicle.make} {share.vehicle.model}
+                {/* ── Expanded: shared records + submit ── */}
+                {isExpanded && attachedShare && (
+                  <View style={styles.inlineShareSection}>
+                    <Text style={styles.inlineShareTitle}>
+                      📋 Shared Service History ({attachedShare.records.length} records)
                     </Text>
-                    <Text style={styles.shareReg}>{share.vehicle.registrationNo}</Text>
-                  </View>
-                  <View style={styles.shareRight}>
-                    <Text style={styles.shareRecordCount}>{share.records.length} records</Text>
-                    <Text style={styles.shareMileage}>{share.vehicle.mileage.toLocaleString()} km</Text>
-                  </View>
-                </View>
-                <Text style={styles.shareDate}>Shared {formatDate(share.createdAt)}</Text>
 
-                {isExpanded && (
-                  <View style={styles.shareRecords}>
-                    {/* Vehicle Profile */}
-                    <View style={styles.profileSection}>
-                      <Text style={styles.profileSectionTitle}>Vehicle Profile</Text>
-                      <View style={styles.profileGrid}>
-                        <View style={styles.profileItem}>
-                          <Text style={styles.profileLabel}>Registration</Text>
-                          <Text style={styles.profileValueHighlight}>{share.vehicle.registrationNo}</Text>
-                        </View>
-                        <View style={styles.profileItem}>
-                          <Text style={styles.profileLabel}>Fuel Type</Text>
-                          <Text style={styles.profileValue}>{share.vehicle.fuelType}</Text>
-                        </View>
-                        <View style={styles.profileItem}>
-                          <Text style={styles.profileLabel}>Current Mileage</Text>
-                          <Text style={styles.profileValue}>{share.vehicle.mileage.toLocaleString()} km</Text>
-                        </View>
-                        <View style={styles.profileItem}>
-                          <Text style={styles.profileLabel}>Fuel Economy</Text>
-                          <Text style={styles.profileValue}>
-                            {share.avgFuelEfficiency != null ? `${share.avgFuelEfficiency} km/L` : 'No data yet'}
-                          </Text>
-                        </View>
-                        <View style={styles.profileItem}>
-                          <Text style={styles.profileLabel}>Owner Contact</Text>
-                          <Text style={styles.profileValue}>{share.ownerPhone}</Text>
-                        </View>
-                        {share.totalServiceCost > 0 && (
-                          <View style={styles.profileItem}>
-                            <Text style={styles.profileLabel}>Total Service Cost</Text>
-                            <Text style={styles.profileValue}>LKR {share.totalServiceCost.toLocaleString()}</Text>
-                          </View>
-                        )}
+                    {/* Vehicle profile */}
+                    <View style={styles.inlineVehicleRow}>
+                      <View style={styles.inlineVehicleItem}>
+                        <Text style={styles.inlineVehicleLabel}>Fuel Type</Text>
+                        <Text style={styles.inlineVehicleValue}>{attachedShare.vehicle.fuelType}</Text>
                       </View>
+                      <View style={styles.inlineVehicleItem}>
+                        <Text style={styles.inlineVehicleLabel}>Mileage</Text>
+                        <Text style={styles.inlineVehicleValue}>{attachedShare.vehicle.mileage.toLocaleString()} km</Text>
+                      </View>
+                      {attachedShare.avgFuelEfficiency != null && (
+                        <View style={styles.inlineVehicleItem}>
+                          <Text style={styles.inlineVehicleLabel}>Avg Economy</Text>
+                          <Text style={styles.inlineVehicleValue}>{attachedShare.avgFuelEfficiency} km/L</Text>
+                        </View>
+                      )}
                     </View>
 
-                    {/* Shared Records */}
-                    <Text style={styles.recordsSectionTitle}>
-                      Shared Service Records ({share.records.length})
-                    </Text>
-                    {share.records.map(r => {
-                      const services = parseServices(r.description)
-                      return (
-                        <View key={r.id} style={styles.sharedRecord}>
-                          <View style={styles.sharedRecordTop}>
-                            <Text style={styles.sharedRecordDate}>{formatDate(r.date)}</Text>
-                            {r.cost != null && (
-                              <Text style={styles.sharedRecordCost}>LKR {r.cost.toLocaleString()}</Text>
-                            )}
-                          </View>
-                          <View style={styles.tagRow}>
-                            {services.map((s, i) => (
-                              <View key={i} style={styles.tag}>
-                                <Text style={styles.tagText}>{s}</Text>
-                              </View>
-                            ))}
-                          </View>
-                          {r.mileage && <Text style={styles.sharedRecordMileage}>{r.mileage.toLocaleString()} km</Text>}
+                    {/* Records */}
+                    {attachedShare.records.map((r: SharedRecord) => (
+                      <View key={r.id} style={styles.inlineRecord}>
+                        <View style={styles.inlineRecordTop}>
+                          <Text style={styles.inlineRecordDate}>{formatDate(r.date)}</Text>
+                          {r.cost != null && (
+                            <Text style={styles.inlineRecordCost}>LKR {r.cost.toLocaleString()}</Text>
+                          )}
                         </View>
-                      )
-                    })}
+                        <View style={styles.tagRow}>
+                          {parseServices(r.description).map((s: string, i: number) => (
+                            <View key={i} style={styles.tag}><Text style={styles.tagText}>{s}</Text></View>
+                          ))}
+                        </View>
+                        {r.mileage != null && (
+                          <Text style={styles.inlineRecordMileage}>{r.mileage.toLocaleString()} km</Text>
+                        )}
+                      </View>
+                    ))}
 
-                    {/* Submit button */}
+                    {/* Submit service action */}
                     <View style={styles.submitArea}>
-                      {submittedIds.has(share.id) ? (
+                      {alreadySubmitted ? (
                         <View style={styles.submittedBadge}>
-                          <Text style={styles.submittedText}>✓ Submitted to owner</Text>
+                          <Text style={styles.submittedText}>✓ Service submitted — awaiting owner approval</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
                           style={styles.openSubmitBtn}
-                          onPress={() => openSubmitForm(share)}
+                          onPress={() => openSubmitForm(attachedShare)}
                         >
                           <Text style={styles.openSubmitBtnText}>Submit Completed Service</Text>
                         </TouchableOpacity>
                       )}
                     </View>
-
-                    <Text style={styles.collapseHint}>Tap card to collapse</Text>
                   </View>
                 )}
 
                 {!isExpanded && (
-                  <Text style={styles.expandHint}>Tap to see shared records</Text>
+                  <Text style={styles.expandHint}>
+                    {attachedShare ? 'Tap to view shared history & submit service' : 'Tap to expand'}
+                  </Text>
                 )}
               </TouchableOpacity>
             )
           })}
+        </ScrollView>
+      )}
+
+      {tab === 'calendar' && garage && (
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* Month navigation */}
+          <View style={styles.calHeader}>
+            <TouchableOpacity
+              style={styles.calNavBtn}
+              onPress={() => {
+                const m = new Date(calMonth); m.setMonth(m.getMonth() - 1)
+                setCalMonth(m); loadOverrides(m); setSelectedCalDate(null)
+              }}
+            >
+              <Text style={styles.calNavText}>‹</Text>
+            </TouchableOpacity>
+            <Text style={styles.calMonthLabel}>
+              {calMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity
+              style={styles.calNavBtn}
+              onPress={() => {
+                const m = new Date(calMonth); m.setMonth(m.getMonth() + 1)
+                setCalMonth(m); loadOverrides(m); setSelectedCalDate(null)
+              }}
+            >
+              <Text style={styles.calNavText}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.calDowRow}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <Text key={d} style={styles.calDow}>{d}</Text>
+            ))}
+          </View>
+
+          {(() => {
+            const year = calMonth.getFullYear()
+            const month = calMonth.getMonth()
+            const firstDow = new Date(year, month, 1).getDay()
+            const totalDays = new Date(year, month + 1, 0).getDate()
+            const cells: (number | null)[] = [
+              ...Array(firstDow).fill(null),
+              ...Array.from({ length: totalDays }, (_, i) => i + 1),
+            ]
+            while (cells.length % 7 !== 0) cells.push(null)
+
+            const overrideMap = new Map(overrides.map(o => [o.date, o]))
+            const bookingCountByDay = new Map<string, number>()
+            bookings.forEach(b => {
+              const key = new Date(b.date).toISOString().slice(0, 10)
+              bookingCountByDay.set(key, (bookingCountByDay.get(key) || 0) + 1)
+            })
+
+            return (
+              <View style={styles.calGrid}>
+                {cells.map((day, idx) => {
+                  if (!day) return <View key={idx} style={styles.calCell} />
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const count = bookingCountByDay.get(dateStr) || 0
+                  const override = overrideMap.get(dateStr)
+                  const fillRatio = schedMaxPerDay > 0 ? count / schedMaxPerDay : 0
+                  const isSelected = selectedCalDate === dateStr
+
+                  let cellBg = '#fff'
+                  if (override?.status === 'closed' || override?.status === 'holiday') {
+                    cellBg = '#fce4ec'
+                  } else if (fillRatio >= 1) {
+                    cellBg = '#ffebee'
+                  } else if (fillRatio > 0) {
+                    cellBg = '#fff3e0'
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      key={dateStr}
+                      style={[
+                        styles.calCell,
+                        { backgroundColor: cellBg },
+                        isSelected && styles.calCellSelected,
+                      ]}
+                      onPress={() => setSelectedCalDate(isSelected ? null : dateStr)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.calDayNum, isSelected && { color: '#1a73e8' }]}>{day}</Text>
+                      {count > 0 && (
+                        <Text style={[
+                          styles.calBookingCount,
+                          fillRatio >= 1 ? styles.calBookingCountFull : styles.calBookingCountPartial,
+                        ]}>
+                          {count}/{schedMaxPerDay}
+                        </Text>
+                      )}
+                      {override?.message && (
+                        <View style={[styles.calDot, { backgroundColor: '#e53935' }]} />
+                      )}
+                      {override?.status === 'closed' && <Text style={styles.calClosed}>✕</Text>}
+                      {override?.status === 'holiday' && <Text style={styles.calHoliday}>★</Text>}
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            )
+          })()}
+
+          {/* Legend */}
+          <View style={styles.calLegend}>
+            <View style={styles.calLegendItem}>
+              <View style={[styles.calLegendDot, { backgroundColor: '#fff3e0', borderWidth: 1, borderColor: '#ffe0b2' }]} />
+              <Text style={styles.calLegendText}>Partial</Text>
+            </View>
+            <View style={styles.calLegendItem}>
+              <View style={[styles.calLegendDot, { backgroundColor: '#ffebee', borderWidth: 1, borderColor: '#ffcdd2' }]} />
+              <Text style={styles.calLegendText}>Full</Text>
+            </View>
+            <View style={styles.calLegendItem}>
+              <View style={[styles.calLegendDot, { backgroundColor: '#e53935' }]} />
+              <Text style={styles.calLegendText}>Notice</Text>
+            </View>
+          </View>
+          <Text style={styles.calTip}>Tap a date to see bookings for that day.</Text>
+
+          {/* Selected date detail */}
+          {selectedCalDate && (() => {
+            const dayBookings = bookings.filter(b =>
+              new Date(b.date).toISOString().slice(0, 10) === selectedCalDate
+            )
+            const override = overrides.find(o => o.date === selectedCalDate)
+            const displayDate = new Date(selectedCalDate + 'T00:00:00').toLocaleDateString('en-GB', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            })
+            return (
+              <View style={styles.calDayDetail}>
+                <Text style={styles.calDayDetailDate}>{displayDate}</Text>
+
+                {override?.message && (
+                  <Text style={styles.calDayMessage}>⚠️ {override.message}</Text>
+                )}
+                {override?.status === 'closed' && (
+                  <Text style={styles.calDayClosedMsg}>Closed this day</Text>
+                )}
+                {override?.status === 'holiday' && (
+                  <Text style={styles.calDayClosedMsg}>Holiday — {override.message || 'no description'}</Text>
+                )}
+
+                {dayBookings.length === 0 ? (
+                  <Text style={styles.calDayEmpty}>No bookings on this day.</Text>
+                ) : (
+                  dayBookings.map((b: any) => (
+                    <View key={b.id} style={[
+                      styles.calDayBookingCard,
+                      b.status === 'confirmed' && styles.calDayBookingConfirmed,
+                    ]}>
+                      <View style={styles.calDayBookingTop}>
+                        <Text style={styles.calDayBookingVehicle}>
+                          {b.vehicle.registrationNo} · {b.vehicle.make} {b.vehicle.model}
+                        </Text>
+                        <View style={[
+                          styles.bookingBadge,
+                          b.status === 'pending' ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
+                        ]}>
+                          <Text style={styles.bookingBadgeText}>{b.status}</Text>
+                        </View>
+                      </View>
+                      {b.slotLabel && <Text style={styles.calDaySlot}>⏰ {b.slotLabel}</Text>}
+                      {b.notes && (
+                        <Text style={[styles.calDayNotes, b.noteType === 'urgent' && { color: '#e53935' }]}>
+                          {b.noteType === 'urgent' ? '🚨 ' : ''}"{b.notes}"
+                        </Text>
+                      )}
+                    </View>
+                  ))
+                )}
+              </View>
+            )
+          })()}
         </ScrollView>
       )}
     </View>
@@ -1426,4 +1568,51 @@ const styles = StyleSheet.create({
   calLegendIcon: { fontSize: 10, color: '#555', fontWeight: '700' },
   calLegendText: { fontSize: 11, color: '#888' },
   calTip: { fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
+
+  // Booking card color-coding by status
+  bookingCardPending: { borderLeftWidth: 4, borderLeftColor: '#FF9800' },
+  bookingCardConfirmed: { borderLeftWidth: 4, borderLeftColor: '#34a853' },
+  shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
+
+  // Inline shared records inside booking card
+  inlineShareSection: {
+    marginTop: 14, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 12,
+  },
+  inlineShareTitle: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 10 },
+  inlineVehicleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  inlineVehicleItem: {
+    backgroundColor: '#f0f4ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, minWidth: '30%',
+  },
+  inlineVehicleLabel: { fontSize: 10, color: '#888', marginBottom: 2 },
+  inlineVehicleValue: { fontSize: 12, fontWeight: '700', color: '#1a1a1a' },
+  inlineRecord: { marginBottom: 10, backgroundColor: '#fafafa', borderRadius: 8, padding: 10 },
+  inlineRecordTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  inlineRecordDate: { fontSize: 11, color: '#888', fontWeight: '600' },
+  inlineRecordCost: { fontSize: 11, color: '#1a73e8', fontWeight: '700' },
+  inlineRecordMileage: { fontSize: 10, color: '#aaa', marginTop: 4 },
+
+  // Calendar tab — booking density
+  calCellSelected: { borderWidth: 2, borderColor: '#1a73e8', borderRadius: 8 },
+  calBookingCount: { fontSize: 9, fontWeight: '700', marginTop: 1 },
+  calBookingCountPartial: { color: '#E65100' },
+  calBookingCountFull: { color: '#c62828' },
+
+  // Calendar day detail panel
+  calDayDetail: {
+    marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+  },
+  calDayDetailDate: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
+  calDayMessage: { fontSize: 13, color: '#e53935', fontWeight: '600', marginBottom: 8, lineHeight: 18 },
+  calDayClosedMsg: { fontSize: 13, color: '#e53935', fontWeight: '700', marginBottom: 8 },
+  calDayEmpty: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingVertical: 12 },
+  calDayBookingCard: {
+    backgroundColor: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 8,
+    borderLeftWidth: 3, borderLeftColor: '#FF9800',
+  },
+  calDayBookingConfirmed: { borderLeftColor: '#34a853' },
+  calDayBookingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  calDayBookingVehicle: { fontSize: 13, fontWeight: '700', color: '#1a1a1a', flex: 1 },
+  calDaySlot: { fontSize: 12, color: '#555', marginBottom: 3 },
+  calDayNotes: { fontSize: 12, color: '#555', fontStyle: 'italic' },
 })
