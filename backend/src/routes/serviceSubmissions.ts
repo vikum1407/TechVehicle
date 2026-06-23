@@ -8,27 +8,45 @@ const prisma = new PrismaClient()
 router.use(authMiddleware)
 
 // POST /service-submissions — garage submits completed service
+// Accepts either shareSessionId (owner shared records) or bookingId (no share attached)
 router.post('/', async (req: AuthRequest, res) => {
-  const { shareSessionId, vehicleId, description, parts, brand, cost, notes } = req.body
-  if (!shareSessionId || !vehicleId || !description?.trim()) {
-    res.status(400).json({ error: 'shareSessionId, vehicleId and description are required' })
+  const { shareSessionId, bookingId, vehicleId, description, parts, brand, cost, notes } = req.body
+  if (!vehicleId || !description?.trim()) {
+    res.status(400).json({ error: 'vehicleId and description are required' })
+    return
+  }
+  if (!shareSessionId && !bookingId) {
+    res.status(400).json({ error: 'shareSessionId or bookingId is required' })
     return
   }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }
 
-    const session = await prisma.shareSession.findFirst({
-      where: { id: shareSessionId, garageId: garage.id, vehicleId, status: 'active' },
-    })
-    if (!session) { res.status(404).json({ error: 'Share session not found' }); return }
+    let ownerPhone: string
+    let resolvedShareId: string | null = null
+
+    if (shareSessionId) {
+      const session = await prisma.shareSession.findFirst({
+        where: { id: shareSessionId, garageId: garage.id, vehicleId, status: 'active' },
+      })
+      if (!session) { res.status(404).json({ error: 'Share session not found' }); return }
+      ownerPhone = session.ownerPhone
+      resolvedShareId = shareSessionId
+    } else {
+      const booking = await prisma.booking.findFirst({
+        where: { id: bookingId, garageId: garage.id, vehicleId, status: 'confirmed' },
+      })
+      if (!booking) { res.status(404).json({ error: 'Confirmed booking not found' }); return }
+      ownerPhone = booking.ownerPhone
+    }
 
     const submission = await prisma.serviceSubmission.create({
       data: {
-        shareSessionId,
+        shareSessionId: resolvedShareId,
         vehicleId,
         garageId: garage.id,
-        ownerPhone: session.ownerPhone,
+        ownerPhone,
         description: description.trim(),
         parts: parts?.trim() || null,
         brand: brand?.trim() || null,

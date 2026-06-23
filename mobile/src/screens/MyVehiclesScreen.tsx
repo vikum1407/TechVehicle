@@ -165,8 +165,8 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               {userType === 'garage' ? '🏭 My Garage' : '🔍 Find Garage'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onLogout}>
-            <Text style={styles.logout}>Log out</Text>
+          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+            <Text style={styles.logoutBtnText}>Log out</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -373,7 +373,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
   },
   garageBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
-  logout: { fontSize: 14, color: '#888' },
+  logoutBtn: {
+    borderWidth: 1.5, borderColor: '#e53935', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  logoutBtnText: { fontSize: 13, color: '#e53935', fontWeight: '700' },
   loader: { flex: 1 },
   list: { padding: 16 },
   empty: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 },

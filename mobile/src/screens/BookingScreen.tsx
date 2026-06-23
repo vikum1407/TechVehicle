@@ -274,9 +274,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
           ) : (
             <View style={styles.dateGrid}>
-              {dates.map(slot => {
+              {(() => {
+                const todayStr = new Date().toISOString().split('T')[0]
+                return dates.map(slot => {
                 const hasMsg = !!slot.message
                 const msgColor = slot.messageColor || '#FF9800'
+                const isToday = slot.date === todayStr
                 return (
                   <TouchableOpacity
                     key={slot.date}
@@ -287,6 +290,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       slot.status === 'holiday' && styles.dateCellHoliday,
                       slot.isWorkDay && !slot.available && slot.status === 'open' && styles.dateCellFull,
                       hasMsg && slot.available && { borderColor: msgColor, borderWidth: 2 },
+                      isToday && styles.dateCellToday,
                     ]}
                     onPress={() => handleSelectDate(slot)}
                     disabled={!slot.available}
@@ -295,9 +299,15 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     <Text style={[styles.dateDayName, !slot.available && styles.dateDimText]}>
                       {slot.dayName}
                     </Text>
-                    <Text style={[styles.dateDayNum, slot.available && styles.dateDayNumAvailable]}>
-                      {slot.dayNum}
-                    </Text>
+                    <View style={[styles.todayCircleWrap, isToday && styles.todayCircleWrapActive]}>
+                      <Text style={[
+                        styles.dateDayNum,
+                        slot.available && styles.dateDayNumAvailable,
+                        isToday && styles.dateDayNumToday,
+                      ]}>
+                        {slot.dayNum}
+                      </Text>
+                    </View>
                     <Text style={[styles.dateMonth, !slot.available && styles.dateDimText]}>
                       {slot.month}
                     </Text>
@@ -314,7 +324,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     )}
                   </TouchableOpacity>
                 )
-              })}
+              })})()}
             </View>
           )}
 
@@ -673,6 +683,13 @@ const styles = StyleSheet.create({
   dateHolidayText: { fontSize: 10, color: '#e91e63', fontWeight: '700', marginTop: 2 },
   dateFullText: { fontSize: 10, color: '#e53935', fontWeight: '700', marginTop: 2 },
   msgDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
+  dateCellToday: { borderColor: '#FFC107', borderWidth: 2 },
+  todayCircleWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  todayCircleWrapActive: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#FFC107', alignItems: 'center', justifyContent: 'center',
+  },
+  dateDayNumToday: { color: '#1a1a1a' },
 
   legend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },

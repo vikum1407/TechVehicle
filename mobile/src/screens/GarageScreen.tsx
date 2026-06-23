@@ -66,12 +66,14 @@ type Booking = {
   status: string
   notes: string | null
   ownerPhone: string
+  vehicleId: string
   vehicle: {
     registrationNo: string
     make: string
     model: string
     year: number
     mileage: number
+    fuelType?: string
   }
 }
 
@@ -123,6 +125,7 @@ export default function GarageScreen({ token, onBack }: Props) {
 
   // Full submission form — shown when a share is being submitted
   const [submittingShare, setSubmittingShare] = useState<IncomingShare | null>(null)
+  const [submittingBookingId, setSubmittingBookingId] = useState<string | null>(null)
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
@@ -304,6 +307,28 @@ export default function GarageScreen({ token, onBack }: Props) {
     setSubNotes('')
   }
 
+  const openSubmitFormFromBooking = (booking: Booking) => {
+    const mockShare: IncomingShare = {
+      id: '',
+      vehicleId: booking.vehicleId,
+      createdAt: booking.date,
+      ownerPhone: booking.ownerPhone,
+      avgFuelEfficiency: null,
+      totalServiceCost: 0,
+      vehicle: {
+        registrationNo: booking.vehicle.registrationNo,
+        make: booking.vehicle.make,
+        model: booking.vehicle.model,
+        year: booking.vehicle.year,
+        fuelType: booking.vehicle.fuelType || 'Petrol',
+        mileage: booking.vehicle.mileage,
+      },
+      records: [],
+    }
+    openSubmitForm(mockShare)
+    setSubmittingBookingId(booking.id)
+  }
+
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
 
   const toggleService = (itemName: string, category: string) => {
@@ -346,14 +371,18 @@ export default function GarageScreen({ token, onBack }: Props) {
 
     setSubmitting(true)
     try {
+      const isFromBooking = !!submittingBookingId
       await api.submitService(token, {
-        shareSessionId: submittingShare.id,
+        shareSessionId: isFromBooking ? undefined : submittingShare.id,
+        bookingId: submittingBookingId || undefined,
         vehicleId: submittingShare.vehicleId,
         description,
         cost: subCost ? parseFloat(subCost) : undefined,
         notes: subNotes.trim() || undefined,
       })
-      setSubmittedIds(prev => new Set(prev).add(submittingShare.id))
+      const trackKey = submittingBookingId ? `booking_${submittingBookingId}` : submittingShare.id
+      setSubmittedIds(prev => new Set(prev).add(trackKey))
+      setSubmittingBookingId(null)
       setSubmittingShare(null)
       Alert.alert('Submitted', 'Service record sent to the vehicle owner for acceptance.')
     } catch (e: any) {
@@ -968,7 +997,9 @@ export default function GarageScreen({ token, onBack }: Props) {
             const attachedShare = bAny.shareSessionId
               ? shares.find((s: IncomingShare) => s.id === bAny.shareSessionId) || null
               : null
-            const alreadySubmitted = attachedShare && submittedIds.has(attachedShare.id)
+            const alreadySubmitted = attachedShare
+              ? submittedIds.has(attachedShare.id)
+              : submittedIds.has(`booking_${booking.id}`)
 
             return (
               <TouchableOpacity
@@ -1034,9 +1065,28 @@ export default function GarageScreen({ token, onBack }: Props) {
                   </TouchableOpacity>
                 )}
 
-                {isConfirmed && !attachedShare && (
+                {isConfirmed && !attachedShare && !isExpanded && (
                   <View style={styles.confirmedBadge}>
-                    <Text style={styles.confirmedText}>✓ Appointment confirmed</Text>
+                    <Text style={styles.confirmedText}>✓ Confirmed — tap to submit service</Text>
+                  </View>
+                )}
+
+                {/* ── Expanded: confirmed without share → show submit button ── */}
+                {isExpanded && isConfirmed && !attachedShare && (
+                  <View style={styles.inlineShareSection}>
+                    <Text style={styles.inlineShareTitle}>No service history was attached to this booking.</Text>
+                    {alreadySubmitted ? (
+                      <View style={styles.submittedBadge}>
+                        <Text style={styles.submittedText}>✓ Service submitted — awaiting owner approval</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.openSubmitBtn}
+                        onPress={(e) => { e.stopPropagation?.(); openSubmitFormFromBooking(booking) }}
+                      >
+                        <Text style={styles.openSubmitBtnText}>Submit Completed Service</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
@@ -1105,7 +1155,11 @@ export default function GarageScreen({ token, onBack }: Props) {
 
                 {!isExpanded && (
                   <Text style={styles.expandHint}>
-                    {attachedShare ? 'Tap to view shared history & submit service' : 'Tap to expand'}
+                    {attachedShare
+                      ? 'Tap to view shared history & submit service'
+                      : isConfirmed
+                        ? 'Tap to submit completed service'
+                        : 'Tap to expand'}
                   </Text>
                 )}
               </TouchableOpacity>

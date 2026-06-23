@@ -156,7 +156,7 @@ model Booking {
 
 model ServiceSubmission {
   id             String   @id @default(cuid())
-  shareSessionId String
+  shareSessionId String?
   vehicleId      String
   garageId       String
   ownerPhone     String

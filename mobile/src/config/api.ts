@@ -276,7 +276,8 @@ export const api = {
   },
 
   submitService: async (token: string, payload: {
-    shareSessionId: string
+    shareSessionId?: string
+    bookingId?: string
     vehicleId: string
     description: string
     parts?: string

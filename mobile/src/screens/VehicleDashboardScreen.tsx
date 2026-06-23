@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert
+  ScrollView, RefreshControl, ActivityIndicator, Alert
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
@@ -275,167 +275,157 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         <Text style={styles.regNo}>{vehicle.registrationNo}</Text>
       </View>
 
-      <View style={styles.vehicleCard}>
-        <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-        <View style={styles.vehicleRow}>
-          <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
-          <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
-        </View>
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
-            <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
-            <Text style={styles.quickBtnText}>🔧 Add Service</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
-            <Text style={styles.quickBtnText}>💰 Add Expense</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
-            <Text style={styles.quickBtnText}>📊 Analytics</Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.bookBtn} onPress={onBookService}>
-          <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Sparkline mini-charts */}
-      {showSparklines && (
-        <View style={styles.sparkRow}>
-          {/* Mileage sparkline */}
-          <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-            <Text style={styles.sparkTitle}>Mileage</Text>
-            <Sparkline data={mileageValues} color="#1a73e8" gradId="dashMileage" />
-            <Text style={styles.sparkValue}>
-              {vehicle.mileage.toLocaleString()}
-              <Text style={styles.sparkUnit}> km</Text>
-            </Text>
-            <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
-              {mileageTrend.arrow} {mileageTrend.label}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Fuel efficiency sparkline */}
-          <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-            <Text style={styles.sparkTitle}>Fuel Economy</Text>
-            <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
-            <Text style={styles.sparkValue}>
-              {miniAnalytics?.avgFuelEfficiency != null
-                ? miniAnalytics.avgFuelEfficiency.toFixed(1)
-                : '—'}
-              <Text style={styles.sparkUnit}> km/L</Text>
-            </Text>
-            <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
-              {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {pendingTransfer && (
-        <View style={styles.transferBanner}>
-          <View style={styles.transferBannerLeft}>
-            <Text style={styles.transferBannerTitle}>Transfer Pending</Text>
-            <Text style={styles.transferBannerSub}>Waiting for {pendingTransfer.buyerPhone} to accept</Text>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecords} />}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.vehicleCard}>
+          <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+          <View style={styles.vehicleRow}>
+            <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
+            <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
-            onPress={handleCancelTransfer}
-            disabled={cancellingTransfer}
-          >
-            {cancellingTransfer
-              ? <ActivityIndicator color="#c62828" size="small" />
-              : <Text style={styles.cancelTransferBtnText}>Cancel</Text>
-            }
+          <View style={styles.quickActions}>
+            <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
+              <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
+              <Text style={styles.quickBtnText}>🔧 Add Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
+              <Text style={styles.quickBtnText}>💰 Add Expense</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
+              <Text style={styles.quickBtnText}>📊 Analytics</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.bookBtn} onPress={onBookService}>
+            <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {submissions.length > 0 && (
-        <View style={styles.submissionsSection}>
-          <Text style={styles.submissionsSectionTitle}>
-            Pending from Garage ({submissions.length})
-          </Text>
-          {submissions.map(sub => (
-            <View key={sub.id} style={styles.submissionCard}>
-              <View style={styles.submissionHeader}>
-                <Text style={styles.submissionGarage}>
-                  {sub.garage.name}{sub.garage.verified ? ' ✅' : ''}
-                </Text>
-                <Text style={styles.submissionDate}>
-                  {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </Text>
+        {/* Pending submissions — shown prominently right after vehicle card */}
+        {submissions.length > 0 && (
+          <View style={styles.submissionsSection}>
+            <Text style={styles.submissionsSectionTitle}>
+              ⚠️ Pending from Garage ({submissions.length})
+            </Text>
+            {submissions.map(sub => (
+              <View key={sub.id} style={styles.submissionCard}>
+                <View style={styles.submissionHeader}>
+                  <Text style={styles.submissionGarage}>
+                    {sub.garage.name}{sub.garage.verified ? ' ✅' : ''}
+                  </Text>
+                  <Text style={styles.submissionDate}>
+                    {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+                <View style={styles.tagRow}>
+                  {sub.description.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => (
+                    <View key={i} style={styles.tag}>
+                      <Text style={styles.tagText}>{s}</Text>
+                    </View>
+                  ))}
+                </View>
+                {sub.parts && <Text style={styles.submissionMeta}>Parts: {sub.parts}</Text>}
+                {sub.brand && <Text style={styles.submissionMeta}>Brand: {sub.brand}</Text>}
+                {sub.cost != null && (
+                  <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
+                )}
+                {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
+                <TouchableOpacity
+                  style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
+                  onPress={() => handleAccept(sub.id)}
+                  disabled={accepting === sub.id}
+                >
+                  {accepting === sub.id
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.acceptBtnText}>✓ Accept — Add to My History</Text>
+                  }
+                </TouchableOpacity>
               </View>
-              <View style={styles.tagRow}>
-                {sub.description.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => (
-                  <View key={i} style={styles.tag}>
-                    <Text style={styles.tagText}>{s}</Text>
-                  </View>
-                ))}
-              </View>
-              {sub.parts && <Text style={styles.submissionMeta}>Parts: {sub.parts}</Text>}
-              {sub.brand && <Text style={styles.submissionMeta}>Brand: {sub.brand}</Text>}
-              {sub.cost != null && (
-                <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
-              )}
-              {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
-              <TouchableOpacity
-                style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
-                onPress={() => handleAccept(sub.id)}
-                disabled={accepting === sub.id}
-              >
-                {accepting === sub.id
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.acceptBtnText}>Accept — Add to History</Text>
-                }
-              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Sparkline mini-charts */}
+        {showSparklines && (
+          <View style={styles.sparkRow}>
+            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+              <Text style={styles.sparkTitle}>Mileage</Text>
+              <Sparkline data={mileageValues} color="#1a73e8" gradId="dashMileage" />
+              <Text style={styles.sparkValue}>
+                {vehicle.mileage.toLocaleString()}
+                <Text style={styles.sparkUnit}> km</Text>
+              </Text>
+              <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
+                {mileageTrend.arrow} {mileageTrend.label}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+              <Text style={styles.sparkTitle}>Fuel Economy</Text>
+              <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
+              <Text style={styles.sparkValue}>
+                {miniAnalytics?.avgFuelEfficiency != null
+                  ? miniAnalytics.avgFuelEfficiency.toFixed(1)
+                  : '—'}
+                <Text style={styles.sparkUnit}> km/L</Text>
+              </Text>
+              <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
+                {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {pendingTransfer && (
+          <View style={styles.transferBanner}>
+            <View style={styles.transferBannerLeft}>
+              <Text style={styles.transferBannerTitle}>Transfer Pending</Text>
+              <Text style={styles.transferBannerSub}>Waiting for {pendingTransfer.buyerPhone} to accept</Text>
             </View>
-          ))}
-        </View>
-      )}
+            <TouchableOpacity
+              style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
+              onPress={handleCancelTransfer}
+              disabled={cancellingTransfer}
+            >
+              {cancellingTransfer
+                ? <ActivityIndicator color="#c62828" size="small" />
+                : <Text style={styles.cancelTransferBtnText}>Cancel</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Service History</Text>
-        <View style={styles.sectionActions}>
-          <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
-            <Text style={styles.shareBtnText}>🔗 Share</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Service History</Text>
+        </View>
+
+        {!pendingTransfer && (
+          <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
+            <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} onPress={onAddRecord}>
-            <Text style={styles.addBtnText}>+ Add</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        )}
 
-      {!pendingTransfer && (
-        <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
-          <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
-        </TouchableOpacity>
-      )}
-
-      {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
-      ) : records.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No service records yet</Text>
-          <Text style={styles.emptySubText}>Tap "+ Add Record" to log your first service</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={records}
-          keyExtractor={item => item.id}
-          renderItem={renderRecord}
-          contentContainerStyle={styles.list}
-          onRefresh={loadRecords}
-          refreshing={loading}
-        />
-      )}
+        {loading ? (
+          <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
+        ) : records.length === 0 ? (
+          <View style={styles.emptyInline}>
+            <Text style={styles.emptyText}>No service records yet</Text>
+            <Text style={styles.emptySubText}>Tap "Add Service" above to log your first service</Text>
+          </View>
+        ) : (
+          records.map(item => renderRecord({ item }))
+        )}
+      </ScrollView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
+  scrollContent: { paddingBottom: 40 },
   header: {
     backgroundColor: '#fff', paddingTop: 56, paddingBottom: 16,
     paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center',
@@ -478,26 +468,14 @@ const styles = StyleSheet.create({
   sparkTrend: { fontSize: 11, fontWeight: '600', marginTop: 3 },
 
   sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, marginBottom: 8,
+    paddingHorizontal: 16, marginBottom: 8, marginTop: 4,
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  sectionActions: { flexDirection: 'row', gap: 8 },
-  shareBtn: {
-    backgroundColor: '#e8f0fe', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-  },
-  shareBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '700' },
-  addBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  loader: { flex: 1 },
+  loader: { marginTop: 40 },
+  emptyInline: { alignItems: 'center', padding: 32, marginTop: 8 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 16, fontWeight: '600', color: '#555', marginBottom: 8 },
   emptySubText: { fontSize: 13, color: '#888', textAlign: 'center' },
-  list: { padding: 16, paddingTop: 8 },
   card: {
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
     marginBottom: 10, shadowColor: '#000',
@@ -542,14 +520,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff',
   },
   sellBtnText: { fontSize: 14, color: '#c62828', fontWeight: '700' },
-  submissionsSection: { marginHorizontal: 16, marginBottom: 12 },
+  submissionsSection: { marginHorizontal: 16, marginTop: 10, marginBottom: 8 },
   submissionsSectionTitle: {
-    fontSize: 13, fontWeight: '700', color: '#e65100',
-    marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
+    fontSize: 14, fontWeight: '800', color: '#c62828',
+    marginBottom: 10, letterSpacing: 0.3,
   },
   submissionCard: {
-    backgroundColor: '#fff8f0', borderRadius: 12, padding: 14,
-    marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#e65100',
+    backgroundColor: '#fef9f9', borderRadius: 12, padding: 14,
+    marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#c62828',
+    borderWidth: 1, borderColor: '#ffcdd2',
   },
   submissionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' },
   submissionGarage: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', flex: 1 },
@@ -558,9 +537,9 @@ const styles = StyleSheet.create({
   submissionCost: { fontSize: 14, fontWeight: '700', color: '#e65100', marginTop: 6 },
   submissionNotes: { fontSize: 12, color: '#888', fontStyle: 'italic', marginTop: 4 },
   acceptBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 12, alignItems: 'center', marginTop: 12,
+    backgroundColor: '#2e7d32', borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center', marginTop: 14,
   },
   acceptBtnDisabled: { opacity: 0.5 },
-  acceptBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  acceptBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
 })
