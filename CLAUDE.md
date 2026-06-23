@@ -33,17 +33,24 @@
 `User` (with `userType` column), `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`)
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-The `userType`, `timeSlots`, `slotLabel`, `noteType`, and `shareSessionId` columns were added this session. If starting on a fresh Codespace, run `prisma db push` before `npm run dev` to ensure the DB schema is in sync.
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest change: `shareSessionId` is now nullable (`String?`) on `ServiceSubmission`.
 
 ### Next Session — Start Here
 **Agreed next step:** Bottom tab bar navigation — add persistent tabs at the bottom of the app:
 - 🚗 My Vehicles (vehicle owner dashboard)
 - 🏭 Garage (garage dashboard — Profile, Schedule, Bookings, Calendar tabs)
 
-This separates the vehicle owner experience from the garage owner experience cleanly. Currently the Garage is buried behind a button on My Vehicles. Discussed and agreed to implement next session.
+This separates the vehicle owner experience from the garage owner experience cleanly. Currently the Garage is buried behind a button on My Vehicles.
 
 **After that — Phase 4 remaining:**
 - Push notifications: when owner books → notify garage; when garage confirms → notify owner. Use `expo-notifications` (works in Expo Go). Needs `pushToken` column on User and token registration at login.
+
+### UX fixes applied 2026-06-23
+- VehicleDashboard: ScrollView (fully scrollable); pending submissions moved above sparklines; Accept button green/larger; Share/+Add buttons removed from service history header
+- GarageScreen: confirmed bookings without shared history now show Submit Completed Service; backend accepts `bookingId` as alternative to `shareSessionId`
+- BookingScreen: today's date highlighted with yellow circle
+- MyVehiclesScreen: logout is a proper red-bordered button
+- ServiceSubmission.shareSessionId is now nullable in schema
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
