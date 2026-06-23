@@ -8,7 +8,7 @@ import { api } from '../config/api'
 
 type Props = {
   phoneNumber: string
-  onVerified: (token: string, phoneNumber: string) => void
+  onVerified: (token: string, phoneNumber: string, userType: string | null, isNewUser: boolean) => void
   onBack: () => void
 }
 
@@ -25,7 +25,7 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
     setLoading(true)
     try {
       const result = await api.verifyOTP(phoneNumber, otp)
-      onVerified(result.token, result.phoneNumber)
+      onVerified(result.token, result.phoneNumber, result.userType || null, result.isNewUser || false)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {

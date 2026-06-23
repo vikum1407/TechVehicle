@@ -62,13 +62,15 @@ type TransferRecords = {
 type Props = {
   token: string
   phoneNumber: string
+  userType: 'owner' | 'garage'
   onAddVehicle: () => void
   onSelectVehicle: (vehicle: Vehicle) => void
+  onVehiclesLoaded: (vehicles: Vehicle[]) => void
   onLogout: () => void
   onGarage: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onSelectVehicle, onLogout, onGarage }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onGarage }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +87,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
         api.getIncomingTransfers(token),
       ])
       setVehicles(vehicleData)
+      onVehiclesLoaded(vehicleData)
       setIncomingTransfers(transferData)
     } catch (error: any) {
       Alert.alert('Error', error.message)
@@ -158,7 +161,9 @@ export default function MyVehiclesScreen({ token, phoneNumber, onAddVehicle, onS
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.garageBtn} onPress={onGarage}>
-            <Text style={styles.garageBtnText}>🏪 Garage</Text>
+            <Text style={styles.garageBtnText}>
+              {userType === 'garage' ? '🏭 My Garage' : '🔍 Find Garage'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onLogout}>
             <Text style={styles.logout}>Log out</Text>

@@ -28,6 +28,17 @@ export const api = {
     return data
   },
 
+  setUserType: async (token: string, userType: 'owner' | 'garage') => {
+    const res = await fetch(`${API_URL}/auth/user-type`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify({ userType }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to set user type')
+    return data
+  },
+
   getVehicles: async (token: string) => {
     const res = await fetch(`${API_URL}/vehicles`, {
       headers: authHeaders(token),

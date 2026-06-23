@@ -15,8 +15,10 @@ import GarageScreen from './src/screens/GarageScreen'
 import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
+import RoleSelectScreen from './src/screens/RoleSelectScreen'
+import FindGarageScreen from './src/screens/FindGarageScreen'
 
-type Screen = 'loading' | 'login' | 'otp' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'share' | 'sell' | 'booking'
+type Screen = 'loading' | 'login' | 'otp' | 'roleSelect' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'findGarage' | 'share' | 'sell' | 'booking'
 
 type Vehicle = {
   id: string
@@ -32,16 +34,20 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [token, setToken] = useState('')
+  const [userType, setUserType] = useState<'owner' | 'garage' | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
 
   useEffect(() => {
     Promise.all([
       SecureStore.getItemAsync('token'),
       SecureStore.getItemAsync('phoneNumber'),
-    ]).then(([savedToken, savedPhone]) => {
+      SecureStore.getItemAsync('userType'),
+    ]).then(([savedToken, savedPhone, savedUserType]) => {
       if (savedToken && savedPhone) {
         setToken(savedToken)
         setPhoneNumber(savedPhone)
+        if (savedUserType) setUserType(savedUserType as 'owner' | 'garage')
         setScreen('vehicles')
       } else {
         setScreen('login')
@@ -54,20 +60,33 @@ export default function App() {
     setScreen('otp')
   }
 
-  const handleVerified = async (authToken: string, phone: string) => {
+  const handleVerified = async (authToken: string, phone: string, uType: string | null, isNewUser: boolean) => {
     await SecureStore.setItemAsync('token', authToken)
     await SecureStore.setItemAsync('phoneNumber', phone)
+    if (uType) {
+      await SecureStore.setItemAsync('userType', uType)
+      setUserType(uType as 'owner' | 'garage')
+    }
     setToken(authToken)
     setPhoneNumber(phone)
+    setScreen(isNewUser ? 'roleSelect' : 'vehicles')
+  }
+
+  const handleRoleSelected = async (uType: 'owner' | 'garage') => {
+    await SecureStore.setItemAsync('userType', uType)
+    setUserType(uType)
     setScreen('vehicles')
   }
 
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync('token')
     await SecureStore.deleteItemAsync('phoneNumber')
+    await SecureStore.deleteItemAsync('userType')
     setToken('')
     setPhoneNumber('')
+    setUserType(null)
     setSelectedVehicle(null)
+    setVehicles([])
     setScreen('login')
   }
 
@@ -97,14 +116,33 @@ export default function App() {
           onBack={() => setScreen('login')}
         />
       )}
+      {screen === 'roleSelect' && (
+        <RoleSelectScreen
+          token={token}
+          onSelected={handleRoleSelected}
+        />
+      )}
       {screen === 'vehicles' && (
         <MyVehiclesScreen
           token={token}
           phoneNumber={phoneNumber}
+          userType={userType || 'owner'}
           onAddVehicle={() => setScreen('addVehicle')}
           onSelectVehicle={handleSelectVehicle}
+          onVehiclesLoaded={setVehicles}
           onLogout={handleLogout}
-          onGarage={() => setScreen('garage')}
+          onGarage={() => setScreen(userType === 'garage' ? 'garage' : 'findGarage')}
+        />
+      )}
+      {screen === 'findGarage' && (
+        <FindGarageScreen
+          token={token}
+          vehicles={vehicles}
+          onBack={() => setScreen('vehicles')}
+          onBookGarage={(garage, vehicle) => {
+            setSelectedVehicle(vehicle)
+            setScreen('booking')
+          }}
         />
       )}
       {screen === 'addVehicle' && (
