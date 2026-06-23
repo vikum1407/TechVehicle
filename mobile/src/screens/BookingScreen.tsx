@@ -371,6 +371,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               key={slot.label}
               style={[
                 styles.slotCard,
+                slot.available && slot.booked > 0 && styles.slotCardPartial,
                 !slot.available && styles.slotCardUnavailable,
               ]}
               onPress={() => slot.available && handleSelectSlot(slot.label)}
@@ -381,12 +382,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                 <Text style={[styles.slotLabel, !slot.available && styles.slotLabelDim]}>
                   {slot.label}
                 </Text>
-                {slot.booked > 0 && (
-                  <Text style={styles.slotBooked}>{slot.booked} already booked</Text>
+                {slot.available && slot.booked > 0 && (
+                  <Text style={styles.slotBookedWarning}>Already Booked</Text>
                 )}
               </View>
               {slot.available
-                ? <Text style={styles.slotSelectArrow}>Select →</Text>
+                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: '#E65100' }]}>Select →</Text>
                 : <Text style={styles.slotFullText}>Full</Text>
               }
             </TouchableOpacity>
@@ -690,10 +691,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#1a73e8',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
   },
+  slotCardPartial: { borderColor: '#FF9800', backgroundColor: '#fff8f0' },
   slotCardUnavailable: { borderColor: '#e0e0e0', backgroundColor: '#fafafa' },
   slotLabel: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
   slotLabelDim: { color: '#aaa' },
   slotBooked: { fontSize: 12, color: '#aaa', marginTop: 3 },
+  slotBookedWarning: { fontSize: 12, color: '#E65100', fontWeight: '700', marginTop: 3 },
   slotSelectArrow: { fontSize: 14, color: '#1a73e8', fontWeight: '700' },
   slotFullText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
 
