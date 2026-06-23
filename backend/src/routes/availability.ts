@@ -177,7 +177,7 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
       const slots = timeSlots.map(label => ({
         label,
         booked: slotCounts[label] || 0,
-        available: isOpen && totalBooked < effectiveMax,
+        available: isOpen && totalBooked < effectiveMax && (slotCounts[label] || 0) === 0,
       }))
 
       dates.push({
