@@ -47,8 +47,13 @@ export default function App() {
       if (savedToken && savedPhone) {
         setToken(savedToken)
         setPhoneNumber(savedPhone)
-        if (savedUserType) setUserType(savedUserType as 'owner' | 'garage')
-        setScreen('vehicles')
+        if (savedUserType) {
+          setUserType(savedUserType as 'owner' | 'garage')
+          setScreen('vehicles')
+        } else {
+          // Logged-in user has no role yet — show role selection
+          setScreen('roleSelect')
+        }
       } else {
         setScreen('login')
       }
