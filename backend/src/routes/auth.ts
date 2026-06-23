@@ -96,6 +96,7 @@ router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
     })
     res.json({ userType })
   } catch (error) {
+    console.error('update user-type error:', error)
     res.status(500).json({ error: 'Failed to update user type' })
   }
 })
