@@ -2,7 +2,7 @@
 
 ---
 
-## Current Development State (updated 2026-06-22)
+## Current Development State (updated 2026-06-23)
 
 ### Completed & Working ✅
 - Phone auth (OTP via console in dev, JWT stored in SecureStore)
@@ -21,24 +21,29 @@
 - Buyer can preview vehicle history before accepting transfer
 - Phase 4 — Garage Booking System (fully built):
   - Garage Schedule tab: work days toggle, max per day counter, time slots editor, monthly calendar with per-day override editor (Open/Closed/Holiday, custom slot count, coloured notice messages)
-  - Owner BookingScreen: search garage → date picker (14 days, shows override messages with colour indicators) → time slot selection → confirm with Normal/Urgent note toggle
-  - Garage Bookings tab: see incoming bookings with slot label, confirm pending, urgent notes highlighted red
+  - Owner BookingScreen: search garage → date picker (14 days, shows override messages with colour indicators) → time slot selection → confirm with Normal/Urgent note toggle → optional attach service history step (pre-selects latest 3 records, creates ShareSession linked to booking)
+  - Slot blocking: each time slot only allows one booking; "Already Booked" label + grey card when taken
+  - Garage Bookings tab: booking cards with colour-coded left border (orange=pending, green=confirmed); tap to expand → shows attached shared service records inline; Submit Completed Service button inside booking card
+  - Garage Calendar tab (replaced Shared tab): monthly calendar showing booked/max per day with colour coding (white=empty, orange=partial, red=full); tap any date to see that day's bookings; override messages shown in red
+- Role selection: new users (and existing users without a role) see a role selection screen after login — Vehicle Owner or Garage/Service Center; role stored in SecureStore
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
 ### Database tables in Neon ✅
-`User`, `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking`
+`User` (with `userType` column), `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`)
+
+### IMPORTANT — `prisma db push` required on first Codespace session
+The `userType`, `timeSlots`, `slotLabel`, `noteType`, and `shareSessionId` columns were added this session. If starting on a fresh Codespace, run `prisma db push` before `npm run dev` to ensure the DB schema is in sync.
 
 ### Next Session — Start Here
 **Agreed next step:** Bottom tab bar navigation — add persistent tabs at the bottom of the app:
 - 🚗 My Vehicles (vehicle owner dashboard)
-- 🏭 Garage (garage dashboard — Profile, Schedule, Bookings, Shared tabs)
+- 🏭 Garage (garage dashboard — Profile, Schedule, Bookings, Calendar tabs)
 
 This separates the vehicle owner experience from the garage owner experience cleanly. Currently the Garage is buried behind a button on My Vehicles. Discussed and agreed to implement next session.
 
 **After that — Phase 4 remaining:**
 - Push notifications: when owner books → notify garage; when garage confirms → notify owner. Use `expo-notifications` (works in Expo Go). Needs `pushToken` column on User and token registration at login.
-- Share records inside booking: optional "Attach service records" step in BookingScreen (same record selector as Share screen, tied to the booking).
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
