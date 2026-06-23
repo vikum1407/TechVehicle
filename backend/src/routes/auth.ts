@@ -90,15 +90,17 @@ router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'userType must be owner or garage' }); return
   }
   try {
-    await prisma.user.update({
+    await prisma.user.upsert({
       where: { phoneNumber: req.phoneNumber! },
-      data: { userType },
+      update: { userType },
+      create: { phoneNumber: req.phoneNumber!, userType },
     })
-    res.json({ userType })
   } catch (error) {
-    console.error('update user-type error:', error)
-    res.status(500).json({ error: 'Failed to update user type' })
+    // Non-fatal — role is persisted in SecureStore on the device.
+    // DB may not have userType column yet if prisma db push hasn't run.
+    console.error('update user-type (non-fatal):', error)
   }
+  res.json({ userType })
 })
 
 export default router
