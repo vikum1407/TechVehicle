@@ -249,6 +249,7 @@ export default function App() {
         <AddServiceRecordScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          currentMileage={selectedVehicle.mileage}
           onRecordAdded={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
         />

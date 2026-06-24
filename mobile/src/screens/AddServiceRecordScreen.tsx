@@ -12,11 +12,12 @@ import {
 type Props = {
   token: string
   vehicleId: string
+  currentMileage: number
   onRecordAdded: () => void
   onBack: () => void
 }
 
-export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded, onBack }: Props) {
+export default function AddServiceRecordScreen({ token, vehicleId, currentMileage, onRecordAdded, onBack }: Props) {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
@@ -60,6 +61,17 @@ export default function AddServiceRecordScreen({ token, vehicleId, onRecordAdded
     if (!isoDate) {
       Alert.alert('Invalid date', 'Please enter the date as DD/MM/YYYY.')
       return
+    }
+
+    if (mileage) {
+      const mileageNum = parseInt(mileage)
+      if (mileageNum > currentMileage) {
+        Alert.alert(
+          'Mileage too high',
+          `You entered ${mileageNum.toLocaleString()} km but your current odometer is ${currentMileage.toLocaleString()} km. Please check the mileage.`
+        )
+        return
+      }
     }
 
     const description = allItems
