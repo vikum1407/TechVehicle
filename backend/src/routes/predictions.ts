@@ -1,7 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
-import { SERVICE_INTERVALS, FuelScope } from '../data/serviceIntervals'
+import { SERVICE_INTERVALS, ServiceInterval, FuelScope } from '../data/serviceIntervals'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -23,16 +23,30 @@ function passesScope(scope: FuelScope, fuelType: string): boolean {
   }
 }
 
+function makeMatches(interval: ServiceInterval, make: string): boolean {
+  const m = make.toLowerCase()
+  if (interval.makes && !interval.makes.some(im => im.toLowerCase() === m)) return false
+  if (interval.excludeMakes && interval.excludeMakes.some(im => im.toLowerCase() === m)) return false
+  return true
+}
+
+function modelMatches(interval: ServiceInterval, model: string): boolean {
+  if (!interval.models) return true
+  return interval.models.some(im => model.toLowerCase().includes(im.toLowerCase()))
+}
+
+function specificityScore(interval: ServiceInterval): number {
+  let score = 0
+  if (interval.makes) score += 2
+  if (interval.models) score += 1
+  return score
+}
+
 function urgencyScore(status: string, remainingKm: number | null, remainingDays: number | null): number {
   const kmVal = remainingKm ?? Infinity
   const daysVal = remainingDays ?? Infinity
-  if (status === 'overdue') {
-    // Most overdue first (most negative remaining)
-    return -10000 + Math.min(kmVal, daysVal * 10)
-  }
-  if (status === 'due_soon') {
-    return Math.min(kmVal < Infinity ? kmVal : 99999, daysVal < Infinity ? daysVal * 10 : 99999)
-  }
+  if (status === 'overdue') return -10000 + Math.min(kmVal, daysVal * 10)
+  if (status === 'due_soon') return Math.min(kmVal < Infinity ? kmVal : 99999, daysVal < Infinity ? daysVal * 10 : 99999)
   if (status === 'no_data') return 900000
   return 1000000 + Math.min(kmVal < Infinity ? kmVal : 999999, daysVal < Infinity ? daysVal * 10 : 999999)
 }
@@ -54,74 +68,92 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     const today = new Date()
     const currentMileage = vehicle.mileage
 
-    const predictions = SERVICE_INTERVALS
-      .filter(interval => passesScope(interval.fuelScope, vehicle.fuelType))
-      .map(interval => {
-        // Find most recent matching record
-        const matching = records.filter(r =>
-          interval.keywords.some(kw =>
-            r.description.toLowerCase().includes(kw.toLowerCase())
-          )
-        )
-        const last = matching[0] || null // already sorted desc by date
+    // Step 1 — filter intervals applicable to this vehicle
+    const applicable = SERVICE_INTERVALS.filter(interval =>
+      passesScope(interval.fuelScope, vehicle.fuelType) &&
+      makeMatches(interval, vehicle.make) &&
+      modelMatches(interval, vehicle.model)
+    )
 
-        if (!last) {
-          return {
-            id: interval.id,
-            name: interval.name,
-            source: interval.source,
-            status: 'no_data' as const,
-            lastDoneKm: null,
-            lastDoneDate: null,
-            dueAtKm: null,
-            remainingKm: null,
-            dueAtDate: null,
-            remainingDays: null,
-          }
-        }
+    // Step 2 — deduplicate by group: most specific wins (models > makes > general)
+    const grouped = new Map<string, ServiceInterval>()
+    for (const interval of applicable) {
+      const existing = grouped.get(interval.group)
+      if (!existing || specificityScore(interval) > specificityScore(existing)) {
+        grouped.set(interval.group, interval)
+      }
+    }
 
-        const lastKm = last.mileage
-        const lastDate = new Date(last.date)
+    // Step 3 — run predictions on winning intervals
+    const predictions = Array.from(grouped.values()).map(interval => {
+      const matching = records.filter(r =>
+        interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
+      )
+      const last = matching[0] || null
 
-        let remainingKm: number | null = null
-        let dueAtKm: number | null = null
-        if (interval.kmInterval && lastKm != null) {
-          dueAtKm = lastKm + interval.kmInterval
-          remainingKm = dueAtKm - currentMileage
-        }
-
-        let remainingDays: number | null = null
-        let dueAtDate: string | null = null
-        if (interval.daysInterval) {
-          const due = new Date(lastDate)
-          due.setDate(due.getDate() + interval.daysInterval)
-          dueAtDate = due.toISOString()
-          remainingDays = Math.floor((due.getTime() - today.getTime()) / 86400000)
-        }
-
-        let status: 'overdue' | 'due_soon' | 'ok' = 'ok'
-        const kmOverdue = remainingKm !== null && remainingKm < 0
-        const daysOverdue = remainingDays !== null && remainingDays < 0
-        const kmSoon = remainingKm !== null && remainingKm >= 0 && remainingKm <= interval.urgencyKm
-        const daysSoon = remainingDays !== null && remainingDays >= 0 && remainingDays <= interval.urgencyDays
-
-        if (kmOverdue || daysOverdue) status = 'overdue'
-        else if (kmSoon || daysSoon) status = 'due_soon'
-
+      if (!last) {
         return {
           id: interval.id,
+          group: interval.group,
           name: interval.name,
           source: interval.source,
-          status,
-          lastDoneKm: lastKm,
-          lastDoneDate: last.date.toISOString(),
-          dueAtKm,
-          remainingKm,
-          dueAtDate,
-          remainingDays,
+          status: 'no_data' as const,
+          lastDoneKm: null,
+          lastDoneDate: null,
+          dueAtKm: null,
+          remainingKm: null,
+          dueAtDate: null,
+          remainingDays: null,
         }
-      })
-      .sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
+      }
+
+      const lastKm = last.mileage
+      const lastDate = new Date(last.date)
+
+      let remainingKm: number | null = null
+      let dueAtKm: number | null = null
+      if (interval.kmInterval && lastKm != null) {
+        dueAtKm = lastKm + interval.kmInterval
+        remainingKm = dueAtKm - currentMileage
+      }
+
+      let remainingDays: number | null = null
+      let dueAtDate: string | null = null
+      if (interval.daysInterval) {
+        const due = new Date(lastDate)
+        due.setDate(due.getDate() + interval.daysInterval)
+        dueAtDate = due.toISOString()
+        remainingDays = Math.floor((due.getTime() - today.getTime()) / 86400000)
+      }
+
+      let status: 'overdue' | 'due_soon' | 'ok' = 'ok'
+      if (
+        (remainingKm !== null && remainingKm < 0) ||
+        (remainingDays !== null && remainingDays < 0)
+      ) {
+        status = 'overdue'
+      } else if (
+        (remainingKm !== null && remainingKm <= interval.urgencyKm) ||
+        (remainingDays !== null && remainingDays <= interval.urgencyDays)
+      ) {
+        status = 'due_soon'
+      }
+
+      return {
+        id: interval.id,
+        group: interval.group,
+        name: interval.name,
+        source: interval.source,
+        status,
+        lastDoneKm: lastKm,
+        lastDoneDate: last.date.toISOString(),
+        dueAtKm,
+        remainingKm,
+        dueAtDate,
+        remainingDays,
+      }
+    })
+    .sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
 
     res.json(predictions)
   } catch (error) {

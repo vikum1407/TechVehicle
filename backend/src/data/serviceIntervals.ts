@@ -2,64 +2,79 @@ export type FuelScope = 'all' | 'petrol-only' | 'diesel-only' | 'not-electric' |
 
 export type ServiceInterval = {
   id: string
+  group: string         // dedup key — one winner per group per vehicle (most specific wins)
   name: string
-  keywords: string[]   // matched against service record description (case-insensitive substring)
+  keywords: string[]    // matched against service record description (case-insensitive)
   kmInterval?: number
   daysInterval?: number
   fuelScope: FuelScope
+  makes?: string[]        // only apply to these makes (undefined = all makes)
+  excludeMakes?: string[] // exclude these makes (they have their own make-specific entry)
+  models?: string[]       // only apply if model name contains one of these (case-insensitive)
   source: string
-  urgencyKm: number   // warn when remaining km falls below this
-  urgencyDays: number // warn when remaining days falls below this
+  urgencyKm: number
+  urgencyDays: number
 }
 
-export const SERVICE_INTERVALS: ServiceInterval[] = [
-  // ── Engine & Oil ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERAL intervals — apply to all vehicles unless overridden or excluded
+// ─────────────────────────────────────────────────────────────────────────────
+const GENERAL: ServiceInterval[] = [
   {
-    id: 'oil_change',
+    id: 'oil_change_general',
+    group: 'oil_change',
     name: 'Engine Oil Change',
     keywords: ['Oil Change', 'Oil Filter'],
     kmInterval: 5000,
     daysInterval: 180,
     fuelScope: 'not-electric',
-    source: 'General manufacturer recommendation (Sri Lanka climate)',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'General manufacturer recommendation (Sri Lanka climate, mineral oil)',
     urgencyKm: 500,
     urgencyDays: 14,
   },
   {
-    id: 'air_filter',
+    id: 'air_filter_general',
+    group: 'air_filter',
     name: 'Air Filter',
     keywords: ['Air Filter'],
     kmInterval: 15000,
     daysInterval: 365,
     fuelScope: 'not-electric',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 1500,
     urgencyDays: 30,
   },
   {
-    id: 'fuel_filter',
+    id: 'fuel_filter_general',
+    group: 'fuel_filter',
     name: 'Fuel Filter',
     keywords: ['Fuel Filter'],
     kmInterval: 20000,
     daysInterval: 730,
     fuelScope: 'not-electric',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 2000,
     urgencyDays: 30,
   },
   {
-    id: 'spark_plugs',
+    id: 'spark_plugs_general',
+    group: 'spark_plugs',
     name: 'Spark Plugs',
     keywords: ['Spark Plugs'],
     kmInterval: 20000,
     daysInterval: 730,
     fuelScope: 'petrol-only',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation (standard plugs)',
     urgencyKm: 2000,
     urgencyDays: 30,
   },
   {
     id: 'glow_plugs',
+    group: 'glow_plugs',
     name: 'Glow Plugs',
     keywords: ['Glow Plugs'],
     kmInterval: 40000,
@@ -70,41 +85,47 @@ export const SERVICE_INTERVALS: ServiceInterval[] = [
     urgencyDays: 30,
   },
   {
-    id: 'timing_belt',
+    id: 'timing_belt_general',
+    group: 'timing_belt',
     name: 'Timing Belt',
     keywords: ['Timing Belt'],
     kmInterval: 60000,
     daysInterval: 1825,
     fuelScope: 'not-electric',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation — critical safety item',
     urgencyKm: 5000,
     urgencyDays: 60,
   },
   {
-    id: 'drive_belts',
-    name: 'Drive Belts',
+    id: 'drive_belts_general',
+    group: 'drive_belts',
+    name: 'Drive Belts (Aux)',
     keywords: ['Drive Belts', 'AC Belt'],
     kmInterval: 40000,
     daysInterval: 730,
     fuelScope: 'not-electric',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
   {
     id: 'coolant',
+    group: 'coolant',
     name: 'Coolant Flush',
     keywords: ['Coolant Flush', 'Radiator Service'],
     kmInterval: 40000,
     daysInterval: 730,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
-  // ── Brakes ───────────────────────────────────────────────────────────────────
   {
     id: 'brake_pads',
+    group: 'brake_pads',
     name: 'Brake Pads',
     keywords: ['Brake Pads (Front)', 'Brake Pads (Rear)', 'Brake Drums'],
     kmInterval: 30000,
@@ -116,53 +137,58 @@ export const SERVICE_INTERVALS: ServiceInterval[] = [
   },
   {
     id: 'brake_fluid',
+    group: 'brake_fluid',
     name: 'Brake Fluid',
     keywords: ['Brake Fluid'],
     kmInterval: 40000,
     daysInterval: 730,
     fuelScope: 'all',
-    source: 'General manufacturer recommendation — absorbs moisture over time',
+    source: 'General recommendation — absorbs moisture over time',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
-  // ── Transmission ─────────────────────────────────────────────────────────────
   {
     id: 'auto_trans_fluid',
+    group: 'auto_trans_fluid',
     name: 'Automatic Transmission Fluid',
     keywords: ['Transmission Oil (Auto)', 'Transmission Service'],
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
   {
-    id: 'manual_gear_oil',
+    id: 'manual_gear_oil_general',
+    group: 'manual_gear_oil',
     name: 'Manual Gear Oil',
     keywords: ['Gear Oil (Manual)'],
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
-  // ── Steering & Suspension ────────────────────────────────────────────────────
   {
     id: 'power_steering_fluid',
+    group: 'power_steering_fluid',
     name: 'Power Steering Fluid',
     keywords: ['Power Steering Fluid'],
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
-  // ── Tyres & Wheels ───────────────────────────────────────────────────────────
   {
     id: 'wheel_alignment',
+    group: 'wheel_alignment',
     name: 'Wheel Alignment',
     keywords: ['Wheel Alignment'],
     kmInterval: 10000,
@@ -174,18 +200,20 @@ export const SERVICE_INTERVALS: ServiceInterval[] = [
   },
   {
     id: 'tyre_rotation',
+    group: 'tyre_rotation',
     name: 'Tyre Rotation',
     keywords: ['Tyre Rotation'],
     kmInterval: 10000,
     daysInterval: 180,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 1000,
     urgencyDays: 14,
   },
-  // ── Electrical ───────────────────────────────────────────────────────────────
   {
-    id: 'battery',
+    id: 'battery_general',
+    group: 'battery',
     name: 'Battery',
     keywords: ['Battery'],
     kmInterval: 50000,
@@ -195,16 +223,303 @@ export const SERVICE_INTERVALS: ServiceInterval[] = [
     urgencyKm: 5000,
     urgencyDays: 60,
   },
-  // ── AC & Cooling ─────────────────────────────────────────────────────────────
   {
-    id: 'ac_filter',
+    id: 'ac_filter_general',
+    group: 'ac_filter',
     name: 'AC / Cabin Filter',
     keywords: ['AC Filter', 'Cabin Filter'],
     kmInterval: 15000,
     daysInterval: 365,
     fuelScope: 'all',
+    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
     source: 'General manufacturer recommendation',
     urgencyKm: 1500,
     urgencyDays: 30,
   },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BAJAJ / TVS / HERO — three-wheelers and motorcycles
+// Completely different service profile: shorter intervals, no AC, drive chain
+// ─────────────────────────────────────────────────────────────────────────────
+const BAJAJ_TVS_HERO: ServiceInterval[] = [
+  {
+    id: 'oil_change_3w',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 3000,
+    daysInterval: 90,
+    fuelScope: 'not-electric',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation (small 4-stroke engine)',
+    urgencyKm: 300,
+    urgencyDays: 10,
+  },
+  {
+    id: 'air_filter_3w',
+    group: 'air_filter',
+    name: 'Air Filter',
+    keywords: ['Air Filter'],
+    kmInterval: 10000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 20,
+  },
+  {
+    id: 'spark_plugs_3w',
+    group: 'spark_plugs',
+    name: 'Spark Plugs',
+    keywords: ['Spark Plugs'],
+    kmInterval: 10000,
+    daysInterval: 365,
+    fuelScope: 'petrol-only',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 30,
+  },
+  {
+    id: 'drive_chain_lube',
+    group: 'drive_chain_lube',
+    name: 'Drive Chain Lubrication',
+    keywords: ['Drive Chain', 'Chain Lube'],
+    kmInterval: 1000,
+    daysInterval: 30,
+    fuelScope: 'all',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 100,
+    urgencyDays: 7,
+  },
+  {
+    id: 'drive_chain_replace',
+    group: 'drive_chain',
+    name: 'Drive Chain & Sprocket',
+    keywords: ['Drive Chain', 'Chain Sprocket'],
+    kmInterval: 20000,
+    daysInterval: 730,
+    fuelScope: 'all',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 2000,
+    urgencyDays: 30,
+  },
+  {
+    id: 'gear_oil_3w',
+    group: 'manual_gear_oil',
+    name: 'Gear Oil',
+    keywords: ['Gear Oil (Manual)'],
+    kmInterval: 10000,
+    daysInterval: 365,
+    fuelScope: 'all',
+    makes: ['Bajaj', 'TVS', 'Hero'],
+    source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOYOTA — specific overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const TOYOTA: ServiceInterval[] = [
+  {
+    id: 'oil_change_toyota',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Toyota'],
+    source: 'Toyota Sri Lanka recommendation (mineral oil, stop-go traffic)',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  {
+    id: 'timing_belt_toyota',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Toyota'],
+    excludeMakes: [],
+    // Prius/Aqua use timing chain — excluded via models filter below
+    source: 'Toyota manufacturer recommendation (1NZ-FE, 1ZR-FE engines)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  {
+    id: 'hv_battery_check',
+    group: 'hv_battery',
+    name: 'Hybrid Battery Health Check',
+    keywords: ['HV Battery', 'Hybrid Battery'],
+    kmInterval: 40000,
+    daysInterval: 1460,
+    fuelScope: 'all',
+    makes: ['Toyota'],
+    models: ['Prius', 'Aqua', 'Corolla Cross', 'Yaris Cross', 'RAV4'],
+    source: 'Toyota hybrid system manufacturer recommendation',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  {
+    id: 'cvt_fluid_toyota',
+    group: 'auto_trans_fluid',
+    name: 'CVT / Automatic Transmission Fluid',
+    keywords: ['Transmission Oil (Auto)', 'Transmission Service'],
+    kmInterval: 40000,
+    daysInterval: 1095,
+    fuelScope: 'all',
+    makes: ['Toyota'],
+    source: 'Toyota manufacturer recommendation (WS ATF)',
+    urgencyKm: 3000,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HONDA — specific overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const HONDA: ServiceInterval[] = [
+  {
+    id: 'oil_change_honda',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Honda'],
+    source: 'Honda Sri Lanka recommendation (mineral/semi-synthetic)',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  {
+    id: 'timing_belt_honda',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 70000,
+    daysInterval: 2190,
+    fuelScope: 'petrol-only',
+    makes: ['Honda'],
+    // Fit/Vezel/HR-V L15B uses chain — captured via models filter for belt-equipped models
+    models: ['CR-V', 'Accord', 'Odyssey', 'Stream', 'StepWgn', 'City', 'Jazz'],
+    source: 'Honda manufacturer recommendation (K/R/B-series engines with belt)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  {
+    id: 'cvt_fluid_honda',
+    group: 'auto_trans_fluid',
+    name: 'CVT / Automatic Transmission Fluid',
+    keywords: ['Transmission Oil (Auto)', 'Transmission Service'],
+    kmInterval: 40000,
+    daysInterval: 1095,
+    fuelScope: 'all',
+    makes: ['Honda'],
+    source: 'Honda manufacturer recommendation (HCF-2 CVT fluid)',
+    urgencyKm: 3000,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MITSUBISHI — specific overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const MITSUBISHI: ServiceInterval[] = [
+  {
+    id: 'oil_change_mitsubishi',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Mitsubishi'],
+    source: 'Mitsubishi manufacturer recommendation',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  {
+    id: 'timing_belt_mitsubishi',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 100000,
+    daysInterval: 3650,
+    fuelScope: 'diesel-only',
+    makes: ['Mitsubishi'],
+    source: 'Mitsubishi 4D56/4M41 diesel engine specification',
+    urgencyKm: 8000,
+    urgencyDays: 90,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUZUKI — specific overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const SUZUKI: ServiceInterval[] = [
+  {
+    id: 'oil_change_suzuki',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 150,
+    fuelScope: 'not-electric',
+    makes: ['Suzuki', 'Perodua'],
+    source: 'Suzuki/Perodua recommendation (small displacement engines, hot climate)',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  {
+    id: 'timing_belt_suzuki',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Suzuki', 'Perodua'],
+    source: 'Suzuki/Perodua manufacturer recommendation (K-series engine)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NISSAN — specific overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const NISSAN: ServiceInterval[] = [
+  {
+    id: 'oil_change_nissan',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Nissan'],
+    source: 'Nissan manufacturer recommendation',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+]
+
+export const SERVICE_INTERVALS: ServiceInterval[] = [
+  ...GENERAL,
+  ...BAJAJ_TVS_HERO,
+  ...TOYOTA,
+  ...HONDA,
+  ...MITSUBISHI,
+  ...SUZUKI,
+  ...NISSAN,
 ]
