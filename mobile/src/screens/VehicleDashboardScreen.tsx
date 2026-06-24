@@ -49,6 +49,7 @@ type Props = {
   onShare: () => void
   onSell: () => void
   onBookService: () => void
+  onMessageCountChange?: (count: number) => void
 }
 
 type OwnerBooking = {
@@ -60,6 +61,7 @@ type OwnerBooking = {
   noteType: string | null
   serviceType: string | null
   garage: { id: string; name: string; verified: boolean }
+  _count?: { notes: number }
 }
 
 type PendingTransfer = {
@@ -145,7 +147,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -180,7 +182,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
-      setMyBookings((allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id))
+      const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
+      setMyBookings(vehicleBookings)
+      const totalNotes = vehicleBookings.reduce((sum: number, b: any) => sum + (b._count?.notes ?? 0), 0)
+      onMessageCountChange?.(totalNotes)
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
       setTopPredictions(urgent)
       if (analytics) {
@@ -536,9 +541,16 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                       style={styles.messagesToggleSmall}
                       onPress={() => toggleBookingMessages(bk.id)}
                     >
-                      <Text style={styles.messagesToggleSmallText}>
-                        💬 Messages {isExpanded ? '▲' : '▼'}
-                      </Text>
+                      <View style={styles.messagesToggleRow}>
+                        <Text style={styles.messagesToggleSmallText}>
+                          💬 Messages {isExpanded ? '▲' : '▼'}
+                        </Text>
+                        {(bk._count?.notes ?? 0) > 0 && (
+                          <View style={styles.msgBadge}>
+                            <Text style={styles.msgBadgeText}>{bk._count!.notes}</Text>
+                          </View>
+                        )}
+                      </View>
                     </TouchableOpacity>
                     {!isConfirmed && (
                       <TouchableOpacity
@@ -1024,7 +1036,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6,
   },
   messagesToggleSmall: { paddingVertical: 6, paddingHorizontal: 4 },
+  messagesToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   messagesToggleSmallText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  msgBadge: {
+    backgroundColor: '#e53935', borderRadius: 10,
+    minWidth: 18, height: 18, paddingHorizontal: 5,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  msgBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   cancelBkBtn: {
     borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 5,

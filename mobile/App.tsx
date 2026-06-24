@@ -49,6 +49,9 @@ export default function App() {
   const [userType, setUserType] = useState<'owner' | 'garage' | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [vehiclesBadge, setVehiclesBadge] = useState(0)
+  const [garageBadge, setGarageBadge] = useState(0)
+  const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
   const notifListenerRef = useRef<any>(null)
   const responseListenerRef = useRef<any>(null)
 
@@ -57,9 +60,27 @@ export default function App() {
       // foreground notifications are shown automatically via setNotificationHandler
     })
     responseListenerRef.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const screen = response.notification.request.content.data?.screen as string | undefined
-      if (screen === 'garage') setScreen('garage')
-      else if (screen === 'vehicles') setScreen('vehicles')
+      const data = response.notification.request.content.data as Record<string, any> | undefined
+      const targetScreen = data?.screen as string | undefined
+      const bookingId = data?.bookingId as string | undefined
+      const vehicleId = data?.vehicleId as string | undefined
+
+      if (targetScreen === 'garage') {
+        if (bookingId) setFocusBookingId(bookingId)
+        setScreen('garage')
+      } else if (targetScreen === 'vehicles') {
+        if (vehicleId) {
+          const vehicle = vehicles.find(v => v.id === vehicleId)
+          if (vehicle) {
+            setSelectedVehicle(vehicle)
+            setScreen('vehicleDashboard')
+          } else {
+            setScreen('vehicles')
+          }
+        } else {
+          setScreen('vehicles')
+        }
+      }
     })
     return () => {
       notifListenerRef.current?.remove()
@@ -220,12 +241,17 @@ export default function App() {
             {screen === 'garage' && (
               <GarageScreen
                 token={token}
+                focusBookingId={focusBookingId}
+                onMessageCountChange={setGarageBadge}
+                onFocusHandled={() => setFocusBookingId(null)}
               />
             )}
           </View>
           <BottomTabBar
             activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
             onTabPress={(tab) => setScreen(tab)}
+            vehiclesBadge={vehiclesBadge}
+            garageBadge={garageBadge}
           />
         </View>
       )}
@@ -243,6 +269,7 @@ export default function App() {
           token={token}
           phoneNumber={phoneNumber}
           vehicle={selectedVehicle}
+          onMessageCountChange={setVehiclesBadge}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
           onLogFuel={() => setScreen('logFuel')}

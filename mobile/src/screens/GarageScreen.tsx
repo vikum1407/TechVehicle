@@ -11,6 +11,9 @@ import {
 
 type Props = {
   token: string
+  focusBookingId?: string | null
+  onMessageCountChange?: (count: number) => void
+  onFocusHandled?: () => void
 }
 
 type Garage = {
@@ -74,6 +77,7 @@ type Booking = {
     mileage: number
     fuelType?: string
   }
+  _count?: { notes: number }
 }
 
 type BookingNote = {
@@ -83,7 +87,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -177,6 +181,8 @@ export default function GarageScreen({ token }: Props) {
     try {
       const data = await api.getGarageBookings(token)
       setBookings(data)
+      const total = (data as Booking[]).reduce((sum, b) => sum + (b._count?.notes ?? 0), 0)
+      onMessageCountChange?.(total)
     } catch (e: any) {
       if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
     } finally {
@@ -313,6 +319,22 @@ export default function GarageScreen({ token }: Props) {
       setSavingOverride(false)
     }
   }
+
+  // When a push notification brings the user here with a specific booking, switch to bookings and open messages
+  useEffect(() => {
+    if (!focusBookingId || !garage) return
+    setTab('bookings')
+    const focusAndLoad = () => {
+      setExpandedMessagesSet(prev => new Set(prev).add(focusBookingId))
+      loadBookingNotes(focusBookingId)
+      onFocusHandled?.()
+    }
+    if (bookings.length === 0) {
+      loadBookings().then(focusAndLoad)
+    } else {
+      focusAndLoad()
+    }
+  }, [focusBookingId, garage])
 
   useEffect(() => {
     if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
@@ -1210,6 +1232,11 @@ export default function GarageScreen({ token }: Props) {
                   <Text style={styles.messagesToggleBtnText}>
                     💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                   </Text>
+                  {(booking._count?.notes ?? 0) > 0 && (
+                    <View style={styles.msgBadge}>
+                      <Text style={styles.msgBadgeText}>{booking._count!.notes}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
 
                 {/* Messages thread — shown independently of card expand */}
@@ -1767,9 +1794,15 @@ const styles = StyleSheet.create({
   messagesToggleBtn: {
     marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
     backgroundColor: '#f0f4ff', borderRadius: 8,
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  messagesToggleBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
+  messagesToggleBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700', flex: 1 },
+  msgBadge: {
+    backgroundColor: '#e53935', borderRadius: 10,
+    minWidth: 20, height: 20, paddingHorizontal: 5,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  msgBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
 
   // Inline shared records inside booking card

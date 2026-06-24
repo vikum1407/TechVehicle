@@ -6,9 +6,11 @@ type Tab = 'vehicles' | 'garage'
 type Props = {
   activeTab: Tab
   onTabPress: (tab: Tab) => void
+  vehiclesBadge?: number
+  garageBadge?: number
 }
 
-export default function BottomTabBar({ activeTab, onTabPress }: Props) {
+export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0 }: Props) {
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -17,7 +19,14 @@ export default function BottomTabBar({ activeTab, onTabPress }: Props) {
         activeOpacity={0.8}
       >
         {activeTab === 'vehicles' && <View style={styles.activeBar} />}
-        <Text style={styles.icon}>🚗</Text>
+        <View style={styles.iconWrap}>
+          <Text style={styles.icon}>🚗</Text>
+          {vehiclesBadge > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{vehiclesBadge > 99 ? '99+' : vehiclesBadge}</Text>
+            </View>
+          )}
+        </View>
         <Text style={[styles.label, activeTab === 'vehicles' && styles.labelActive]}>
           My Vehicles
         </Text>
@@ -29,7 +38,14 @@ export default function BottomTabBar({ activeTab, onTabPress }: Props) {
         activeOpacity={0.8}
       >
         {activeTab === 'garage' && <View style={styles.activeBar} />}
-        <Text style={styles.icon}>🏭</Text>
+        <View style={styles.iconWrap}>
+          <Text style={styles.icon}>🏭</Text>
+          {garageBadge > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{garageBadge > 99 ? '99+' : garageBadge}</Text>
+            </View>
+          )}
+        </View>
         <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
           Garage
         </Text>
@@ -67,7 +83,15 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 3,
     borderBottomRightRadius: 3,
   },
-  icon: { fontSize: 22, marginBottom: 3 },
+  iconWrap: { position: 'relative', marginBottom: 3 },
+  icon: { fontSize: 22 },
+  badge: {
+    position: 'absolute', top: -6, right: -10,
+    backgroundColor: '#e53935', borderRadius: 10,
+    minWidth: 18, height: 18, paddingHorizontal: 4,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800', lineHeight: 12 },
   label: { fontSize: 11, fontWeight: '600', color: '#aaa', letterSpacing: 0.2 },
   labelActive: { color: '#1a73e8' },
 })

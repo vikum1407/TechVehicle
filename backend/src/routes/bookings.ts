@@ -80,7 +80,7 @@ router.get('/mine', async (req: AuthRequest, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       where: { ownerPhone: req.phoneNumber!, status: { not: 'cancelled' } },
-      include: { vehicle: true, garage: true },
+      include: { vehicle: true, garage: true, _count: { select: { notes: true } } },
       orderBy: { date: 'asc' },
     })
     res.json(bookings)
@@ -97,7 +97,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
 
     const bookings = await prisma.booking.findMany({
       where: { garageId: garage.id, status: { not: 'cancelled' } },
-      include: { vehicle: true },
+      include: { vehicle: true, _count: { select: { notes: true } } },
       orderBy: { date: 'asc' },
     })
     res.json(bookings)
@@ -211,7 +211,7 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
       const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
       const prefs = parsePrefs(owner?.notificationPrefs)
       if (prefs.booking) {
-        await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, message.trim(), { bookingId: id, screen: 'vehicles' })
+        await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, message.trim(), { bookingId: id, vehicleId: booking.vehicleId, screen: 'vehicles' })
       }
     }
 
