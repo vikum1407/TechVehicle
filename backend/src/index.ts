@@ -13,6 +13,7 @@ import serviceSubmissionRoutes from './routes/serviceSubmissions'
 import transferRoutes from './routes/transfers'
 import availabilityRoutes from './routes/availability'
 import bookingRoutes from './routes/bookings'
+import predictionRoutes from './routes/predictions'
 
 dotenv.config()
 
@@ -42,6 +43,7 @@ app.use('/service-submissions', serviceSubmissionRoutes)
 app.use('/transfers', transferRoutes)
 app.use('/availability', availabilityRoutes)
 app.use('/bookings', bookingRoutes)
+app.use('/predictions', predictionRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)

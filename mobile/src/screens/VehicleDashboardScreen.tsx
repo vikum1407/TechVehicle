@@ -27,6 +27,14 @@ type ServiceRecord = {
   notes: string | null
 }
 
+type TopPrediction = {
+  id: string
+  name: string
+  status: 'overdue' | 'due_soon'
+  remainingKm: number | null
+  remainingDays: number | null
+}
+
 type Props = {
   token: string
   vehicle: Vehicle
@@ -35,6 +43,7 @@ type Props = {
   onLogFuel: () => void
   onAddExpense: () => void
   onAnalytics: () => void
+  onPredictions: () => void
   onShare: () => void
   onSell: () => void
   onBookService: () => void
@@ -115,7 +124,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onShare, onSell, onBookService }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onShare, onSell, onBookService }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -124,19 +133,23 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
   const [cancellingTransfer, setCancellingTransfer] = useState(false)
   const [miniAnalytics, setMiniAnalytics] = useState<MiniAnalytics | null>(null)
+  const [topPredictions, setTopPredictions] = useState<TopPrediction[]>([])
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs, transfer, analytics] = await Promise.all([
+      const [recs, subs, transfer, analytics, preds] = await Promise.all([
         api.getServiceRecords(token, vehicle.id),
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
+        api.getPredictions(token, vehicle.id).catch(() => []),
       ])
       setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
+      const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
+      setTopPredictions(urgent)
       if (analytics) {
         setMiniAnalytics({
           mileageTrend: analytics.mileageTrend ?? [],
@@ -304,6 +317,35 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Upcoming Services prediction card */}
+        <TouchableOpacity style={styles.predCard} onPress={onPredictions} activeOpacity={0.85}>
+          <View style={styles.predCardHeader}>
+            <Text style={styles.predCardTitle}>🔮 Upcoming Services</Text>
+            <Text style={styles.predCardLink}>View all →</Text>
+          </View>
+          {topPredictions.length === 0 ? (
+            <Text style={styles.predAllOk}>✓ All tracked services are on schedule</Text>
+          ) : (
+            topPredictions.map(p => (
+              <View key={p.id} style={styles.predItem}>
+                <View style={[styles.predDot, { backgroundColor: p.status === 'overdue' ? '#c62828' : '#e65100' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.predItemName}>{p.name}</Text>
+                  <Text style={styles.predItemDetail}>
+                    {p.status === 'overdue'
+                      ? `Overdue${p.remainingKm != null ? ` by ${Math.abs(p.remainingKm).toLocaleString()} km` : ''}`
+                      : `Due in${p.remainingKm != null ? ` ${p.remainingKm.toLocaleString()} km` : p.remainingDays != null ? ` ${p.remainingDays} days` : ''}`
+                    }
+                  </Text>
+                </View>
+                <Text style={[styles.predStatus, { color: p.status === 'overdue' ? '#c62828' : '#e65100' }]}>
+                  {p.status === 'overdue' ? '⚠️' : '🔔'}
+                </Text>
+              </View>
+            ))
+          )}
+        </TouchableOpacity>
 
         {/* Pending submissions — shown prominently right after vehicle card */}
         {submissions.length > 0 && (
@@ -521,6 +563,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff',
   },
   sellBtnText: { fontSize: 14, color: '#c62828', fontWeight: '700' },
+  predCard: {
+    backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 12, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  predCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  predCardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
+  predCardLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  predAllOk: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
+  predItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 10, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
+  predDot: { width: 8, height: 8, borderRadius: 4 },
+  predItemName: { fontSize: 13, fontWeight: '600', color: '#1a1a1a' },
+  predItemDetail: { fontSize: 12, color: '#888', marginTop: 1 },
+  predStatus: { fontSize: 16 },
+
   submissionsSection: { marginHorizontal: 16, marginTop: 10, marginBottom: 8 },
   submissionsSectionTitle: {
     fontSize: 14, fontWeight: '800', color: '#c62828',

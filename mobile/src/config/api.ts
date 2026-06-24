@@ -438,6 +438,15 @@ export const api = {
     return data
   },
 
+  getPredictions: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/predictions/${vehicleId}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch predictions')
+    return data
+  },
+
   savePushToken: async (token: string, pushToken: string) => {
     const res = await fetch(`${API_URL}/auth/push-token`, {
       method: 'POST',

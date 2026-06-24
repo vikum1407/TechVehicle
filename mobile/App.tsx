@@ -18,13 +18,14 @@ import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
 import RoleSelectScreen from './src/screens/RoleSelectScreen'
+import PredictionsScreen from './src/screens/PredictionsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'addExpense' | 'analytics' | 'share' | 'sell' | 'booking'
+  | 'logFuel' | 'addExpense' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking'
 
 type Vehicle = {
   id: string
@@ -94,6 +95,7 @@ export default function App() {
       logFuel: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
       analytics: 'vehicleDashboard',
+      predictions: 'vehicleDashboard',
       share: 'vehicleDashboard',
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
@@ -237,6 +239,7 @@ export default function App() {
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
+          onPredictions={() => setScreen('predictions')}
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
           onBookService={() => setScreen('booking')}
@@ -287,6 +290,15 @@ export default function App() {
         <AnalyticsScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'predictions' && selectedVehicle && (
+        <PredictionsScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
+          currentMileage={selectedVehicle.mileage}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}
