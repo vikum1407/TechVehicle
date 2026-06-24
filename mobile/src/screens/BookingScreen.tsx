@@ -67,6 +67,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
 
+  const [serviceType, setServiceType] = useState<'full' | 'between' | 'third_party' | ''>('')
   const [notes, setNotes] = useState('')
   const [noteType, setNoteType] = useState<'normal' | 'urgent'>('normal')
   const [booking, setBooking] = useState(false)
@@ -158,6 +159,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           vehicleId: vehicle.id,
           garageId: selectedGarage.id,
           recordIds: Array.from(selectedRecordIds),
+          serviceType: serviceType || undefined,
         })
         shareSessionId = share.id
       }
@@ -170,6 +172,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         notes: notes.trim() || undefined,
         noteType,
         shareSessionId,
+        serviceType: serviceType || undefined,
       })
       Alert.alert(
         'Booking Sent',
@@ -468,6 +471,28 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               <Text style={styles.summaryValue}>{selectedSlot}</Text>
             </View>
           )}
+        </View>
+
+        {/* ── Service type ── */}
+        <Text style={styles.sectionLabel}>Type of Visit</Text>
+        <View style={styles.serviceTypeRow}>
+          {([
+            { key: 'full', label: 'Full Service', icon: '🔧' },
+            { key: 'between', label: 'Between Service', icon: '⚡' },
+            { key: 'third_party', label: 'Third-Party', icon: '🏭' },
+          ] as const).map(opt => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[styles.serviceTypeBtn, serviceType === opt.key && styles.serviceTypeBtnActive]}
+              onPress={() => setServiceType(serviceType === opt.key ? '' : opt.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
+              <Text style={[styles.serviceTypeBtnText, serviceType === opt.key && styles.serviceTypeBtnTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* ── Share history section ── */}
@@ -801,4 +826,14 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   confirmNote: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 18 },
+
+  serviceTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  serviceTypeBtn: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 12,
+    alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e0e0',
+  },
+  serviceTypeBtnActive: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
+  serviceTypeIcon: { fontSize: 20, marginBottom: 4 },
+  serviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: '#888', textAlign: 'center' },
+  serviceTypeBtnTextActive: { color: '#1a73e8' },
 })

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet, BackHandler } from 'react-native'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as SecureStore from 'expo-secure-store'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
@@ -181,7 +180,7 @@ export default function App() {
   const showTabBar = TAB_SCREENS.includes(screen)
 
   return (
-    <SafeAreaProvider>
+    <>
       <StatusBar style="auto" />
 
       {/* ── Auth screens ─────────────────────────────────────────────── */}
@@ -332,7 +331,7 @@ export default function App() {
           onBack={() => setScreen('vehicles')}
         />
       )}
-    </SafeAreaProvider>
+    </>
   )
 }
 

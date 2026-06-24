@@ -411,14 +411,9 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
               <Text style={styles.quickBtnText}>📊 Analytics</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.bottomBtns}>
-            <TouchableOpacity style={[styles.bookBtn, styles.bookBtnHalf]} onPress={onBookService}>
-              <Text style={styles.bookBtnText}>📅 Book Service</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.bookBtn, styles.shareBtnHalf]} onPress={onShare}>
-              <Text style={styles.bookBtnText}>🔗 Share Records</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.bookBtn} onPress={onBookService}>
+            <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Upcoming Services prediction card */}
@@ -671,14 +666,11 @@ const styles = StyleSheet.create({
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
   },
   quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  bottomBtns: { flexDirection: 'row', gap: 10, marginTop: 10 },
   bookBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginTop: 10, backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  bookBtnHalf: { flex: 1 },
-  shareBtnHalf: { flex: 1 },
   bookBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   // Sparkline cards
