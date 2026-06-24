@@ -37,6 +37,7 @@ type TopPrediction = {
 
 type Props = {
   token: string
+  phoneNumber: string
   vehicle: Vehicle
   onBack: () => void
   onAddRecord: () => void
@@ -144,7 +145,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -260,7 +261,6 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
       return
     }
     setExpandedMessages(prev => new Set(prev).add(key))
-    if (bookingNotes[sub.bookingId!]) return
     setLoadingNotes(prev => new Set(prev).add(key))
     try {
       const notes = await api.getBookingNotes(token, sub.bookingId!)
@@ -322,7 +322,6 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
       return
     }
     setExpandedMessages(prev => new Set(prev).add(bookingId))
-    if (bookingNotes[bookingId]) return
     setLoadingNotes(prev => new Set(prev).add(bookingId))
     try {
       const notes = await api.getBookingNotes(token, bookingId)
@@ -568,11 +567,11 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
                               key={note.id}
                               style={[
                                 styles.messageItem,
-                                note.senderPhone === '' ? styles.messageItemThem : undefined,
+                                note.senderPhone !== phoneNumber ? styles.messageItemThem : undefined,
                               ]}
                             >
                               <Text style={styles.messageSender}>
-                                {note.senderPhone === '' ? 'Garage' : 'You'}
+                                {note.senderPhone !== phoneNumber ? 'Garage' : 'You'}
                               </Text>
                               <Text style={styles.messageText}>{note.message}</Text>
                               <Text style={styles.messageTime}>
@@ -703,11 +702,11 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
                             key={note.id}
                             style={[
                               styles.messageItem,
-                              note.senderPhone === '' ? styles.messageItemThem : undefined,
+                              note.senderPhone !== phoneNumber ? styles.messageItemThem : undefined,
                             ]}
                           >
                             <Text style={styles.messageSender}>
-                              {note.senderPhone === '' ? 'Garage' : 'You'}
+                              {note.senderPhone !== phoneNumber ? 'Garage' : 'You'}
                             </Text>
                             <Text style={styles.messageText}>{note.message}</Text>
                             <Text style={styles.messageTime}>

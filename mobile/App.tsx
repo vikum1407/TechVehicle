@@ -241,6 +241,7 @@ export default function App() {
       {screen === 'vehicleDashboard' && selectedVehicle && (
         <VehicleDashboardScreen
           token={token}
+          phoneNumber={phoneNumber}
           vehicle={selectedVehicle}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}

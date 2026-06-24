@@ -196,7 +196,6 @@ export default function GarageScreen({ token }: Props) {
   }
 
   const loadBookingNotes = async (bookingId: string) => {
-    if (bookingNotesMap[bookingId]) return
     setLoadingNotesId(bookingId)
     try {
       const notes = await api.getBookingNotes(token, bookingId)
