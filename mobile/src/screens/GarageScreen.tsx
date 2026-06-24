@@ -14,6 +14,8 @@ type Props = {
   focusBookingId?: string | null
   onMessageCountChange?: (count: number) => void
   onFocusHandled?: () => void
+  bookingSeenCounts?: Record<string, number>
+  onBookingSeen?: (bookingId: string, count: number) => void
 }
 
 type Garage = {
@@ -87,7 +89,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -108,7 +110,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [sendingNote, setSendingNote] = useState<string | null>(null)
   const [loadingNotesId, setLoadingNotesId] = useState<string | null>(null)
   const [expandedMessagesSet, setExpandedMessagesSet] = useState<Set<string>>(new Set())
-  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({})
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -220,8 +221,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const currentNotes = bookingNotesMap[bookingId] || []
       const updated = [...currentNotes, note]
       setBookingNotesMap(prev => ({ ...prev, [bookingId]: updated }))
-      // Your own sent message is also "seen"
-      setSeenCounts(prev => ({ ...prev, [bookingId]: updated.length }))
+      onBookingSeen?.(bookingId, updated.length)
       setNoteInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -242,8 +242,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
     setExpandedMessagesSet(prev => new Set(prev).add(bookingId))
     const notes = await loadBookingNotes(bookingId)
-    // Set seen count from actual notes loaded — not from stale _count
-    setSeenCounts(prev => ({ ...prev, [bookingId]: notes.length }))
+    onBookingSeen?.(bookingId, notes.length)
   }
 
   const loadSchedule = async () => {
@@ -330,7 +329,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     const focusAndLoad = async () => {
       setExpandedMessagesSet(prev => new Set(prev).add(focusBookingId))
       const notes = await loadBookingNotes(focusBookingId)
-      setSeenCounts(prev => ({ ...prev, [focusBookingId]: notes.length }))
+      onBookingSeen?.(focusBookingId, notes.length)
       onFocusHandled?.()
     }
     if (bookings.length === 0) {
@@ -342,11 +341,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   useEffect(() => {
     const total = bookings.reduce((sum, b) => {
-      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (seenCounts[b.id] ?? 0))
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (bookingSeenCounts[b.id] ?? 0))
       return sum + unread
     }, 0)
     onMessageCountChange?.(total)
-  }, [seenCounts, bookings])
+  }, [bookingSeenCounts, bookings])
 
   useEffect(() => {
     if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
@@ -1245,7 +1244,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                   </Text>
                   {(() => {
-                    const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (seenCounts[booking.id] ?? 0))
+                    const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
                     return unread > 0 ? (
                       <View style={styles.msgBadge}>
                         <Text style={styles.msgBadgeText}>{unread}</Text>

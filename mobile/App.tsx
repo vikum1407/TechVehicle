@@ -52,6 +52,12 @@ export default function App() {
   const [vehiclesBadge, setVehiclesBadge] = useState(0)
   const [garageBadge, setGarageBadge] = useState(0)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
+  // Persists "how many notes were seen last" across screen navigation
+  const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
+
+  const handleBookingSeen = (bookingId: string, count: number) => {
+    setBookingSeenCounts(prev => ({ ...prev, [bookingId]: count }))
+  }
   const notifListenerRef = useRef<any>(null)
   const responseListenerRef = useRef<any>(null)
 
@@ -244,6 +250,8 @@ export default function App() {
                 focusBookingId={focusBookingId}
                 onMessageCountChange={setGarageBadge}
                 onFocusHandled={() => setFocusBookingId(null)}
+                bookingSeenCounts={bookingSeenCounts}
+                onBookingSeen={handleBookingSeen}
               />
             )}
           </View>
@@ -270,6 +278,8 @@ export default function App() {
           phoneNumber={phoneNumber}
           vehicle={selectedVehicle}
           onMessageCountChange={setVehiclesBadge}
+          bookingSeenCounts={bookingSeenCounts}
+          onBookingSeen={handleBookingSeen}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
           onLogFuel={() => setScreen('logFuel')}

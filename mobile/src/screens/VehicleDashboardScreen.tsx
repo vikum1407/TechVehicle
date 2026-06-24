@@ -50,6 +50,8 @@ type Props = {
   onSell: () => void
   onBookService: () => void
   onMessageCountChange?: (count: number) => void
+  bookingSeenCounts?: Record<string, number>
+  onBookingSeen?: (bookingId: string, count: number) => void
 }
 
 type OwnerBooking = {
@@ -147,7 +149,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -167,7 +169,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
-  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({})
 
   const loadRecords = async () => {
     setLoading(true)
@@ -330,8 +331,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     try {
       const notes = await api.getBookingNotes(token, bookingId)
       setBookingNotes(prev => ({ ...prev, [bookingId]: notes }))
-      // Set seen count from actual notes loaded — not from stale _count
-      setSeenCounts(prev => ({ ...prev, [bookingId]: notes.length }))
+      onBookingSeen?.(bookingId, notes.length)
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {
@@ -348,8 +348,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       const currentNotes = bookingNotes[bookingId] || []
       const updated = [...currentNotes, note]
       setBookingNotes(prev => ({ ...prev, [bookingId]: updated }))
-      // Your own sent message is also "seen"
-      setSeenCounts(prev => ({ ...prev, [bookingId]: updated.length }))
+      onBookingSeen?.(bookingId, updated.length)
       setMessageInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -362,11 +361,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   useEffect(() => {
     const total = myBookings.reduce((sum, b) => {
-      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (seenCounts[b.id] ?? 0))
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (bookingSeenCounts[b.id] ?? 0))
       return sum + unread
     }, 0)
     onMessageCountChange?.(total)
-  }, [seenCounts, myBookings])
+  }, [bookingSeenCounts, myBookings])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -556,7 +555,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                           💬 Messages {isExpanded ? '▲' : '▼'}
                         </Text>
                         {(() => {
-                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (seenCounts[bk.id] ?? 0))
+                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (bookingSeenCounts[bk.id] ?? 0))
                           return unread > 0 ? (
                             <View style={styles.msgBadge}>
                               <Text style={styles.msgBadgeText}>{unread}</Text>
