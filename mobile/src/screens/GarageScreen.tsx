@@ -76,6 +76,13 @@ type Booking = {
   }
 }
 
+type BookingNote = {
+  id: string
+  senderPhone: string
+  message: string
+  createdAt: string
+}
+
 export default function GarageScreen({ token }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,6 +99,10 @@ export default function GarageScreen({ token }: Props) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null)
+  const [bookingNotesMap, setBookingNotesMap] = useState<Record<string, BookingNote[]>>({})
+  const [noteInputs, setNoteInputs] = useState<Record<string, string>>({})
+  const [sendingNote, setSendingNote] = useState<string | null>(null)
+  const [loadingNotesId, setLoadingNotesId] = useState<string | null>(null)
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -182,6 +193,40 @@ export default function GarageScreen({ token }: Props) {
     } finally {
       setConfirmingId(null)
     }
+  }
+
+  const loadBookingNotes = async (bookingId: string) => {
+    if (bookingNotesMap[bookingId]) return
+    setLoadingNotesId(bookingId)
+    try {
+      const notes = await api.getBookingNotes(token, bookingId)
+      setBookingNotesMap(prev => ({ ...prev, [bookingId]: notes }))
+    } catch {}
+    finally { setLoadingNotesId(null) }
+  }
+
+  const handleSendNote = async (bookingId: string) => {
+    const msg = (noteInputs[bookingId] || '').trim()
+    if (!msg) return
+    setSendingNote(bookingId)
+    try {
+      const note = await api.addBookingNote(token, bookingId, msg)
+      setBookingNotesMap(prev => ({
+        ...prev,
+        [bookingId]: [...(prev[bookingId] || []), note],
+      }))
+      setNoteInputs(prev => ({ ...prev, [bookingId]: '' }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSendingNote(null)
+    }
+  }
+
+  const handleExpandBooking = (bookingId: string) => {
+    const next = expandedBooking === bookingId ? null : bookingId
+    setExpandedBooking(next)
+    if (next) loadBookingNotes(next)
   }
 
   const loadSchedule = async () => {
@@ -1005,7 +1050,7 @@ export default function GarageScreen({ token }: Props) {
                   isPending && styles.bookingCardPending,
                   isConfirmed && styles.bookingCardConfirmed,
                 ]}
-                onPress={() => setExpandedBooking(isExpanded ? null : booking.id)}
+                onPress={() => handleExpandBooking(booking.id)}
                 activeOpacity={0.85}
               >
                 <View style={styles.bookingHeader}>
@@ -1146,6 +1191,59 @@ export default function GarageScreen({ token }: Props) {
                         </TouchableOpacity>
                       )}
                     </View>
+                  </View>
+                )}
+
+                {/* Messages thread — always visible when expanded */}
+                {isExpanded && (
+                  <View style={styles.notesSection}>
+                    <Text style={styles.notesSectionTitle}>💬 Messages with Owner</Text>
+                    {loadingNotesId === booking.id ? (
+                      <ActivityIndicator size="small" color="#1a73e8" style={{ marginVertical: 8 }} />
+                    ) : (
+                      <>
+                        {(bookingNotesMap[booking.id] || []).length === 0 ? (
+                          <Text style={styles.noNotes}>No messages yet — send one below</Text>
+                        ) : (bookingNotesMap[booking.id] || []).map(note => (
+                          <View
+                            key={note.id}
+                            style={[
+                              styles.noteItem,
+                              note.senderPhone === booking.ownerPhone && styles.noteItemThem,
+                            ]}
+                          >
+                            <Text style={styles.noteSender}>
+                              {note.senderPhone === booking.ownerPhone ? 'Owner' : 'You (Garage)'}
+                            </Text>
+                            <Text style={styles.noteText}>{note.message}</Text>
+                            <Text style={styles.noteTime}>
+                              {new Date(note.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+                        ))}
+                        <View style={styles.noteInputRow}>
+                          <TextInput
+                            style={styles.noteInput}
+                            value={noteInputs[booking.id] || ''}
+                            onChangeText={v => setNoteInputs(prev => ({ ...prev, [booking.id]: v }))}
+                            placeholder="Type a message..."
+                          />
+                          <TouchableOpacity
+                            style={[
+                              styles.noteSendBtn,
+                              (!noteInputs[booking.id]?.trim() || sendingNote === booking.id) && styles.noteSendBtnDisabled,
+                            ]}
+                            onPress={(e) => { e.stopPropagation?.(); handleSendNote(booking.id) }}
+                            disabled={!noteInputs[booking.id]?.trim() || sendingNote === booking.id}
+                          >
+                            {sendingNote === booking.id
+                              ? <ActivityIndicator size="small" color="#fff" />
+                              : <Text style={styles.noteSendBtnText}>→</Text>
+                            }
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
                   </View>
                 )}
 
@@ -1622,6 +1720,33 @@ const styles = StyleSheet.create({
   // Booking card color-coding by status
   bookingCardPending: { borderLeftWidth: 4, borderLeftColor: '#FF9800' },
   bookingCardConfirmed: { borderLeftWidth: 4, borderLeftColor: '#34a853' },
+
+  // Notes / message thread in booking card
+  notesSection: {
+    marginTop: 14, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 12,
+  },
+  notesSectionTitle: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 10 },
+  noNotes: { fontSize: 12, color: '#aaa', fontStyle: 'italic', textAlign: 'center', paddingVertical: 4 },
+  noteItem: {
+    backgroundColor: '#e8f0fe', borderRadius: 8, padding: 10, marginBottom: 6,
+    alignSelf: 'flex-end', maxWidth: '85%',
+  },
+  noteItemThem: { backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
+  noteSender: { fontSize: 10, color: '#888', marginBottom: 2, fontWeight: '600' },
+  noteText: { fontSize: 13, color: '#1a1a1a', lineHeight: 18 },
+  noteTime: { fontSize: 10, color: '#aaa', marginTop: 3, alignSelf: 'flex-end' },
+  noteInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  noteInput: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 9,
+    fontSize: 13, borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  noteSendBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 8, paddingHorizontal: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  noteSendBtnDisabled: { opacity: 0.4 },
+  noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
 
   // Inline shared records inside booking card

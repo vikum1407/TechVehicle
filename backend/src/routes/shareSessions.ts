@@ -9,7 +9,7 @@ router.use(authMiddleware)
 
 // POST /share-sessions — owner creates a share
 router.post('/', async (req: AuthRequest, res) => {
-  const { vehicleId, garageId, recordIds } = req.body
+  const { vehicleId, garageId, recordIds, serviceType } = req.body
   if (!vehicleId || !garageId || !Array.isArray(recordIds) || recordIds.length === 0) {
     res.status(400).json({ error: 'vehicleId, garageId and at least one recordId are required' })
     return
@@ -29,6 +29,7 @@ router.post('/', async (req: AuthRequest, res) => {
         garageId,
         ownerPhone: req.phoneNumber!,
         sharedRecordIds: JSON.stringify(recordIds),
+        serviceType: serviceType || null,
         status: 'active',
       },
       include: { garage: true, vehicle: true },

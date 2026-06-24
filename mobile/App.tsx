@@ -19,6 +19,7 @@ import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
 import RoleSelectScreen from './src/screens/RoleSelectScreen'
 import PredictionsScreen from './src/screens/PredictionsScreen'
+import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
@@ -26,6 +27,7 @@ type Screen =
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'addExpense' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking'
+  | 'notificationPrefs'
 
 type Vehicle = {
   id: string
@@ -99,6 +101,7 @@ export default function App() {
       share: 'vehicleDashboard',
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
+      notificationPrefs: 'vehicles',
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       const parent = backMap[screen]
@@ -211,6 +214,7 @@ export default function App() {
                 onSelectVehicle={handleSelectVehicle}
                 onVehiclesLoaded={setVehicles}
                 onLogout={handleLogout}
+                onSettings={() => setScreen('notificationPrefs')}
               />
             )}
             {screen === 'garage' && (
@@ -319,6 +323,12 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           onExpenseAdded={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'notificationPrefs' && (
+        <NotificationPrefsScreen
+          token={token}
+          onBack={() => setScreen('vehicles')}
         />
       )}
     </>

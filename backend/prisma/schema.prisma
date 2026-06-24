@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  phoneNumber String    @unique
-  userType    String?
-  pushToken   String?
-  createdAt   DateTime  @default(now())
-  vehicles    Vehicle[]
-  garage      Garage?
+  id                String    @id @default(cuid())
+  phoneNumber       String    @unique
+  userType          String?
+  pushToken         String?
+  notificationPrefs String?
+  createdAt         DateTime  @default(now())
+  vehicles          Vehicle[]
+  garage            Garage?
 }
 
 model Vehicle {
@@ -26,6 +27,9 @@ model Vehicle {
   fuelType       String
   mileage        Int
   ownerPhone     String
+  purchaseDate   DateTime?
+  ownerCount     Int?                @default(1)
+  vehicleNotes   String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   owner          User                @relation(fields: [ownerPhone], references: [phoneNumber])
@@ -101,6 +105,7 @@ model ShareSession {
   garageId        String
   ownerPhone      String
   status          String   @default("active")
+  serviceType     String?
   sharedRecordIds String   @default("[]")
   createdAt       DateTime @default(now())
   vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
@@ -140,24 +145,36 @@ model GarageCalendarOverride {
 }
 
 model Booking {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   vehicleId      String
   garageId       String
   ownerPhone     String
   date           DateTime
   slotLabel      String?
-  status         String   @default("pending")
+  status         String        @default("pending")
   notes          String?
-  noteType       String   @default("normal")
+  noteType       String        @default("normal")
+  serviceType    String?
   shareSessionId String?
-  createdAt      DateTime @default(now())
-  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  garage         Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  vehicle        Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  garage         Garage        @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  bookingNotes   BookingNote[]
+}
+
+model BookingNote {
+  id          String   @id @default(cuid())
+  bookingId   String
+  senderPhone String
+  message     String
+  createdAt   DateTime @default(now())
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model ServiceSubmission {
   id             String   @id @default(cuid())
   shareSessionId String?
+  bookingId      String?
   vehicleId      String
   garageId       String
   ownerPhone     String

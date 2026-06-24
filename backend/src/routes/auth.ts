@@ -119,4 +119,39 @@ router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
   res.json({ userType })
 })
 
+// GET /auth/notification-prefs — get current user's notification preferences
+router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
+    const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+    if (!user?.notificationPrefs) { res.json(defaults); return }
+    try {
+      res.json({ ...defaults, ...JSON.parse(user.notificationPrefs) })
+    } catch {
+      res.json(defaults)
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch preferences' })
+  }
+})
+
+// PUT /auth/notification-prefs — update notification preferences
+router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
+  const { service_due, booking, transfer, submission } = req.body
+  const prefs: Record<string, boolean> = {}
+  if (service_due !== undefined) prefs.service_due = Boolean(service_due)
+  if (booking !== undefined) prefs.booking = Boolean(booking)
+  if (transfer !== undefined) prefs.transfer = Boolean(transfer)
+  if (submission !== undefined) prefs.submission = Boolean(submission)
+  try {
+    await prisma.user.update({
+      where: { phoneNumber: req.phoneNumber! },
+      data: { notificationPrefs: JSON.stringify(prefs) },
+    })
+    res.json({ ok: true, prefs })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save preferences' })
+  }
+})
+
 export default router

@@ -55,6 +55,9 @@ export const api = {
     year: number
     fuelType: string
     mileage: number
+    purchaseDate?: string
+    ownerCount?: number
+    vehicleNotes?: string
   }) => {
     const res = await fetch(`${API_URL}/vehicles`, {
       method: 'POST',
@@ -115,7 +118,7 @@ export const api = {
     return data
   },
 
-  createShare: async (token: string, payload: { vehicleId: string; garageId: string; recordIds: string[] }) => {
+  createShare: async (token: string, payload: { vehicleId: string; garageId: string; recordIds: string[]; serviceType?: string }) => {
     const res = await fetch(`${API_URL}/share-sessions`, {
       method: 'POST',
       headers: authHeaders(token),
@@ -388,6 +391,7 @@ export const api = {
     slotLabel?: string
     notes?: string
     noteType?: string
+    serviceType?: string
     shareSessionId?: string
   }) => {
     const res = await fetch(`${API_URL}/bookings`, {
@@ -466,6 +470,46 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to save push token')
+    return data
+  },
+
+  getBookingNotes: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/notes`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch notes')
+    return data
+  },
+
+  addBookingNote: async (token: string, bookingId: string, message: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/notes`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ message }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to add note')
+    return data
+  },
+
+  getNotificationPrefs: async (token: string) => {
+    const res = await fetch(`${API_URL}/auth/notification-prefs`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch prefs')
+    return data
+  },
+
+  saveNotificationPrefs: async (token: string, prefs: Record<string, boolean>) => {
+    const res = await fetch(`${API_URL}/auth/notification-prefs`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(prefs),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save prefs')
     return data
   },
 

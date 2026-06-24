@@ -27,12 +27,19 @@ type GarageResult = {
   verified: boolean
 }
 
-type Step = 'selectRecords' | 'selectGarage' | 'confirm'
+type Step = 'selectServiceType' | 'selectRecords' | 'selectGarage' | 'confirm'
+
+const SERVICE_TYPE_OPTIONS = [
+  { key: 'full', label: 'Full Service', icon: '🔧', desc: 'Complete maintenance visit' },
+  { key: 'between', label: 'Between Service', icon: '⚡', desc: 'Repair or check-up between scheduled services' },
+  { key: 'third_party', label: 'Third-Party Service', icon: '🏭', desc: 'Work done by an external/third-party provider' },
+]
 
 export default function ShareScreen({ token, vehicleId, onBack, onShared }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [step, setStep] = useState<Step>('selectRecords')
+  const [step, setStep] = useState<Step>('selectServiceType')
+  const [serviceType, setServiceType] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
 
@@ -78,6 +85,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
         vehicleId,
         garageId: selectedGarage.id,
         recordIds: Array.from(selectedIds),
+        serviceType: serviceType || undefined,
       })
       Alert.alert(
         'Shared',
@@ -111,21 +119,57 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={step === 'selectRecords' ? onBack : () => {
-          if (step === 'selectGarage') setStep('selectRecords')
-          if (step === 'confirm') setStep('selectGarage')
+        <TouchableOpacity onPress={() => {
+          if (step === 'selectServiceType') onBack()
+          else if (step === 'selectRecords') setStep('selectServiceType')
+          else if (step === 'selectGarage') setStep('selectRecords')
+          else if (step === 'confirm') setStep('selectGarage')
         }}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Share Records</Text>
         <View style={styles.stepIndicator}>
-          <View style={[styles.stepDot, step !== 'selectRecords' && styles.stepDotDone]} />
+          <View style={[styles.stepDot, step !== 'selectServiceType' && styles.stepDotDone]} />
+          <View style={[styles.stepLine, ['selectGarage', 'confirm'].includes(step) && styles.stepLineDone]} />
+          <View style={[styles.stepDot, ['selectGarage', 'confirm'].includes(step) && styles.stepDotDone]} />
           <View style={[styles.stepLine, step === 'confirm' && styles.stepLineDone]} />
           <View style={[styles.stepDot, step === 'confirm' && styles.stepDotDone]} />
           <View style={styles.stepLine} />
           <View style={[styles.stepDot, step === 'confirm' && styles.stepDotActive]} />
         </View>
       </View>
+
+      {/* Step 0: Select service type */}
+      {step === 'selectServiceType' && (
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          <Text style={styles.stepTitle}>Type of Visit</Text>
+          <Text style={styles.stepSub}>What kind of service is this visit for?</Text>
+          {SERVICE_TYPE_OPTIONS.map(opt => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[styles.serviceTypeCard, serviceType === opt.key && styles.serviceTypeCardSelected]}
+              onPress={() => setServiceType(opt.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.serviceTypeLabel, serviceType === opt.key && styles.serviceTypeLabelSelected]}>
+                  {opt.label}
+                </Text>
+                <Text style={styles.serviceTypeDesc}>{opt.desc}</Text>
+              </View>
+              {serviceType === opt.key && <Text style={styles.serviceTypeCheck}>✓</Text>}
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={[styles.nextBtn, !serviceType && styles.nextBtnDisabled]}
+            onPress={() => serviceType && setStep('selectRecords')}
+            disabled={!serviceType}
+          >
+            <Text style={styles.nextBtnText}>Next — Select Records</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
 
       {/* Step 1: Select records */}
       {step === 'selectRecords' && (
@@ -372,4 +416,16 @@ const styles = StyleSheet.create({
     paddingVertical: 18, alignItems: 'center', marginTop: 8,
   },
   shareBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  serviceTypeCard: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 2, borderColor: 'transparent',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  },
+  serviceTypeCardSelected: { borderColor: '#1a73e8', backgroundColor: '#f0f6ff' },
+  serviceTypeIcon: { fontSize: 26 },
+  serviceTypeLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
+  serviceTypeLabelSelected: { color: '#1a73e8' },
+  serviceTypeDesc: { fontSize: 12, color: '#888' },
+  serviceTypeCheck: { fontSize: 18, color: '#1a73e8', fontWeight: '700' },
 })

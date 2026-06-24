@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { sendPush } from '../utils/push'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -44,6 +45,7 @@ router.post('/', async (req: AuthRequest, res) => {
     const submission = await prisma.serviceSubmission.create({
       data: {
         shareSessionId: resolvedShareId as string,
+        bookingId: bookingId || null,
         vehicleId,
         garageId: garage.id,
         ownerPhone,
@@ -112,6 +114,19 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
 
     await prisma.serviceSubmission.update({ where: { id }, data: { status: 'accepted' } })
 
+    // Notify garage that owner accepted
+    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: submission.garage.ownerPhone } })
+    const prefs = parsePrefs(garageOwner?.notificationPrefs)
+    if (prefs.submission) {
+      const vReg = vehicle?.registrationNo ?? 'Vehicle'
+      await sendPush(
+        garageOwner?.pushToken,
+        'Service Record Accepted',
+        `${vReg} — owner accepted your submission and added it to their history`,
+        { screen: 'garage' }
+      )
+    }
+
     res.json({ success: true, record })
   } catch (error) {
     console.error('POST /service-submissions/:id/accept error:', error)
@@ -136,5 +151,11 @@ router.get('/garage', async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to fetch submissions' })
   }
 })
+
+function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
+  const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+  if (!raw) return defaults
+  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
+}
 
 export default router

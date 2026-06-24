@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert, ScrollView, Modal
 } from 'react-native'
 import { api } from '../config/api'
@@ -67,9 +67,10 @@ type Props = {
   onSelectVehicle: (vehicle: Vehicle) => void
   onVehiclesLoaded: (vehicles: Vehicle[]) => void
   onLogout: () => void
+  onSettings: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onSettings }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,6 +78,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const [previewTransfer, setPreviewTransfer] = useState<IncomingTransfer | null>(null)
   const [previewRecords, setPreviewRecords] = useState<TransferRecords | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [searchText, setSearchText] = useState('')
 
   const loadAll = async () => {
     setLoading(true)
@@ -140,6 +142,14 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
+  const filteredVehicles = searchText.trim()
+    ? vehicles.filter(v =>
+        v.registrationNo.toLowerCase().includes(searchText.toLowerCase()) ||
+        v.make.toLowerCase().includes(searchText.toLowerCase()) ||
+        v.model.toLowerCase().includes(searchText.toLowerCase())
+      )
+    : vehicles
+
   const renderVehicle = ({ item }: { item: Vehicle }) => (
     <TouchableOpacity style={styles.card} onPress={() => onSelectVehicle(item)}>
       <View style={styles.cardHeader}>
@@ -158,16 +168,21 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           <Text style={styles.logo}>TechVehicle</Text>
           <Text style={styles.phone}>{phoneNumber}</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-          <Text style={styles.logoutBtnText}>Log out</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.settingsBtn} onPress={onSettings}>
+            <Text style={styles.settingsBtnText}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+            <Text style={styles.logoutBtnText}>Log out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
         <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
       ) : (
         <FlatList
-          data={vehicles}
+          data={filteredVehicles}
           keyExtractor={item => item.id}
           renderItem={renderVehicle}
           contentContainerStyle={styles.list}
@@ -175,6 +190,14 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           refreshing={loading}
           ListHeaderComponent={
             <>
+              <TextInput
+                style={styles.searchInput}
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search by registration, make or model..."
+                placeholderTextColor="#aaa"
+                clearButtonMode="while-editing"
+              />
               {incomingTransfers.length > 0 && (
                 <View style={styles.transfersSection}>
                   <Text style={styles.transfersSectionTitle}>
@@ -228,7 +251,12 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
             </>
           }
           ListEmptyComponent={
-            incomingTransfers.length === 0 ? (
+            searchText ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>No matches</Text>
+                <Text style={styles.emptySubtitle}>No vehicles match "{searchText}"</Text>
+              </View>
+            ) : incomingTransfers.length === 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyTitle}>No vehicles yet</Text>
                 <Text style={styles.emptySubtitle}>Add your first vehicle to get started</Text>
@@ -359,11 +387,19 @@ const styles = StyleSheet.create({
   },
   logo: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
   phone: { fontSize: 12, color: '#888', marginTop: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  settingsBtn: { padding: 4 },
+  settingsBtnText: { fontSize: 22 },
   logoutBtn: {
     borderWidth: 1.5, borderColor: '#e53935', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 5,
   },
   logoutBtnText: { fontSize: 13, color: '#e53935', fontWeight: '700' },
+  searchInput: {
+    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: '#1a1a1a', borderWidth: 1, borderColor: '#e0e0e0',
+    marginBottom: 12,
+  },
   loader: { flex: 1 },
   list: { padding: 16 },
   empty: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 },

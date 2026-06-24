@@ -64,7 +64,15 @@ type Submission = {
   cost: number | null
   notes: string | null
   createdAt: string
+  bookingId: string | null
   garage: { name: string; verified: boolean }
+}
+
+type BookingNote = {
+  id: string
+  senderPhone: string
+  message: string
+  createdAt: string
 }
 
 type MiniAnalytics = {
@@ -138,6 +146,11 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
   const [editingMileage, setEditingMileage] = useState(false)
   const [mileageInput, setMileageInput] = useState('')
   const [savingMileage, setSavingMileage] = useState(false)
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set())
+  const [bookingNotes, setBookingNotes] = useState<Record<string, BookingNote[]>>({})
+  const [messageInputs, setMessageInputs] = useState<Record<string, string>>({})
+  const [sendingMessage, setSendingMessage] = useState<string | null>(null)
+  const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
 
   const loadRecords = async () => {
     setLoading(true)
@@ -221,6 +234,45 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
       Alert.alert('Error', e.message)
     } finally {
       setSavingMileage(false)
+    }
+  }
+
+  const toggleMessages = async (sub: Submission) => {
+    if (!sub.bookingId) return
+    const key = sub.id
+    if (expandedMessages.has(key)) {
+      setExpandedMessages(prev => { const s = new Set(prev); s.delete(key); return s })
+      return
+    }
+    setExpandedMessages(prev => new Set(prev).add(key))
+    if (bookingNotes[sub.bookingId!]) return
+    setLoadingNotes(prev => new Set(prev).add(key))
+    try {
+      const notes = await api.getBookingNotes(token, sub.bookingId!)
+      setBookingNotes(prev => ({ ...prev, [sub.bookingId!]: notes }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setLoadingNotes(prev => { const s = new Set(prev); s.delete(key); return s })
+    }
+  }
+
+  const handleSendMessage = async (sub: Submission) => {
+    if (!sub.bookingId) return
+    const msg = (messageInputs[sub.id] || '').trim()
+    if (!msg) return
+    setSendingMessage(sub.id)
+    try {
+      const note = await api.addBookingNote(token, sub.bookingId, msg)
+      setBookingNotes(prev => ({
+        ...prev,
+        [sub.bookingId!]: [...(prev[sub.bookingId!] || []), note],
+      }))
+      setMessageInputs(prev => ({ ...prev, [sub.id]: '' }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSendingMessage(null)
     }
   }
 
@@ -432,6 +484,67 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
                     : <Text style={styles.acceptBtnText}>✓ Accept — Add to My History</Text>
                   }
                 </TouchableOpacity>
+
+                {/* Booking notes thread (only if linked to a booking) */}
+                {sub.bookingId && (
+                  <TouchableOpacity
+                    style={styles.messagesToggle}
+                    onPress={() => toggleMessages(sub)}
+                  >
+                    <Text style={styles.messagesToggleText}>
+                      💬 Messages {expandedMessages.has(sub.id) ? '▲' : '▼'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {sub.bookingId && expandedMessages.has(sub.id) && (
+                  <View style={styles.messagesSection}>
+                    {loadingNotes.has(sub.id) ? (
+                      <ActivityIndicator size="small" color="#1a73e8" style={{ marginVertical: 8 }} />
+                    ) : (
+                      <>
+                        {(bookingNotes[sub.bookingId] || []).length === 0 ? (
+                          <Text style={styles.noMessages}>No messages yet</Text>
+                        ) : (bookingNotes[sub.bookingId] || []).map(note => (
+                          <View
+                            key={note.id}
+                            style={[
+                              styles.messageItem,
+                              note.senderPhone === '' ? styles.messageItemThem : undefined,
+                            ]}
+                          >
+                            <Text style={styles.messageSender}>
+                              {note.senderPhone === '' ? 'Garage' : 'You'}
+                            </Text>
+                            <Text style={styles.messageText}>{note.message}</Text>
+                            <Text style={styles.messageTime}>
+                              {new Date(note.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+                        ))}
+                        <View style={styles.messageInputRow}>
+                          <TextInput
+                            style={styles.messageInput}
+                            value={messageInputs[sub.id] || ''}
+                            onChangeText={v => setMessageInputs(prev => ({ ...prev, [sub.id]: v }))}
+                            placeholder="Type a message..."
+                            multiline={false}
+                          />
+                          <TouchableOpacity
+                            style={[styles.messageSendBtn, (!messageInputs[sub.id]?.trim() || sendingMessage === sub.id) && styles.messageSendBtnDisabled]}
+                            onPress={() => handleSendMessage(sub)}
+                            disabled={!messageInputs[sub.id]?.trim() || sendingMessage === sub.id}
+                          >
+                            {sendingMessage === sub.id
+                              ? <ActivityIndicator size="small" color="#fff" />
+                              : <Text style={styles.messageSendBtnText}>→</Text>
+                            }
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                )}
               </View>
             ))}
           </View>
@@ -664,4 +777,32 @@ const styles = StyleSheet.create({
   },
   acceptBtnDisabled: { opacity: 0.5 },
   acceptBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
+  messagesToggle: {
+    paddingVertical: 10, alignItems: 'center', marginTop: 6,
+    borderTopWidth: 1, borderTopColor: '#ffcdd2',
+  },
+  messagesToggleText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  messagesSection: {
+    marginTop: 6, backgroundColor: '#f8f8f8', borderRadius: 8, padding: 10,
+  },
+  noMessages: { fontSize: 13, color: '#aaa', textAlign: 'center', paddingVertical: 8, fontStyle: 'italic' },
+  messageItem: {
+    backgroundColor: '#e8f0fe', borderRadius: 8, padding: 10, marginBottom: 6, alignSelf: 'flex-end', maxWidth: '85%',
+  },
+  messageItemThem: { backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
+  messageSender: { fontSize: 10, color: '#888', marginBottom: 2, fontWeight: '600' },
+  messageText: { fontSize: 13, color: '#1a1a1a', lineHeight: 18 },
+  messageTime: { fontSize: 10, color: '#aaa', marginTop: 3, alignSelf: 'flex-end' },
+  messageInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  messageInput: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 9,
+    fontSize: 13, borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  messageSendBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 8, paddingHorizontal: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  messageSendBtnDisabled: { opacity: 0.4 },
+  messageSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 })

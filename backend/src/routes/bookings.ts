@@ -10,7 +10,7 @@ router.use(authMiddleware)
 
 // POST /bookings — owner creates a booking
 router.post('/', async (req: AuthRequest, res) => {
-  const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId } = req.body
+  const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId, serviceType } = req.body
   if (!vehicleId || !garageId || !date) {
     res.status(400).json({ error: 'vehicleId, garageId and date are required' })
     return
@@ -49,19 +49,24 @@ router.post('/', async (req: AuthRequest, res) => {
         slotLabel: slotLabel || null,
         notes: notes || null,
         noteType: noteType || 'normal',
+        serviceType: serviceType || null,
         shareSessionId: shareSessionId || null,
       },
       include: { vehicle: true, garage: true },
     })
-    // Notify the garage owner
+
     const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: garage.ownerPhone } })
+    const prefs = parsePrefs(garageOwner?.notificationPrefs)
     const dateStr = bookingDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    await sendPush(
-      garageOwner?.pushToken,
-      'New Booking Request',
-      `${booking.vehicle.registrationNo} — ${dateStr}${slotLabel ? ` · ${slotLabel}` : ''}`,
-      { bookingId: booking.id, screen: 'garage' }
-    )
+    const serviceLabel = serviceType ? ` · ${SERVICE_TYPE_LABELS[serviceType] ?? serviceType}` : ''
+    if (prefs.booking) {
+      await sendPush(
+        garageOwner?.pushToken,
+        'New Booking Request',
+        `${booking.vehicle.registrationNo} — ${dateStr}${slotLabel ? ` · ${slotLabel}` : ''}${serviceLabel}`,
+        { bookingId: booking.id, screen: 'garage' }
+      )
+    }
 
     res.status(201).json(booking)
   } catch (error) {
@@ -92,9 +97,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
 
     const bookings = await prisma.booking.findMany({
       where: { garageId: garage.id, status: { not: 'cancelled' } },
-      include: {
-        vehicle: true,
-      },
+      include: { vehicle: true },
       orderBy: { date: 'asc' },
     })
     res.json(bookings)
@@ -121,15 +124,17 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
       include: { vehicle: true },
     })
 
-    // Notify the vehicle owner
     const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+    const prefs = parsePrefs(owner?.notificationPrefs)
     const dateStr = new Date(booking.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    await sendPush(
-      owner?.pushToken,
-      'Booking Confirmed',
-      `${garage.name} confirmed your booking for ${dateStr}`,
-      { bookingId: booking.id, screen: 'vehicles' }
-    )
+    if (prefs.booking) {
+      await sendPush(
+        owner?.pushToken,
+        'Booking Confirmed',
+        `${garage.name} confirmed your booking for ${dateStr}`,
+        { bookingId: booking.id, screen: 'vehicles' }
+      )
+    }
 
     res.json(updated)
   } catch (error) {
@@ -152,5 +157,82 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to cancel booking' })
   }
 })
+
+// GET /bookings/:id/notes — owner or garage fetches notes for a booking
+router.get('/:id/notes', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id } })
+    if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
+
+    // Allow access if caller is the owner or the garage owner
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } }).catch(() => null)
+    const isOwner = booking.ownerPhone === req.phoneNumber
+    const isGarage = garage?.id === booking.garageId
+    if (!isOwner && !isGarage) { res.status(403).json({ error: 'Access denied' }); return }
+
+    const notes = await prisma.bookingNote.findMany({
+      where: { bookingId: id },
+      orderBy: { createdAt: 'asc' },
+    })
+    res.json(notes)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch notes' })
+  }
+})
+
+// POST /bookings/:id/notes — owner or garage adds a note to a booking
+router.post('/:id/notes', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  const { message } = req.body
+  if (!message?.trim()) { res.status(400).json({ error: 'message is required' }); return }
+
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { garage: true } })
+    if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
+
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } }).catch(() => null)
+    const isOwner = booking.ownerPhone === req.phoneNumber
+    const isGarage = garage?.id === booking.garageId
+    if (!isOwner && !isGarage) { res.status(403).json({ error: 'Access denied' }); return }
+
+    const note = await prisma.bookingNote.create({
+      data: { bookingId: id, senderPhone: req.phoneNumber!, message: message.trim() },
+    })
+
+    // Notify the other party
+    if (isOwner) {
+      const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: booking.garage.ownerPhone } })
+      const prefs = parsePrefs(garageOwner?.notificationPrefs)
+      if (prefs.booking) {
+        await sendPush(garageOwner?.pushToken, 'New Message from Owner', message.trim(), { bookingId: id, screen: 'garage' })
+      }
+    } else {
+      const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+      const prefs = parsePrefs(owner?.notificationPrefs)
+      if (prefs.booking) {
+        await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, message.trim(), { bookingId: id, screen: 'vehicles' })
+      }
+    }
+
+    res.status(201).json(note)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add note' })
+  }
+})
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  full: 'Full Service',
+  between: 'Between Service',
+  third_party: 'Third-Party Service',
+}
+
+function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
+  const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+  if (!raw) return defaults
+  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
+}
 
 export default router

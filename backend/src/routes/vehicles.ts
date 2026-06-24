@@ -24,7 +24,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
 // POST /vehicles — add a new vehicle
 router.post('/', async (req: AuthRequest, res) => {
-  const { registrationNo, make, model, year, fuelType, mileage } = req.body
+  const { registrationNo, make, model, year, fuelType, mileage, purchaseDate, ownerCount, vehicleNotes } = req.body
 
   if (!registrationNo || !make || !model || !year || !fuelType || mileage === undefined) {
     res.status(400).json({ error: 'All fields are required' })
@@ -48,6 +48,9 @@ router.post('/', async (req: AuthRequest, res) => {
         fuelType,
         mileage: Number(mileage),
         ownerPhone: req.phoneNumber!,
+        purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
+        ownerCount: ownerCount ? Number(ownerCount) : 1,
+        vehicleNotes: vehicleNotes?.trim() || null,
       },
     })
 
