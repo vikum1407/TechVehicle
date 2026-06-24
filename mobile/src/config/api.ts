@@ -447,6 +447,17 @@ export const api = {
     return data
   },
 
+  updateMileage: async (token: string, vehicleId: string, mileage: number) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/mileage`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ mileage }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update mileage')
+    return data
+  },
+
   savePushToken: async (token: string, pushToken: string) => {
     const res = await fetch(`${API_URL}/auth/push-token`, {
       method: 'POST',

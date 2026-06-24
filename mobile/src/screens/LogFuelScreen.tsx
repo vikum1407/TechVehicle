@@ -9,7 +9,7 @@ type Props = {
   token: string
   vehicleId: string
   currentMileage: number
-  onLogged: () => void
+  onLogged: (newMileage: number) => void
   onBack: () => void
 }
 
@@ -36,17 +36,17 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   const [station, setStation] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const kmSinceLast = mileage && parseInt(mileage) > currentMileage
-    ? parseInt(mileage) - currentMileage
-    : null
+  const mileageNum = mileage ? parseInt(mileage) : 0
+  const isHistorical = mileageNum > 0 && mileageNum < currentMileage
+  const kmSinceLast = mileageNum > currentMileage ? mileageNum - currentMileage : null
 
   const kmPerLitre = kmSinceLast && litres && parseFloat(litres) > 0
     ? (kmSinceLast / parseFloat(litres)).toFixed(1)
     : null
 
   const handleSubmit = async () => {
-    if (!mileage || parseInt(mileage) < currentMileage) {
-      Alert.alert('Check mileage', `Odometer reading must be ${currentMileage.toLocaleString()} km or higher.`)
+    if (!mileage || mileageNum <= 0) {
+      Alert.alert('Enter mileage', 'Please enter the odometer reading.')
       return
     }
     const isoDate = parseDate(date)
@@ -59,13 +59,13 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
     try {
       await api.addFuelLog(token, vehicleId, {
         date: isoDate,
-        mileage: parseInt(mileage),
+        mileage: mileageNum,
         litres: litres ? parseFloat(litres) : undefined,
         cost: cost ? parseFloat(cost) : undefined,
         fullTank,
         station: station.trim() || undefined,
       })
-      onLogged()
+      onLogged(mileageNum)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
@@ -93,7 +93,14 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         placeholder="Current odometer reading"
       />
 
-      {kmSinceLast && (
+      {isHistorical && (
+        <View style={styles.historicalNote}>
+          <Text style={styles.historicalNoteText}>
+            📋 Historical entry — odometer will not be updated (current: {currentMileage.toLocaleString()} km)
+          </Text>
+        </View>
+      )}
+      {kmSinceLast != null && (
         <View style={styles.insight}>
           <Text style={styles.insightText}>
             {kmSinceLast.toLocaleString()} km since last fill-up
@@ -181,6 +188,12 @@ const styles = StyleSheet.create({
     fontSize: 15, color: '#1a1a1a',
     borderWidth: 1, borderColor: '#e0e0e0',
   },
+  historicalNote: {
+    backgroundColor: '#fff8e1', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
+    borderLeftWidth: 3, borderLeftColor: '#f9a825',
+  },
+  historicalNoteText: { fontSize: 12, color: '#795548', fontWeight: '600' },
   insight: {
     backgroundColor: '#e8f5e9', borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,

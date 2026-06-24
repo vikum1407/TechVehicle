@@ -61,4 +61,29 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /vehicles/:id/mileage — manual odometer update
+router.patch('/:id/mileage', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { mileage } = req.body
+  if (mileage === undefined || isNaN(Number(mileage))) {
+    res.status(400).json({ error: 'mileage is required' }); return
+  }
+  try {
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id, ownerPhone: req.phoneNumber! },
+    })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    if (Number(mileage) <= vehicle.mileage) {
+      res.status(400).json({ error: `New mileage must be higher than current (${vehicle.mileage.toLocaleString()} km)` }); return
+    }
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: { mileage: Number(mileage) },
+    })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update mileage' })
+  }
+})
+
 export default router

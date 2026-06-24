@@ -240,6 +240,7 @@ export default function App() {
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
           onPredictions={() => setScreen('predictions')}
+          onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
           onBookService={() => setScreen('booking')}
@@ -259,7 +260,12 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           currentMileage={selectedVehicle.mileage}
-          onLogged={() => setScreen('vehicleDashboard')}
+          onLogged={(newMileage) => {
+              if (newMileage > (selectedVehicle?.mileage ?? 0)) {
+                setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
+              }
+              setScreen('vehicleDashboard')
+            }}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}

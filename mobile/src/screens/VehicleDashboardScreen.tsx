@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, RefreshControl, ActivityIndicator, Alert
+  ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
@@ -44,6 +44,7 @@ type Props = {
   onAddExpense: () => void
   onAnalytics: () => void
   onPredictions: () => void
+  onMileageUpdated: (newMileage: number) => void
   onShare: () => void
   onSell: () => void
   onBookService: () => void
@@ -124,7 +125,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onShare, onSell, onBookService }: Props) {
+export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -134,6 +135,9 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
   const [cancellingTransfer, setCancellingTransfer] = useState(false)
   const [miniAnalytics, setMiniAnalytics] = useState<MiniAnalytics | null>(null)
   const [topPredictions, setTopPredictions] = useState<TopPrediction[]>([])
+  const [editingMileage, setEditingMileage] = useState(false)
+  const [mileageInput, setMileageInput] = useState('')
+  const [savingMileage, setSavingMileage] = useState(false)
 
   const loadRecords = async () => {
     setLoading(true)
@@ -199,6 +203,25 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         },
       ]
     )
+  }
+
+  const handleUpdateMileage = async () => {
+    const newMileage = parseInt(mileageInput)
+    if (!mileageInput || isNaN(newMileage) || newMileage <= vehicle.mileage) {
+      Alert.alert('Invalid mileage', `Please enter a value higher than the current odometer (${vehicle.mileage.toLocaleString()} km).`)
+      return
+    }
+    setSavingMileage(true)
+    try {
+      await api.updateMileage(token, vehicle.id, newMileage)
+      onMileageUpdated(newMileage)
+      setEditingMileage(false)
+      setMileageInput('')
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSavingMileage(false)
+    }
   }
 
   useEffect(() => { loadRecords() }, [])
@@ -297,7 +320,30 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
           <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
           <View style={styles.vehicleRow}>
             <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
-            <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
+            {!editingMileage ? (
+              <TouchableOpacity style={styles.mileageRow} onPress={() => { setMileageInput(''); setEditingMileage(true) }}>
+                <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
+                <Text style={styles.mileageEditHint}>  ✏️ Update</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.mileageEditRow}>
+                <TextInput
+                  style={styles.mileageInput}
+                  value={mileageInput}
+                  onChangeText={setMileageInput}
+                  keyboardType="number-pad"
+                  placeholder={vehicle.mileage.toLocaleString()}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoFocus
+                />
+                <TouchableOpacity style={styles.mileageSaveBtn} onPress={handleUpdateMileage} disabled={savingMileage}>
+                  {savingMileage ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.mileageSaveBtnText}>✓</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.mileageCancelBtn} onPress={() => setEditingMileage(false)}>
+                  <Text style={styles.mileageCancelBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
@@ -481,8 +527,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14, padding: 20,
   },
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center' },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  mileageRow: { flexDirection: 'row', alignItems: 'center' },
+  mileageEditHint: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  mileageEditRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+  mileageInput: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 5,
+    fontSize: 14, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)',
+  },
+  mileageSaveBtn: {
+    backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  mileageSaveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  mileageCancelBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  mileageCancelBtnText: { color: 'rgba(255,255,255,0.8)', fontWeight: '700', fontSize: 14 },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   quickBtn: {
     width: '47%', backgroundColor: 'rgba(255,255,255,0.2)',
