@@ -201,12 +201,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
   }
 
-  const loadBookingNotes = async (bookingId: string) => {
+  const loadBookingNotes = async (bookingId: string): Promise<BookingNote[]> => {
     setLoadingNotesId(bookingId)
     try {
       const notes = await api.getBookingNotes(token, bookingId)
       setBookingNotesMap(prev => ({ ...prev, [bookingId]: notes }))
-    } catch {}
+      return notes
+    } catch { return [] }
     finally { setLoadingNotesId(null) }
   }
 
@@ -216,10 +217,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     setSendingNote(bookingId)
     try {
       const note = await api.addBookingNote(token, bookingId, msg)
-      setBookingNotesMap(prev => ({
-        ...prev,
-        [bookingId]: [...(prev[bookingId] || []), note],
-      }))
+      const currentNotes = bookingNotesMap[bookingId] || []
+      const updated = [...currentNotes, note]
+      setBookingNotesMap(prev => ({ ...prev, [bookingId]: updated }))
+      // Your own sent message is also "seen"
+      setSeenCounts(prev => ({ ...prev, [bookingId]: updated.length }))
       setNoteInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -233,15 +235,15 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     setExpandedBooking(next)
   }
 
-  const toggleMessages = (bookingId: string) => {
+  const toggleMessages = async (bookingId: string) => {
     if (expandedMessagesSet.has(bookingId)) {
       setExpandedMessagesSet(prev => { const s = new Set(prev); s.delete(bookingId); return s })
       return
     }
     setExpandedMessagesSet(prev => new Set(prev).add(bookingId))
-    const bk = bookings.find(b => b.id === bookingId)
-    setSeenCounts(prev => ({ ...prev, [bookingId]: bk?._count?.bookingNotes ?? 0 }))
-    loadBookingNotes(bookingId)
+    const notes = await loadBookingNotes(bookingId)
+    // Set seen count from actual notes loaded — not from stale _count
+    setSeenCounts(prev => ({ ...prev, [bookingId]: notes.length }))
   }
 
   const loadSchedule = async () => {
@@ -325,11 +327,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   useEffect(() => {
     if (!focusBookingId || !garage) return
     setTab('bookings')
-    const focusAndLoad = () => {
+    const focusAndLoad = async () => {
       setExpandedMessagesSet(prev => new Set(prev).add(focusBookingId))
-      const bk = bookings.find(b => b.id === focusBookingId)
-      setSeenCounts(prev => ({ ...prev, [focusBookingId]: bk?._count?.bookingNotes ?? 0 }))
-      loadBookingNotes(focusBookingId)
+      const notes = await loadBookingNotes(focusBookingId)
+      setSeenCounts(prev => ({ ...prev, [focusBookingId]: notes.length }))
       onFocusHandled?.()
     }
     if (bookings.length === 0) {

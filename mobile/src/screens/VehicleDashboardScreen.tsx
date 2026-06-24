@@ -326,12 +326,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       return
     }
     setExpandedMessages(prev => new Set(prev).add(bookingId))
-    const bk = myBookings.find(b => b.id === bookingId)
-    setSeenCounts(prev => ({ ...prev, [bookingId]: bk?._count?.bookingNotes ?? 0 }))
     setLoadingNotes(prev => new Set(prev).add(bookingId))
     try {
       const notes = await api.getBookingNotes(token, bookingId)
       setBookingNotes(prev => ({ ...prev, [bookingId]: notes }))
+      // Set seen count from actual notes loaded — not from stale _count
+      setSeenCounts(prev => ({ ...prev, [bookingId]: notes.length }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {
@@ -345,10 +345,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     setSendingMessage(bookingId)
     try {
       const note = await api.addBookingNote(token, bookingId, msg)
-      setBookingNotes(prev => ({
-        ...prev,
-        [bookingId]: [...(prev[bookingId] || []), note],
-      }))
+      const currentNotes = bookingNotes[bookingId] || []
+      const updated = [...currentNotes, note]
+      setBookingNotes(prev => ({ ...prev, [bookingId]: updated }))
+      // Your own sent message is also "seen"
+      setSeenCounts(prev => ({ ...prev, [bookingId]: updated.length }))
       setMessageInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
