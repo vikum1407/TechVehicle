@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, BackHandler } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
@@ -65,6 +65,30 @@ export default function App() {
       }
     })
   }, [])
+
+  useEffect(() => {
+    const backMap: Partial<Record<Screen, Screen>> = {
+      otp: 'login',
+      addVehicle: 'vehicles',
+      vehicleDashboard: 'vehicles',
+      addServiceRecord: 'vehicleDashboard',
+      logFuel: 'vehicleDashboard',
+      addExpense: 'vehicleDashboard',
+      analytics: 'vehicleDashboard',
+      share: 'vehicleDashboard',
+      sell: 'vehicleDashboard',
+      booking: 'vehicleDashboard',
+    }
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      const parent = backMap[screen]
+      if (parent) {
+        setScreen(parent)
+        return true
+      }
+      return false
+    })
+    return () => handler.remove()
+  }, [screen])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -171,6 +195,7 @@ export default function App() {
         <AddVehicleScreen
           token={token}
           onVehicleAdded={() => setScreen('vehicles')}
+          onBack={() => setScreen('vehicles')}
         />
       )}
       {screen === 'vehicleDashboard' && selectedVehicle && (

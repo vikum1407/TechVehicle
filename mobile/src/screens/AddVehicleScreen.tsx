@@ -8,13 +8,14 @@ import { api } from '../config/api'
 type Props = {
   token: string
   onVehicleAdded: () => void
+  onBack: () => void
 }
 
 const MAKES = ['Toyota', 'Honda', 'Nissan', 'Suzuki', 'Mitsubishi', 'Perodua', 'Bajaj', 'TVS', 'Hero', 'Other']
 const FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric']
 const CURRENT_YEAR = new Date().getFullYear()
 
-export default function AddVehicleScreen({ token, onVehicleAdded }: Props) {
+export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Props) {
   const [registrationNo, setRegistrationNo] = useState('')
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
@@ -54,6 +55,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+        <Text style={styles.backBtnText}>← Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Add Vehicle</Text>
       <Text style={styles.subtitle}>Enter your vehicle details</Text>
 
@@ -136,6 +140,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   content: { padding: 24, paddingBottom: 48 },
+  backBtn: { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
+  backBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
   title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4, marginTop: 16 },
   subtitle: { fontSize: 14, color: '#888', marginBottom: 28 },
   label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 16 },
