@@ -50,6 +50,17 @@ type Props = {
   onBookService: () => void
 }
 
+type OwnerBooking = {
+  id: string
+  date: string
+  status: string
+  slotLabel: string | null
+  notes: string | null
+  noteType: string | null
+  serviceType: string | null
+  garage: { id: string; name: string; verified: boolean }
+}
+
 type PendingTransfer = {
   id: string
   buyerPhone: string
@@ -151,20 +162,24 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
   const [messageInputs, setMessageInputs] = useState<Record<string, string>>({})
   const [sendingMessage, setSendingMessage] = useState<string | null>(null)
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
+  const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs, transfer, analytics, preds] = await Promise.all([
+      const [recs, subs, transfer, analytics, preds, allBookings] = await Promise.all([
         api.getServiceRecords(token, vehicle.id),
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
+        api.getMyBookings(token).catch(() => []),
       ])
       setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
+      setMyBookings((allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id))
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
       setTopPredictions(urgent)
       if (analytics) {
@@ -269,6 +284,67 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
         [sub.bookingId!]: [...(prev[sub.bookingId!] || []), note],
       }))
       setMessageInputs(prev => ({ ...prev, [sub.id]: '' }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSendingMessage(null)
+    }
+  }
+
+  const handleCancelBooking = (bookingId: string) => {
+    Alert.alert(
+      'Cancel Booking',
+      'Cancel this service appointment?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            setCancellingBooking(bookingId)
+            try {
+              await api.cancelBooking(token, bookingId)
+              setMyBookings(prev => prev.filter(b => b.id !== bookingId))
+            } catch (e: any) {
+              Alert.alert('Error', e.message)
+            } finally {
+              setCancellingBooking(null)
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const toggleBookingMessages = async (bookingId: string) => {
+    if (expandedMessages.has(bookingId)) {
+      setExpandedMessages(prev => { const s = new Set(prev); s.delete(bookingId); return s })
+      return
+    }
+    setExpandedMessages(prev => new Set(prev).add(bookingId))
+    if (bookingNotes[bookingId]) return
+    setLoadingNotes(prev => new Set(prev).add(bookingId))
+    try {
+      const notes = await api.getBookingNotes(token, bookingId)
+      setBookingNotes(prev => ({ ...prev, [bookingId]: notes }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setLoadingNotes(prev => { const s = new Set(prev); s.delete(bookingId); return s })
+    }
+  }
+
+  const handleSendBookingMessage = async (bookingId: string) => {
+    const msg = (messageInputs[bookingId] || '').trim()
+    if (!msg) return
+    setSendingMessage(bookingId)
+    try {
+      const note = await api.addBookingNote(token, bookingId, msg)
+      setBookingNotes(prev => ({
+        ...prev,
+        [bookingId]: [...(prev[bookingId] || []), note],
+      }))
+      setMessageInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {
@@ -415,6 +491,123 @@ export default function VehicleDashboardScreen({ token, vehicle, onBack, onAddRe
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>
+
+        {/* My Appointments — owner's booked service slots */}
+        {myBookings.length > 0 && (
+          <View style={styles.appointmentsSection}>
+            <Text style={styles.appointmentsSectionTitle}>📅 My Appointments ({myBookings.length})</Text>
+            {myBookings.map(bk => {
+              const isConfirmed = bk.status === 'confirmed'
+              const statusColor = isConfirmed ? '#2e7d32' : '#e65100'
+              const statusLabel = isConfirmed ? '✓ Confirmed' : '⏳ Pending'
+              const isExpanded = expandedMessages.has(bk.id)
+              return (
+                <View key={bk.id} style={[styles.appointmentCard, { borderLeftColor: statusColor }]}>
+                  <View style={styles.appointmentHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.appointmentGarage}>
+                        {bk.garage.name}{bk.garage.verified ? ' ✅' : ''}
+                      </Text>
+                      <Text style={styles.appointmentDateTime}>
+                        {new Date(bk.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                        {bk.slotLabel ? `  •  ${bk.slotLabel}` : ''}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: isConfirmed ? '#e8f5e9' : '#fff3e0' }]}>
+                      <Text style={[styles.statusBadgeText, { color: statusColor }]}>{statusLabel}</Text>
+                    </View>
+                  </View>
+
+                  {bk.serviceType && (
+                    <View style={styles.serviceTypeChip}>
+                      <Text style={styles.serviceTypeChipText}>
+                        {bk.serviceType === 'full' ? '🔧 Full Service' : bk.serviceType === 'between' ? '⚡ Between Service' : '🏭 Third-Party'}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bk.notes && (
+                    <Text style={styles.appointmentNotes}>
+                      {bk.noteType === 'urgent' ? '🚨 ' : ''}{bk.notes}
+                    </Text>
+                  )}
+
+                  <View style={styles.appointmentActions}>
+                    <TouchableOpacity
+                      style={styles.messagesToggleSmall}
+                      onPress={() => toggleBookingMessages(bk.id)}
+                    >
+                      <Text style={styles.messagesToggleSmallText}>
+                        💬 Messages {isExpanded ? '▲' : '▼'}
+                      </Text>
+                    </TouchableOpacity>
+                    {!isConfirmed && (
+                      <TouchableOpacity
+                        style={[styles.cancelBkBtn, cancellingBooking === bk.id && styles.cancelBkBtnDisabled]}
+                        onPress={() => handleCancelBooking(bk.id)}
+                        disabled={cancellingBooking === bk.id}
+                      >
+                        {cancellingBooking === bk.id
+                          ? <ActivityIndicator size="small" color="#c62828" />
+                          : <Text style={styles.cancelBkBtnText}>Cancel</Text>
+                        }
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {isExpanded && (
+                    <View style={styles.messagesSection}>
+                      {loadingNotes.has(bk.id) ? (
+                        <ActivityIndicator size="small" color="#1a73e8" style={{ marginVertical: 8 }} />
+                      ) : (
+                        <>
+                          {(bookingNotes[bk.id] || []).length === 0 ? (
+                            <Text style={styles.noMessages}>No messages yet</Text>
+                          ) : (bookingNotes[bk.id] || []).map(note => (
+                            <View
+                              key={note.id}
+                              style={[
+                                styles.messageItem,
+                                note.senderPhone === '' ? styles.messageItemThem : undefined,
+                              ]}
+                            >
+                              <Text style={styles.messageSender}>
+                                {note.senderPhone === '' ? 'Garage' : 'You'}
+                              </Text>
+                              <Text style={styles.messageText}>{note.message}</Text>
+                              <Text style={styles.messageTime}>
+                                {new Date(note.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                              </Text>
+                            </View>
+                          ))}
+                          <View style={styles.messageInputRow}>
+                            <TextInput
+                              style={styles.messageInput}
+                              value={messageInputs[bk.id] || ''}
+                              onChangeText={v => setMessageInputs(prev => ({ ...prev, [bk.id]: v }))}
+                              placeholder="Type a message..."
+                              multiline={false}
+                            />
+                            <TouchableOpacity
+                              style={[styles.messageSendBtn, (!messageInputs[bk.id]?.trim() || sendingMessage === bk.id) && styles.messageSendBtnDisabled]}
+                              onPress={() => handleSendBookingMessage(bk.id)}
+                              disabled={!messageInputs[bk.id]?.trim() || sendingMessage === bk.id}
+                            >
+                              {sendingMessage === bk.id
+                                ? <ActivityIndicator size="small" color="#fff" />
+                                : <Text style={styles.messageSendBtnText}>→</Text>
+                              }
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )
+            })}
+          </View>
+        )}
 
         {/* Upcoming Services prediction card */}
         <TouchableOpacity style={styles.predCard} onPress={onPredictions} activeOpacity={0.85}>
@@ -805,4 +998,38 @@ const styles = StyleSheet.create({
   },
   messageSendBtnDisabled: { opacity: 0.4 },
   messageSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+
+  // My Appointments section
+  appointmentsSection: { marginHorizontal: 16, marginBottom: 10 },
+  appointmentsSectionTitle: {
+    fontSize: 14, fontWeight: '800', color: '#1a73e8',
+    marginBottom: 10, letterSpacing: 0.3,
+  },
+  appointmentCard: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 14,
+    marginBottom: 8, borderLeftWidth: 4,
+    borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  appointmentHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
+  appointmentGarage: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 3 },
+  appointmentDateTime: { fontSize: 13, color: '#555' },
+  statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
+  statusBadgeText: { fontSize: 12, fontWeight: '700' },
+  serviceTypeChip: {
+    alignSelf: 'flex-start', backgroundColor: '#f0f4ff', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8,
+  },
+  serviceTypeChipText: { fontSize: 12, color: '#1a73e8', fontWeight: '600' },
+  appointmentNotes: { fontSize: 12, color: '#555', fontStyle: 'italic', marginBottom: 8 },
+  appointmentActions: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6,
+  },
+  messagesToggleSmall: { paddingVertical: 6, paddingHorizontal: 4 },
+  messagesToggleSmallText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  cancelBkBtn: {
+    borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  cancelBkBtnDisabled: { opacity: 0.5 },
+  cancelBkBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
 })
