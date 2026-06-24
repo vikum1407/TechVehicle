@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { SERVICE_INTERVALS, ServiceInterval, FuelScope } from '../data/serviceIntervals'
+import { sendPush } from '../utils/push'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -31,14 +32,22 @@ function makeMatches(interval: ServiceInterval, make: string): boolean {
 }
 
 function modelMatches(interval: ServiceInterval, model: string): boolean {
-  if (!interval.models) return true
-  return interval.models.some(im => model.toLowerCase().includes(im.toLowerCase()))
+  const lc = model.toLowerCase()
+  if (interval.models && !interval.models.some(im => lc.includes(im.toLowerCase()))) return false
+  if (interval.excludeModels && interval.excludeModels.some(im => lc.includes(im.toLowerCase()))) return false
+  return true
+}
+
+function yearMatches(interval: ServiceInterval, year: number): boolean {
+  if (!interval.yearRange) return true
+  return year >= interval.yearRange[0] && year <= interval.yearRange[1]
 }
 
 function specificityScore(interval: ServiceInterval): number {
   let score = 0
   if (interval.makes) score += 2
   if (interval.models) score += 1
+  if (interval.yearRange) score += 1
   return score
 }
 
@@ -49,6 +58,106 @@ function urgencyScore(status: string, remainingKm: number | null, remainingDays:
   if (status === 'due_soon') return Math.min(kmVal < Infinity ? kmVal : 99999, daysVal < Infinity ? daysVal * 10 : 99999)
   if (status === 'no_data') return 900000
   return 1000000 + Math.min(kmVal < Infinity ? kmVal : 999999, daysVal < Infinity ? daysVal * 10 : 999999)
+}
+
+type VehicleRow = {
+  id: string
+  make: string
+  model: string
+  year: number
+  fuelType: string
+  mileage: number
+}
+
+type PredictionRow = {
+  id: string
+  group: string
+  name: string
+  source: string
+  status: 'overdue' | 'due_soon' | 'ok' | 'no_data'
+  lastDoneKm: number | null
+  lastDoneDate: string | null
+  dueAtKm: number | null
+  remainingKm: number | null
+  dueAtDate: string | null
+  remainingDays: number | null
+}
+
+function computePredictions(
+  vehicle: VehicleRow,
+  records: { description: string; mileage: number | null; date: Date }[]
+): PredictionRow[] {
+  const today = new Date()
+  const currentMileage = vehicle.mileage
+
+  const applicable = SERVICE_INTERVALS.filter(interval =>
+    passesScope(interval.fuelScope, vehicle.fuelType) &&
+    makeMatches(interval, vehicle.make) &&
+    modelMatches(interval, vehicle.model) &&
+    yearMatches(interval, vehicle.year)
+  )
+
+  const grouped = new Map<string, ServiceInterval>()
+  for (const interval of applicable) {
+    const existing = grouped.get(interval.group)
+    if (!existing || specificityScore(interval) > specificityScore(existing)) {
+      grouped.set(interval.group, interval)
+    }
+  }
+
+  return Array.from(grouped.values()).map(interval => {
+    const matching = records.filter(r =>
+      interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
+    )
+    const last = matching[0] || null
+
+    if (!last) {
+      return {
+        id: interval.id, group: interval.group, name: interval.name, source: interval.source,
+        status: 'no_data' as const,
+        lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
+        remainingKm: null, dueAtDate: null, remainingDays: null,
+      }
+    }
+
+    const lastKm = last.mileage
+    const lastDate = new Date(last.date)
+
+    let remainingKm: number | null = null
+    let dueAtKm: number | null = null
+    if (interval.kmInterval && lastKm != null) {
+      dueAtKm = lastKm + interval.kmInterval
+      remainingKm = dueAtKm - currentMileage
+    }
+
+    let remainingDays: number | null = null
+    let dueAtDate: string | null = null
+    if (interval.daysInterval) {
+      const due = new Date(lastDate)
+      due.setDate(due.getDate() + interval.daysInterval)
+      dueAtDate = due.toISOString()
+      remainingDays = Math.floor((due.getTime() - today.getTime()) / 86400000)
+    }
+
+    let status: 'overdue' | 'due_soon' | 'ok' = 'ok'
+    if (
+      (remainingKm !== null && remainingKm < 0) ||
+      (remainingDays !== null && remainingDays < 0)
+    ) {
+      status = 'overdue'
+    } else if (
+      (remainingKm !== null && remainingKm <= interval.urgencyKm) ||
+      (remainingDays !== null && remainingDays <= interval.urgencyDays)
+    ) {
+      status = 'due_soon'
+    }
+
+    return {
+      id: interval.id, group: interval.group, name: interval.name, source: interval.source,
+      status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(),
+      dueAtKm, remainingKm, dueAtDate, remainingDays,
+    }
+  }).sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
 }
 
 // GET /predictions/:vehicleId
@@ -65,100 +174,65 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       orderBy: { date: 'desc' },
     })
 
-    const today = new Date()
-    const currentMileage = vehicle.mileage
-
-    // Step 1 — filter intervals applicable to this vehicle
-    const applicable = SERVICE_INTERVALS.filter(interval =>
-      passesScope(interval.fuelScope, vehicle.fuelType) &&
-      makeMatches(interval, vehicle.make) &&
-      modelMatches(interval, vehicle.model)
-    )
-
-    // Step 2 — deduplicate by group: most specific wins (models > makes > general)
-    const grouped = new Map<string, ServiceInterval>()
-    for (const interval of applicable) {
-      const existing = grouped.get(interval.group)
-      if (!existing || specificityScore(interval) > specificityScore(existing)) {
-        grouped.set(interval.group, interval)
-      }
-    }
-
-    // Step 3 — run predictions on winning intervals
-    const predictions = Array.from(grouped.values()).map(interval => {
-      const matching = records.filter(r =>
-        interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
-      )
-      const last = matching[0] || null
-
-      if (!last) {
-        return {
-          id: interval.id,
-          group: interval.group,
-          name: interval.name,
-          source: interval.source,
-          status: 'no_data' as const,
-          lastDoneKm: null,
-          lastDoneDate: null,
-          dueAtKm: null,
-          remainingKm: null,
-          dueAtDate: null,
-          remainingDays: null,
-        }
-      }
-
-      const lastKm = last.mileage
-      const lastDate = new Date(last.date)
-
-      let remainingKm: number | null = null
-      let dueAtKm: number | null = null
-      if (interval.kmInterval && lastKm != null) {
-        dueAtKm = lastKm + interval.kmInterval
-        remainingKm = dueAtKm - currentMileage
-      }
-
-      let remainingDays: number | null = null
-      let dueAtDate: string | null = null
-      if (interval.daysInterval) {
-        const due = new Date(lastDate)
-        due.setDate(due.getDate() + interval.daysInterval)
-        dueAtDate = due.toISOString()
-        remainingDays = Math.floor((due.getTime() - today.getTime()) / 86400000)
-      }
-
-      let status: 'overdue' | 'due_soon' | 'ok' = 'ok'
-      if (
-        (remainingKm !== null && remainingKm < 0) ||
-        (remainingDays !== null && remainingDays < 0)
-      ) {
-        status = 'overdue'
-      } else if (
-        (remainingKm !== null && remainingKm <= interval.urgencyKm) ||
-        (remainingDays !== null && remainingDays <= interval.urgencyDays)
-      ) {
-        status = 'due_soon'
-      }
-
-      return {
-        id: interval.id,
-        group: interval.group,
-        name: interval.name,
-        source: interval.source,
-        status,
-        lastDoneKm: lastKm,
-        lastDoneDate: last.date.toISOString(),
-        dueAtKm,
-        remainingKm,
-        dueAtDate,
-        remainingDays,
-      }
-    })
-    .sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
-
+    const predictions = computePredictions(vehicle, records)
     res.json(predictions)
   } catch (error) {
     console.error('GET /predictions error:', error)
     res.status(500).json({ error: 'Failed to generate predictions' })
+  }
+})
+
+// POST /predictions/notify — check all user vehicles and push overdue/due_soon alerts
+router.post('/notify', async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
+    if (!user?.pushToken) { res.json({ sent: 0, reason: 'no push token' }); return }
+
+    const vehicles = await prisma.vehicle.findMany({ where: { ownerPhone: req.phoneNumber! } })
+    let sent = 0
+
+    for (const vehicle of vehicles) {
+      const records = await prisma.serviceRecord.findMany({
+        where: { vehicleId: vehicle.id },
+        orderBy: { date: 'desc' },
+      })
+
+      const predictions = computePredictions(vehicle, records)
+      const overdue = predictions.filter(p => p.status === 'overdue')
+      const dueSoon = predictions.filter(p => p.status === 'due_soon')
+
+      const vehicleName = `${vehicle.year} ${vehicle.make} ${vehicle.model}`
+
+      if (overdue.length > 0) {
+        const names = overdue.map(p => p.name).join(', ')
+        await sendPush(
+          user.pushToken,
+          `Overdue: ${vehicleName}`,
+          overdue.length === 1
+            ? `${names} is overdue — service needed soon`
+            : `${overdue.length} services overdue: ${names}`,
+          { screen: 'vehicles', vehicleId: vehicle.id }
+        )
+        sent++
+      } else if (dueSoon.length > 0) {
+        const top = dueSoon[0]
+        const kmText = top.remainingKm != null ? `${top.remainingKm.toLocaleString()} km` : ''
+        const daysText = top.remainingDays != null ? `${top.remainingDays} days` : ''
+        const timeLeft = [kmText, daysText].filter(Boolean).join(' / ')
+        await sendPush(
+          user.pushToken,
+          `Service Due: ${vehicleName}`,
+          `${top.name} due in ${timeLeft}`,
+          { screen: 'vehicles', vehicleId: vehicle.id }
+        )
+        sent++
+      }
+    }
+
+    res.json({ sent })
+  } catch (error) {
+    console.error('POST /predictions/notify error:', error)
+    res.status(500).json({ error: 'Failed to send notifications' })
   }
 })
 

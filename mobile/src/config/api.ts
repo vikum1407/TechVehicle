@@ -469,6 +469,16 @@ export const api = {
     return data
   },
 
+  triggerServiceNotifications: async (token: string) => {
+    const res = await fetch(`${API_URL}/predictions/notify`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to trigger notifications')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

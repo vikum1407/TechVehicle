@@ -2,22 +2,24 @@ export type FuelScope = 'all' | 'petrol-only' | 'diesel-only' | 'not-electric' |
 
 export type ServiceInterval = {
   id: string
-  group: string         // dedup key — one winner per group per vehicle (most specific wins)
+  group: string           // dedup key — one winner per group per vehicle (most specific wins)
   name: string
-  keywords: string[]    // matched against service record description (case-insensitive)
+  keywords: string[]      // matched against service record description (case-insensitive)
   kmInterval?: number
   daysInterval?: number
   fuelScope: FuelScope
   makes?: string[]        // only apply to these makes (undefined = all makes)
   excludeMakes?: string[] // exclude these makes (they have their own make-specific entry)
   models?: string[]       // only apply if model name contains one of these (case-insensitive)
+  excludeModels?: string[]// exclude if model name contains one of these (chain engines, etc.)
+  yearRange?: [number, number] // [fromYear, toYear] inclusive — undefined = all years
   source: string
   urgencyKm: number
   urgencyDays: number
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GENERAL intervals — apply to all vehicles unless overridden or excluded
+// GENERAL — applies to all vehicles unless excluded or overridden
 // ─────────────────────────────────────────────────────────────────────────────
 const GENERAL: ServiceInterval[] = [
   {
@@ -68,7 +70,7 @@ const GENERAL: ServiceInterval[] = [
     daysInterval: 730,
     fuelScope: 'petrol-only',
     excludeMakes: ['Bajaj', 'TVS', 'Hero'],
-    source: 'General manufacturer recommendation (standard plugs)',
+    source: 'General manufacturer recommendation (standard copper plugs)',
     urgencyKm: 2000,
     urgencyDays: 30,
   },
@@ -240,7 +242,6 @@ const GENERAL: ServiceInterval[] = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BAJAJ / TVS / HERO — three-wheelers and motorcycles
-// Completely different service profile: shorter intervals, no AC, drive chain
 // ─────────────────────────────────────────────────────────────────────────────
 const BAJAJ_TVS_HERO: ServiceInterval[] = [
   {
@@ -324,7 +325,7 @@ const BAJAJ_TVS_HERO: ServiceInterval[] = [
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOYOTA — specific overrides
+// TOYOTA — make + model/year level overrides
 // ─────────────────────────────────────────────────────────────────────────────
 const TOYOTA: ServiceInterval[] = [
   {
@@ -340,8 +341,9 @@ const TOYOTA: ServiceInterval[] = [
     urgencyKm: 500,
     urgencyDays: 14,
   },
+  // Petrol belt engines (1NZ-FE Corolla/Vios, 1GR-FE etc.) — excludes chain-engine hybrids
   {
-    id: 'timing_belt_toyota',
+    id: 'timing_belt_toyota_petrol',
     group: 'timing_belt',
     name: 'Timing Belt',
     keywords: ['Timing Belt'],
@@ -349,12 +351,26 @@ const TOYOTA: ServiceInterval[] = [
     daysInterval: 1825,
     fuelScope: 'petrol-only',
     makes: ['Toyota'],
-    excludeMakes: [],
-    // Prius/Aqua use timing chain — excluded via models filter below
-    source: 'Toyota manufacturer recommendation (1NZ-FE, 1ZR-FE engines)',
+    excludeModels: ['Prius', 'Aqua', 'Corolla Cross', 'Yaris Cross', 'Yaris', 'C-HR', 'UX'],
+    source: 'Toyota 1NZ-FE / 1ZR-FE engine specification',
     urgencyKm: 5000,
     urgencyDays: 60,
   },
+  // Diesel Toyota (KDH Hiace, Land Cruiser 1KD-FTV) — longer interval
+  {
+    id: 'timing_belt_toyota_diesel',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 100000,
+    daysInterval: 3650,
+    fuelScope: 'diesel-only',
+    makes: ['Toyota'],
+    source: 'Toyota 1KD-FTV / 2KD-FTV diesel engine specification',
+    urgencyKm: 8000,
+    urgencyDays: 90,
+  },
+  // Hybrid HV battery check — Prius, Aqua, Corolla Cross, Yaris Cross
   {
     id: 'hv_battery_check',
     group: 'hv_battery',
@@ -364,8 +380,23 @@ const TOYOTA: ServiceInterval[] = [
     daysInterval: 1460,
     fuelScope: 'all',
     makes: ['Toyota'],
-    models: ['Prius', 'Aqua', 'Corolla Cross', 'Yaris Cross', 'RAV4'],
+    models: ['Prius', 'Aqua', 'Corolla Cross', 'Yaris Cross', 'RAV4 Hybrid', 'Harrier Hybrid'],
     source: 'Toyota hybrid system manufacturer recommendation',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  // Iridium spark plugs (Prius, Aqua use iridium — longer interval)
+  {
+    id: 'spark_plugs_toyota_iridium',
+    group: 'spark_plugs',
+    name: 'Spark Plugs (Iridium)',
+    keywords: ['Spark Plugs'],
+    kmInterval: 60000,
+    daysInterval: 2190,
+    fuelScope: 'petrol-only',
+    makes: ['Toyota'],
+    models: ['Prius', 'Aqua', 'Corolla Cross', 'Yaris'],
+    source: 'Toyota iridium plug specification — longer service life',
     urgencyKm: 5000,
     urgencyDays: 60,
   },
@@ -378,14 +409,14 @@ const TOYOTA: ServiceInterval[] = [
     daysInterval: 1095,
     fuelScope: 'all',
     makes: ['Toyota'],
-    source: 'Toyota manufacturer recommendation (WS ATF)',
+    source: 'Toyota manufacturer recommendation (WS ATF / CVT fluid)',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HONDA — specific overrides
+// HONDA — make + model level overrides
 // ─────────────────────────────────────────────────────────────────────────────
 const HONDA: ServiceInterval[] = [
   {
@@ -397,10 +428,12 @@ const HONDA: ServiceInterval[] = [
     daysInterval: 180,
     fuelScope: 'not-electric',
     makes: ['Honda'],
-    source: 'Honda Sri Lanka recommendation (mineral/semi-synthetic)',
+    source: 'Honda Sri Lanka recommendation',
     urgencyKm: 500,
     urgencyDays: 14,
   },
+  // Belt-equipped Honda engines (K-series, R-series, B-series, D-series)
+  // Vezel/Fit/HR-V (L15B) use CHAIN — intentionally NOT listed here
   {
     id: 'timing_belt_honda',
     group: 'timing_belt',
@@ -410,10 +443,24 @@ const HONDA: ServiceInterval[] = [
     daysInterval: 2190,
     fuelScope: 'petrol-only',
     makes: ['Honda'],
-    // Fit/Vezel/HR-V L15B uses chain — captured via models filter for belt-equipped models
     models: ['CR-V', 'Accord', 'Odyssey', 'Stream', 'StepWgn', 'City', 'Jazz'],
-    source: 'Honda manufacturer recommendation (K/R/B-series engines with belt)',
+    source: 'Honda K/D-series engine specification',
     urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  // Iridium plugs for newer Honda models
+  {
+    id: 'spark_plugs_honda_iridium',
+    group: 'spark_plugs',
+    name: 'Spark Plugs (Iridium)',
+    keywords: ['Spark Plugs'],
+    kmInterval: 40000,
+    daysInterval: 1460,
+    fuelScope: 'petrol-only',
+    makes: ['Honda'],
+    models: ['Vezel', 'HR-V', 'Fit', 'Grace'],
+    source: 'Honda L15B engine specification — iridium plugs',
+    urgencyKm: 4000,
     urgencyDays: 60,
   },
   {
@@ -425,14 +472,14 @@ const HONDA: ServiceInterval[] = [
     daysInterval: 1095,
     fuelScope: 'all',
     makes: ['Honda'],
-    source: 'Honda manufacturer recommendation (HCF-2 CVT fluid)',
+    source: 'Honda HCF-2 CVT fluid recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
   },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MITSUBISHI — specific overrides
+// MITSUBISHI — make level overrides
 // ─────────────────────────────────────────────────────────────────────────────
 const MITSUBISHI: ServiceInterval[] = [
   {
@@ -448,8 +495,9 @@ const MITSUBISHI: ServiceInterval[] = [
     urgencyKm: 500,
     urgencyDays: 14,
   },
+  // 4D56 / 4M41 diesel engines (L300, Montero, Pajero) — long timing belt interval
   {
-    id: 'timing_belt_mitsubishi',
+    id: 'timing_belt_mitsubishi_diesel',
     group: 'timing_belt',
     name: 'Timing Belt',
     keywords: ['Timing Belt'],
@@ -461,10 +509,24 @@ const MITSUBISHI: ServiceInterval[] = [
     urgencyKm: 8000,
     urgencyDays: 90,
   },
+  // Petrol Mitsubishi (4G series, Outlander petrol)
+  {
+    id: 'timing_belt_mitsubishi_petrol',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Mitsubishi'],
+    source: 'Mitsubishi 4G-series petrol engine specification',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUZUKI — specific overrides
+// SUZUKI / PERODUA — make + year level overrides
 // ─────────────────────────────────────────────────────────────────────────────
 const SUZUKI: ServiceInterval[] = [
   {
@@ -476,12 +538,13 @@ const SUZUKI: ServiceInterval[] = [
     daysInterval: 150,
     fuelScope: 'not-electric',
     makes: ['Suzuki', 'Perodua'],
-    source: 'Suzuki/Perodua recommendation (small displacement engines, hot climate)',
+    source: 'Suzuki/Perodua recommendation (small displacement, hot climate)',
     urgencyKm: 500,
     urgencyDays: 14,
   },
+  // Older Suzuki (G10/G13 engines, pre-2008) had timing belt
   {
-    id: 'timing_belt_suzuki',
+    id: 'timing_belt_suzuki_old',
     group: 'timing_belt',
     name: 'Timing Belt',
     keywords: ['Timing Belt'],
@@ -489,14 +552,17 @@ const SUZUKI: ServiceInterval[] = [
     daysInterval: 1825,
     fuelScope: 'petrol-only',
     makes: ['Suzuki', 'Perodua'],
-    source: 'Suzuki/Perodua manufacturer recommendation (K-series engine)',
+    yearRange: [1990, 2010],
+    source: 'Suzuki G10/G13 engine specification (older models with belt)',
     urgencyKm: 5000,
     urgencyDays: 60,
   },
+  // Newer Suzuki (K10B/K12B engines, post-2010 Alto/Swift) use timing chain — no belt needed
+  // No timing_belt entry for post-2010 Suzuki = chain engine, no prediction shown
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NISSAN — specific overrides
+// NISSAN — make level overrides
 // ─────────────────────────────────────────────────────────────────────────────
 const NISSAN: ServiceInterval[] = [
   {
@@ -511,6 +577,21 @@ const NISSAN: ServiceInterval[] = [
     source: 'Nissan manufacturer recommendation',
     urgencyKm: 500,
     urgencyDays: 14,
+  },
+  {
+    id: 'timing_belt_nissan',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Nissan'],
+    // Note: newer Nissan (HR16DE, MR20DE) use chain — older QG/GA series use belt
+    yearRange: [1990, 2012],
+    source: 'Nissan QG/GA series engine specification (belt-equipped models)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
   },
 ]
 

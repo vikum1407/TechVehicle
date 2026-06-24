@@ -139,7 +139,11 @@ export default function App() {
   const registerPush = async (authToken: string) => {
     try {
       const pushToken = await registerForPushNotifications()
-      if (pushToken) await api.savePushToken(authToken, pushToken)
+      if (pushToken) {
+        await api.savePushToken(authToken, pushToken)
+        // Check service-due alerts now that we have a push token
+        await api.triggerServiceNotifications(authToken).catch(() => {})
+      }
     } catch (e) {
       // non-fatal
     }
