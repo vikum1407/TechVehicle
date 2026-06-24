@@ -331,6 +331,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     try {
       const notes = await api.getBookingNotes(token, bookingId)
       setBookingNotes(prev => ({ ...prev, [bookingId]: notes }))
+      setMyBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, _count: { bookingNotes: notes.length } } : b
+      ))
       onBookingSeen?.(bookingId, notes.length)
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -348,6 +351,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       const currentNotes = bookingNotes[bookingId] || []
       const updated = [...currentNotes, note]
       setBookingNotes(prev => ({ ...prev, [bookingId]: updated }))
+      setMyBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, _count: { bookingNotes: updated.length } } : b
+      ))
       onBookingSeen?.(bookingId, updated.length)
       setMessageInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
@@ -361,12 +367,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   useEffect(() => {
     const total = myBookings.reduce((sum, b) => {
-      const seen = Math.max(bookingSeenCounts[b.id] ?? 0, bookingNotes[b.id]?.length ?? 0)
-      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - seen)
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (bookingSeenCounts[b.id] ?? 0))
       return sum + unread
     }, 0)
     onMessageCountChange?.(total)
-  }, [bookingSeenCounts, myBookings, bookingNotes])
+  }, [bookingSeenCounts, myBookings])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -556,8 +561,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                           💬 Messages {isExpanded ? '▲' : '▼'}
                         </Text>
                         {(() => {
-                          const seen = Math.max(bookingSeenCounts[bk.id] ?? 0, bookingNotes[bk.id]?.length ?? 0)
-                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - seen)
+                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (bookingSeenCounts[bk.id] ?? 0))
                           return unread > 0 ? (
                             <View style={styles.msgBadge}>
                               <Text style={styles.msgBadgeText}>{unread}</Text>
