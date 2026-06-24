@@ -11,7 +11,6 @@ import {
 
 type Props = {
   token: string
-  onBack: () => void
 }
 
 type Garage = {
@@ -77,7 +76,7 @@ type Booking = {
   }
 }
 
-export default function GarageScreen({ token, onBack }: Props) {
+export default function GarageScreen({ token }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -663,10 +662,7 @@ export default function GarageScreen({ token, onBack }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{garage ? garage.name : 'Register Garage'}</Text>
+        <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
       </View>
 
       {garage && !editing && (
@@ -1416,7 +1412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#eee',
   },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600', marginBottom: 6 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a' },
   tabs: {
     flexDirection: 'row', backgroundColor: '#fff',
     borderBottomWidth: 1, borderBottomColor: '#eee',

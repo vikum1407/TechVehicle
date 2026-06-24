@@ -67,10 +67,9 @@ type Props = {
   onSelectVehicle: (vehicle: Vehicle) => void
   onVehiclesLoaded: (vehicles: Vehicle[]) => void
   onLogout: () => void
-  onGarage: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onGarage }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,16 +158,9 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           <Text style={styles.logo}>TechVehicle</Text>
           <Text style={styles.phone}>{phoneNumber}</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.garageBtn} onPress={onGarage}>
-            <Text style={styles.garageBtnText}>
-              {userType === 'garage' ? '🏭 My Garage' : '🔍 Find Garage'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutBtnText}>Log out</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+          <Text style={styles.logoutBtnText}>Log out</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -367,12 +359,6 @@ const styles = StyleSheet.create({
   },
   logo: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
   phone: { fontSize: 12, color: '#888', marginTop: 2 },
-  headerRight: { alignItems: 'flex-end', gap: 8 },
-  garageBtn: {
-    backgroundColor: '#e8f0fe', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 6,
-  },
-  garageBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
   logoutBtn: {
     borderWidth: 1.5, borderColor: '#e53935', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 5,

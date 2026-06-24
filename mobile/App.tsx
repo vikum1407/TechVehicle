@@ -16,9 +16,13 @@ import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
 import RoleSelectScreen from './src/screens/RoleSelectScreen'
-import FindGarageScreen from './src/screens/FindGarageScreen'
+import BottomTabBar from './src/components/BottomTabBar'
 
-type Screen = 'loading' | 'login' | 'otp' | 'roleSelect' | 'vehicles' | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord' | 'logFuel' | 'addExpense' | 'analytics' | 'garage' | 'findGarage' | 'share' | 'sell' | 'booking'
+type Screen =
+  | 'loading' | 'login' | 'otp' | 'roleSelect'
+  | 'vehicles' | 'garage'
+  | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
+  | 'logFuel' | 'addExpense' | 'analytics' | 'share' | 'sell' | 'booking'
 
 type Vehicle = {
   id: string
@@ -29,6 +33,9 @@ type Vehicle = {
   fuelType: string
   mileage: number
 }
+
+// Screens that show the bottom tab bar
+const TAB_SCREENS: Screen[] = ['vehicles', 'garage']
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
@@ -51,7 +58,6 @@ export default function App() {
           setUserType(savedUserType as 'owner' | 'garage')
           setScreen('vehicles')
         } else {
-          // Logged-in user has no role yet — show role selection
           setScreen('roleSelect')
         }
       } else {
@@ -108,9 +114,13 @@ export default function App() {
     )
   }
 
+  const showTabBar = TAB_SCREENS.includes(screen)
+
   return (
     <>
       <StatusBar style="auto" />
+
+      {/* ── Auth screens ─────────────────────────────────────────────── */}
       {screen === 'login' && (
         <LoginScreen onOTPSent={handleOTPSent} />
       )}
@@ -127,29 +137,36 @@ export default function App() {
           onSelected={handleRoleSelected}
         />
       )}
-      {screen === 'vehicles' && (
-        <MyVehiclesScreen
-          token={token}
-          phoneNumber={phoneNumber}
-          userType={userType || 'owner'}
-          onAddVehicle={() => setScreen('addVehicle')}
-          onSelectVehicle={handleSelectVehicle}
-          onVehiclesLoaded={setVehicles}
-          onLogout={handleLogout}
-          onGarage={() => setScreen(userType === 'garage' ? 'garage' : 'findGarage')}
-        />
+
+      {/* ── Tab root screens ─────────────────────────────────────────── */}
+      {showTabBar && (
+        <View style={styles.tabContainer}>
+          <View style={styles.tabContent}>
+            {screen === 'vehicles' && (
+              <MyVehiclesScreen
+                token={token}
+                phoneNumber={phoneNumber}
+                userType={userType || 'owner'}
+                onAddVehicle={() => setScreen('addVehicle')}
+                onSelectVehicle={handleSelectVehicle}
+                onVehiclesLoaded={setVehicles}
+                onLogout={handleLogout}
+              />
+            )}
+            {screen === 'garage' && (
+              <GarageScreen
+                token={token}
+              />
+            )}
+          </View>
+          <BottomTabBar
+            activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
+            onTabPress={(tab) => setScreen(tab)}
+          />
+        </View>
       )}
-      {screen === 'findGarage' && (
-        <FindGarageScreen
-          token={token}
-          vehicles={vehicles}
-          onBack={() => setScreen('vehicles')}
-          onBookGarage={(garage, vehicle) => {
-            setSelectedVehicle(vehicle)
-            setScreen('booking')
-          }}
-        />
-      )}
+
+      {/* ── Deep screens (no tab bar) ─────────────────────────────────── */}
       {screen === 'addVehicle' && (
         <AddVehicleScreen
           token={token}
@@ -195,12 +212,6 @@ export default function App() {
           onShared={() => setScreen('vehicleDashboard')}
         />
       )}
-      {screen === 'garage' && (
-        <GarageScreen
-          token={token}
-          onBack={() => setScreen('vehicles')}
-        />
-      )}
       {screen === 'sell' && selectedVehicle && (
         <SellScreen
           token={token}
@@ -238,4 +249,6 @@ export default function App() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  tabContainer: { flex: 1 },
+  tabContent: { flex: 1 },
 })
