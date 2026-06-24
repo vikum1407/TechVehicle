@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Tab = 'vehicles' | 'garage'
 
@@ -9,8 +10,9 @@ type Props = {
 }
 
 export default function BottomTabBar({ activeTab, onTabPress }: Props) {
+  const insets = useSafeAreaInsets()
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 24) }]}>
       <TouchableOpacity
         style={styles.tab}
         onPress={() => onTabPress('vehicles')}
@@ -44,7 +46,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e8e8e8',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,
