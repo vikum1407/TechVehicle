@@ -103,6 +103,7 @@ export default function GarageScreen({ token }: Props) {
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({})
   const [sendingNote, setSendingNote] = useState<string | null>(null)
   const [loadingNotesId, setLoadingNotesId] = useState<string | null>(null)
+  const [expandedMessagesSet, setExpandedMessagesSet] = useState<Set<string>>(new Set())
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -225,7 +226,15 @@ export default function GarageScreen({ token }: Props) {
   const handleExpandBooking = (bookingId: string) => {
     const next = expandedBooking === bookingId ? null : bookingId
     setExpandedBooking(next)
-    if (next) loadBookingNotes(next)
+  }
+
+  const toggleMessages = (bookingId: string) => {
+    if (expandedMessagesSet.has(bookingId)) {
+      setExpandedMessagesSet(prev => { const s = new Set(prev); s.delete(bookingId); return s })
+      return
+    }
+    setExpandedMessagesSet(prev => new Set(prev).add(bookingId))
+    loadBookingNotes(bookingId)
   }
 
   const loadSchedule = async () => {
@@ -1193,16 +1202,25 @@ export default function GarageScreen({ token }: Props) {
                   </View>
                 )}
 
-                {/* Messages thread — always visible when expanded */}
-                {isExpanded && (
+                {/* Messages toggle — always visible on every booking card */}
+                <TouchableOpacity
+                  style={styles.messagesToggleBtn}
+                  onPress={(e) => { e.stopPropagation?.(); toggleMessages(booking.id) }}
+                >
+                  <Text style={styles.messagesToggleBtnText}>
+                    💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Messages thread — shown independently of card expand */}
+                {expandedMessagesSet.has(booking.id) && (
                   <View style={styles.notesSection}>
-                    <Text style={styles.notesSectionTitle}>💬 Messages with Owner</Text>
                     {loadingNotesId === booking.id ? (
                       <ActivityIndicator size="small" color="#1a73e8" style={{ marginVertical: 8 }} />
                     ) : (
                       <>
                         {(bookingNotesMap[booking.id] || []).length === 0 ? (
-                          <Text style={styles.noNotes}>No messages yet — send one below</Text>
+                          <Text style={styles.noNotes}>No messages yet — start the conversation below</Text>
                         ) : (bookingNotesMap[booking.id] || []).map(note => (
                           <View
                             key={note.id}
@@ -1225,7 +1243,7 @@ export default function GarageScreen({ token }: Props) {
                             style={styles.noteInput}
                             value={noteInputs[booking.id] || ''}
                             onChangeText={v => setNoteInputs(prev => ({ ...prev, [booking.id]: v }))}
-                            placeholder="Type a message..."
+                            placeholder="Type a message to the owner..."
                           />
                           <TouchableOpacity
                             style={[
@@ -1746,6 +1764,12 @@ const styles = StyleSheet.create({
   },
   noteSendBtnDisabled: { opacity: 0.4 },
   noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  messagesToggleBtn: {
+    marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
+    backgroundColor: '#f0f4ff', borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center',
+  },
+  messagesToggleBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
   shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
 
   // Inline shared records inside booking card
