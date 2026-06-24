@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { sendPush } from '../utils/push'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -52,6 +53,16 @@ router.post('/', async (req: AuthRequest, res) => {
       },
       include: { vehicle: true, garage: true },
     })
+    // Notify the garage owner
+    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: garage.ownerPhone } })
+    const dateStr = bookingDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    await sendPush(
+      garageOwner?.pushToken,
+      'New Booking Request',
+      `${booking.vehicle.registrationNo} — ${dateStr}${slotLabel ? ` · ${slotLabel}` : ''}`,
+      { bookingId: booking.id, screen: 'garage' }
+    )
+
     res.status(201).json(booking)
   } catch (error) {
     console.error('POST /bookings error:', error)
@@ -109,6 +120,17 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
       data: { status: 'confirmed' },
       include: { vehicle: true },
     })
+
+    // Notify the vehicle owner
+    const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+    const dateStr = new Date(booking.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    await sendPush(
+      owner?.pushToken,
+      'Booking Confirmed',
+      `${garage.name} confirmed your booking for ${dateStr}`,
+      { bookingId: booking.id, screen: 'vehicles' }
+    )
+
     res.json(updated)
   } catch (error) {
     res.status(500).json({ error: 'Failed to confirm booking' })

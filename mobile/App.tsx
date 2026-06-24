@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet, BackHandler } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
+import { registerForPushNotifications, Notifications } from './src/utils/notifications'
+import { api } from './src/config/api'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
@@ -44,6 +46,23 @@ export default function App() {
   const [userType, setUserType] = useState<'owner' | 'garage' | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const notifListenerRef = useRef<any>(null)
+  const responseListenerRef = useRef<any>(null)
+
+  useEffect(() => {
+    notifListenerRef.current = Notifications.addNotificationReceivedListener(() => {
+      // foreground notifications are shown automatically via setNotificationHandler
+    })
+    responseListenerRef.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const screen = response.notification.request.content.data?.screen as string | undefined
+      if (screen === 'garage') setScreen('garage')
+      else if (screen === 'vehicles') setScreen('vehicles')
+    })
+    return () => {
+      notifListenerRef.current?.remove()
+      responseListenerRef.current?.remove()
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -105,12 +124,23 @@ export default function App() {
     setToken(authToken)
     setPhoneNumber(phone)
     setScreen(isNewUser ? 'roleSelect' : 'vehicles')
+    registerPush(authToken)
   }
 
   const handleRoleSelected = async (uType: 'owner' | 'garage') => {
     await SecureStore.setItemAsync('userType', uType)
     setUserType(uType)
     setScreen('vehicles')
+    registerPush(token)
+  }
+
+  const registerPush = async (authToken: string) => {
+    try {
+      const pushToken = await registerForPushNotifications()
+      if (pushToken) await api.savePushToken(authToken, pushToken)
+    } catch (e) {
+      // non-fatal
+    }
   }
 
   const handleLogout = async () => {

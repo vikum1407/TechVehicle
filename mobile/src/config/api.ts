@@ -438,6 +438,17 @@ export const api = {
     return data
   },
 
+  savePushToken: async (token: string, pushToken: string) => {
+    const res = await fetch(`${API_URL}/auth/push-token`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ pushToken }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save push token')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

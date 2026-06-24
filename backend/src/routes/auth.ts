@@ -83,6 +83,22 @@ router.post('/verify-otp', async (req, res) => {
   }
 })
 
+// POST /auth/push-token — save Expo push token for this user
+router.post('/push-token', authMiddleware, async (req: AuthRequest, res) => {
+  const { pushToken } = req.body
+  if (!pushToken) { res.status(400).json({ error: 'pushToken is required' }); return }
+  try {
+    await prisma.user.update({
+      where: { phoneNumber: req.phoneNumber! },
+      data: { pushToken },
+    })
+    res.json({ ok: true })
+  } catch (error) {
+    console.error('push-token error:', error)
+    res.status(500).json({ error: 'Failed to save push token' })
+  }
+})
+
 // PUT /auth/user-type — set role after role selection screen
 router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
   const { userType } = req.body
