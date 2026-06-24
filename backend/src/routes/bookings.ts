@@ -80,7 +80,7 @@ router.get('/mine', async (req: AuthRequest, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       where: { ownerPhone: req.phoneNumber!, status: { not: 'cancelled' } },
-      include: { vehicle: true, garage: true, _count: { select: { notes: true } } },
+      include: { vehicle: true, garage: true, _count: { select: { bookingNotes: true } } },
       orderBy: { date: 'asc' },
     })
     res.json(bookings)
@@ -97,7 +97,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
 
     const bookings = await prisma.booking.findMany({
       where: { garageId: garage.id, status: { not: 'cancelled' } },
-      include: { vehicle: true, _count: { select: { notes: true } } },
+      include: { vehicle: true, _count: { select: { bookingNotes: true } } },
       orderBy: { date: 'asc' },
     })
     res.json(bookings)

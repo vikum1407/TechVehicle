@@ -61,7 +61,7 @@ type OwnerBooking = {
   noteType: string | null
   serviceType: string | null
   garage: { id: string; name: string; verified: boolean }
-  _count?: { notes: number }
+  _count?: { bookingNotes: number }
 }
 
 type PendingTransfer = {
@@ -184,7 +184,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       setPendingTransfer(transfer)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
       setMyBookings(vehicleBookings)
-      const totalNotes = vehicleBookings.reduce((sum: number, b: any) => sum + (b._count?.notes ?? 0), 0)
+      const totalNotes = vehicleBookings.reduce((sum: number, b: any) => sum + (b._count?.bookingNotes ?? 0), 0)
       onMessageCountChange?.(totalNotes)
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
       setTopPredictions(urgent)
@@ -545,9 +545,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         <Text style={styles.messagesToggleSmallText}>
                           💬 Messages {isExpanded ? '▲' : '▼'}
                         </Text>
-                        {(bk._count?.notes ?? 0) > 0 && (
+                        {(bk._count?.bookingNotes ?? 0) > 0 && (
                           <View style={styles.msgBadge}>
-                            <Text style={styles.msgBadgeText}>{bk._count!.notes}</Text>
+                            <Text style={styles.msgBadgeText}>{bk._count!.bookingNotes}</Text>
                           </View>
                         )}
                       </View>

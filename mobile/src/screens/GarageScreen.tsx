@@ -77,7 +77,7 @@ type Booking = {
     mileage: number
     fuelType?: string
   }
-  _count?: { notes: number }
+  _count?: { bookingNotes: number }
 }
 
 type BookingNote = {
@@ -181,7 +181,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     try {
       const data = await api.getGarageBookings(token)
       setBookings(data)
-      const total = (data as Booking[]).reduce((sum, b) => sum + (b._count?.notes ?? 0), 0)
+      const total = (data as Booking[]).reduce((sum, b) => sum + (b._count?.bookingNotes ?? 0), 0)
       onMessageCountChange?.(total)
     } catch (e: any) {
       if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
@@ -1232,9 +1232,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   <Text style={styles.messagesToggleBtnText}>
                     💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                   </Text>
-                  {(booking._count?.notes ?? 0) > 0 && (
+                  {(booking._count?.bookingNotes ?? 0) > 0 && (
                     <View style={styles.msgBadge}>
-                      <Text style={styles.msgBadgeText}>{booking._count!.notes}</Text>
+                      <Text style={styles.msgBadgeText}>{booking._count!.bookingNotes}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
