@@ -167,7 +167,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
-  const [seenBookings, setSeenBookings] = useState<Set<string>>(new Set())
+  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({})
 
   const loadRecords = async () => {
     setLoading(true)
@@ -326,7 +326,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       return
     }
     setExpandedMessages(prev => new Set(prev).add(bookingId))
-    setSeenBookings(prev => new Set(prev).add(bookingId))
+    const bk = myBookings.find(b => b.id === bookingId)
+    setSeenCounts(prev => ({ ...prev, [bookingId]: bk?._count?.bookingNotes ?? 0 }))
     setLoadingNotes(prev => new Set(prev).add(bookingId))
     try {
       const notes = await api.getBookingNotes(token, bookingId)
@@ -359,10 +360,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   useEffect(() => { loadRecords() }, [])
 
   useEffect(() => {
-    const total = myBookings.reduce((sum, b) =>
-      seenBookings.has(b.id) ? sum : sum + (b._count?.bookingNotes ?? 0), 0)
+    const total = myBookings.reduce((sum, b) => {
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (seenCounts[b.id] ?? 0))
+      return sum + unread
+    }, 0)
     onMessageCountChange?.(total)
-  }, [seenBookings, myBookings])
+  }, [seenCounts, myBookings])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -551,11 +554,14 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         <Text style={styles.messagesToggleSmallText}>
                           💬 Messages {isExpanded ? '▲' : '▼'}
                         </Text>
-                        {(bk._count?.bookingNotes ?? 0) > 0 && !seenBookings.has(bk.id) && (
-                          <View style={styles.msgBadge}>
-                            <Text style={styles.msgBadgeText}>{bk._count!.bookingNotes}</Text>
-                          </View>
-                        )}
+                        {(() => {
+                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (seenCounts[bk.id] ?? 0))
+                          return unread > 0 ? (
+                            <View style={styles.msgBadge}>
+                              <Text style={styles.msgBadgeText}>{unread}</Text>
+                            </View>
+                          ) : null
+                        })()}
                       </View>
                     </TouchableOpacity>
                     {!isConfirmed && (

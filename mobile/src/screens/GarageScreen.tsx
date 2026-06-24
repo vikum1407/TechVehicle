@@ -108,7 +108,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [sendingNote, setSendingNote] = useState<string | null>(null)
   const [loadingNotesId, setLoadingNotesId] = useState<string | null>(null)
   const [expandedMessagesSet, setExpandedMessagesSet] = useState<Set<string>>(new Set())
-  const [seenBookings, setSeenBookings] = useState<Set<string>>(new Set())
+  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({})
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -239,7 +239,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       return
     }
     setExpandedMessagesSet(prev => new Set(prev).add(bookingId))
-    setSeenBookings(prev => new Set(prev).add(bookingId))
+    const bk = bookings.find(b => b.id === bookingId)
+    setSeenCounts(prev => ({ ...prev, [bookingId]: bk?._count?.bookingNotes ?? 0 }))
     loadBookingNotes(bookingId)
   }
 
@@ -326,7 +327,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     setTab('bookings')
     const focusAndLoad = () => {
       setExpandedMessagesSet(prev => new Set(prev).add(focusBookingId))
-      setSeenBookings(prev => new Set(prev).add(focusBookingId))
+      const bk = bookings.find(b => b.id === focusBookingId)
+      setSeenCounts(prev => ({ ...prev, [focusBookingId]: bk?._count?.bookingNotes ?? 0 }))
       loadBookingNotes(focusBookingId)
       onFocusHandled?.()
     }
@@ -338,10 +340,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   }, [focusBookingId, garage])
 
   useEffect(() => {
-    const total = bookings.reduce((sum, b) =>
-      seenBookings.has(b.id) ? sum : sum + (b._count?.bookingNotes ?? 0), 0)
+    const total = bookings.reduce((sum, b) => {
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (seenCounts[b.id] ?? 0))
+      return sum + unread
+    }, 0)
     onMessageCountChange?.(total)
-  }, [seenBookings, bookings])
+  }, [seenCounts, bookings])
 
   useEffect(() => {
     if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
@@ -1239,11 +1243,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   <Text style={styles.messagesToggleBtnText}>
                     💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                   </Text>
-                  {(booking._count?.bookingNotes ?? 0) > 0 && !seenBookings.has(booking.id) && (
-                    <View style={styles.msgBadge}>
-                      <Text style={styles.msgBadgeText}>{booking._count!.bookingNotes}</Text>
-                    </View>
-                  )}
+                  {(() => {
+                    const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (seenCounts[booking.id] ?? 0))
+                    return unread > 0 ? (
+                      <View style={styles.msgBadge}>
+                        <Text style={styles.msgBadgeText}>{unread}</Text>
+                      </View>
+                    ) : null
+                  })()}
                 </TouchableOpacity>
 
                 {/* Messages thread — shown independently of card expand */}
