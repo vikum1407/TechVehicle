@@ -361,11 +361,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   useEffect(() => {
     const total = myBookings.reduce((sum, b) => {
-      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - (bookingSeenCounts[b.id] ?? 0))
+      const seen = Math.max(bookingSeenCounts[b.id] ?? 0, bookingNotes[b.id]?.length ?? 0)
+      const unread = Math.max(0, (b._count?.bookingNotes ?? 0) - seen)
       return sum + unread
     }, 0)
     onMessageCountChange?.(total)
-  }, [bookingSeenCounts, myBookings])
+  }, [bookingSeenCounts, myBookings, bookingNotes])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -555,7 +556,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                           💬 Messages {isExpanded ? '▲' : '▼'}
                         </Text>
                         {(() => {
-                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (bookingSeenCounts[bk.id] ?? 0))
+                          const seen = Math.max(bookingSeenCounts[bk.id] ?? 0, bookingNotes[bk.id]?.length ?? 0)
+                          const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - seen)
                           return unread > 0 ? (
                             <View style={styles.msgBadge}>
                               <Text style={styles.msgBadgeText}>{unread}</Text>
