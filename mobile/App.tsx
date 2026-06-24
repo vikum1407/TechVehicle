@@ -52,8 +52,23 @@ export default function App() {
   const [vehiclesBadge, setVehiclesBadge] = useState(0)
   const [garageBadge, setGarageBadge] = useState(0)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
-  // Persists "how many notes were seen last" across screen navigation
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
+
+  // Load persisted seen counts on startup
+  useEffect(() => {
+    SecureStore.getItemAsync('bookingSeenCounts').then(raw => {
+      if (raw) {
+        try { setBookingSeenCounts(JSON.parse(raw)) } catch {}
+      }
+    }).catch(() => {})
+  }, [])
+
+  // Persist to SecureStore whenever seen counts change
+  useEffect(() => {
+    if (Object.keys(bookingSeenCounts).length > 0) {
+      SecureStore.setItemAsync('bookingSeenCounts', JSON.stringify(bookingSeenCounts)).catch(() => {})
+    }
+  }, [bookingSeenCounts])
 
   const handleBookingSeen = (bookingId: string, count: number) => {
     setBookingSeenCounts(prev => ({ ...prev, [bookingId]: count }))
@@ -183,11 +198,13 @@ export default function App() {
     await SecureStore.deleteItemAsync('token')
     await SecureStore.deleteItemAsync('phoneNumber')
     await SecureStore.deleteItemAsync('userType')
+    await SecureStore.deleteItemAsync('bookingSeenCounts')
     setToken('')
     setPhoneNumber('')
     setUserType(null)
     setSelectedVehicle(null)
     setVehicles([])
+    setBookingSeenCounts({})
     setScreen('login')
   }
 
