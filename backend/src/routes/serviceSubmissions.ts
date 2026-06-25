@@ -12,7 +12,7 @@ router.use(authMiddleware)
 // POST /service-submissions — garage submits completed service
 // Accepts either shareSessionId (owner shared records) or bookingId (no share attached)
 router.post('/', async (req: AuthRequest, res) => {
-  const { shareSessionId, bookingId, vehicleId, description, parts, brand, cost, notes } = req.body
+  const { shareSessionId, bookingId, vehicleId, description, parts, brand, mileage, cost, notes } = req.body
   if (!vehicleId || !description?.trim()) {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
@@ -57,6 +57,7 @@ router.post('/', async (req: AuthRequest, res) => {
         description: description.trim(),
         parts: parts?.trim() || null,
         brand: brand?.trim() || null,
+        mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
         notes: notes?.trim() || null,
         status: 'pending',
@@ -113,13 +114,17 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
 
     const vehicle = await prisma.vehicle.findUnique({ where: { id: submission.vehicleId } })
 
+    // Use the mileage the garage recorded (most accurate — read directly from the odometer)
+    // Fall back to vehicle's stored mileage only if the garage didn't supply one
+    const serviceMileage = submission.mileage ?? vehicle?.mileage ?? null
+
     const garageNote = `Submitted by ${submission.garage.name}`
     const record = await prisma.serviceRecord.create({
       data: {
         vehicleId: submission.vehicleId,
         date: submission.createdAt,
         description: submission.description,
-        mileage: vehicle?.mileage ?? null,
+        mileage: serviceMileage,
         parts: submission.parts,
         brand: submission.brand,
         cost: submission.cost,
@@ -128,6 +133,14 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
     })
 
     await prisma.serviceSubmission.update({ where: { id }, data: { status: 'accepted' } })
+
+    // Update vehicle odometer if the garage's reading is higher than the stored value
+    if (submission.mileage && vehicle && submission.mileage > vehicle.mileage) {
+      await prisma.vehicle.update({
+        where: { id: submission.vehicleId },
+        data: { mileage: submission.mileage },
+      })
+    }
 
     // Notify garage that owner accepted
     const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: submission.garage.ownerPhone } })

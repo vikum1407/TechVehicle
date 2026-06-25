@@ -463,6 +463,16 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       return
     }
 
+    if (!subMileage.trim()) {
+      Alert.alert('Mileage required', 'Please enter the odometer reading from the vehicle dashboard.')
+      return
+    }
+    const subMileageNum = parseInt(subMileage)
+    if (isNaN(subMileageNum) || subMileageNum <= 0) {
+      Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
+      return
+    }
+
     if (!subCost.trim()) {
       Alert.alert('Cost required', 'Please enter the total cost for this service.')
       return
@@ -484,6 +494,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         bookingId: submittingBookingId || undefined,
         vehicleId: submittingShare.vehicleId,
         description,
+        mileage: subMileageNum,
         cost: subCost ? parseFloat(subCost) : undefined,
         notes: subNotes.trim() || undefined,
       })
@@ -610,7 +621,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             />
           </View>
           <View style={styles.half}>
-            <Text style={styles.catLabel}>Mileage (km)</Text>
+            <Text style={styles.catLabel}>Mileage (km) <Text style={styles.requiredStar}>*</Text></Text>
             <TextInput
               style={styles.fInput}
               value={subMileage}

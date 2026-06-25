@@ -285,6 +285,7 @@ export const api = {
     description: string
     parts?: string
     brand?: string
+    mileage?: number
     cost?: number
     notes?: string
   }) => {

@@ -192,6 +192,7 @@ model ServiceSubmission {
   description    String
   parts          String?
   brand          String?
+  mileage        Int?
   cost           Float?
   notes          String?
   status         String   @default("pending")
