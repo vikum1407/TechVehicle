@@ -36,7 +36,7 @@ router.get('/unread-count', async (req: AuthRequest, res) => {
 // POST /notifications/read-booking/:bookingId — mark message notifications for a booking as read
 // Called when the user opens a booking message thread directly (without going through the bell)
 router.post('/read-booking/:bookingId', async (req: AuthRequest, res) => {
-  const { bookingId } = req.params
+  const bookingId = req.params.bookingId as string
   try {
     await prisma.appNotification.updateMany({
       where: {
