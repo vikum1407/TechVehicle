@@ -26,6 +26,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saveAttempted, setSaveAttempted] = useState(false)
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
 
@@ -48,6 +49,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
   }
 
   const handleSubmit = async () => {
+    setSaveAttempted(true)
     const extras = otherText.trim()
       ? [{ name: otherText.trim(), category: 'General & Other', brand: '' }]
       : []
@@ -124,7 +126,12 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
       </View>
 
       <Text style={styles.title}>Add Service Record</Text>
-      <Text style={styles.subtitle}>Tap everything that was done</Text>
+      <Text style={styles.subtitle}>
+        Tap everything that was done <Text style={styles.requiredStar}>*</Text>
+      </Text>
+      {saveAttempted && selectedItems.length === 0 && !otherText.trim() && (
+        <Text style={styles.fieldError}>Please select at least one service</Text>
+      )}
 
       {SERVICE_CATEGORIES.map(cat => (
         <View key={cat.title}>
@@ -318,4 +325,5 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   requiredStar: { color: '#e53935', fontWeight: '700' },
+  fieldError: { color: '#e53935', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
 })
