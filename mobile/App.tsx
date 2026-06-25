@@ -21,12 +21,13 @@ import RoleSelectScreen from './src/screens/RoleSelectScreen'
 import PredictionsScreen from './src/screens/PredictionsScreen'
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import NotificationsScreen from './src/screens/NotificationsScreen'
+import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
-  | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
+  | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'addExpense' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking'
   | 'notificationPrefs' | 'notifications'
 
@@ -52,6 +53,7 @@ export default function App() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [vehiclesBadge, setVehiclesBadge] = useState(0)
   const [garageBadge, setGarageBadge] = useState(0)
+  const [newVehicle, setNewVehicle] = useState<Vehicle | null>(null)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
   const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
@@ -162,6 +164,7 @@ export default function App() {
       share: 'vehicleDashboard',
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
+      onboardingWizard: 'vehicles',
       notificationPrefs: 'vehicles',
       notifications: 'vehicles',
     }
@@ -313,8 +316,22 @@ export default function App() {
       {screen === 'addVehicle' && (
         <AddVehicleScreen
           token={token}
-          onVehicleAdded={() => setScreen('vehicles')}
+          onVehicleAdded={(vehicle) => {
+            setNewVehicle(vehicle)
+            setScreen('onboardingWizard')
+          }}
           onBack={() => setScreen('vehicles')}
+        />
+      )}
+      {screen === 'onboardingWizard' && newVehicle && (
+        <OnboardingWizardScreen
+          token={token}
+          vehicle={newVehicle}
+          onDone={() => {
+            setSelectedVehicle(newVehicle)
+            setNewVehicle(null)
+            setScreen('vehicleDashboard')
+          }}
         />
       )}
       {screen === 'vehicleDashboard' && selectedVehicle && (

@@ -7,7 +7,7 @@ import { api } from '../config/api'
 
 type Props = {
   token: string
-  onVehicleAdded: () => void
+  onVehicleAdded: (vehicle: { id: string; registrationNo: string; make: string; model: string; year: number; fuelType: string; mileage: number }) => void
   onBack: () => void
 }
 
@@ -60,7 +60,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
 
     setLoading(true)
     try {
-      await api.addVehicle(token, {
+      const newVehicle = await api.addVehicle(token, {
         registrationNo,
         make,
         model,
@@ -71,7 +71,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         ownerCount: ownerCount ?? undefined,
         vehicleNotes: vehicleNotes.trim() || undefined,
       })
-      onVehicleAdded()
+      onVehicleAdded(newVehicle)
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
