@@ -15,6 +15,7 @@ import availabilityRoutes from './routes/availability'
 import bookingRoutes from './routes/bookings'
 import predictionRoutes from './routes/predictions'
 import notificationRoutes from './routes/notifications'
+import uploadRoutes from './routes/uploads'
 
 dotenv.config()
 
@@ -46,6 +47,7 @@ app.use('/availability', availabilityRoutes)
 app.use('/bookings', bookingRoutes)
 app.use('/predictions', predictionRoutes)
 app.use('/notifications', notificationRoutes)
+app.use('/uploads', uploadRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)

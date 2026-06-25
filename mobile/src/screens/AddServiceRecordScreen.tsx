@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, Image
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
@@ -27,6 +29,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [saveAttempted, setSaveAttempted] = useState(false)
+  const [photos, setPhotos] = useState<string[]>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
 
@@ -46,6 +50,47 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
   const setCustomBrandForItem = (itemName: string, value: string) => {
     setCustomBrands(prev => ({ ...prev, [itemName]: value }))
     setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand: value } : i))
+  }
+
+  const pickPhoto = async (source: 'camera' | 'gallery') => {
+    if (photos.length >= 5) {
+      Alert.alert('Limit reached', 'You can attach up to 5 photos per service record.')
+      return
+    }
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync()
+
+    if (!permission.granted) {
+      Alert.alert('Permission needed', `Please allow ${source} access in your device settings.`)
+      return
+    }
+
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 1 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+
+    if (result.canceled || !result.assets[0]) return
+
+    setUploadingPhoto(true)
+    try {
+      // Compress to max 400 KB before uploading
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      )
+      const url = await api.uploadPhoto(token, compressed.uri)
+      setPhotos(prev => [...prev, url])
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const removePhoto = (url: string) => {
+    setPhotos(prev => prev.filter(p => p !== url))
   }
 
   const handleSubmit = async () => {
@@ -106,6 +151,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
         brand: brands || undefined,
         cost: cost ? parseFloat(cost) : undefined,
         notes: notes.trim() || undefined,
+        photos: photos.length > 0 ? photos : undefined,
       })
       onRecordAdded()
     } catch (error: any) {
@@ -229,6 +275,39 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
         keyboardType="number-pad"
       />
 
+      <Text style={styles.catLabel}>Photos (optional, max 5)</Text>
+      <View style={styles.photoRow}>
+        {photos.map((url, i) => (
+          <View key={url} style={styles.photoThumb}>
+            <Image source={{ uri: url }} style={styles.thumbImg} />
+            <TouchableOpacity style={styles.photoRemove} onPress={() => removePhoto(url)}>
+              <Text style={styles.photoRemoveText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+        {photos.length < 5 && (
+          <View style={styles.photoActions}>
+            <TouchableOpacity
+              style={styles.photoBtn}
+              onPress={() => pickPhoto('camera')}
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto
+                ? <ActivityIndicator size="small" color="#1a73e8" />
+                : <Text style={styles.photoBtnText}>📷 Camera</Text>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.photoBtn}
+              onPress={() => pickPhoto('gallery')}
+              disabled={uploadingPhoto}
+            >
+              <Text style={styles.photoBtnText}>🖼 Gallery</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
       <Text style={styles.catLabel}>Notes (optional)</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
@@ -326,4 +405,21 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   requiredStar: { color: '#e53935', fontWeight: '700' },
   fieldError: { color: '#e53935', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+  photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+  thumbImg: { width: 80, height: 80 },
+  photoRemove: {
+    position: 'absolute', top: 2, right: 2,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
+    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+  },
+  photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  photoActions: { flexDirection: 'row', gap: 8 },
+  photoBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#1a73e8',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#e8f0fe', minWidth: 100,
+  },
+  photoBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '600' },
 })

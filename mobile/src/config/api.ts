@@ -570,6 +570,7 @@ export const api = {
     brand?: string
     cost?: number
     notes?: string
+    photos?: string[]
   }) => {
     const res = await fetch(`${API_URL}/service-records/${vehicleId}`, {
       method: 'POST',
@@ -579,5 +580,22 @@ export const api = {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to add service record')
     return data
+  },
+
+  uploadPhoto: async (token: string, uri: string): Promise<string> => {
+    const formData = new FormData()
+    const filename = uri.split('/').pop() || 'photo.jpg'
+    const match = /\.(\w+)$/.exec(filename)
+    const type = match ? `image/${match[1]}` : 'image/jpeg'
+    formData.append('photo', { uri, name: filename, type } as any)
+
+    const res = await fetch(`${API_URL}/uploads/photo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    return data.url as string
   },
 }

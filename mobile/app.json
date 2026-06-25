@@ -2,6 +2,13 @@
   "plugins": [
     "expo-asset",
     "expo-font",
-    "expo-notifications"
+    "expo-notifications",
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "TechVehicle needs access to your photos to attach receipts to service records.",
+        "cameraPermission": "TechVehicle needs camera access to photograph receipts."
+      }
+    ]
   ]
 }

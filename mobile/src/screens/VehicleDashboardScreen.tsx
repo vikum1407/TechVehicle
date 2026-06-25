@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput
+  ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
+  Image, Modal
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
@@ -25,6 +26,7 @@ type ServiceRecord = {
   brand: string | null
   cost: number | null
   notes: string | null
+  photos: string[]
 }
 
 type TopPrediction = {
@@ -172,6 +174,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [viewingPhoto, setViewingPhoto] = useState<string | null>(null)
 
   const loadRecords = async () => {
     setLoading(true)
@@ -467,6 +470,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             )}
             {item.notes && (
               <Text style={styles.cardNotes}>{item.notes}</Text>
+            )}
+            {item.photos && item.photos.length > 0 && (
+              <View style={styles.photoStrip}>
+                {item.photos.map((url, i) => (
+                  <TouchableOpacity key={i} onPress={() => setViewingPhoto(url)} activeOpacity={0.8}>
+                    <Image source={{ uri: url }} style={styles.recordThumb} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
             <Text style={styles.collapseHint}>Tap to collapse</Text>
           </View>
@@ -868,6 +880,18 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           records.map(item => renderRecord({ item }))
         )}
       </ScrollView>
+
+      {/* Full-screen photo viewer */}
+      <Modal visible={!!viewingPhoto} transparent animationType="fade" onRequestClose={() => setViewingPhoto(null)}>
+        <View style={styles.photoModalBg}>
+          <TouchableOpacity style={styles.photoModalClose} onPress={() => setViewingPhoto(null)}>
+            <Text style={styles.photoModalCloseText}>✕</Text>
+          </TouchableOpacity>
+          {viewingPhoto && (
+            <Image source={{ uri: viewingPhoto }} style={styles.photoModalImg} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -1091,4 +1115,10 @@ const styles = StyleSheet.create({
   },
   cancelBkBtnDisabled: { opacity: 0.5 },
   cancelBkBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
+  photoStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  recordThumb: { width: 72, height: 72, borderRadius: 8 },
+  photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' },
+  photoModalImg: { width: '100%', height: '80%' },
+  photoModalClose: { position: 'absolute', top: 48, right: 20, zIndex: 10, padding: 8 },
+  photoModalCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
 })
