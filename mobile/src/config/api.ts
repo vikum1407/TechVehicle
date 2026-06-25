@@ -288,6 +288,7 @@ export const api = {
     mileage?: number
     cost?: number
     notes?: string
+    photos?: string[]
   }) => {
     const res = await fetch(`${API_URL}/service-submissions`, {
       method: 'POST',

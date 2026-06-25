@@ -196,6 +196,7 @@ model ServiceSubmission {
   mileage        Int?
   cost           Float?
   notes          String?
+  photos         String[]
   status         String   @default("pending")
   createdAt      DateTime @default(now())
   vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)

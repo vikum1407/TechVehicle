@@ -12,7 +12,7 @@ router.use(authMiddleware)
 // POST /service-submissions — garage submits completed service
 // Accepts either shareSessionId (owner shared records) or bookingId (no share attached)
 router.post('/', async (req: AuthRequest, res) => {
-  const { shareSessionId, bookingId, vehicleId, description, parts, brand, mileage, cost, notes } = req.body
+  const { shareSessionId, bookingId, vehicleId, description, parts, brand, mileage, cost, notes, photos } = req.body
   if (!vehicleId || !description?.trim()) {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
@@ -60,6 +60,7 @@ router.post('/', async (req: AuthRequest, res) => {
         mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
         notes: notes?.trim() || null,
+        photos: Array.isArray(photos) ? photos : [],
         status: 'pending',
       },
       include: { garage: true },
@@ -129,6 +130,7 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
         brand: submission.brand,
         cost: submission.cost,
         notes: submission.notes ? `${garageNote}. ${submission.notes}` : garageNote,
+        photos: submission.photos ?? [],
       },
     })
 

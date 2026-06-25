@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, Image
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
@@ -153,6 +155,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [subMileage, setSubMileage] = useState('')
   const [subCost, setSubCost] = useState('')
   const [subNotes, setSubNotes] = useState('')
+  const [subPhotos, setSubPhotos] = useState<string[]>([])
+  const [uploadingSubPhoto, setUploadingSubPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -447,6 +451,38 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand: value } : i))
   }
 
+  const pickSubPhoto = async (source: 'camera' | 'gallery') => {
+    if (subPhotos.length >= 5) {
+      Alert.alert('Limit reached', 'You can attach up to 5 photos.')
+      return
+    }
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permission needed', `Please allow ${source} access in your device settings.`)
+      return
+    }
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 1 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    if (result.canceled || !result.assets[0]) return
+    setUploadingSubPhoto(true)
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      )
+      const url = await api.uploadPhoto(token, compressed.uri)
+      setSubPhotos(prev => [...prev, url])
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+    } finally {
+      setUploadingSubPhoto(false)
+    }
+  }
+
   const handleSubmitService = async () => {
     if (!submittingShare) return
     const extras = otherText.trim()
@@ -497,11 +533,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         mileage: subMileageNum,
         cost: subCost ? parseFloat(subCost) : undefined,
         notes: subNotes.trim() || undefined,
+        photos: subPhotos.length > 0 ? subPhotos : undefined,
       })
       const trackKey = submittingBookingId ? `booking_${submittingBookingId}` : submittingShare.id
       setSubmittedIds(prev => new Set(prev).add(trackKey))
       setSubmittingBookingId(null)
       setSubmittingShare(null)
+      setSubPhotos([])
       Alert.alert('Submitted', 'Service record sent to the vehicle owner for acceptance.')
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -650,6 +688,42 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           multiline
           numberOfLines={3}
         />
+
+        <Text style={styles.catLabel}>Photos (optional, max 5)</Text>
+        <View style={styles.photoRow}>
+          {subPhotos.map((url) => (
+            <View key={url} style={styles.photoThumb}>
+              <Image source={{ uri: url }} style={styles.thumbImg} />
+              <TouchableOpacity
+                style={styles.photoRemove}
+                onPress={() => setSubPhotos(prev => prev.filter(p => p !== url))}
+              >
+                <Text style={styles.photoRemoveText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          {subPhotos.length < 5 && (
+            <View style={styles.photoActions}>
+              <TouchableOpacity
+                style={styles.photoBtn}
+                onPress={() => pickSubPhoto('camera')}
+                disabled={uploadingSubPhoto}
+              >
+                {uploadingSubPhoto
+                  ? <ActivityIndicator size="small" color="#1a73e8" />
+                  : <Text style={styles.photoBtnText}>📷 Camera</Text>
+                }
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.photoBtn}
+                onPress={() => pickSubPhoto('gallery')}
+                disabled={uploadingSubPhoto}
+              >
+                <Text style={styles.photoBtnText}>🖼 Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
         {selectedItems.length > 0 && (
           <View style={styles.summary}>
@@ -1597,6 +1671,23 @@ const styles = StyleSheet.create({
   submitServiceBtnDisabled: { opacity: 0.6 },
   submitServiceBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   requiredStar: { color: '#e53935', fontWeight: '700' },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+  photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+  thumbImg: { width: 80, height: 80 },
+  photoRemove: {
+    position: 'absolute', top: 2, right: 2,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
+    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+  },
+  photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  photoActions: { flexDirection: 'row', gap: 8 },
+  photoBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#1a73e8',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#e8f0fe', minWidth: 100,
+  },
+  photoBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '600' },
 
   // Normal garage view
   header: {
