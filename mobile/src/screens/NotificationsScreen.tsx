@@ -19,7 +19,7 @@ type Props = {
   token: string
   onBack: () => void
   onNavigate: (linkTo: string | null) => void
-  onMarkAllRead: () => void
+  onMarkAllRead: (seenBookingIds: string[]) => void
 }
 
 const TYPE_ICON: Record<string, string> = {
@@ -54,7 +54,14 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
     // Mark all as read after a short delay so user sees the unread highlights first
     const t = setTimeout(() => {
       api.markAllNotifsRead(token)
-        .then(() => onMarkAllRead())
+        .then(() => {
+          // Collect bookingIds from unread message notifications so card dots also clear
+          const seenBookingIds = notifs
+            .filter(n => !n.read && n.type === 'message' && n.linkTo)
+            .map(n => { try { return JSON.parse(n.linkTo!).bookingId } catch { return null } })
+            .filter((id): id is string => !!id)
+          onMarkAllRead(seenBookingIds)
+        })
         .catch(() => {})
     }, 800)
     return () => clearTimeout(t)

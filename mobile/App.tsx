@@ -438,7 +438,16 @@ export default function App() {
             } catch {}
             setScreen('vehicles')
           }}
-          onMarkAllRead={() => setNotifUnreadCount(0)}
+          onMarkAllRead={(seenBookingIds) => {
+            setNotifUnreadCount(0)
+            if (seenBookingIds.length > 0) {
+              setBookingSeenCounts(prev => {
+                const next = { ...prev }
+                seenBookingIds.forEach(id => { next[id] = 99999 })
+                return next
+              })
+            }
+          }}
         />
       )}
     </>
