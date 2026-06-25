@@ -54,6 +54,7 @@ export const api = {
     model: string
     year: number
     fuelType: string
+    vehicleType?: string
     mileage: number
     purchaseDate?: string
     ownerCount?: number

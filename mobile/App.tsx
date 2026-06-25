@@ -38,6 +38,7 @@ type Vehicle = {
   model: string
   year: number
   fuelType: string
+  vehicleType?: string | null
   mileage: number
 }
 
@@ -361,6 +362,7 @@ export default function App() {
         <AddServiceRecordScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          vehicleType={selectedVehicle.vehicleType}
           currentMileage={selectedVehicle.mileage}
           onRecordAdded={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}

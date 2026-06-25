@@ -8,7 +8,7 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
-  SERVICE_CATEGORIES, todayDMY, parseDMY,
+  getServiceCategories, todayDMY, parseDMY,
 } from '../constants/serviceData'
 
 type Props = {
@@ -53,6 +53,7 @@ type IncomingShare = {
     model: string
     year: number
     fuelType: string
+    vehicleType?: string | null
     mileage: number
   }
   records: SharedRecord[]
@@ -83,6 +84,7 @@ type Booking = {
     year: number
     mileage: number
     fuelType?: string
+    vehicleType?: string | null
   }
   _count?: { bookingNotes: number }
 }
@@ -423,6 +425,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         model: booking.vehicle.model,
         year: booking.vehicle.year,
         fuelType: booking.vehicle.fuelType || 'Petrol',
+        vehicleType: booking.vehicle.vehicleType,
         mileage: booking.vehicle.mileage,
       },
       records: [],
@@ -584,7 +587,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <Text style={styles.formSubtitle}>Tap everything that was done on this visit</Text>
 
-        {SERVICE_CATEGORIES.map(cat => (
+        {getServiceCategories(submittingShare?.vehicle?.vehicleType).map(cat => (
           <View key={cat.title}>
             <Text style={styles.catLabel}>{cat.title}</Text>
             <View style={styles.chipRow}>

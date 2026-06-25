@@ -4,10 +4,11 @@ import {
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 
 type Props = {
   token: string
-  onVehicleAdded: (vehicle: { id: string; registrationNo: string; make: string; model: string; year: number; fuelType: string; mileage: number }) => void
+  onVehicleAdded: (vehicle: { id: string; registrationNo: string; make: string; model: string; year: number; fuelType: string; vehicleType: string | null; mileage: number }) => void
   onBack: () => void
 }
 
@@ -35,6 +36,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const [model, setModel] = useState('')
   const [year, setYear] = useState('')
   const [fuelType, setFuelType] = useState('')
+  const [vehicleType, setVehicleType] = useState('')
   const [mileage, setMileage] = useState('')
   const [purchaseDate, setPurchaseDate] = useState('')
   const [ownerCount, setOwnerCount] = useState<number | null>(null)
@@ -42,8 +44,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
-    if (!registrationNo || !make || !model || !year || !fuelType || !mileage) {
-      Alert.alert('Missing fields', 'Please fill in all required fields.')
+    if (!registrationNo || !make || !model || !year || !fuelType || !vehicleType || !mileage) {
+      Alert.alert('Missing fields', 'Please fill in all required fields including Vehicle Type.')
       return
     }
     const yearNum = parseInt(year)
@@ -66,6 +68,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         model,
         year: yearNum,
         fuelType,
+        vehicleType: vehicleType || undefined,
         mileage: parseInt(mileage),
         purchaseDate: parsedPurchaseDate,
         ownerCount: ownerCount ?? undefined,
@@ -136,6 +139,21 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
             onPress={() => setFuelType(f)}
           >
             <Text style={[styles.chipText, fuelType === f && styles.chipTextSelected]}>{f}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Vehicle Type *</Text>
+      <View style={styles.optionRow}>
+        {VEHICLE_TYPE_OPTIONS.map(opt => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.chip, vehicleType === opt.value && styles.chipSelected]}
+            onPress={() => setVehicleType(opt.value)}
+          >
+            <Text style={[styles.chipText, vehicleType === opt.value && styles.chipTextSelected]}>
+              {opt.icon} {opt.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>

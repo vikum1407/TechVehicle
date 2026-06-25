@@ -8,18 +8,19 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
-  SERVICE_CATEGORIES, todayDMY, parseDMY,
+  getServiceCategories, todayDMY, parseDMY,
 } from '../constants/serviceData'
 
 type Props = {
   token: string
   vehicleId: string
+  vehicleType?: string | null
   currentMileage: number
   onRecordAdded: () => void
   onBack: () => void
 }
 
-export default function AddServiceRecordScreen({ token, vehicleId, currentMileage, onRecordAdded, onBack }: Props) {
+export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, currentMileage, onRecordAdded, onBack }: Props) {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
@@ -171,7 +172,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
         <Text style={styles.fieldError}>Please select at least one service</Text>
       )}
 
-      {SERVICE_CATEGORIES.map(cat => (
+      {getServiceCategories(vehicleType).map(cat => (
         <View key={cat.title}>
           <Text style={styles.catLabel}>{cat.title}</Text>
           <View style={styles.chipRow}>

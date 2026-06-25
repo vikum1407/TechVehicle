@@ -25,6 +25,7 @@ model Vehicle {
   model          String
   year           Int
   fuelType       String
+  vehicleType    String?
   mileage        Int
   ownerPhone     String
   purchaseDate   DateTime?

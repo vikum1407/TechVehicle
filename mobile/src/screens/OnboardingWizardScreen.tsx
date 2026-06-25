@@ -12,6 +12,7 @@ type Vehicle = {
   model: string
   year: number
   fuelType: string
+  vehicleType?: string | null
   mileage: number
 }
 
@@ -58,7 +59,31 @@ const MILESTONES: Milestone[] = [
     question: 'Has your battery been replaced?',
     serviceCategory: 'Battery',
   },
+  {
+    id: 'chain',
+    icon: '⛓️',
+    label: 'Chain & Sprocket',
+    question: 'When was your chain and sprocket last replaced?',
+    serviceCategory: 'Chain & Sprocket',
+  },
+  {
+    id: 'hydraulic',
+    icon: '💧',
+    label: 'Hydraulic Oil',
+    question: 'When was the hydraulic oil last changed?',
+    serviceCategory: 'Hydraulic Oil',
+  },
 ]
+
+// Which vehicle types each milestone applies to (null = all types / no type set)
+const MILESTONE_VISIBLE_FOR: Record<string, string[]> = {
+  oil:       ['motorcycle', 'three-wheeler', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'van', 'pickup', 'truck', 'heavy'],
+  timing:    ['car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'van', 'pickup', 'truck'],
+  brakes:    ['motorcycle', 'electric-cycle', 'three-wheeler', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'van', 'pickup', 'truck', 'heavy', 'electric'],
+  battery:   ['motorcycle', 'electric-cycle', 'three-wheeler', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'van', 'pickup', 'truck', 'heavy', 'electric'],
+  chain:     ['motorcycle', 'electric-cycle', 'three-wheeler'],
+  hydraulic: ['heavy', 'truck'],
+}
 
 type MilestoneState = {
   added: boolean   // user said yes
@@ -74,6 +99,11 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   )
   const [saving, setSaving] = useState(false)
 
+  // Filter milestones to those relevant for this vehicle type
+  const visibleMilestones = vehicle.vehicleType
+    ? MILESTONES.filter(m => MILESTONE_VISIBLE_FOR[m.id]?.includes(vehicle.vehicleType!))
+    : MILESTONES
+
   const toggle = (id: string) => {
     setStates(prev => ({
       ...prev,
@@ -86,7 +116,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   }
 
   const handleSave = async () => {
-    const toSave = MILESTONES.filter(m => states[m.id].added)
+    const toSave = visibleMilestones.filter(m => states[m.id].added)
 
     if (toSave.length === 0) {
       onDone()
@@ -117,7 +147,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
     }
   }
 
-  const addedCount = MILESTONES.filter(m => states[m.id].added).length
+  const addedCount = visibleMilestones.filter(m => states[m.id].added).length
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -131,7 +161,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
         </Text>
       </View>
 
-      {MILESTONES.map((m) => {
+      {visibleMilestones.map((m) => {
         const s = states[m.id]
         return (
           <View key={m.id} style={[styles.card, s.added && styles.cardActive]}>
