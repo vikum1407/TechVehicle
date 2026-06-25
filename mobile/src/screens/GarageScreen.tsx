@@ -18,6 +18,7 @@ type Props = {
   onBookingSeen?: (bookingId: string, count: number) => void
   notifUnread?: boolean
   onNotifPress?: () => void
+  onNotifSeen?: (newCount: number) => void
 }
 
 type Garage = {
@@ -91,7 +92,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -251,6 +252,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       b.id === bookingId ? { ...b, _count: { bookingNotes: notes.length } } : b
     ))
     onBookingSeen?.(bookingId, notes.length)
+    // Sync bell dot: mark any DB notification for this booking as read
+    api.markBookingNotifsRead(token, bookingId)
+      .then(({ count }) => onNotifSeen?.(count))
+      .catch(() => {})
   }
 
   const loadSchedule = async () => {

@@ -296,6 +296,7 @@ export default function App() {
                 onBookingSeen={handleBookingSeen}
                 notifUnread={notifUnreadCount > 0}
                 onNotifPress={() => setScreen('notifications')}
+                onNotifSeen={setNotifUnreadCount}
               />
             )}
           </View>
@@ -326,6 +327,7 @@ export default function App() {
           onBookingSeen={handleBookingSeen}
           focusBookingId={focusVehicleBookingId}
           onFocusHandled={() => setFocusVehicleBookingId(null)}
+          onNotifSeen={setNotifUnreadCount}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
           onLogFuel={() => setScreen('logFuel')}

@@ -54,6 +54,7 @@ type Props = {
   onBookingSeen?: (bookingId: string, count: number) => void
   focusBookingId?: string | null
   onFocusHandled?: () => void
+  onNotifSeen?: (newCount: number) => void
 }
 
 type OwnerBooking = {
@@ -151,7 +152,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -337,6 +338,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         b.id === bookingId ? { ...b, _count: { bookingNotes: notes.length } } : b
       ))
       onBookingSeen?.(bookingId, notes.length)
+      // Sync bell dot: mark any DB notification for this booking as read
+      api.markBookingNotifsRead(token, bookingId)
+        .then(({ count }) => onNotifSeen?.(count))
+        .catch(() => {})
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {

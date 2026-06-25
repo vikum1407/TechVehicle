@@ -541,6 +541,16 @@ export const api = {
     return data as { count: number }
   },
 
+  markBookingNotifsRead: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/notifications/read-booking/${bookingId}`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to mark read')
+    return data as { count: number }
+  },
+
   markAllNotifsRead: async (token: string) => {
     const res = await fetch(`${API_URL}/notifications/read-all`, {
       method: 'POST',
