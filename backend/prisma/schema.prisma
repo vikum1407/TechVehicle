@@ -171,6 +171,17 @@ model BookingNote {
   booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
+model AppNotification {
+  id        String   @id @default(cuid())
+  userPhone String
+  type      String
+  title     String
+  body      String
+  linkTo    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model ServiceSubmission {
   id             String   @id @default(cuid())
   shareSessionId String?

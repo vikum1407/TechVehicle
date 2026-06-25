@@ -523,6 +523,34 @@ export const api = {
     return data
   },
 
+  getNotifications: async (token: string) => {
+    const res = await fetch(`${API_URL}/notifications`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch notifications')
+    return data
+  },
+
+  getNotifUnreadCount: async (token: string) => {
+    const res = await fetch(`${API_URL}/notifications/unread-count`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch count')
+    return data as { count: number }
+  },
+
+  markAllNotifsRead: async (token: string) => {
+    const res = await fetch(`${API_URL}/notifications/read-all`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to mark read')
+    return data
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

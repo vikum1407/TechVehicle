@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { createNotification } from '../utils/appNotifications'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -52,6 +53,15 @@ router.post('/', async (req: AuthRequest, res) => {
       data: { vehicleId, sellerPhone, buyerPhone: normalizedBuyer, status: 'pending' },
       include: { vehicle: true },
     })
+
+    await createNotification(
+      prisma, normalizedBuyer,
+      'transfer',
+      'Vehicle Transfer',
+      `${vehicle.registrationNo} has been transferred to you — open the app to review and accept`,
+      { screen: 'vehicles' }
+    )
+
     res.status(201).json(transfer)
   } catch (error) {
     console.error('POST /transfers error:', error)

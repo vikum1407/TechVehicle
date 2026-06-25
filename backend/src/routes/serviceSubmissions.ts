@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
+import { createNotification } from '../utils/appNotifications'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -58,6 +59,15 @@ router.post('/', async (req: AuthRequest, res) => {
       },
       include: { garage: true },
     })
+
+    await createNotification(
+      prisma, ownerPhone,
+      'submission',
+      'Service Record Submitted',
+      `${garage.name} submitted a completed service record for your review`,
+      { screen: 'vehicles', vehicleId }
+    )
+
     res.status(201).json(submission)
   } catch (error) {
     console.error('POST /service-submissions error:', error)

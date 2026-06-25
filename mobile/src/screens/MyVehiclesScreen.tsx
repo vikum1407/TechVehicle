@@ -68,9 +68,11 @@ type Props = {
   onVehiclesLoaded: (vehicles: Vehicle[]) => void
   onLogout: () => void
   onSettings: () => void
+  notifUnread?: boolean
+  onNotifPress?: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onSettings }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onSettings, notifUnread, onNotifPress }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,6 +171,12 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           <Text style={styles.phone}>{phoneNumber}</Text>
         </View>
         <View style={styles.headerRight}>
+          {onNotifPress && (
+            <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
+              <Text style={styles.bellIcon}>🔔</Text>
+              {notifUnread && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.settingsBtn} onPress={onSettings}>
             <Text style={styles.settingsBtnText}>⚙️</Text>
           </TouchableOpacity>
@@ -388,6 +396,13 @@ const styles = StyleSheet.create({
   logo: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
   phone: { fontSize: 12, color: '#888', marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bellBtn: { padding: 4, position: 'relative' },
+  bellIcon: { fontSize: 22 },
+  bellDot: {
+    position: 'absolute', top: 0, right: 0,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff',
+  },
   settingsBtn: { padding: 4 },
   settingsBtnText: { fontSize: 22 },
   logoutBtn: {

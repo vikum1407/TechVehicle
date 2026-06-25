@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet, BackHandler } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, BackHandler, AppState } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
@@ -20,6 +20,7 @@ import BookingScreen from './src/screens/BookingScreen'
 import RoleSelectScreen from './src/screens/RoleSelectScreen'
 import PredictionsScreen from './src/screens/PredictionsScreen'
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
+import NotificationsScreen from './src/screens/NotificationsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
@@ -27,7 +28,7 @@ type Screen =
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'addExpense' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking'
-  | 'notificationPrefs'
+  | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
   id: string
@@ -53,6 +54,7 @@ export default function App() {
   const [garageBadge, setGarageBadge] = useState(0)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
+  const [notifUnreadCount, setNotifUnreadCount] = useState(0)
 
   // Load persisted seen counts on startup
   useEffect(() => {
@@ -73,6 +75,22 @@ export default function App() {
   const handleBookingSeen = (bookingId: string, count: number) => {
     setBookingSeenCounts(prev => ({ ...prev, [bookingId]: count }))
   }
+
+  const loadNotifCount = (authToken: string) => {
+    api.getNotifUnreadCount(authToken)
+      .then(({ count }) => setNotifUnreadCount(count))
+      .catch(() => {})
+  }
+
+  // Refresh unread count when app comes back to foreground
+  useEffect(() => {
+    if (!token) return
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') loadNotifCount(token)
+    })
+    return () => sub.remove()
+  }, [token])
+
   const notifListenerRef = useRef<any>(null)
   const responseListenerRef = useRef<any>(null)
 
@@ -144,6 +162,7 @@ export default function App() {
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
       notificationPrefs: 'vehicles',
+      notifications: 'vehicles',
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       const parent = backMap[screen]
@@ -172,6 +191,7 @@ export default function App() {
     setPhoneNumber(phone)
     setScreen(isNewUser ? 'roleSelect' : 'vehicles')
     registerPush(authToken)
+    loadNotifCount(authToken)
   }
 
   const handleRoleSelected = async (uType: 'owner' | 'garage') => {
@@ -179,6 +199,7 @@ export default function App() {
     setUserType(uType)
     setScreen('vehicles')
     registerPush(token)
+    loadNotifCount(token)
   }
 
   const registerPush = async (authToken: string) => {
@@ -205,6 +226,7 @@ export default function App() {
     setSelectedVehicle(null)
     setVehicles([])
     setBookingSeenCounts({})
+    setNotifUnreadCount(0)
     setScreen('login')
   }
 
@@ -259,6 +281,8 @@ export default function App() {
                 onVehiclesLoaded={setVehicles}
                 onLogout={handleLogout}
                 onSettings={() => setScreen('notificationPrefs')}
+                notifUnread={notifUnreadCount > 0}
+                onNotifPress={() => setScreen('notifications')}
               />
             )}
             {screen === 'garage' && (
@@ -269,6 +293,8 @@ export default function App() {
                 onFocusHandled={() => setFocusBookingId(null)}
                 bookingSeenCounts={bookingSeenCounts}
                 onBookingSeen={handleBookingSeen}
+                notifUnread={notifUnreadCount > 0}
+                onNotifPress={() => setScreen('notifications')}
               />
             )}
           </View>
@@ -384,6 +410,25 @@ export default function App() {
         <NotificationPrefsScreen
           token={token}
           onBack={() => setScreen('vehicles')}
+        />
+      )}
+      {screen === 'notifications' && (
+        <NotificationsScreen
+          token={token}
+          onBack={() => setScreen('vehicles')}
+          onNavigate={(linkTo) => {
+            if (!linkTo) { setScreen('vehicles'); return }
+            try {
+              const { screen: target, vehicleId } = JSON.parse(linkTo)
+              if (target === 'garage') { setScreen('garage'); return }
+              if (target === 'vehicleDashboard' && vehicleId) {
+                const v = vehicles.find(v => v.id === vehicleId)
+                if (v) { setSelectedVehicle(v); setScreen('vehicleDashboard'); return }
+              }
+            } catch {}
+            setScreen('vehicles')
+          }}
+          onMarkAllRead={() => setNotifUnreadCount(0)}
         />
       )}
     </>

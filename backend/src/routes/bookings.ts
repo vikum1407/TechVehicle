@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
+import { createNotification } from '../utils/appNotifications'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -135,6 +136,13 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
         { bookingId: booking.id, screen: 'vehicles' }
       )
     }
+    await createNotification(
+      prisma, booking.ownerPhone,
+      'booking_confirmed',
+      'Booking Confirmed',
+      `${garage.name} confirmed your booking for ${dateStr}`,
+      { screen: 'vehicles' }
+    )
 
     res.json(updated)
   } catch (error) {
@@ -207,12 +215,26 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
       if (prefs.booking) {
         await sendPush(garageOwner?.pushToken, 'New Message from Owner', message.trim(), { bookingId: id, screen: 'garage' })
       }
+      await createNotification(
+        prisma, booking.garage.ownerPhone,
+        'message',
+        'New Message from Owner',
+        message.trim(),
+        { screen: 'garage' }
+      )
     } else {
       const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
       const prefs = parsePrefs(owner?.notificationPrefs)
       if (prefs.booking) {
         await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, message.trim(), { bookingId: id, vehicleId: booking.vehicleId, screen: 'vehicles' })
       }
+      await createNotification(
+        prisma, booking.ownerPhone,
+        'message',
+        `Message from ${booking.garage.name}`,
+        message.trim(),
+        { screen: 'vehicles', vehicleId: booking.vehicleId }
+      )
     }
 
     res.status(201).json(note)

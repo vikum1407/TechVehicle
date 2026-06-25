@@ -16,6 +16,8 @@ type Props = {
   onFocusHandled?: () => void
   bookingSeenCounts?: Record<string, number>
   onBookingSeen?: (bookingId: string, count: number) => void
+  notifUnread?: boolean
+  onNotifPress?: () => void
 }
 
 type Garage = {
@@ -89,7 +91,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -755,6 +757,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
+        {onNotifPress && (
+          <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
+            <Text style={styles.bellIcon}>🔔</Text>
+            {notifUnread && <View style={styles.bellDot} />}
+          </TouchableOpacity>
+        )}
       </View>
 
       {garage && !editing && (
@@ -1566,11 +1574,19 @@ const styles = StyleSheet.create({
 
   // Normal garage view
   header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#fff', paddingTop: 56, paddingBottom: 16,
     paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#eee',
   },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600', marginBottom: 6 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a' },
+  bellBtn: { padding: 4, position: 'relative' },
+  bellIcon: { fontSize: 22 },
+  bellDot: {
+    position: 'absolute', top: 0, right: 0,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff',
+  },
   tabs: {
     flexDirection: 'row', backgroundColor: '#fff',
     borderBottomWidth: 1, borderBottomColor: '#eee',
