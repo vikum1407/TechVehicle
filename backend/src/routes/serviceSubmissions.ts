@@ -134,10 +134,19 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
 
     await prisma.serviceSubmission.update({ where: { id }, data: { status: 'accepted' } })
 
-    // Mark the linked booking as completed so it disappears from both parties' active lists
-    if (submission.bookingId) {
+    // Mark the linked booking as completed so it disappears from both parties' active lists.
+    // Two paths: submission may link via bookingId directly, or via shareSessionId on the booking.
+    let bookingIdToComplete = submission.bookingId
+    if (!bookingIdToComplete && submission.shareSessionId) {
+      const linked = await prisma.booking.findFirst({
+        where: { shareSessionId: submission.shareSessionId },
+        select: { id: true },
+      })
+      bookingIdToComplete = linked?.id ?? null
+    }
+    if (bookingIdToComplete) {
       await prisma.booking.update({
-        where: { id: submission.bookingId },
+        where: { id: bookingIdToComplete },
         data: { status: 'completed' },
       }).catch(() => {})
     }
