@@ -1,6 +1,6 @@
 # TechVehicle — Master Product Roadmap
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ---
 
@@ -77,6 +77,22 @@ All of the following are complete, committed, and pushed to GitHub.
 - Normal/Urgent toggle, optional attach service history
 - Slot blocking: one booking per time slot
 - Booking linked to ShareSession
+- Full booking lifecycle: pending → confirmed → completed (disappears from both sides on owner acceptance)
+
+### Notification Center
+- Bell icon with red dot on My Vehicles and Garage screens
+- `AppNotification` DB table — covers messages, booking confirmed, submission received, transfer received
+- NotificationsScreen: tap notification navigates directly to the relevant booking thread
+- Two-way sync: bell dot clears booking card dots (and vice versa) when either is read
+
+### Mandatory Field Validation
+- Owner Add Service Record: ≥1 service category required, mileage required, total cost required
+- Garage Submit Service: ≥1 service category required, odometer mileage required, total cost required
+- Backend also validates cost > 0 on submission endpoint
+
+### Garage Mileage → Vehicle Odometer
+- Garage enters odometer reading when submitting a completed service
+- On owner acceptance: service record uses garage's mileage; vehicle odometer auto-updates if garage reading is higher than stored value
 
 ### Prediction Engine (Phase 5)
 - Service interval database: General, Bajaj/TVS/Hero, Toyota, Honda, Mitsubishi, Suzuki, Nissan
@@ -94,8 +110,8 @@ All of the following are complete, committed, and pushed to GitHub.
 
 ### Database (Neon / PostgreSQL via Prisma)
 Tables: `User` (with `userType`, `pushToken`), `Vehicle`, `ServiceRecord`, `FuelLog`,
-`Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`,
-`GarageAvailability`, `GarageCalendarOverride`, `Booking`
+`Expense`, `Garage`, `ShareSession`, `ServiceSubmission` (with `mileage`), `VehicleTransfer`,
+`GarageAvailability`, `GarageCalendarOverride`, `Booking`, `BookingNote`, `AppNotification`
 
 ---
 
@@ -108,16 +124,19 @@ Tables: `User` (with `userType`, `pushToken`), `Vehicle`, `ServiceRecord`, `Fuel
 
 Holes in the existing product that affect every current user. Complete before adding new epics.
 
-| Task | Source |
-|---|---|
-| Service type selection before sharing: Full Service / Between Service / Third-Party | Epic 3 (PDF) |
-| Owner ↔ Garage notes/comments thread on a booking (back-and-forth before accept) | Epic 3 Story 4 |
-| **Step 1 — Replace number badge with color dot on booking cards and tab bar** (unread = dot present, read = dot gone) | Session 2026-06-24 |
-| **Step 2 — Central notification center** (bell icon always visible; `AppNotification` DB table; covers messages, booking confirmed, submission received, transfer received) | Session 2026-06-24 |
-| Vehicle form: add purchase date, first/second owner count, personalized notes field | Epic 2 (PDF) |
-| My Vehicles: search and filter (by make, model, reg number) | Epic 2 (PDF) |
-| Notification preferences screen (manage what push alerts you receive) | Epic 3 Additional Notes |
-| Garage push notification when owner accepts a submission (records saved to repository) | Epic 3 Story 5 |
+| Task | Status | Source |
+|---|---|---|
+| Service type selection before sharing: Full Service / Between Service / Third-Party | — | Epic 3 (PDF) |
+| Owner ↔ Garage notes/comments thread on a booking (back-and-forth before accept) | ✅ Done | Epic 3 Story 4 |
+| Replace number badge with color dot on booking cards; bell as single unread indicator | ✅ Done | Session 2026-06-24 |
+| Central notification center (bell icon; `AppNotification` DB table; messages, booking confirmed, submission, transfer) | ✅ Done | Session 2026-06-24 |
+| Mandatory field validation on all service forms (category, mileage, cost) | ✅ Done | Session 2026-06-25 |
+| Garage mileage wired to vehicle odometer on service acceptance | ✅ Done | Session 2026-06-25 |
+| Booking lifecycle complete (pending → confirmed → completed, disappears from both sides) | ✅ Done | Session 2026-06-25 |
+| Vehicle form: add purchase date, first/second owner count, personalized notes field | — | Epic 2 (PDF) |
+| My Vehicles: search and filter (by make, model, reg number) | — | Epic 2 (PDF) |
+| Notification preferences screen (manage what push alerts you receive) | ✅ Done | Epic 3 Additional Notes |
+| Garage push notification when owner accepts a submission | ✅ Done | Epic 3 Story 5 |
 
 ---
 
