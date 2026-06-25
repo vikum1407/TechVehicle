@@ -84,6 +84,7 @@ type Submission = {
   brand: string | null
   cost: number | null
   notes: string | null
+  photos: string[]
   createdAt: string
   bookingId: string | null
   garage: { name: string; verified: boolean }
@@ -733,6 +734,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                   <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
                 )}
                 {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
+                {sub.photos && sub.photos.length > 0 && (
+                  <View style={styles.photoStrip}>
+                    {sub.photos.map((url, i) => (
+                      <TouchableOpacity key={i} onPress={() => setViewingPhoto(url)} activeOpacity={0.8}>
+                        <Image source={{ uri: url }} style={styles.recordThumb} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
                 <TouchableOpacity
                   style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
                   onPress={() => handleAccept(sub.id)}
