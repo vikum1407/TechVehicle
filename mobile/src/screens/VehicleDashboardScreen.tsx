@@ -562,11 +562,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         </Text>
                         {(() => {
                           const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (bookingSeenCounts[bk.id] ?? 0))
-                          return unread > 0 ? (
-                            <View style={styles.msgBadge}>
-                              <Text style={styles.msgBadgeText}>{unread}</Text>
-                            </View>
-                          ) : null
+                          return unread > 0 ? <View style={styles.msgDot} /> : null
                         })()}
                       </View>
                     </TouchableOpacity>
@@ -1056,12 +1052,10 @@ const styles = StyleSheet.create({
   messagesToggleSmall: { paddingVertical: 6, paddingHorizontal: 4 },
   messagesToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   messagesToggleSmallText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
-  msgBadge: {
-    backgroundColor: '#e53935', borderRadius: 10,
-    minWidth: 18, height: 18, paddingHorizontal: 5,
-    justifyContent: 'center', alignItems: 'center',
+  msgDot: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#e53935',
   },
-  msgBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   cancelBkBtn: {
     borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 5,

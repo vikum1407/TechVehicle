@@ -21,11 +21,7 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         {activeTab === 'vehicles' && <View style={styles.activeBar} />}
         <View style={styles.iconWrap}>
           <Text style={styles.icon}>🚗</Text>
-          {vehiclesBadge > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{vehiclesBadge > 99 ? '99+' : vehiclesBadge}</Text>
-            </View>
-          )}
+          {vehiclesBadge > 0 && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, activeTab === 'vehicles' && styles.labelActive]}>
           My Vehicles
@@ -40,11 +36,7 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         {activeTab === 'garage' && <View style={styles.activeBar} />}
         <View style={styles.iconWrap}>
           <Text style={styles.icon}>🏭</Text>
-          {garageBadge > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{garageBadge > 99 ? '99+' : garageBadge}</Text>
-            </View>
-          )}
+          {garageBadge > 0 && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
           Garage
@@ -85,13 +77,12 @@ const styles = StyleSheet.create({
   },
   iconWrap: { position: 'relative', marginBottom: 3 },
   icon: { fontSize: 22 },
-  badge: {
-    position: 'absolute', top: -6, right: -10,
-    backgroundColor: '#e53935', borderRadius: 10,
-    minWidth: 18, height: 18, paddingHorizontal: 4,
-    justifyContent: 'center', alignItems: 'center',
+  dot: {
+    position: 'absolute', top: -2, right: -4,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#e53935',
+    borderWidth: 1.5, borderColor: '#fff',
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800', lineHeight: 12 },
   label: { fontSize: 11, fontWeight: '600', color: '#aaa', letterSpacing: 0.2 },
   labelActive: { color: '#1a73e8' },
 })

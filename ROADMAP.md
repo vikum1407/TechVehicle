@@ -112,6 +112,8 @@ Holes in the existing product that affect every current user. Complete before ad
 |---|---|
 | Service type selection before sharing: Full Service / Between Service / Third-Party | Epic 3 (PDF) |
 | Owner ↔ Garage notes/comments thread on a booking (back-and-forth before accept) | Epic 3 Story 4 |
+| **Step 1 — Replace number badge with color dot on booking cards and tab bar** (unread = dot present, read = dot gone) | Session 2026-06-24 |
+| **Step 2 — Central notification center** (bell icon always visible; `AppNotification` DB table; covers messages, booking confirmed, submission received, transfer received) | Session 2026-06-24 |
 | Vehicle form: add purchase date, first/second owner count, personalized notes field | Epic 2 (PDF) |
 | My Vehicles: search and filter (by make, model, reg number) | Epic 2 (PDF) |
 | Notification preferences screen (manage what push alerts you receive) | Epic 3 Additional Notes |

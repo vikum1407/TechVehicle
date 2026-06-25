@@ -1251,11 +1251,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </Text>
                   {(() => {
                     const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
-                    return unread > 0 ? (
-                      <View style={styles.msgBadge}>
-                        <Text style={styles.msgBadgeText}>{unread}</Text>
-                      </View>
-                    ) : null
+                    return unread > 0 ? <View style={styles.msgDot} /> : null
                   })()}
                 </TouchableOpacity>
 
@@ -1817,12 +1813,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   messagesToggleBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700', flex: 1 },
-  msgBadge: {
-    backgroundColor: '#e53935', borderRadius: 10,
-    minWidth: 20, height: 20, paddingHorizontal: 5,
-    justifyContent: 'center', alignItems: 'center',
+  msgDot: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#e53935',
   },
-  msgBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
 
   // Inline shared records inside booking card
