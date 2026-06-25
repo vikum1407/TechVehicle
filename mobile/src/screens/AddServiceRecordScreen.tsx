@@ -63,15 +63,30 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
       return
     }
 
-    if (mileage) {
-      const mileageNum = parseInt(mileage)
-      if (mileageNum > currentMileage) {
-        Alert.alert(
-          'Mileage too high',
-          `You entered ${mileageNum.toLocaleString()} km but your current odometer is ${currentMileage.toLocaleString()} km. Please check the mileage.`
-        )
-        return
-      }
+    if (!mileage.trim()) {
+      Alert.alert('Mileage required', 'Please enter the odometer reading at the time of this service.')
+      return
+    }
+    const mileageNum = parseInt(mileage)
+    if (isNaN(mileageNum) || mileageNum <= 0) {
+      Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
+      return
+    }
+    if (mileageNum > currentMileage) {
+      Alert.alert(
+        'Mileage too high',
+        `You entered ${mileageNum.toLocaleString()} km but your current odometer is ${currentMileage.toLocaleString()} km. Please check the mileage.`
+      )
+      return
+    }
+
+    if (!cost.trim()) {
+      Alert.alert('Cost required', 'Please enter the total cost for this service.')
+      return
+    }
+    if (isNaN(parseFloat(cost)) || parseFloat(cost) <= 0) {
+      Alert.alert('Invalid cost', 'Please enter a valid cost greater than 0.')
+      return
     }
 
     const description = allItems
@@ -187,7 +202,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
           />
         </View>
         <View style={styles.half}>
-          <Text style={styles.catLabel}>Mileage (km)</Text>
+          <Text style={styles.catLabel}>Mileage (km) <Text style={styles.requiredStar}>*</Text></Text>
           <TextInput
             style={styles.input}
             value={mileage}
@@ -198,7 +213,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, currentMileag
         </View>
       </View>
 
-      <Text style={styles.catLabel}>Total Cost (LKR)</Text>
+      <Text style={styles.catLabel}>Total Cost (LKR) <Text style={styles.requiredStar}>*</Text></Text>
       <TextInput
         style={styles.input}
         value={cost}
@@ -302,4 +317,5 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  requiredStar: { color: '#e53935', fontWeight: '700' },
 })

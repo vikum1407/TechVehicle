@@ -21,6 +21,10 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'shareSessionId or bookingId is required' })
     return
   }
+  if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
+    res.status(400).json({ error: 'cost is required and must be greater than 0' })
+    return
+  }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }

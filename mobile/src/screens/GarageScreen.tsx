@@ -463,6 +463,15 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       return
     }
 
+    if (!subCost.trim()) {
+      Alert.alert('Cost required', 'Please enter the total cost for this service.')
+      return
+    }
+    if (isNaN(parseFloat(subCost)) || parseFloat(subCost) <= 0) {
+      Alert.alert('Invalid cost', 'Please enter a valid cost greater than 0.')
+      return
+    }
+
     const description = allItems
       .map(i => i.brand ? `${i.name} (${i.brand})` : i.name)
       .join(', ')
@@ -612,7 +621,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         </View>
 
-        <Text style={styles.catLabel}>Total Cost (LKR)</Text>
+        <Text style={styles.catLabel}>Total Cost (LKR) <Text style={styles.requiredStar}>*</Text></Text>
         <TextInput
           style={styles.fInput}
           value={subCost}
@@ -1576,6 +1585,7 @@ const styles = StyleSheet.create({
   },
   submitServiceBtnDisabled: { opacity: 0.6 },
   submitServiceBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  requiredStar: { color: '#e53935', fontWeight: '700' },
 
   // Normal garage view
   header: {
