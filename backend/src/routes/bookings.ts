@@ -80,7 +80,7 @@ router.post('/', async (req: AuthRequest, res) => {
 router.get('/mine', async (req: AuthRequest, res) => {
   try {
     const bookings = await prisma.booking.findMany({
-      where: { ownerPhone: req.phoneNumber!, status: { not: 'cancelled' } },
+      where: { ownerPhone: req.phoneNumber!, status: { notIn: ['cancelled', 'completed'] } },
       include: { vehicle: true, garage: true, _count: { select: { bookingNotes: true } } },
       orderBy: { date: 'asc' },
     })
@@ -97,7 +97,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
     if (!garage) { res.status(404).json({ error: 'No garage account' }); return }
 
     const bookings = await prisma.booking.findMany({
-      where: { garageId: garage.id, status: { not: 'cancelled' } },
+      where: { garageId: garage.id, status: { notIn: ['cancelled', 'completed'] } },
       include: { vehicle: true, _count: { select: { bookingNotes: true } } },
       orderBy: { date: 'asc' },
     })

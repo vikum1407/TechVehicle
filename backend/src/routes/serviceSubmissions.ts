@@ -134,6 +134,14 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
 
     await prisma.serviceSubmission.update({ where: { id }, data: { status: 'accepted' } })
 
+    // Mark the linked booking as completed so it disappears from both parties' active lists
+    if (submission.bookingId) {
+      await prisma.booking.update({
+        where: { id: submission.bookingId },
+        data: { status: 'completed' },
+      }).catch(() => {})
+    }
+
     // Update vehicle odometer if the garage's reading is higher than the stored value
     if (submission.mileage && vehicle && submission.mileage > vehicle.mileage) {
       await prisma.vehicle.update({
