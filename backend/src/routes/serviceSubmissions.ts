@@ -60,12 +60,13 @@ router.post('/', async (req: AuthRequest, res) => {
       include: { garage: true },
     })
 
+    const vehicleForNotif = await prisma.vehicle.findUnique({ where: { id: vehicleId } })
     await createNotification(
       prisma, ownerPhone,
       'submission',
-      'Service Record Submitted',
+      vehicleForNotif?.registrationNo ?? 'Vehicle',
       `${garage.name} submitted a completed service record for your review`,
-      { screen: 'vehicles', vehicleId }
+      { screen: 'vehicleDashboard', vehicleId }
     )
 
     res.status(201).json(submission)

@@ -21,7 +21,6 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         {activeTab === 'vehicles' && <View style={styles.activeBar} />}
         <View style={styles.iconWrap}>
           <Text style={styles.icon}>🚗</Text>
-          {vehiclesBadge > 0 && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, activeTab === 'vehicles' && styles.labelActive]}>
           My Vehicles
@@ -36,7 +35,6 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         {activeTab === 'garage' && <View style={styles.activeBar} />}
         <View style={styles.iconWrap}>
           <Text style={styles.icon}>🏭</Text>
-          {garageBadge > 0 && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
           Garage

@@ -53,6 +53,7 @@ export default function App() {
   const [vehiclesBadge, setVehiclesBadge] = useState(0)
   const [garageBadge, setGarageBadge] = useState(0)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
+  const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
 
@@ -323,6 +324,8 @@ export default function App() {
           onMessageCountChange={setVehiclesBadge}
           bookingSeenCounts={bookingSeenCounts}
           onBookingSeen={handleBookingSeen}
+          focusBookingId={focusVehicleBookingId}
+          onFocusHandled={() => setFocusVehicleBookingId(null)}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
           onLogFuel={() => setScreen('logFuel')}
@@ -419,11 +422,18 @@ export default function App() {
           onNavigate={(linkTo) => {
             if (!linkTo) { setScreen('vehicles'); return }
             try {
-              const { screen: target, vehicleId } = JSON.parse(linkTo)
-              if (target === 'garage') { setScreen('garage'); return }
-              if (target === 'vehicleDashboard' && vehicleId) {
+              const { screen: target, vehicleId, bookingId } = JSON.parse(linkTo)
+              if (target === 'garage') {
+                if (bookingId) setFocusBookingId(bookingId)
+                setScreen('garage'); return
+              }
+              if ((target === 'vehicleDashboard' || target === 'vehicles') && vehicleId) {
                 const v = vehicles.find(v => v.id === vehicleId)
-                if (v) { setSelectedVehicle(v); setScreen('vehicleDashboard'); return }
+                if (v) {
+                  setSelectedVehicle(v)
+                  if (bookingId) setFocusVehicleBookingId(bookingId)
+                  setScreen('vehicleDashboard'); return
+                }
               }
             } catch {}
             setScreen('vehicles')

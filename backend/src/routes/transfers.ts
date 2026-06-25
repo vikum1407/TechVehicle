@@ -57,8 +57,8 @@ router.post('/', async (req: AuthRequest, res) => {
     await createNotification(
       prisma, normalizedBuyer,
       'transfer',
-      'Vehicle Transfer',
-      `${vehicle.registrationNo} has been transferred to you — open the app to review and accept`,
+      vehicle.registrationNo,
+      `Transferred to you by ${sellerPhone} — tap to review and accept`,
       { screen: 'vehicles' }
     )
 

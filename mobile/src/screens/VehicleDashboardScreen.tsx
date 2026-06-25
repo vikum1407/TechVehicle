@@ -52,6 +52,8 @@ type Props = {
   onMessageCountChange?: (count: number) => void
   bookingSeenCounts?: Record<string, number>
   onBookingSeen?: (bookingId: string, count: number) => void
+  focusBookingId?: string | null
+  onFocusHandled?: () => void
 }
 
 type OwnerBooking = {
@@ -149,7 +151,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -372,6 +374,28 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     }, 0)
     onMessageCountChange?.(total)
   }, [bookingSeenCounts, myBookings])
+
+  // Auto-expand booking messages when navigated from a notification
+  useEffect(() => {
+    if (!focusBookingId || myBookings.length === 0) return
+    const focusAndLoad = async () => {
+      setExpandedMessages(prev => new Set(prev).add(focusBookingId))
+      setLoadingNotes(prev => new Set(prev).add(focusBookingId))
+      try {
+        const notes = await api.getBookingNotes(token, focusBookingId)
+        setBookingNotes(prev => ({ ...prev, [focusBookingId]: notes }))
+        setMyBookings(prev => prev.map(b =>
+          b.id === focusBookingId ? { ...b, _count: { bookingNotes: notes.length } } : b
+        ))
+        onBookingSeen?.(focusBookingId, notes.length)
+      } catch {}
+      finally {
+        setLoadingNotes(prev => { const s = new Set(prev); s.delete(focusBookingId); return s })
+      }
+      onFocusHandled?.()
+    }
+    focusAndLoad()
+  }, [focusBookingId, myBookings.length])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)

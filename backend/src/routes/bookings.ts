@@ -139,9 +139,9 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
     await createNotification(
       prisma, booking.ownerPhone,
       'booking_confirmed',
-      'Booking Confirmed',
+      updated.vehicle.registrationNo,
       `${garage.name} confirmed your booking for ${dateStr}`,
-      { screen: 'vehicles' }
+      { screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: booking.id }
     )
 
     res.json(updated)
@@ -196,7 +196,7 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
   if (!message?.trim()) { res.status(400).json({ error: 'message is required' }); return }
 
   try {
-    const booking = await prisma.booking.findUnique({ where: { id }, include: { garage: true } })
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { garage: true, vehicle: true } })
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
 
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } }).catch(() => null)
@@ -218,9 +218,9 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
       await createNotification(
         prisma, booking.garage.ownerPhone,
         'message',
-        'New Message from Owner',
-        message.trim(),
-        { screen: 'garage' }
+        booking.vehicle.registrationNo,
+        `Owner: ${message.trim()}`,
+        { screen: 'garage', bookingId: id }
       )
     } else {
       const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
@@ -231,9 +231,9 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
       await createNotification(
         prisma, booking.ownerPhone,
         'message',
-        `Message from ${booking.garage.name}`,
-        message.trim(),
-        { screen: 'vehicles', vehicleId: booking.vehicleId }
+        booking.vehicle.registrationNo,
+        `${booking.garage.name}: ${message.trim()}`,
+        { screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: id }
       )
     }
 
