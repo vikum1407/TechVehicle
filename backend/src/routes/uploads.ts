@@ -1,5 +1,5 @@
 import express from 'express'
-import multer from 'multer'
+import multer, { FileFilterCallback } from 'multer'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import crypto from 'crypto'
@@ -9,8 +9,8 @@ router.use(authMiddleware)
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max (client compresses to ~400 KB, this is a safety net)
-  fileFilter: (_req, file, cb) => {
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) cb(null, true)
     else cb(new Error('Only images are allowed'))
   },
@@ -27,7 +27,9 @@ const r2 = new S3Client({
 
 // POST /uploads/photo — upload a single photo, returns { url }
 router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
-  if (!req.file) {
+  const file = (req as any).file as Express.Multer.File | undefined
+
+  if (!file) {
     res.status(400).json({ error: 'No file provided' })
     return
   }
@@ -40,15 +42,15 @@ router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
     return
   }
 
-  const ext = req.file.mimetype === 'image/png' ? 'png' : 'jpg'
+  const ext = file.mimetype === 'image/png' ? 'png' : 'jpg'
   const key = `service-photos/${req.phoneNumber}/${crypto.randomUUID()}.${ext}`
 
   try {
     await r2.send(new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
+      Body: file.buffer,
+      ContentType: file.mimetype,
     }))
 
     res.json({ url: `${publicUrl}/${key}` })
