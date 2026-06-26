@@ -175,7 +175,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               </View>
               <View style={[styles.toggle, s.added && styles.toggleActive]}>
                 <Text style={[styles.toggleText, s.added && styles.toggleTextActive]}>
-                  {s.added ? 'Yes ✓' : 'Skip'}
+                  {s.added ? 'Yes ✓' : '+ Add'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -222,7 +222,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
           : <Text style={styles.saveBtnText}>
               {addedCount > 0
                 ? `Save ${addedCount} Record${addedCount > 1 ? 's' : ''} & Go to Dashboard`
-                : 'Skip All & Go to Dashboard'
+                : 'Nothing to Add — Go to Dashboard'
               }
             </Text>
         }
