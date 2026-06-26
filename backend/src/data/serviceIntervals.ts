@@ -698,6 +698,150 @@ const NISSAN: ServiceInterval[] = [
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MAZDA — make level overrides
+// ─────────────────────────────────────────────────────────────────────────────
+const MAZDA: ServiceInterval[] = [
+  {
+    id: 'oil_change_mazda',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Mazda'],
+    source: 'Mazda manufacturer recommendation (Sri Lanka climate)',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  // Older Mazda (L-series 2.0/2.3, pre-2012) — timing belt at 60,000km
+  {
+    id: 'timing_belt_mazda_old',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Mazda'],
+    yearRange: [1990, 2012],
+    excludeModels: ['CX-5', 'Axela', 'Atenza', '3', '6', 'CX-3'],
+    source: 'Mazda L-series engine specification (belt-equipped older models)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  // Mazda BT-50 diesel (MZR-CD WL-C / P5AT) — longer belt interval
+  {
+    id: 'timing_belt_mazda_bt50',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 120000,
+    daysInterval: 3650,
+    fuelScope: 'diesel-only',
+    makes: ['Mazda'],
+    models: ['BT-50'],
+    source: 'Mazda BT-50 WL/P5AT diesel engine specification',
+    urgencyKm: 10000,
+    urgencyDays: 90,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ISUZU — popular for D-Max pickups and commercial vehicles
+// ─────────────────────────────────────────────────────────────────────────────
+const ISUZU: ServiceInterval[] = [
+  {
+    id: 'oil_change_isuzu',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Isuzu'],
+    source: 'Isuzu manufacturer recommendation (diesel commercial engine)',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  // Isuzu 4JJ1 / 4JX1 diesel (D-Max, MU-X, Trooper)
+  {
+    id: 'timing_belt_isuzu_diesel',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 120000,
+    daysInterval: 3650,
+    fuelScope: 'diesel-only',
+    makes: ['Isuzu'],
+    source: 'Isuzu 4JJ1/4JX1 diesel engine specification',
+    urgencyKm: 10000,
+    urgencyDays: 90,
+  },
+  {
+    id: 'fuel_filter_isuzu',
+    group: 'fuel_filter',
+    name: 'Fuel Filter',
+    keywords: ['Fuel Filter'],
+    kmInterval: 15000,
+    daysInterval: 365,
+    fuelScope: 'diesel-only',
+    makes: ['Isuzu'],
+    source: 'Isuzu diesel fuel filter recommendation (important for injector protection)',
+    urgencyKm: 1500,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HYUNDAI / KIA — growing segment in Sri Lanka
+// ─────────────────────────────────────────────────────────────────────────────
+const HYUNDAI_KIA: ServiceInterval[] = [
+  {
+    id: 'oil_change_hyundai_kia',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 5000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Hyundai', 'Kia'],
+    source: 'Hyundai/Kia manufacturer recommendation',
+    urgencyKm: 500,
+    urgencyDays: 14,
+  },
+  // Older Hyundai/Kia (G4HG i10, G4FC i20, older Sportage) — timing belt
+  {
+    id: 'timing_belt_hyundai_kia',
+    group: 'timing_belt',
+    name: 'Timing Belt',
+    keywords: ['Timing Belt'],
+    kmInterval: 60000,
+    daysInterval: 1825,
+    fuelScope: 'petrol-only',
+    makes: ['Hyundai', 'Kia'],
+    yearRange: [1995, 2016],
+    excludeModels: ['Tucson', 'Santa Fe', 'Sportage', 'Sorento'],
+    source: 'Hyundai G4HG/G4FC engine specification (belt-equipped older models)',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+  {
+    id: 'cvt_atf_hyundai_kia',
+    group: 'auto_trans_fluid',
+    name: 'Automatic Transmission Fluid',
+    keywords: ['Transmission Oil (Auto)', 'Transmission Service'],
+    kmInterval: 40000,
+    daysInterval: 1095,
+    fuelScope: 'all',
+    makes: ['Hyundai', 'Kia'],
+    source: 'Hyundai/Kia manufacturer recommendation',
+    urgencyKm: 3000,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ELECTRIC VEHICLES — BYD, MG, Nissan Leaf, etc.
 // ─────────────────────────────────────────────────────────────────────────────
 const ELECTRIC: ServiceInterval[] = [
@@ -724,5 +868,8 @@ export const SERVICE_INTERVALS: ServiceInterval[] = [
   ...MITSUBISHI,
   ...SUZUKI,
   ...NISSAN,
+  ...MAZDA,
+  ...ISUZU,
+  ...HYUNDAI_KIA,
   ...ELECTRIC,
 ]
