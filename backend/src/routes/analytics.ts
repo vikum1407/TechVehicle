@@ -129,8 +129,6 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
         return {
           date: r.date.toISOString(),
           km: r.mileage,
-          grade: sd.oilGrade || null,
-          type: sd.oilType || null,
           brand: sd.oilBrand || extractBrand(r.description, 'Oil Change') || r.brand || null,
           intervalKm: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
         }

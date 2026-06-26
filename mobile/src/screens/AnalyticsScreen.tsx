@@ -17,7 +17,7 @@ type Props = {
 
 type OilHistoryItem = {
   date: string; km: number | null
-  grade: string | null; type: string | null; brand: string | null; intervalKm: number | null
+  brand: string | null; intervalKm: number | null
 }
 type TyreHistoryItem = {
   date: string; km: number | null
@@ -182,16 +182,12 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
 // ── Structured analytics cards ─────────────────────────────────────────────────
 
 function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
-  const hasStructured = data.history.some(h => h.grade || h.type)
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Oil Change History</Text>
         <Text style={styles.sectionBadge}>{data.history.length} records</Text>
       </View>
-      {!hasStructured && (
-        <Text style={cs.noData}>Add oil grade and type when logging your next oil change to see analytics here</Text>
-      )}
       {data.history.map((item, i) => (
         <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
           <View style={styles.tableCol1}>
@@ -199,14 +195,12 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
             {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
           </View>
           <View style={styles.tableCol2}>
-            {item.grade
-              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.grade}</Text></View>
+            {item.brand
+              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.brand}</Text></View>
               : <Text style={styles.tableDash}>—</Text>
             }
-            {item.type && <Text style={styles.tableSubText}>{item.type}</Text>}
           </View>
           <View style={styles.tableCol3}>
-            {item.brand && <Text style={styles.tableMeta}>{item.brand}</Text>}
             {item.intervalKm && (
               <Text style={styles.tableInterval}>{item.intervalKm.toLocaleString()} km</Text>
             )}
