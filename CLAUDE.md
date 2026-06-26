@@ -2,13 +2,13 @@
 
 ---
 
-## Current Development State (updated 2026-06-23)
+## Current Development State (updated 2026-06-26)
 
 ### Completed & Working ✅
 - Phone auth (OTP via console in dev, JWT stored in SecureStore)
-- Add vehicle + My Vehicles screen
+- Add vehicle + My Vehicles screen; Add Vehicle has searchable Brand/Model modal picker (40+ SL brands, models filtered by brand, "Other" fallback to free text)
 - Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Analytics + Book Service button)
-- Add Service Record (tap-to-select categories, per-item brands, compact history cards)
+- Add Service Record (tap-to-select categories filtered by vehicle type, per-item brands, compact history cards)
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
 - Analytics screen (SVG charts: Mileage Growth, Fuel Efficiency, Cost per Fill-up) + sparkline mini-cards on dashboard
@@ -26,31 +26,23 @@
   - Garage Bookings tab: booking cards with colour-coded left border (orange=pending, green=confirmed); tap to expand → shows attached shared service records inline; Submit Completed Service button inside booking card
   - Garage Calendar tab (replaced Shared tab): monthly calendar showing booked/max per day with colour coding (white=empty, orange=partial, red=full); tap any date to see that day's bookings; override messages shown in red
 - Role selection: new users (and existing users without a role) see a role selection screen after login — Vehicle Owner or Garage/Service Center; role stored in SecureStore
+- Service Record Engine — vehicle type filtering (12 types: motorcycle, electric-cycle, car-petrol, car-diesel, suv-petrol, suv-diesel, three-wheeler, van, pickup, electric, truck, heavy); categories filtered per type; Onboarding Wizard milestones filtered per type
+- Push notifications — full coverage: booking created → garage push+bell; booking confirmed → owner push+bell; booking cancelled → garage push+bell; service submitted → owner push+bell; submission accepted → garage push+bell; booking notes → both parties push+bell
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
 ### Database tables in Neon ✅
-`User` (with `userType` column), `Vehicle`, `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`)
+`User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`), `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest change: `shareSessionId` is now nullable (`String?`) on `ServiceSubmission`.
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `vehicleType String?`, `purchaseDate DateTime?`, `ownerCount Int?`, `vehicleNotes String?` on Vehicle model.
 
 ### Next Session — Start Here
-**Agreed next step:** Bottom tab bar navigation — add persistent tabs at the bottom of the app:
-- 🚗 My Vehicles (vehicle owner dashboard)
-- 🏭 Garage (garage dashboard — Profile, Schedule, Bookings, Calendar tabs)
-
-This separates the vehicle owner experience from the garage owner experience cleanly. Currently the Garage is buried behind a button on My Vehicles.
-
-**After that — Phase 4 remaining:**
-- Push notifications: when owner books → notify garage; when garage confirms → notify owner. Use `expo-notifications` (works in Expo Go). Needs `pushToken` column on User and token registration at login.
-
-### UX fixes applied 2026-06-23
-- VehicleDashboard: ScrollView (fully scrollable); pending submissions moved above sparklines; Accept button green/larger; Share/+Add buttons removed from service history header
-- GarageScreen: confirmed bookings without shared history now show Submit Completed Service; backend accepts `bookingId` as alternative to `shareSessionId`
-- BookingScreen: today's date highlighted with yellow circle
-- MyVehiclesScreen: logout is a proper red-bordered button
-- ServiceSubmission.shareSessionId is now nullable in schema
+**Next task: PDF export** — export full vehicle service history as a PDF the owner can share or print. Useful at point of sale as a backup alongside the in-app transfer.
+- Use `expo-print` + `expo-sharing` (both work in Expo Go, no EAS Build needed)
+- Generate HTML string from vehicle data → `Print.printToFileAsync()` → `Sharing.shareAsync()`
+- Entry point: "Export PDF" button on VehicleDashboard or History view
+- Content: vehicle details header, service records timeline, fuel logs summary, expense summary
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
