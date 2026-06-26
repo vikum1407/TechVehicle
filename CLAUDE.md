@@ -38,12 +38,12 @@
 Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `vehicleType String?`, `purchaseDate DateTime?`, `ownerCount Int?`, `vehicleNotes String?` on Vehicle model.
 
 ### Next Session — Start Here
-**Next task: Prediction Engine (Phase 5 Step 1)** — rule-based service predictions from a curated interval database.
-- Already have a prediction engine skeleton (`backend/src/routes/predictions.ts`) — check what's there first
-- Build/complete the service interval database for key Sri Lanka models: Toyota (Aqua, Axio, Prius, KDH), Honda (Fit/Jazz, Vezel), Suzuki (Alto, Wagon R), Mitsubishi (L300), Bajaj (RE three-wheeler)
-- Rule engine: compare vehicle's last service record of each type against the interval to compute remaining km / overdue status
-- Already surfaced on dashboard (top 3 urgent predictions card) and PredictionsScreen
-- Push notifications for service-due alerts: already wired at login via `triggerServiceNotifications`
+**Next task: Structured data fields for analytics** — when specific service categories are selected in Add Service Record, show additional structured input fields:
+- **Tyre Change** → tyre brand, size (e.g. 185/65R15), km at change
+- **Oil Change** → oil brand, grade (10W-40, 5W-30, etc.), type (Mineral/Semi-Synthetic/Full Synthetic)
+- **Emission Test / Carbon Test** → CO%, HC ppm, CO2%, Lambda, Pass/Fail, testing station name
+- **AC Gas Refill** → refrigerant type (R134a/R1234yf), quantity filled (grams)
+These feed the Special Analytics data points described in CLAUDE.md (tyre ratio, oil grade vs manufacturer rec, emission trends, AC fuel impact). Store in `structuredData JSON?` field on ServiceRecord.
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.

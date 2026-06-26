@@ -43,6 +43,13 @@ function yearMatches(interval: ServiceInterval, year: number): boolean {
   return year >= interval.yearRange[0] && year <= interval.yearRange[1]
 }
 
+function vehicleTypeMatches(interval: ServiceInterval, vehicleType: string | null): boolean {
+  if (!vehicleType) return true  // no type set → skip type-based filtering (use make-based instead)
+  if (interval.vehicleTypes && !interval.vehicleTypes.includes(vehicleType)) return false
+  if (interval.excludeVehicleTypes && interval.excludeVehicleTypes.includes(vehicleType)) return false
+  return true
+}
+
 function specificityScore(interval: ServiceInterval): number {
   let score = 0
   if (interval.makes) score += 2
@@ -67,6 +74,7 @@ type VehicleRow = {
   year: number
   fuelType: string
   mileage: number
+  vehicleType: string | null
 }
 
 type PredictionRow = {
@@ -94,7 +102,8 @@ function computePredictions(
     passesScope(interval.fuelScope, vehicle.fuelType) &&
     makeMatches(interval, vehicle.make) &&
     modelMatches(interval, vehicle.model) &&
-    yearMatches(interval, vehicle.year)
+    yearMatches(interval, vehicle.year) &&
+    vehicleTypeMatches(interval, vehicle.vehicleType)
   )
 
   const grouped = new Map<string, ServiceInterval>()

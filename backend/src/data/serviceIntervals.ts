@@ -11,15 +11,21 @@ export type ServiceInterval = {
   makes?: string[]        // only apply to these makes (undefined = all makes)
   excludeMakes?: string[] // exclude these makes (they have their own make-specific entry)
   models?: string[]       // only apply if model name contains one of these (case-insensitive)
-  excludeModels?: string[]// exclude if model name contains one of these (chain engines, etc.)
-  yearRange?: [number, number] // [fromYear, toYear] inclusive — undefined = all years
+  excludeModels?: string[]
+  yearRange?: [number, number]
+  vehicleTypes?: string[]        // only apply to these vehicleType values (undefined = all)
+  excludeVehicleTypes?: string[] // skip if vehicle's vehicleType matches
   source: string
   urgencyKm: number
   urgencyDays: number
 }
 
+// All motorcycle/3-wheeler makes — used to exclude them from car-specific intervals
+const MOTO_MAKES = ['Bajaj', 'TVS', 'Hero', 'Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM']
+const MOTO_TYPES = ['motorcycle', 'electric-cycle', 'three-wheeler']
+
 // ─────────────────────────────────────────────────────────────────────────────
-// GENERAL — applies to all vehicles unless excluded or overridden
+// GENERAL — applies to all cars/vans/SUVs unless excluded or overridden
 // ─────────────────────────────────────────────────────────────────────────────
 const GENERAL: ServiceInterval[] = [
   {
@@ -30,7 +36,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 5000,
     daysInterval: 180,
     fuelScope: 'not-electric',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation (Sri Lanka climate, mineral oil)',
     urgencyKm: 500,
     urgencyDays: 14,
@@ -43,7 +50,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 15000,
     daysInterval: 365,
     fuelScope: 'not-electric',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 1500,
     urgencyDays: 30,
@@ -56,7 +64,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 20000,
     daysInterval: 730,
     fuelScope: 'not-electric',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 2000,
     urgencyDays: 30,
@@ -69,7 +78,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 20000,
     daysInterval: 730,
     fuelScope: 'petrol-only',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation (standard copper plugs)',
     urgencyKm: 2000,
     urgencyDays: 30,
@@ -82,6 +92,7 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'diesel-only',
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -94,7 +105,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 60000,
     daysInterval: 1825,
     fuelScope: 'not-electric',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation — critical safety item',
     urgencyKm: 5000,
     urgencyDays: 60,
@@ -107,7 +119,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 730,
     fuelScope: 'not-electric',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -120,7 +133,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 730,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -157,7 +171,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -170,7 +185,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -183,7 +199,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 40000,
     daysInterval: 1095,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 3000,
     urgencyDays: 30,
@@ -208,7 +225,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 10000,
     daysInterval: 180,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 1000,
     urgencyDays: 14,
@@ -233,7 +251,8 @@ const GENERAL: ServiceInterval[] = [
     kmInterval: 15000,
     daysInterval: 365,
     fuelScope: 'all',
-    excludeMakes: ['Bajaj', 'TVS', 'Hero'],
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
     source: 'General manufacturer recommendation',
     urgencyKm: 1500,
     urgencyDays: 30,
@@ -284,10 +303,10 @@ const BAJAJ_TVS_HERO: ServiceInterval[] = [
     urgencyDays: 30,
   },
   {
-    id: 'drive_chain_lube',
+    id: 'drive_chain_lube_3w',
     group: 'drive_chain_lube',
     name: 'Drive Chain Lubrication',
-    keywords: ['Drive Chain', 'Chain Lube'],
+    keywords: ['Chain Lubrication', 'Chain Lube', 'Drive Chain'],
     kmInterval: 1000,
     daysInterval: 30,
     fuelScope: 'all',
@@ -297,10 +316,10 @@ const BAJAJ_TVS_HERO: ServiceInterval[] = [
     urgencyDays: 7,
   },
   {
-    id: 'drive_chain_replace',
+    id: 'drive_chain_replace_3w',
     group: 'drive_chain',
     name: 'Drive Chain & Sprocket',
-    keywords: ['Drive Chain', 'Chain Sprocket'],
+    keywords: ['Chain & Sprocket', 'Drive Chain', 'Chain Sprocket'],
     kmInterval: 20000,
     daysInterval: 730,
     fuelScope: 'all',
@@ -319,6 +338,90 @@ const BAJAJ_TVS_HERO: ServiceInterval[] = [
     fuelScope: 'all',
     makes: ['Bajaj', 'TVS', 'Hero'],
     source: 'Bajaj/TVS/Hero manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 30,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// YAMAHA / KAWASAKI / ROYAL ENFIELD / KTM — performance motorcycles
+// ─────────────────────────────────────────────────────────────────────────────
+const MOTORCYCLES: ServiceInterval[] = [
+  {
+    id: 'oil_change_moto',
+    group: 'oil_change',
+    name: 'Engine Oil Change',
+    keywords: ['Oil Change', 'Oil Filter'],
+    kmInterval: 3000,
+    daysInterval: 90,
+    fuelScope: 'not-electric',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation (high-revving engine, hot climate)',
+    urgencyKm: 300,
+    urgencyDays: 10,
+  },
+  {
+    id: 'air_filter_moto',
+    group: 'air_filter',
+    name: 'Air Filter',
+    keywords: ['Air Filter'],
+    kmInterval: 10000,
+    daysInterval: 180,
+    fuelScope: 'not-electric',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 20,
+  },
+  {
+    id: 'spark_plugs_moto',
+    group: 'spark_plugs',
+    name: 'Spark Plugs',
+    keywords: ['Spark Plugs'],
+    kmInterval: 12000,
+    daysInterval: 365,
+    fuelScope: 'petrol-only',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation',
+    urgencyKm: 1000,
+    urgencyDays: 30,
+  },
+  {
+    id: 'drive_chain_lube_moto',
+    group: 'drive_chain_lube',
+    name: 'Drive Chain Lubrication',
+    keywords: ['Chain Lubrication', 'Chain Lube', 'Drive Chain'],
+    kmInterval: 500,
+    daysInterval: 14,
+    fuelScope: 'all',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation — chain lube every 500 km',
+    urgencyKm: 100,
+    urgencyDays: 3,
+  },
+  {
+    id: 'drive_chain_replace_moto',
+    group: 'drive_chain',
+    name: 'Drive Chain & Sprocket',
+    keywords: ['Chain & Sprocket', 'Drive Chain', 'Chain Sprocket'],
+    kmInterval: 25000,
+    daysInterval: 1095,
+    fuelScope: 'all',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation',
+    urgencyKm: 2000,
+    urgencyDays: 30,
+  },
+  {
+    id: 'gear_oil_moto',
+    group: 'manual_gear_oil',
+    name: 'Gear Oil',
+    keywords: ['Gear Oil (Manual)'],
+    kmInterval: 10000,
+    daysInterval: 365,
+    fuelScope: 'all',
+    makes: ['Yamaha', 'Kawasaki', 'Royal Enfield', 'KTM'],
+    source: 'Motorcycle manufacturer recommendation',
     urgencyKm: 1000,
     urgencyDays: 30,
   },
@@ -372,10 +475,10 @@ const TOYOTA: ServiceInterval[] = [
   },
   // Hybrid HV battery check — Prius, Aqua, Corolla Cross, Yaris Cross
   {
-    id: 'hv_battery_check',
+    id: 'hv_battery_check_toyota',
     group: 'hv_battery',
     name: 'Hybrid Battery Health Check',
-    keywords: ['HV Battery', 'Hybrid Battery'],
+    keywords: ['HV Battery', 'Hybrid Battery', 'EV Battery Check'],
     kmInterval: 40000,
     daysInterval: 1460,
     fuelScope: 'all',
@@ -558,7 +661,6 @@ const SUZUKI: ServiceInterval[] = [
     urgencyDays: 60,
   },
   // Newer Suzuki (K10B/K12B engines, post-2010 Alto/Swift) use timing chain — no belt needed
-  // No timing_belt entry for post-2010 Suzuki = chain engine, no prediction shown
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -595,12 +697,32 @@ const NISSAN: ServiceInterval[] = [
   },
 ]
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ELECTRIC VEHICLES — BYD, MG, Nissan Leaf, etc.
+// ─────────────────────────────────────────────────────────────────────────────
+const ELECTRIC: ServiceInterval[] = [
+  {
+    id: 'ev_battery_check',
+    group: 'hv_battery',
+    name: 'EV Battery Health Check',
+    keywords: ['EV Battery Check', 'EV Battery', 'Battery Health', 'HV Battery'],
+    daysInterval: 365,
+    fuelScope: 'electric-only',
+    excludeMakes: ['Toyota'],  // Toyota has its own model-specific hybrid battery entry
+    source: 'General EV manufacturer recommendation — annual battery health check',
+    urgencyKm: 5000,
+    urgencyDays: 60,
+  },
+]
+
 export const SERVICE_INTERVALS: ServiceInterval[] = [
   ...GENERAL,
   ...BAJAJ_TVS_HERO,
+  ...MOTORCYCLES,
   ...TOYOTA,
   ...HONDA,
   ...MITSUBISHI,
   ...SUZUKI,
   ...NISSAN,
+  ...ELECTRIC,
 ]
