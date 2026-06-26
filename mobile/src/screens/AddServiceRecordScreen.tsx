@@ -20,10 +20,49 @@ type Props = {
   onBack: () => void
 }
 
+// ─── Structured sub-form definitions ────────────────────────────────────────
+type StructuredTextField = {
+  type: 'text'
+  key: string
+  label: string
+  placeholder: string
+  keyboard?: 'default' | 'decimal-pad' | 'number-pad'
+}
+type StructuredChipsField = {
+  type: 'chips'
+  key: string
+  label: string
+  options: string[]
+}
+type StructuredField = StructuredTextField | StructuredChipsField
+
+const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
+  'Tyre Change': [
+    { type: 'text',  key: 'tyreSize',     label: 'Tyre Size',         placeholder: 'e.g. 185/65R15' },
+    { type: 'chips', key: 'tyresChanged', label: 'How many tyres?',   options: ['1', '2', '4'] },
+  ],
+  'Oil Change': [
+    { type: 'chips', key: 'oilGrade', label: 'Oil Grade / Viscosity', options: ['0W-20', '5W-30', '10W-40', '15W-40', '20W-50'] },
+    { type: 'chips', key: 'oilType',  label: 'Oil Type',              options: ['Mineral', 'Semi-Synthetic', 'Full Synthetic'] },
+  ],
+  'Emission Test / Carbon Test': [
+    { type: 'text',  key: 'co',      label: 'CO %',            placeholder: 'e.g. 0.8',  keyboard: 'decimal-pad' },
+    { type: 'text',  key: 'hc',      label: 'HC ppm',          placeholder: 'e.g. 120',  keyboard: 'number-pad'  },
+    { type: 'text',  key: 'co2',     label: 'CO₂ %',           placeholder: 'e.g. 14.2', keyboard: 'decimal-pad' },
+    { type: 'text',  key: 'lambda',  label: 'Lambda',          placeholder: 'e.g. 1.01', keyboard: 'decimal-pad' },
+    { type: 'chips', key: 'result',  label: 'Test Result',     options: ['Pass', 'Fail'] },
+    { type: 'text',  key: 'station', label: 'Testing Station', placeholder: 'e.g. Werahera Testing Station' },
+  ],
+  'AC Gas Refill': [
+    { type: 'text', key: 'quantityGrams', label: 'Quantity Filled (grams)', placeholder: 'e.g. 450', keyboard: 'number-pad' },
+  ],
+}
+
 export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, currentMileage, onRecordAdded, onBack }: Props) {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
+  const [structuredData, setStructuredData] = useState<Record<string, Record<string, string>>>({})
   const [date, setDate] = useState(todayDMY())
   const [mileage, setMileage] = useState('')
   const [cost, setCost] = useState('')
@@ -38,6 +77,14 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const toggleService = (name: string, category: string) => {
     if (isSelected(name)) {
       setSelectedItems(prev => prev.filter(i => i.name !== name))
+      // Clear structured data when item is deselected
+      if (STRUCTURED_ITEMS[name]) {
+        setStructuredData(prev => {
+          const next = { ...prev }
+          delete next[name]
+          return next
+        })
+      }
     } else {
       setSelectedItems(prev => [...prev, { name, category, brand: '' }])
     }
@@ -51,6 +98,13 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const setCustomBrandForItem = (itemName: string, value: string) => {
     setCustomBrands(prev => ({ ...prev, [itemName]: value }))
     setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand: value } : i))
+  }
+
+  const setStructuredField = (itemName: string, key: string, value: string) => {
+    setStructuredData(prev => ({
+      ...prev,
+      [itemName]: { ...(prev[itemName] || {}), [key]: value },
+    }))
   }
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
@@ -75,7 +129,6 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
 
     setUploadingPhoto(true)
     try {
-      // Compress to max 400 KB before uploading
       const compressed = await ImageManipulator.manipulateAsync(
         result.assets[0].uri,
         [{ resize: { width: 1200 } }],
@@ -110,7 +163,6 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       Alert.alert('Invalid date', 'Please enter the date as DD/MM/YYYY.')
       return
     }
-
     if (!mileage.trim()) {
       Alert.alert('Mileage required', 'Please enter the odometer reading at the time of this service.')
       return
@@ -132,8 +184,14 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
     const description = allItems
       .map(i => i.brand ? `${i.name} (${i.brand})` : i.name)
       .join(', ')
-
     const brands = [...new Set(allItems.map(i => i.brand).filter(Boolean))].join(', ')
+
+    // Only include structured data for items that are actually selected
+    const selectedNames = new Set(allItems.map(i => i.name))
+    const filteredStructured = Object.fromEntries(
+      Object.entries(structuredData).filter(([k]) => selectedNames.has(k))
+    )
+    const hasStructured = Object.keys(filteredStructured).length > 0
 
     setLoading(true)
     try {
@@ -145,6 +203,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         cost: cost ? parseFloat(cost) : undefined,
         notes: notes.trim() || undefined,
         photos: photos.length > 0 ? photos : undefined,
+        structuredData: hasStructured ? filteredStructured : undefined,
       })
       onRecordAdded()
     } catch (error: any) {
@@ -155,6 +214,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   }
 
   const itemsNeedingBrand = selectedItems.filter(i => !NO_BRAND_ITEMS.has(i.name))
+  const itemsWithStructured = selectedItems.filter(i => STRUCTURED_ITEMS[i.name])
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -178,6 +238,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
           <View style={styles.chipRow}>
             {cat.items.map(item => {
               const sel = isSelected(item)
+              const hasStructure = !!STRUCTURED_ITEMS[item]
               return (
                 <TouchableOpacity
                   key={item}
@@ -187,6 +248,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
                 >
                   {sel && <Text style={styles.check}>✓ </Text>}
                   <Text style={[styles.chipText, sel && styles.chipTextSelected]}>{item}</Text>
+                  {hasStructure && !sel && (
+                    <Text style={styles.detailDot}> ·</Text>
+                  )}
                 </TouchableOpacity>
               )
             })}
@@ -202,6 +266,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         placeholder="Type anything else that was done..."
       />
 
+      {/* ── Brand picker ──────────────────────────────────── */}
       {itemsNeedingBrand.length > 0 && (
         <View style={styles.brandsSection}>
           <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
@@ -236,6 +301,62 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         </View>
       )}
 
+      {/* ── Structured details section ────────────────────── */}
+      {itemsWithStructured.length > 0 && (
+        <View style={styles.structuredSection}>
+          <Text style={styles.structuredTitle}>Additional Details</Text>
+          <Text style={styles.structuredSub}>These readings are saved for analytics and predictions</Text>
+
+          {itemsWithStructured.map(item => {
+            const fields = STRUCTURED_ITEMS[item.name]
+            const values = structuredData[item.name] || {}
+            return (
+              <View key={item.name} style={styles.structuredBlock}>
+                <Text style={styles.structuredItemName}>{item.name}</Text>
+
+                {fields.map(field => {
+                  if (field.type === 'chips') {
+                    return (
+                      <View key={field.key} style={styles.structuredFieldWrap}>
+                        <Text style={styles.structuredFieldLabel}>{field.label}</Text>
+                        <View style={styles.chipRow}>
+                          {field.options.map(opt => (
+                            <TouchableOpacity
+                              key={opt}
+                              style={[styles.structuredChip, values[field.key] === opt && styles.structuredChipSelected]}
+                              onPress={() => setStructuredField(item.name, field.key, values[field.key] === opt ? '' : opt)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={[styles.structuredChipText, values[field.key] === opt && styles.structuredChipTextSelected]}>
+                                {opt}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )
+                  }
+
+                  return (
+                    <View key={field.key} style={styles.structuredFieldWrap}>
+                      <Text style={styles.structuredFieldLabel}>{field.label}</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={values[field.key] || ''}
+                        onChangeText={v => setStructuredField(item.name, field.key, v)}
+                        placeholder={field.placeholder}
+                        keyboardType={field.keyboard || 'default'}
+                      />
+                    </View>
+                  )
+                })}
+              </View>
+            )
+          })}
+        </View>
+      )}
+
+      {/* ── Date / Mileage / Cost ─────────────────────────── */}
       <View style={styles.row}>
         <View style={styles.half}>
           <Text style={styles.catLabel}>Date</Text>
@@ -270,7 +391,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
 
       <Text style={styles.catLabel}>Photos (optional, max 5)</Text>
       <View style={styles.photoRow}>
-        {photos.map((url, i) => (
+        {photos.map((url) => (
           <View key={url} style={styles.photoThumb}>
             <Image source={{ uri: url }} style={styles.thumbImg} />
             <TouchableOpacity style={styles.photoRemove} onPress={() => removePhoto(url)}>
@@ -355,6 +476,8 @@ const styles = StyleSheet.create({
   check: { fontSize: 13, color: '#fff' },
   chipText: { fontSize: 14, color: '#444' },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
+  detailDot: { fontSize: 12, color: '#bbb' },
+  // Brand section
   brandsSection: {
     backgroundColor: '#fff', borderRadius: 14,
     padding: 16, marginTop: 24,
@@ -362,10 +485,7 @@ const styles = StyleSheet.create({
   },
   brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 2 },
   brandsSectionSub: { fontSize: 12, color: '#888', marginBottom: 12 },
-  brandRow: {
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
-    paddingTop: 14, marginTop: 14,
-  },
+  brandRow: { borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 14, marginTop: 14 },
   brandItemName: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
   brandChip: {
     paddingHorizontal: 12, paddingVertical: 7,
@@ -375,6 +495,27 @@ const styles = StyleSheet.create({
   brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
   brandChipText: { fontSize: 12, color: '#555' },
   brandChipTextSelected: { color: '#fff', fontWeight: '600' },
+  // Structured data section
+  structuredSection: {
+    backgroundColor: '#f0f7ff', borderRadius: 14,
+    padding: 16, marginTop: 24,
+    borderWidth: 1.5, borderColor: '#c5dcff',
+  },
+  structuredTitle: { fontSize: 15, fontWeight: '700', color: '#1a55a8', marginBottom: 2 },
+  structuredSub: { fontSize: 12, color: '#5080b0', marginBottom: 4 },
+  structuredBlock: { borderTopWidth: 1, borderTopColor: '#d0e4f8', paddingTop: 14, marginTop: 14 },
+  structuredItemName: { fontSize: 14, fontWeight: '700', color: '#1a55a8', marginBottom: 10 },
+  structuredFieldWrap: { marginBottom: 12 },
+  structuredFieldLabel: { fontSize: 12, fontWeight: '600', color: '#446090', marginBottom: 6 },
+  structuredChip: {
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1.5,
+    borderColor: '#c5dcff', backgroundColor: '#fff',
+  },
+  structuredChipSelected: { backgroundColor: '#1a55a8', borderColor: '#1a55a8' },
+  structuredChipText: { fontSize: 13, color: '#446090', fontWeight: '500' },
+  structuredChipTextSelected: { color: '#fff', fontWeight: '700' },
+  // Common
   input: {
     backgroundColor: '#fff', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 13,
@@ -384,10 +525,7 @@ const styles = StyleSheet.create({
   multiline: { height: 80, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  summary: {
-    backgroundColor: '#e8f0fe', borderRadius: 12,
-    padding: 16, marginTop: 20,
-  },
+  summary: { backgroundColor: '#e8f0fe', borderRadius: 12, padding: 16, marginTop: 20 },
   summaryLabel: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 8 },
   summaryLine: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
   button: {

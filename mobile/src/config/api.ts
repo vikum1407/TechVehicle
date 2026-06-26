@@ -573,6 +573,7 @@ export const api = {
     cost?: number
     notes?: string
     photos?: string[]
+    structuredData?: Record<string, Record<string, string>>
   }) => {
     const res = await fetch(`${API_URL}/service-records/${vehicleId}`, {
       method: 'POST',

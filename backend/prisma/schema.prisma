@@ -44,18 +44,19 @@ model Vehicle {
 }
 
 model ServiceRecord {
-  id          String   @id @default(cuid())
-  vehicleId   String
-  date        DateTime
-  description String
-  mileage     Int?
-  parts       String?
-  brand       String?
-  cost        Float?
-  notes       String?
-  photos      String[]
-  createdAt   DateTime @default(now())
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  vehicleId      String
+  date           DateTime
+  description    String
+  mileage        Int?
+  parts          String?
+  brand          String?
+  cost           Float?
+  notes          String?
+  photos         String[]
+  structuredData Json?
+  createdAt      DateTime @default(now())
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
 
 model Expense {

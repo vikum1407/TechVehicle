@@ -208,7 +208,7 @@ export const SERVICE_CATEGORIES = [
   {
     title: 'General & Other',
     items: [
-      'Full Service', 'Inspection', 'Exhaust Service',
+      'Full Service', 'Inspection', 'Emission Test / Carbon Test', 'Exhaust Service',
       'Muffler Repair', 'Seat / Upholstery',
       'Dashboard Repair', 'Audio System',
       'Modification', 'General Repair',
@@ -260,6 +260,7 @@ const EXCLUDE_BY_TYPE: Record<string, Set<string>> = {
   'electric-cycle': new Set([
     'Oil Change', 'Oil Filter', 'Air Filter', 'Fuel Filter',
     'Spark Plugs', 'Glow Plugs (Diesel)',
+    'Emission Test / Carbon Test',
     'Timing Belt', 'Timing Belt Kit', 'Timing Chain', 'Drive Belts',
     'Water Pump', 'Thermostat', 'Coolant Flush',
     'Radiator Service', 'Radiator Cap', 'Cooling Fan',
@@ -306,6 +307,7 @@ const EXCLUDE_BY_TYPE: Record<string, Set<string>> = {
   'electric': new Set([
     'Oil Change', 'Oil Filter', 'Fuel Filter',
     'Spark Plugs', 'Glow Plugs (Diesel)',
+    'Emission Test / Carbon Test',
     'Timing Belt', 'Timing Belt Kit', 'Timing Chain', 'Drive Belts',
     'Thermostat', 'Radiator Service', 'Radiator Cap', 'Cooling Fan',
     'Engine Flush', 'Fuel System Clean', 'Injector Clean', 'Throttle Body Clean',

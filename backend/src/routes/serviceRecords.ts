@@ -33,7 +33,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
 // POST /service-records/:vehicleId — add a service record
 router.post('/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
-  const { date, description, mileage, parts, brand, cost, notes, photos } = req.body
+  const { date, description, mileage, parts, brand, cost, notes, photos, structuredData } = req.body
 
   if (!date || !description) {
     res.status(400).json({ error: 'Date and description are required' })
@@ -60,6 +60,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
         cost: cost ? Number(cost) : null,
         notes: notes || null,
         photos: Array.isArray(photos) ? photos : [],
+        structuredData: structuredData || null,
       },
     })
 
