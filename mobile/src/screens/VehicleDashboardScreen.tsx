@@ -47,6 +47,7 @@ type Props = {
   onLogFuel: () => void
   onAddExpense: () => void
   onAnalytics: () => void
+  onLogEmissionTest: () => void
   onPredictions: () => void
   onMileageUpdated: (newMileage: number) => void
   onShare: () => void
@@ -156,7 +157,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onLogEmissionTest, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -562,10 +563,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <Text style={styles.quickBtnText}>💰 Add Expense</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
-              <Text style={styles.quickBtnText}>📊 Analytics</Text>
+              <Text style={styles.quickBtnText}>📊 Insights</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.bookBtn} onPress={onBookService}>
+          <TouchableOpacity style={styles.bookBtn} onPress={onLogEmissionTest}>
+            <Text style={styles.bookBtnText}>💨 Log Emission / Carbon Test</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>

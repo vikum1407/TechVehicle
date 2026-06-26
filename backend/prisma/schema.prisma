@@ -29,8 +29,12 @@ model Vehicle {
   mileage        Int
   ownerPhone     String
   purchaseDate   DateTime?
-  ownerCount     Int?                @default(1)
-  vehicleNotes   String?
+  ownerCount                Int?                @default(1)
+  vehicleNotes              String?
+  emissionTestExpiry        DateTime?
+  revenueLicenceExpiry      DateTime?
+  lastEmissionReminderSent  DateTime?
+  lastLicenceReminderSent   DateTime?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   owner          User                @relation(fields: [ownerPhone], references: [phoneNumber])

@@ -38,6 +38,18 @@ const parseDate = (str: string): string | null => {
   return parsed.toISOString()
 }
 
+// Parse MM/YYYY into last day of that month ISO string
+function parseMMYYYY(s: string): string | null {
+  const parts = s.split('/')
+  if (parts.length !== 2) return null
+  const [m, y] = parts
+  if (!m || !y || y.length !== 4) return null
+  const date = new Date(Number(y), Number(m), 0) // last day of month
+  return isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+const RENEWAL_CATEGORIES = new Set(['Revenue Licence', 'Insurance'])
+
 export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onBack }: Props) {
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
@@ -45,6 +57,7 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   const [date, setDate] = useState(today())
   const [mileage, setMileage] = useState('')
   const [notes, setNotes] = useState('')
+  const [renewalExpiry, setRenewalExpiry] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
@@ -62,6 +75,15 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
       return
     }
 
+    let renewalExpiryISO: string | null = null
+    if (renewalExpiry.trim()) {
+      renewalExpiryISO = parseMMYYYY(renewalExpiry.trim())
+      if (!renewalExpiryISO) {
+        Alert.alert('Invalid expiry date', 'Use MM/YYYY format (e.g. 06/2026)')
+        return
+      }
+    }
+
     setLoading(true)
     try {
       await api.addExpense(token, vehicleId, {
@@ -72,6 +94,11 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         mileage: mileage ? parseInt(mileage) : undefined,
         notes: notes.trim() || undefined,
       })
+
+      if (renewalExpiryISO && category === 'Revenue Licence') {
+        await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: renewalExpiryISO })
+      }
+
       onExpenseAdded()
     } catch (error: any) {
       Alert.alert('Error', error.message)
@@ -158,6 +185,22 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         numberOfLines={2}
       />
 
+      {/* Renewal reminder — shown for Revenue Licence */}
+      {category === 'Revenue Licence' && (
+        <View style={styles.reminderCard}>
+          <Text style={styles.reminderTitle}>Set Renewal Reminder</Text>
+          <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+          <Text style={styles.label}>Next Renewal Date (MM/YYYY)</Text>
+          <TextInput
+            style={styles.input}
+            value={renewalExpiry}
+            onChangeText={setRenewalExpiry}
+            placeholder="e.g. 06/2026"
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+      )}
+
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleSubmit}
@@ -199,6 +242,12 @@ const styles = StyleSheet.create({
   multiline: { height: 80, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
+  reminderCard: {
+    backgroundColor: '#e8f0fe', borderRadius: 14, padding: 16,
+    marginTop: 20, borderWidth: 1, borderColor: '#c5d8fd',
+  },
+  reminderTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 4 },
+  reminderSub: { fontSize: 12, color: '#555', marginBottom: 4 },
   button: {
     backgroundColor: '#1a73e8', borderRadius: 12,
     paddingVertical: 18, alignItems: 'center', marginTop: 32,

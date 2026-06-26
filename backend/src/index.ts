@@ -16,6 +16,7 @@ import bookingRoutes from './routes/bookings'
 import predictionRoutes from './routes/predictions'
 import notificationRoutes from './routes/notifications'
 import uploadRoutes from './routes/uploads'
+import { startRenewalReminderJob } from './jobs/renewalReminders'
 
 dotenv.config()
 
@@ -51,4 +52,5 @@ app.use('/uploads', uploadRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)
+  startRenewalReminderJob()
 })

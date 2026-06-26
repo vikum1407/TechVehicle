@@ -65,6 +65,33 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /vehicles/:id/expiry — update emission test or revenue licence expiry dates
+router.patch('/:id/expiry', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { emissionTestExpiry, revenueLicenceExpiry } = req.body
+  try {
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id, ownerPhone: req.phoneNumber! },
+    })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const data: Record<string, Date | null> = {}
+    if (emissionTestExpiry !== undefined) {
+      data.emissionTestExpiry = emissionTestExpiry ? new Date(emissionTestExpiry) : null
+      data.lastEmissionReminderSent = null
+    }
+    if (revenueLicenceExpiry !== undefined) {
+      data.revenueLicenceExpiry = revenueLicenceExpiry ? new Date(revenueLicenceExpiry) : null
+      data.lastLicenceReminderSent = null
+    }
+
+    const updated = await prisma.vehicle.update({ where: { id }, data })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update expiry dates' })
+  }
+})
+
 // PATCH /vehicles/:id/mileage — manual odometer update
 router.patch('/:id/mileage', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }

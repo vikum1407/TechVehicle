@@ -601,4 +601,61 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Upload failed')
     return data.url as string
   },
+
+  updateVehicleExpiry: async (
+    token: string,
+    vehicleId: string,
+    payload: { emissionTestExpiry?: string | null; revenueLicenceExpiry?: string | null }
+  ) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/expiry`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update expiry')
+    return data
+  },
+
+  logEmissionTest: async (
+    token: string,
+    vehicleId: string,
+    payload: {
+      date: string
+      mileage?: number
+      result: string
+      co?: string; hc?: string; co2?: string; lambda?: string
+      station?: string
+      cost?: number
+      nextExpiryDate?: string
+    }
+  ) => {
+    // Save as a service record with structured data
+    const description = `Emission Test / Carbon Test`
+    const structuredData: Record<string, Record<string, string>> = {
+      'Emission Test / Carbon Test': {
+        result: payload.result,
+        ...(payload.co     ? { co: payload.co }         : {}),
+        ...(payload.hc     ? { hc: payload.hc }         : {}),
+        ...(payload.co2    ? { co2: payload.co2 }        : {}),
+        ...(payload.lambda ? { lambda: payload.lambda }  : {}),
+        ...(payload.station ? { station: payload.station } : {}),
+      },
+    }
+    const res = await fetch(`${API_URL}/service-records`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        vehicleId,
+        date: payload.date,
+        description,
+        mileage: payload.mileage,
+        cost: payload.cost,
+        structuredData,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save emission test')
+    return data
+  },
 }

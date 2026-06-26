@@ -2,12 +2,12 @@
 
 ---
 
-## Current Development State (updated 2026-06-26)
+## Current Development State (updated 2026-06-27)
 
 ### Completed & Working ✅
 - Phone auth (OTP via console in dev, JWT stored in SecureStore)
 - Add vehicle + My Vehicles screen; Add Vehicle has searchable Brand/Model modal picker (40+ SL brands, models filtered by brand, "Other" fallback to free text)
-- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Analytics + Book Service button)
+- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Insights + Log Emission Test button + Book Service button)
 - Add Service Record (tap-to-select categories filtered by vehicle type, per-item brands, compact history cards)
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
@@ -28,8 +28,10 @@
 - Role selection: new users (and existing users without a role) see a role selection screen after login — Vehicle Owner or Garage/Service Center; role stored in SecureStore
 - Service Record Engine — vehicle type filtering (12 types: motorcycle, electric-cycle, car-petrol, car-diesel, suv-petrol, suv-diesel, three-wheeler, van, pickup, electric, truck, heavy); categories filtered per type; Onboarding Wizard milestones filtered per type
 - Push notifications — full coverage: booking created → garage push+bell; booking confirmed → owner push+bell; booking cancelled → garage push+bell; service submitted → owner push+bell; submission accepted → garage push+bell; booking notes → both parties push+bell
-- Structured analytics data capture: Oil Change (grade/type), Tyre Change (size/count), Emission Test (CO%/HC ppm/CO2%/Lambda/Pass-Fail), AC Gas Refill (grams) — stored in `structuredData Json?` on ServiceRecord
-- Analytics screen structured cards: Oil Change History, Tyre History (km-per-set), Emission Test History (with rising-HC and fail warnings), AC Refill (with leak frequency warning)
+- Structured analytics data capture: Oil Change (brand), Tyre Change (brand/size/count), Emission Test (CO%/HC ppm/CO2%/Lambda/Pass-Fail), AC Gas Refill (refrigerant type/grams) — stored in `structuredData Json?` on ServiceRecord
+- Analytics screen renamed to "Insights"; structured cards: Oil Change History, Tyre History (km-per-set), Emission Test History (with rising-HC and fail warnings), AC Refill (with leak frequency warning)
+- Log Emission Test screen — dedicated quick-action on dashboard; captures test date, Pass/Fail, readings, and next expiry date for renewal reminder
+- Renewal Reminder system — Revenue Licence and Emission Test expiry stored on Vehicle; backend cron job sends push+bell every 3 days from 30 days before expiry until owner updates the date; Revenue Licence expiry captured in Add Expense screen when that category is selected
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
@@ -37,10 +39,11 @@
 `User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`), `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `vehicleType String?`, `purchaseDate DateTime?`, `ownerCount Int?`, `vehicleNotes String?` on Vehicle model.
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `emissionTestExpiry DateTime?`, `revenueLicenceExpiry DateTime?`, `lastEmissionReminderSent DateTime?`, `lastLicenceReminderSent DateTime?` on Vehicle model.
 
 ### Next Session — Start Here
-**Next task: Receipt photo viewer** — tapping a photo thumbnail in service record history cards should open a full-screen photo viewer (or native share sheet).
+**Continue testing structured data forms and Analytics/Insights screen** — test Emission Test screen (new dedicated button), AC Gas Refill structured form in Add Service, then check the Insights screen shows the structured analytics cards after saving records with data.
+Then: **Receipt photo viewer** — tapping a photo thumbnail in service record history cards should open a full-screen photo viewer.
 Also consider: search / filter on the history timeline (filter by category, date range, or mileage range).
 
 ### Known Workflow Note
