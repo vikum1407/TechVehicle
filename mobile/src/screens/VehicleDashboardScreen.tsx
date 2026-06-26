@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
-  Image, Modal
+  Image, Modal, FlatList, Dimensions
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
@@ -177,7 +177,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
-  const [viewingPhoto, setViewingPhoto] = useState<string | null>(null)
+  const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
+  const photoViewerRef = useRef<FlatList<string>>(null)
+
+  const openPhotos = (photos: string[], startIndex: number, label: string) => {
+    setPhotoViewer({ photos, index: startIndex, label })
+    setPhotoViewerIndex(startIndex)
+  }
+  const closePhotoViewer = () => setPhotoViewer(null)
   const [exporting, setExporting] = useState(false)
 
   const loadRecords = async () => {
@@ -493,8 +501,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             {item.photos && item.photos.length > 0 && (
               <View style={styles.photoStrip}>
                 {item.photos.map((url, i) => (
-                  <TouchableOpacity key={i} onPress={() => setViewingPhoto(url)} activeOpacity={0.8}>
+                  <TouchableOpacity key={i} onPress={() => openPhotos(item.photos, i, item.description)} activeOpacity={0.8}>
                     <Image source={{ uri: url }} style={styles.recordThumb} />
+                    {item.photos.length > 1 && i === 0 && (
+                      <View style={styles.thumbCountBadge}>
+                        <Text style={styles.thumbCountText}>{item.photos.length}</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -758,8 +771,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 {sub.photos && sub.photos.length > 0 && (
                   <View style={styles.photoStrip}>
                     {sub.photos.map((url, i) => (
-                      <TouchableOpacity key={i} onPress={() => setViewingPhoto(url)} activeOpacity={0.8}>
+                      <TouchableOpacity key={i} onPress={() => openPhotos(sub.photos, i, sub.description || 'Service submission')} activeOpacity={0.8}>
                         <Image source={{ uri: url }} style={styles.recordThumb} />
+                        {sub.photos.length > 1 && i === 0 && (
+                          <View style={styles.thumbCountBadge}>
+                            <Text style={styles.thumbCountText}>{sub.photos.length}</Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -923,15 +941,73 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       </ScrollView>
 
       {/* Full-screen photo viewer */}
-      <Modal visible={!!viewingPhoto} transparent animationType="fade" onRequestClose={() => setViewingPhoto(null)}>
-        <View style={styles.photoModalBg}>
-          <TouchableOpacity style={styles.photoModalClose} onPress={() => setViewingPhoto(null)}>
-            <Text style={styles.photoModalCloseText}>✕</Text>
-          </TouchableOpacity>
-          {viewingPhoto && (
-            <Image source={{ uri: viewingPhoto }} style={styles.photoModalImg} resizeMode="contain" />
-          )}
-        </View>
+      <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={closePhotoViewer} statusBarTranslucent>
+        {photoViewer && (() => {
+          const { photos, label } = photoViewer
+          const SCREEN_W = Dimensions.get('window').width
+          return (
+            <View style={styles.photoModalBg}>
+              {/* Header */}
+              <View style={styles.photoModalHeader}>
+                <Text style={styles.photoModalLabel} numberOfLines={1}>{label}</Text>
+                <TouchableOpacity onPress={closePhotoViewer} style={styles.photoModalClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                  <Text style={styles.photoModalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Swipeable photos */}
+              <FlatList
+                ref={photoViewerRef}
+                data={photos}
+                keyExtractor={(_, i) => String(i)}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={photoViewer.index}
+                getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
+                onMomentumScrollEnd={e => {
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W)
+                  setPhotoViewerIndex(idx)
+                }}
+                renderItem={({ item: url }) => (
+                  <View style={{ width: SCREEN_W, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={{ uri: url }} style={{ width: SCREEN_W, height: '100%' }} resizeMode="contain" />
+                  </View>
+                )}
+                style={{ flex: 1 }}
+              />
+
+              {/* Counter + nav row */}
+              <View style={styles.photoModalFooter}>
+                <TouchableOpacity
+                  disabled={photoViewerIndex === 0}
+                  onPress={() => {
+                    const newIdx = photoViewerIndex - 1
+                    photoViewerRef.current?.scrollToIndex({ index: newIdx, animated: true })
+                    setPhotoViewerIndex(newIdx)
+                  }}
+                  style={[styles.photoNavBtn, photoViewerIndex === 0 && styles.photoNavBtnDisabled]}
+                >
+                  <Text style={styles.photoNavText}>‹</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.photoCounter}>{photoViewerIndex + 1} / {photos.length}</Text>
+
+                <TouchableOpacity
+                  disabled={photoViewerIndex === photos.length - 1}
+                  onPress={() => {
+                    const newIdx = photoViewerIndex + 1
+                    photoViewerRef.current?.scrollToIndex({ index: newIdx, animated: true })
+                    setPhotoViewerIndex(newIdx)
+                  }}
+                  style={[styles.photoNavBtn, photoViewerIndex === photos.length - 1 && styles.photoNavBtnDisabled]}
+                >
+                  <Text style={styles.photoNavText}>›</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )
+        })()}
       </Modal>
     </View>
   )
@@ -1166,8 +1242,27 @@ const styles = StyleSheet.create({
   cancelBkBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
   photoStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   recordThumb: { width: 72, height: 72, borderRadius: 8 },
-  photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' },
-  photoModalImg: { width: '100%', height: '80%' },
-  photoModalClose: { position: 'absolute', top: 48, right: 20, zIndex: 10, padding: 8 },
+  thumbCountBadge: {
+    position: 'absolute', bottom: 4, right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10,
+    paddingHorizontal: 5, paddingVertical: 2,
+  },
+  thumbCountText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  photoModalBg: { flex: 1, backgroundColor: '#000' },
+  photoModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  photoModalLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13, flex: 1, marginRight: 12 },
+  photoModalClose: { padding: 4 },
   photoModalCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  photoModalFooter: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24,
+    paddingVertical: 18, backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  photoCounter: { color: '#fff', fontSize: 15, fontWeight: '600', minWidth: 50, textAlign: 'center' },
+  photoNavBtn: { paddingHorizontal: 16, paddingVertical: 8 },
+  photoNavBtnDisabled: { opacity: 0.25 },
+  photoNavText: { color: '#fff', fontSize: 36, lineHeight: 38, fontWeight: '300' },
 })
