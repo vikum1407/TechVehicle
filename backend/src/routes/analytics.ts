@@ -131,7 +131,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
           km: r.mileage,
           grade: sd.oilGrade || null,
           type: sd.oilType || null,
-          brand: extractBrand(r.description, 'Oil Change') || r.brand || null,
+          brand: sd.oilBrand || extractBrand(r.description, 'Oil Change') || r.brand || null,
           intervalKm: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
         }
       }).reverse()  // most recent first
@@ -152,7 +152,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
           date: r.date.toISOString(),
           km: r.mileage,
           size: sd.tyreSize || null,
-          brand: extractBrand(r.description, 'Tyre Change') || r.brand || null,
+          brand: sd.tyreBrand || extractBrand(r.description, 'Tyre Change') || r.brand || null,
           tyresChanged: sd.tyresChanged || null,
           kmThisSet: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
         }
@@ -217,7 +217,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
         return {
           date: r.date.toISOString(),
           km: r.mileage,
-          refrigerantType: extractBrand(r.description, 'AC Gas Refill') || r.brand || null,
+          refrigerantType: sd.refrigerantType || extractBrand(r.description, 'AC Gas Refill') || r.brand || null,
           quantityGrams: sd.quantityGrams ? parseFloat(sd.quantityGrams) : null,
         }
       }).reverse()

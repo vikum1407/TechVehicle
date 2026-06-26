@@ -52,6 +52,8 @@ export const NO_BRAND_ITEMS = new Set([
   'Parking Lights', 'Interior Lights', 'Fuses',
   'Chain Lubrication', 'EV Battery Check',
   'Hydraulic Hoses', 'Tracks Inspection', 'Undercarriage Service',
+  // Brand captured in structured data section instead of the brand picker
+  'Oil Change', 'Tyre Change', 'AC Gas Refill', 'Emission Test / Carbon Test',
 ])
 
 export const ITEM_BRANDS: Record<string, string[]> = {

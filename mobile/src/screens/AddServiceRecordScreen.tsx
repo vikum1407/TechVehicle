@@ -37,13 +37,15 @@ type StructuredChipsField = {
 type StructuredField = StructuredTextField | StructuredChipsField
 
 const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
-  'Tyre Change': [
-    { type: 'text',  key: 'tyreSize',     label: 'Tyre Size',         placeholder: 'e.g. 185/65R15' },
-    { type: 'chips', key: 'tyresChanged', label: 'How many tyres?',   options: ['1', '2', '4'] },
-  ],
   'Oil Change': [
-    { type: 'chips', key: 'oilGrade', label: 'Oil Grade / Viscosity', options: ['0W-20', '5W-30', '10W-40', '15W-40', '20W-50'] },
-    { type: 'chips', key: 'oilType',  label: 'Oil Type',              options: ['Mineral', 'Semi-Synthetic', 'Full Synthetic'] },
+    { type: 'chips', key: 'oilBrand', label: 'Oil Brand',              options: ['Castrol', 'Mobil 1', 'Shell', 'Total', 'Motul', 'Valvoline'] },
+    { type: 'chips', key: 'oilGrade', label: 'Oil Grade / Viscosity',  options: ['0W-20', '5W-30', '10W-40', '15W-40', '20W-50'] },
+    { type: 'chips', key: 'oilType',  label: 'Oil Type',               options: ['Mineral', 'Semi-Synthetic', 'Full Synthetic'] },
+  ],
+  'Tyre Change': [
+    { type: 'chips', key: 'tyreBrand',    label: 'Tyre Brand',         options: ['Michelin', 'Bridgestone', 'Yokohama', 'Apollo', 'CEAT', 'MRF', 'Dunlop'] },
+    { type: 'text',  key: 'tyreSize',     label: 'Tyre Size',          placeholder: 'e.g. 185/65R15' },
+    { type: 'chips', key: 'tyresChanged', label: 'How many tyres?',    options: ['1', '2', '4'] },
   ],
   'Emission Test / Carbon Test': [
     { type: 'text',  key: 'co',      label: 'CO %',            placeholder: 'e.g. 0.8',  keyboard: 'decimal-pad' },
@@ -54,7 +56,8 @@ const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
     { type: 'text',  key: 'station', label: 'Testing Station', placeholder: 'e.g. Werahera Testing Station' },
   ],
   'AC Gas Refill': [
-    { type: 'text', key: 'quantityGrams', label: 'Quantity Filled (grams)', placeholder: 'e.g. 450', keyboard: 'number-pad' },
+    { type: 'chips', key: 'refrigerantType', label: 'Refrigerant Type',       options: ['R134a', 'R1234yf', 'R22 (old)'] },
+    { type: 'text',  key: 'quantityGrams',   label: 'Quantity Filled (grams)', placeholder: 'e.g. 450', keyboard: 'number-pad' },
   ],
 }
 
@@ -181,10 +184,19 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       return
     }
 
+    // For items whose brand lives in structuredData (Oil Change, Tyre Change, AC Gas Refill),
+    // use that brand in the description so history cards still show "Oil Change (Castrol)"
+    const brandForItem = (name: string, itemBrand: string): string => {
+      const sd = structuredData[name] || {}
+      if (name === 'Oil Change')     return sd.oilBrand       || itemBrand
+      if (name === 'Tyre Change')    return sd.tyreBrand      || itemBrand
+      if (name === 'AC Gas Refill')  return sd.refrigerantType || itemBrand
+      return itemBrand
+    }
     const description = allItems
-      .map(i => i.brand ? `${i.name} (${i.brand})` : i.name)
+      .map(i => { const b = brandForItem(i.name, i.brand); return b ? `${i.name} (${b})` : i.name })
       .join(', ')
-    const brands = [...new Set(allItems.map(i => i.brand).filter(Boolean))].join(', ')
+    const brands = [...new Set(allItems.map(i => brandForItem(i.name, i.brand)).filter(Boolean))].join(', ')
 
     // Only include structured data for items that are actually selected
     const selectedNames = new Set(allItems.map(i => i.name))
