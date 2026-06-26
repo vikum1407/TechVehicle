@@ -68,6 +68,13 @@ router.post('/', async (req: AuthRequest, res) => {
         { bookingId: booking.id, screen: 'garage' }
       )
     }
+    await createNotification(
+      prisma, garage.ownerPhone,
+      'booking_request',
+      booking.vehicle.registrationNo,
+      `New booking request for ${dateStr}${slotLabel ? ` · ${slotLabel}` : ''}${serviceLabel}`,
+      { screen: 'garage', bookingId: booking.id }
+    )
 
     res.status(201).json(booking)
   } catch (error) {
@@ -156,10 +163,31 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   try {
     const booking = await prisma.booking.findFirst({
       where: { id, ownerPhone: req.phoneNumber! },
+      include: { vehicle: true, garage: true },
     })
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
 
     await prisma.booking.update({ where: { id }, data: { status: 'cancelled' } })
+
+    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: booking.garage.ownerPhone } })
+    const prefs = parsePrefs(garageOwner?.notificationPrefs)
+    const dateStr = new Date(booking.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    if (prefs.booking) {
+      await sendPush(
+        garageOwner?.pushToken,
+        'Booking Cancelled',
+        `${booking.vehicle.registrationNo} — cancelled their booking for ${dateStr}`,
+        { screen: 'garage' }
+      )
+    }
+    await createNotification(
+      prisma, booking.garage.ownerPhone,
+      'booking_cancelled',
+      booking.vehicle.registrationNo,
+      `Owner cancelled their booking for ${dateStr}`,
+      { screen: 'garage' }
+    )
+
     res.json({ success: true })
   } catch (error) {
     res.status(500).json({ error: 'Failed to cancel booking' })
