@@ -276,41 +276,6 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         placeholder="Type anything else that was done..."
       />
 
-      {/* ── Brand picker ──────────────────────────────────── */}
-      {itemsNeedingBrand.length > 0 && (
-        <View style={styles.brandsSection}>
-          <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
-          <Text style={styles.brandsSectionSub}>Select brand for each replaced part</Text>
-
-          {itemsNeedingBrand.map(item => {
-            const brands = ITEM_BRANDS[item.name] || CATEGORY_BRANDS[item.category] || CATEGORY_BRANDS['General & Other']
-            return (
-              <View key={item.name} style={styles.brandRow}>
-                <Text style={styles.brandItemName}>{item.name}</Text>
-                <View style={styles.chipRow}>
-                  {brands.map(b => (
-                    <TouchableOpacity
-                      key={b}
-                      style={[styles.brandChip, item.brand === b && styles.brandChipSelected]}
-                      onPress={() => setBrandForItem(item.name, b)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.brandChipText, item.brand === b && styles.brandChipTextSelected]}>{b}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput
-                  style={[styles.input, { marginTop: 6 }]}
-                  value={customBrands[item.name] || ''}
-                  onChangeText={v => setCustomBrandForItem(item.name, v)}
-                  placeholder="Or type brand..."
-                />
-              </View>
-            )
-          })}
-        </View>
-      )}
-
       {/* ── Structured details section ────────────────────── */}
       {itemsWithStructured.length > 0 && (
         <View style={styles.structuredSection}>
@@ -360,6 +325,41 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
                     </View>
                   )
                 })}
+              </View>
+            )
+          })}
+        </View>
+      )}
+
+      {/* ── Brand picker ──────────────────────────────────── */}
+      {itemsNeedingBrand.length > 0 && (
+        <View style={styles.brandsSection}>
+          <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
+          <Text style={styles.brandsSectionSub}>Select brand for each replaced part</Text>
+
+          {itemsNeedingBrand.map(item => {
+            const brands = ITEM_BRANDS[item.name] || CATEGORY_BRANDS[item.category] || CATEGORY_BRANDS['General & Other']
+            return (
+              <View key={item.name} style={styles.brandRow}>
+                <Text style={styles.brandItemName}>{item.name}</Text>
+                <View style={styles.chipRow}>
+                  {brands.map(b => (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.brandChip, item.brand === b && styles.brandChipSelected]}
+                      onPress={() => setBrandForItem(item.name, b)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.brandChipText, item.brand === b && styles.brandChipTextSelected]}>{b}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.input, { marginTop: 6 }]}
+                  value={customBrands[item.name] || ''}
+                  onChangeText={v => setCustomBrandForItem(item.name, v)}
+                  placeholder="Or type brand..."
+                />
               </View>
             )
           })}
