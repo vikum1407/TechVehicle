@@ -38,11 +38,12 @@
 Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `vehicleType String?`, `purchaseDate DateTime?`, `ownerCount Int?`, `vehicleNotes String?` on Vehicle model.
 
 ### Next Session — Start Here
-**Next task: PDF export** — export full vehicle service history as a PDF the owner can share or print. Useful at point of sale as a backup alongside the in-app transfer.
-- Use `expo-print` + `expo-sharing` (both work in Expo Go, no EAS Build needed)
-- Generate HTML string from vehicle data → `Print.printToFileAsync()` → `Sharing.shareAsync()`
-- Entry point: "Export PDF" button on VehicleDashboard or History view
-- Content: vehicle details header, service records timeline, fuel logs summary, expense summary
+**Next task: Prediction Engine (Phase 5 Step 1)** — rule-based service predictions from a curated interval database.
+- Already have a prediction engine skeleton (`backend/src/routes/predictions.ts`) — check what's there first
+- Build/complete the service interval database for key Sri Lanka models: Toyota (Aqua, Axio, Prius, KDH), Honda (Fit/Jazz, Vezel), Suzuki (Alto, Wagon R), Mitsubishi (L300), Bajaj (RE three-wheeler)
+- Rule engine: compare vehicle's last service record of each type against the interval to compute remaining km / overdue status
+- Already surfaced on dashboard (top 3 urgent predictions card) and PredictionsScreen
+- Push notifications for service-due alerts: already wired at login via `triggerServiceNotifications`
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
