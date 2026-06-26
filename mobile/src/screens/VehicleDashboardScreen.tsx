@@ -6,6 +6,7 @@ import {
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
+import { exportVehiclePdf } from '../utils/pdfExport'
 
 type Vehicle = {
   id: string
@@ -176,6 +177,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
   const [viewingPhoto, setViewingPhoto] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const loadRecords = async () => {
     setLoading(true)
@@ -326,6 +328,21 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         },
       ]
     )
+  }
+
+  const handleExportPdf = async () => {
+    setExporting(true)
+    try {
+      const [fuelLogs, expenses] = await Promise.all([
+        api.getFuelLogs(token, vehicle.id).catch(() => []),
+        api.getExpenses(token, vehicle.id).catch(() => []),
+      ])
+      await exportVehiclePdf(vehicle, records, fuelLogs, expenses)
+    } catch (e: any) {
+      Alert.alert('Export failed', e.message || 'Could not generate PDF')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const toggleBookingMessages = async (bookingId: string) => {
@@ -871,6 +888,16 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Service History</Text>
+          <TouchableOpacity
+            style={[styles.exportBtn, exporting && styles.exportBtnDisabled]}
+            onPress={handleExportPdf}
+            disabled={exporting}
+          >
+            {exporting
+              ? <ActivityIndicator size="small" color="#1a73e8" />
+              : <Text style={styles.exportBtnText}>📄 Export PDF</Text>
+            }
+          </TouchableOpacity>
         </View>
 
         {!pendingTransfer && (
@@ -970,8 +997,16 @@ const styles = StyleSheet.create({
 
   sectionHeader: {
     paddingHorizontal: 16, marginBottom: 8, marginTop: 4,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 5, minWidth: 36, justifyContent: 'center',
+  },
+  exportBtnDisabled: { opacity: 0.4 },
+  exportBtnText: { fontSize: 12, color: '#1a73e8', fontWeight: '700' },
   loader: { marginTop: 40 },
   emptyInline: { alignItems: 'center', padding: 32, marginTop: 8 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
