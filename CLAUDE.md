@@ -28,6 +28,8 @@
 - Role selection: new users (and existing users without a role) see a role selection screen after login — Vehicle Owner or Garage/Service Center; role stored in SecureStore
 - Service Record Engine — vehicle type filtering (12 types: motorcycle, electric-cycle, car-petrol, car-diesel, suv-petrol, suv-diesel, three-wheeler, van, pickup, electric, truck, heavy); categories filtered per type; Onboarding Wizard milestones filtered per type
 - Push notifications — full coverage: booking created → garage push+bell; booking confirmed → owner push+bell; booking cancelled → garage push+bell; service submitted → owner push+bell; submission accepted → garage push+bell; booking notes → both parties push+bell
+- Structured analytics data capture: Oil Change (grade/type), Tyre Change (size/count), Emission Test (CO%/HC ppm/CO2%/Lambda/Pass-Fail), AC Gas Refill (grams) — stored in `structuredData Json?` on ServiceRecord
+- Analytics screen structured cards: Oil Change History, Tyre History (km-per-set), Emission Test History (with rising-HC and fail warnings), AC Refill (with leak frequency warning)
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
@@ -38,12 +40,8 @@
 Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `vehicleType String?`, `purchaseDate DateTime?`, `ownerCount Int?`, `vehicleNotes String?` on Vehicle model.
 
 ### Next Session — Start Here
-**Next task: Structured data fields for analytics** — when specific service categories are selected in Add Service Record, show additional structured input fields:
-- **Tyre Change** → tyre brand, size (e.g. 185/65R15), km at change
-- **Oil Change** → oil brand, grade (10W-40, 5W-30, etc.), type (Mineral/Semi-Synthetic/Full Synthetic)
-- **Emission Test / Carbon Test** → CO%, HC ppm, CO2%, Lambda, Pass/Fail, testing station name
-- **AC Gas Refill** → refrigerant type (R134a/R1234yf), quantity filled (grams)
-These feed the Special Analytics data points described in CLAUDE.md (tyre ratio, oil grade vs manufacturer rec, emission trends, AC fuel impact). Store in `structuredData JSON?` field on ServiceRecord.
+**Next task: Receipt photo viewer** — tapping a photo thumbnail in service record history cards should open a full-screen photo viewer (or native share sheet).
+Also consider: search / filter on the history timeline (filter by category, date range, or mileage range).
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.

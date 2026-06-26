@@ -15,6 +15,24 @@ type Props = {
   onBack: () => void
 }
 
+type OilHistoryItem = {
+  date: string; km: number | null
+  grade: string | null; type: string | null; brand: string | null; intervalKm: number | null
+}
+type TyreHistoryItem = {
+  date: string; km: number | null
+  size: string | null; brand: string | null; tyresChanged: string | null; kmThisSet: number | null
+}
+type EmissionHistoryItem = {
+  date: string; km: number | null
+  co: number | null; hc: number | null; co2: number | null; lambda: number | null
+  result: string | null; station: string | null
+}
+type AcHistoryItem = {
+  date: string; km: number | null
+  refrigerantType: string | null; quantityGrams: number | null
+}
+
 type Analytics = {
   totalSpend: number
   serviceCost: number
@@ -28,11 +46,15 @@ type Analytics = {
   mileageTrend: { mileage: number; label: string }[]
   fuelEfficiencyTrend: { kmPerL: number; label: string }[]
   fuelCostTrend: { cost: number; label: string }[]
+  oilAnalytics: { history: OilHistoryItem[] } | null
+  tyreAnalytics: { history: TyreHistoryItem[]; currentSize: string | null } | null
+  emissionAnalytics: { history: EmissionHistoryItem[]; warning: string | null } | null
+  acAnalytics: { history: AcHistoryItem[]; refillCount12m: number; warning: string | null } | null
 }
 
 const COLORS = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// ── Shared helpers ─────────────────────────────────────────────────────────────
 
 function buildLinePath(pts: { x: number; y: number }[]): string {
   let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
@@ -43,37 +65,29 @@ function buildLinePath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-function labelStep(count: number) {
-  return Math.max(1, Math.ceil(count / 4))
+function labelStep(count: number) { return Math.max(1, Math.ceil(count / 4)) }
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 
-// ── Mileage line chart ────────────────────────────────────────────────────────
+// ── Mileage line chart ─────────────────────────────────────────────────────────
 
 function MileageChart({ data }: { data: { mileage: number; label: string }[] }) {
-  if (data.length < 2) {
-    return <Text style={cs.noData}>Log more fuel fill-ups to see mileage growth</Text>
-  }
-
-  const W = 320, H = 150
-  const pL = 44, pR = 10, pT = 14, pB = 28
+  if (data.length < 2) return <Text style={cs.noData}>Log more fuel fill-ups to see mileage growth</Text>
+  const W = 320, H = 150, pL = 44, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
-
   const vals = data.map(d => d.mileage)
-  const minV = Math.min(...vals), maxV = Math.max(...vals)
-  const range = maxV - minV || 1
-
+  const minV = Math.min(...vals), maxV = Math.max(...vals), range = maxV - minV || 1
   const px = (i: number) => pL + (i / (data.length - 1)) * plotW
   const py = (v: number) => pT + plotH - ((v - minV) / range) * plotH
   const pts = data.map((d, i) => ({ x: px(i), y: py(d.mileage) }))
-
   const linePath = buildLinePath(pts)
   const fillPath = linePath + ` L ${pts[pts.length - 1].x} ${pT + plotH} L ${pts[0].x} ${pT + plotH} Z`
-
   const step = labelStep(data.length)
   const show = (i: number) => i === 0 || i % step === 0 || i === data.length - 1
   const fmtKm = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
   const color = '#1a73e8'
-
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <Defs>
@@ -86,46 +100,32 @@ function MileageChart({ data }: { data: { mileage: number; label: string }[] }) 
       <SvgLine x1={pL} y1={pT + plotH} x2={W - pR} y2={pT + plotH} stroke="#f0f0f0" strokeWidth="1" />
       <Path d={fillPath} fill="url(#gMileage)" />
       <Path d={linePath} stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#fff" stroke={color} strokeWidth="2" />
-      ))}
-      {data.map((d, i) => show(i) ? (
-        <SvgText key={i} x={pts[i].x} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText>
-      ) : null)}
+      {pts.map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#fff" stroke={color} strokeWidth="2" />)}
+      {data.map((d, i) => show(i) ? <SvgText key={i} x={pts[i].x} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText> : null)}
       <SvgText x={pL - 4} y={pT + 5} textAnchor="end" fontSize="9" fill="#bbb">{fmtKm(maxV)}</SvgText>
       <SvgText x={pL - 4} y={pT + plotH} textAnchor="end" fontSize="9" fill="#bbb">{fmtKm(minV)}</SvgText>
     </Svg>
   )
 }
 
-// ── Fuel efficiency line chart ────────────────────────────────────────────────
+// ── Fuel efficiency line chart ─────────────────────────────────────────────────
 
 function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }) {
-  if (data.length < 2) {
-    return <Text style={cs.noData}>Log at least 3 fill-ups with litres to see efficiency trend</Text>
-  }
-
-  const W = 320, H = 140
-  const pL = 34, pR = 10, pT = 14, pB = 28
+  if (data.length < 2) return <Text style={cs.noData}>Log at least 3 fill-ups with litres to see efficiency trend</Text>
+  const W = 320, H = 140, pL = 34, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
-
   const vals = data.map(d => d.kmPerL)
   const rawMin = Math.min(...vals), rawMax = Math.max(...vals)
   const pad = (rawMax - rawMin) * 0.15 || 1
-  const minV = Math.max(0, rawMin - pad), maxV = rawMax + pad
-  const range = maxV - minV
-
+  const minV = Math.max(0, rawMin - pad), maxV = rawMax + pad, range = maxV - minV
   const px = (i: number) => pL + (i / (data.length - 1)) * plotW
   const py = (v: number) => pT + plotH - ((v - minV) / range) * plotH
   const pts = data.map((d, i) => ({ x: px(i), y: py(d.kmPerL) }))
-
   const linePath = buildLinePath(pts)
   const fillPath = linePath + ` L ${pts[pts.length - 1].x} ${pT + plotH} L ${pts[0].x} ${pT + plotH} Z`
-
   const step = labelStep(data.length)
   const show = (i: number) => i === 0 || i % step === 0 || i === data.length - 1
   const color = '#34a853'
-
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <Defs>
@@ -138,40 +138,29 @@ function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }
       <SvgLine x1={pL} y1={pT + plotH} x2={W - pR} y2={pT + plotH} stroke="#f0f0f0" strokeWidth="1" />
       <Path d={fillPath} fill="url(#gEff)" />
       <Path d={linePath} stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#fff" stroke={color} strokeWidth="2" />
-      ))}
-      {data.map((d, i) => show(i) ? (
-        <SvgText key={i} x={pts[i].x} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText>
-      ) : null)}
+      {pts.map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#fff" stroke={color} strokeWidth="2" />)}
+      {data.map((d, i) => show(i) ? <SvgText key={i} x={pts[i].x} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText> : null)}
       <SvgText x={pL - 4} y={pT + 5} textAnchor="end" fontSize="9" fill="#bbb">{rawMax.toFixed(1)}</SvgText>
       <SvgText x={pL - 4} y={pT + plotH} textAnchor="end" fontSize="9" fill="#bbb">{rawMin.toFixed(1)}</SvgText>
     </Svg>
   )
 }
 
-// ── Fuel cost bar chart ───────────────────────────────────────────────────────
+// ── Fuel cost bar chart ────────────────────────────────────────────────────────
 
 function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
-  if (data.length === 0) {
-    return <Text style={cs.noData}>Log fill-ups with cost to see spending per fill-up</Text>
-  }
-
-  const W = 320, H = 120
-  const pL = 40, pR = 10, pT = 10, pB = 28
+  if (data.length === 0) return <Text style={cs.noData}>Log fill-ups with cost to see spending per fill-up</Text>
+  const W = 320, H = 120, pL = 40, pR = 10, pT = 10, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
-
   const maxV = Math.max(...data.map(d => d.cost))
   const gap = plotW / data.length
   const barW = Math.min(28, Math.max(12, gap * 0.55))
   const bx = (i: number) => pL + i * gap + gap / 2
   const bh = (v: number) => Math.max(4, (v / maxV) * plotH)
-
   const step = labelStep(data.length)
   const show = (i: number) => i === 0 || i % step === 0 || i === data.length - 1
   const color = '#1a73e8'
   const fmtTop = maxV >= 1000 ? `${(maxV / 1000).toFixed(0)}k` : `${Math.round(maxV)}`
-
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <SvgLine x1={pL} y1={pT + plotH} x2={W - pR} y2={pT + plotH} stroke="#f0f0f0" strokeWidth="1" />
@@ -181,9 +170,7 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
         return (
           <React.Fragment key={i}>
             <Rect x={bx(i) - barW / 2} y={bY} width={barW} height={bHeight} rx={4} fill={color} opacity={0.75} />
-            {show(i) && (
-              <SvgText x={bx(i)} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText>
-            )}
+            {show(i) && <SvgText x={bx(i)} y={H - 5} textAnchor="middle" fontSize="9" fill="#bbb">{d.label}</SvgText>}
           </React.Fragment>
         )
       })}
@@ -192,7 +179,171 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
   )
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
+// ── Structured analytics cards ─────────────────────────────────────────────────
+
+function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
+  const hasStructured = data.history.some(h => h.grade || h.type)
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Oil Change History</Text>
+        <Text style={styles.sectionBadge}>{data.history.length} records</Text>
+      </View>
+      {!hasStructured && (
+        <Text style={cs.noData}>Add oil grade and type when logging your next oil change to see analytics here</Text>
+      )}
+      {data.history.map((item, i) => (
+        <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
+          <View style={styles.tableCol1}>
+            <Text style={styles.tableDate}>{fmtDate(item.date)}</Text>
+            {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
+          </View>
+          <View style={styles.tableCol2}>
+            {item.grade
+              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.grade}</Text></View>
+              : <Text style={styles.tableDash}>—</Text>
+            }
+            {item.type && <Text style={styles.tableSubText}>{item.type}</Text>}
+          </View>
+          <View style={styles.tableCol3}>
+            {item.brand && <Text style={styles.tableMeta}>{item.brand}</Text>}
+            {item.intervalKm && (
+              <Text style={styles.tableInterval}>{item.intervalKm.toLocaleString()} km</Text>
+            )}
+          </View>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Tyre Change History</Text>
+        {data.currentSize && (
+          <View style={styles.sizeBadge}><Text style={styles.sizeBadgeText}>{data.currentSize}</Text></View>
+        )}
+      </View>
+      {data.history.map((item, i) => (
+        <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
+          <View style={styles.tableCol1}>
+            <Text style={styles.tableDate}>{fmtDate(item.date)}</Text>
+            {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
+          </View>
+          <View style={styles.tableCol2}>
+            {item.size
+              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.size}</Text></View>
+              : <Text style={styles.tableDash}>—</Text>
+            }
+            {item.brand && <Text style={styles.tableSubText}>{item.brand}</Text>}
+          </View>
+          <View style={styles.tableCol3}>
+            {item.tyresChanged && <Text style={styles.tableMeta}>{item.tyresChanged} tyre{item.tyresChanged !== '1' ? 's' : ''}</Text>}
+            {item.kmThisSet != null && (
+              <Text style={styles.tableInterval}>{item.kmThisSet.toLocaleString()} km/set</Text>
+            )}
+          </View>
+        </View>
+      ))}
+      {data.history.length < 2 && (
+        <Text style={cs.noData}>Log a second tyre change to see km-per-set calculation</Text>
+      )}
+    </View>
+  )
+}
+
+function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics']> }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Emission Test History</Text>
+        <Text style={styles.sectionBadge}>{data.history.length} tests</Text>
+      </View>
+      {data.warning && (
+        <View style={[styles.warnBanner, data.warning.includes('FAIL') && styles.warnBannerRed]}>
+          <Text style={styles.warnIcon}>{data.warning.includes('FAIL') ? '🚨' : '⚠️'}</Text>
+          <Text style={styles.warnText}>{data.warning}</Text>
+        </View>
+      )}
+      {data.history.map((item, i) => {
+        const passed = item.result === 'Pass'
+        const failed = item.result === 'Fail'
+        const hasReadings = item.co != null || item.hc != null
+        return (
+          <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
+            <View style={styles.tableCol1}>
+              <Text style={styles.tableDate}>{fmtDate(item.date)}</Text>
+              {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
+            </View>
+            <View style={[styles.tableCol2, { gap: 3 }]}>
+              {item.co != null  && <Text style={styles.emissionVal}>CO: <Text style={styles.emissionNum}>{item.co}%</Text></Text>}
+              {item.hc != null  && <Text style={styles.emissionVal}>HC: <Text style={styles.emissionNum}>{item.hc} ppm</Text></Text>}
+              {item.co2 != null && <Text style={styles.emissionVal}>CO₂: <Text style={styles.emissionNum}>{item.co2}%</Text></Text>}
+              {!hasReadings && <Text style={styles.tableDash}>No readings</Text>}
+            </View>
+            <View style={styles.tableCol3}>
+              {item.result && (
+                <View style={[styles.resultBadge, passed ? styles.resultPass : failed ? styles.resultFail : styles.resultNeutral]}>
+                  <Text style={[styles.resultText, (passed || failed) && { color: '#fff' }]}>
+                    {passed ? '✓ Pass' : failed ? '✗ Fail' : item.result}
+                  </Text>
+                </View>
+              )}
+              {item.station && <Text style={styles.tableMeta} numberOfLines={1}>{item.station}</Text>}
+            </View>
+          </View>
+        )
+      })}
+      {!data.history.some(h => h.co != null || h.hc != null) && (
+        <Text style={cs.noData}>Enter CO% and HC ppm readings when logging next emission test</Text>
+      )}
+    </View>
+  )
+}
+
+function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>AC System — Refill History</Text>
+        <Text style={styles.sectionBadge}>{data.refillCount12m} past year</Text>
+      </View>
+      {data.warning && (
+        <View style={styles.warnBanner}>
+          <Text style={styles.warnIcon}>⚠️</Text>
+          <Text style={styles.warnText}>{data.warning}</Text>
+        </View>
+      )}
+      {data.history.map((item, i) => (
+        <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
+          <View style={styles.tableCol1}>
+            <Text style={styles.tableDate}>{fmtDate(item.date)}</Text>
+            {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
+          </View>
+          <View style={styles.tableCol2}>
+            {item.refrigerantType
+              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.refrigerantType}</Text></View>
+              : <Text style={styles.tableDash}>—</Text>
+            }
+          </View>
+          <View style={styles.tableCol3}>
+            {item.quantityGrams != null
+              ? <Text style={styles.tableInterval}>{item.quantityGrams}g</Text>
+              : <Text style={styles.tableDash}>— g</Text>
+            }
+          </View>
+        </View>
+      ))}
+      {!data.history.some(h => h.quantityGrams != null) && (
+        <Text style={cs.noData}>Enter grams filled when logging next AC refill</Text>
+      )}
+    </View>
+  )
+}
+
+// ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
   const [data, setData] = useState<Analytics | null>(null)
@@ -205,14 +356,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1a73e8" />
-      </View>
-    )
-  }
-
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#1a73e8" /></View>
   if (!data) return null
 
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
@@ -244,21 +388,17 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
       <View style={styles.statRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Cost / km</Text>
-          <Text style={styles.statValue}>
-            {data.costPerKm != null ? 'LKR ' + data.costPerKm.toFixed(1) : '—'}
-          </Text>
+          <Text style={styles.statValue}>{data.costPerKm != null ? 'LKR ' + data.costPerKm.toFixed(1) : '—'}</Text>
           <Text style={styles.statSub}>per kilometre driven</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Fuel Economy</Text>
-          <Text style={styles.statValue}>
-            {data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + ' km/L' : '—'}
-          </Text>
+          <Text style={styles.statValue}>{data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + ' km/L' : '—'}</Text>
           <Text style={styles.statSub}>average efficiency</Text>
         </View>
       </View>
 
-      {/* Mileage growth chart */}
+      {/* Mileage growth */}
       {(data.mileageTrend?.length ?? 0) > 0 && (
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
@@ -272,7 +412,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
         </View>
       )}
 
-      {/* Fuel efficiency trend */}
+      {/* Fuel efficiency */}
       {((data.fuelEfficiencyTrend?.length ?? 0) > 0 || (data.fuelCostTrend?.length ?? 0) > 0) && (
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
@@ -310,10 +450,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
               <View style={styles.barTrack}>
                 <View style={[
                   styles.barFill,
-                  {
-                    width: (Math.round((item.amount / maxBreakdown) * 100) + '%') as any,
-                    backgroundColor: COLORS[i % COLORS.length],
-                  }
+                  { width: (Math.round((item.amount / maxBreakdown) * 100) + '%') as any, backgroundColor: COLORS[i % COLORS.length] }
                 ]} />
               </View>
               <Text style={styles.catAmount}>{fmt(item.amount)}</Text>
@@ -330,9 +467,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
             const barH = maxMonthly > 0 ? Math.round((m.amount / maxMonthly) * 80) : 0
             return (
               <View key={i} style={styles.monthCol}>
-                {m.amount > 0 && (
-                  <Text style={styles.monthAmt}>{Math.round(m.amount / 1000)}k</Text>
-                )}
+                {m.amount > 0 && <Text style={styles.monthAmt}>{Math.round(m.amount / 1000)}k</Text>}
                 <View style={styles.monthBg}>
                   <View style={[styles.monthFill, { height: Math.max(barH, m.amount > 0 ? 4 : 0) }]} />
                 </View>
@@ -358,14 +493,26 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
           <Text style={styles.countLbl}>Expenses</Text>
         </View>
       </View>
+
+      {/* ── Structured analytics ─────────────────────────── */}
+      {(data.oilAnalytics || data.tyreAnalytics || data.emissionAnalytics || data.acAnalytics) && (
+        <View style={styles.structuredDivider}>
+          <Text style={styles.structuredDividerText}>Detailed Service Analytics</Text>
+        </View>
+      )}
+
+      {data.oilAnalytics      && <OilCard      data={data.oilAnalytics}      />}
+      {data.tyreAnalytics     && <TyreCard     data={data.tyreAnalytics}     />}
+      {data.emissionAnalytics && <EmissionCard data={data.emissionAnalytics} />}
+      {data.acAnalytics       && <AcCard       data={data.acAnalytics}       />}
     </ScrollView>
   )
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Styles ─────────────────────────────────────────────────────────────────────
 
 const cs = StyleSheet.create({
-  noData: { fontSize: 12, color: '#bbb', fontStyle: 'italic', textAlign: 'center', paddingVertical: 16 },
+  noData: { fontSize: 12, color: '#bbb', fontStyle: 'italic', textAlign: 'center', paddingVertical: 12 },
 })
 
 const styles = StyleSheet.create({
@@ -405,7 +552,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 14 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  sectionBadge: { fontSize: 11, color: '#888', fontWeight: '600' },
+
   catRow: { marginBottom: 12 },
   catLabel: { fontSize: 12, color: '#555', fontWeight: '600', marginBottom: 5 },
   barTrack: { height: 10, backgroundColor: '#f0f0f0', borderRadius: 5, marginBottom: 3, overflow: 'hidden' },
@@ -415,10 +565,7 @@ const styles = StyleSheet.create({
   monthlyChart: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 6 },
   monthCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
   monthAmt: { fontSize: 9, color: '#888', marginBottom: 3 },
-  monthBg: {
-    width: '80%', height: 80, backgroundColor: '#f0f0f0',
-    borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden',
-  },
+  monthBg: { width: '80%', height: 80, backgroundColor: '#f0f0f0', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
   monthFill: { backgroundColor: '#1a73e8', borderRadius: 4, width: '100%' },
   monthLbl: { fontSize: 9, color: '#888', marginTop: 5, textAlign: 'center' },
 
@@ -429,4 +576,48 @@ const styles = StyleSheet.create({
   },
   countNum: { fontSize: 28, fontWeight: '800', color: '#1a73e8', marginBottom: 4 },
   countLbl: { fontSize: 11, color: '#888', fontWeight: '600', textAlign: 'center' },
+
+  // Structured analytics divider
+  structuredDivider: { marginTop: 8, marginBottom: 16, alignItems: 'center' },
+  structuredDividerText: { fontSize: 11, color: '#aaa', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+
+  // Table rows used in all 4 structured cards
+  tableRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f4f4f4',
+  },
+  tableRowFirst: { borderTopWidth: 0 },
+  tableCol1: { width: 90 },
+  tableCol2: { flex: 1 },
+  tableCol3: { width: 80, alignItems: 'flex-end' },
+  tableDate: { fontSize: 12, color: '#333', fontWeight: '600' },
+  tableKm: { fontSize: 10, color: '#aaa', marginTop: 2 },
+  tableDash: { fontSize: 13, color: '#ccc' },
+  tableMeta: { fontSize: 11, color: '#888', marginTop: 3 },
+  tableSubText: { fontSize: 11, color: '#888', marginTop: 2 },
+  tableInterval: { fontSize: 11, color: '#1a73e8', fontWeight: '600', marginTop: 3 },
+
+  gradeBadge: { backgroundColor: '#e8f0fe', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
+  gradeBadgeText: { fontSize: 12, color: '#1a55a8', fontWeight: '700' },
+  sizeBadge: { backgroundColor: '#e8f5e9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  sizeBadgeText: { fontSize: 11, color: '#2e7d32', fontWeight: '700' },
+
+  // Emission specific
+  emissionVal: { fontSize: 11, color: '#555' },
+  emissionNum: { fontWeight: '700', color: '#333' },
+  resultBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-end' },
+  resultPass: { backgroundColor: '#34a853' },
+  resultFail: { backgroundColor: '#ea4335' },
+  resultNeutral: { backgroundColor: '#f0f0f0' },
+  resultText: { fontSize: 11, fontWeight: '700', color: '#555' },
+
+  // Warning banners
+  warnBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#fff8e1', borderRadius: 8, padding: 10, marginBottom: 12,
+    borderLeftWidth: 3, borderLeftColor: '#f9a825',
+  },
+  warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
+  warnIcon: { fontSize: 14, marginTop: 1 },
+  warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
 })

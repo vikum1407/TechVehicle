@@ -7,6 +7,14 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+// Helper: extract brand from a single item in the comma-joined description
+// e.g. "Oil Change (Castrol), Oil Filter" → extractBrand("Oil Change") → "Castrol"
+function extractBrand(description: string, item: string): string | null {
+  const re = new RegExp(`${item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\(([^)]+)\\)`, 'i')
+  const m = description.match(re)
+  return m ? m[1].trim() : null
+}
+
 router.get('/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
   try {
@@ -16,7 +24,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
 
     const [serviceRecords, fuelLogs, expenses] = await Promise.all([
-      prisma.serviceRecord.findMany({ where: { vehicleId } }),
+      prisma.serviceRecord.findMany({ where: { vehicleId }, orderBy: { date: 'asc' } }),
       prisma.fuelLog.findMany({ where: { vehicleId }, orderBy: { date: 'asc' } }),
       prisma.expense.findMany({ where: { vehicleId } }),
     ])
@@ -80,13 +88,11 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       return { month: label, amount }
     })
 
-    // Mileage trend — odometer readings over time
     const mileageTrend = fuelLogs.slice(-12).map(l => ({
       mileage: l.mileage,
       label: new Date(l.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
     }))
 
-    // Fuel efficiency per fill-up interval (km/L)
     const efficiencyPoints: { kmPerL: number; label: string }[] = []
     for (let i = 1; i < fuelLogs.length; i++) {
       const prev = fuelLogs[i - 1]
@@ -100,7 +106,6 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     }
     const fuelEfficiencyTrend = efficiencyPoints.slice(-12)
 
-    // Fuel cost per fill-up
     const fuelCostTrend = fuelLogs
       .filter(l => l.cost != null && (l.cost as number) > 0)
       .slice(-10)
@@ -108,6 +113,122 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
         cost: l.cost as number,
         label: new Date(l.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
       }))
+
+    // ── Structured analytics ───────────────────────────────────────────────────
+
+    // Oil Change History
+    const oilRecords = serviceRecords
+      .filter(r => r.description.toLowerCase().includes('oil change'))
+      .slice(-8)
+
+    let oilAnalytics = null
+    if (oilRecords.length > 0) {
+      const history = oilRecords.map((r, i) => {
+        const sd = (r.structuredData as any)?.['Oil Change'] || {}
+        const prev = oilRecords[i - 1]
+        return {
+          date: r.date.toISOString(),
+          km: r.mileage,
+          grade: sd.oilGrade || null,
+          type: sd.oilType || null,
+          brand: extractBrand(r.description, 'Oil Change') || r.brand || null,
+          intervalKm: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
+        }
+      }).reverse()  // most recent first
+      oilAnalytics = { history }
+    }
+
+    // Tyre Change History
+    const tyreRecords = serviceRecords
+      .filter(r => r.description.toLowerCase().includes('tyre change'))
+      .slice(-5)
+
+    let tyreAnalytics = null
+    if (tyreRecords.length > 0) {
+      const history = tyreRecords.map((r, i) => {
+        const sd = (r.structuredData as any)?.['Tyre Change'] || {}
+        const prev = tyreRecords[i - 1]
+        return {
+          date: r.date.toISOString(),
+          km: r.mileage,
+          size: sd.tyreSize || null,
+          brand: extractBrand(r.description, 'Tyre Change') || r.brand || null,
+          tyresChanged: sd.tyresChanged || null,
+          kmThisSet: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
+        }
+      }).reverse()
+      tyreAnalytics = {
+        history,
+        currentSize: history[0]?.size || null,
+      }
+    }
+
+    // Emission Test History
+    const emissionRecords = serviceRecords
+      .filter(r => r.description.toLowerCase().includes('emission test'))
+
+    let emissionAnalytics = null
+    if (emissionRecords.length > 0) {
+      const history = emissionRecords.map(r => {
+        const sd = (r.structuredData as any)?.['Emission Test / Carbon Test'] || {}
+        return {
+          date: r.date.toISOString(),
+          km: r.mileage,
+          co:     sd.co     ? parseFloat(sd.co)     : null,
+          hc:     sd.hc     ? parseFloat(sd.hc)     : null,
+          co2:    sd.co2    ? parseFloat(sd.co2)    : null,
+          lambda: sd.lambda ? parseFloat(sd.lambda) : null,
+          result:  sd.result  || null,
+          station: sd.station || null,
+        }
+      })
+
+      let warning: string | null = null
+      const lastEntry = history[history.length - 1]
+
+      if (lastEntry.result === 'Fail') {
+        warning = 'Last emission test FAILED. Engine service recommended before next revenue licence renewal.'
+      } else {
+        const hcReadings = history.map(e => e.hc).filter(h => h !== null) as number[]
+        if (hcReadings.length >= 2) {
+          const first = hcReadings[0]
+          const last  = hcReadings[hcReadings.length - 1]
+          if (last > first * 1.5 && last > 150) {
+            warning = `HC reading increased from ${first} to ${last} ppm. This may indicate early oil burning — consider a compression test.`
+          }
+        }
+      }
+
+      emissionAnalytics = { history: history.slice().reverse(), warning }
+    }
+
+    // AC Gas Refill History
+    const acRecords = serviceRecords
+      .filter(r => r.description.toLowerCase().includes('ac gas refill'))
+
+    let acAnalytics = null
+    if (acRecords.length > 0) {
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      const refillCount12m = acRecords.filter(r => new Date(r.date) > oneYearAgo).length
+
+      const history = acRecords.slice(-6).map(r => {
+        const sd = (r.structuredData as any)?.['AC Gas Refill'] || {}
+        return {
+          date: r.date.toISOString(),
+          km: r.mileage,
+          refrigerantType: extractBrand(r.description, 'AC Gas Refill') || r.brand || null,
+          quantityGrams: sd.quantityGrams ? parseFloat(sd.quantityGrams) : null,
+        }
+      }).reverse()
+
+      let warning: string | null = null
+      if (refillCount12m >= 2) {
+        warning = `${refillCount12m} AC refills in the past 12 months. Frequent refills suggest a refrigerant leak — a leak test could save significant fuel cost.`
+      }
+
+      acAnalytics = { history, refillCount12m, warning }
+    }
 
     res.json({
       totalSpend, serviceCost, fuelCost, expenseTotal,
@@ -118,6 +239,10 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
         fuelLogs: fuelLogs.length,
         expenses: expenses.length,
       },
+      oilAnalytics,
+      tyreAnalytics,
+      emissionAnalytics,
+      acAnalytics,
     })
   } catch (error) {
     console.error('GET /analytics error:', error)
