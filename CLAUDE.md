@@ -52,9 +52,6 @@ This separates the vehicle owner experience from the garage owner experience cle
 - MyVehiclesScreen: logout is a proper red-bordered button
 - ServiceSubmission.shareSessionId is now nullable in schema
 
-### Known UI Bugs — Fix After Service Record Engine
-- **OnboardingWizardScreen**: The "Skip" toggle button overlaps with the milestone question text on smaller screens. The card question text needs `flexShrink: 1` or a proper line clamp, and the toggle needs to be right-aligned with a fixed width rather than floating. Fix after vehicle type filtering is complete.
-
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
 

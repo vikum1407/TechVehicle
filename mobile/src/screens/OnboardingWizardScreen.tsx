@@ -168,7 +168,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
             <TouchableOpacity style={styles.cardHeader} onPress={() => toggle(m.id)} activeOpacity={0.7}>
               <View style={styles.cardLeft}>
                 <Text style={styles.cardIcon}>{m.icon}</Text>
-                <View>
+                <View style={styles.cardTextWrap}>
                   <Text style={styles.cardLabel}>{m.label}</Text>
                   <Text style={styles.cardQuestion}>{m.question}</Text>
                 </View>
@@ -252,15 +252,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', padding: 16,
   },
-  cardLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 },
+  cardLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12, marginRight: 12 },
   cardIcon: { fontSize: 26, marginTop: 2 },
+  cardTextWrap: { flex: 1 },
   cardLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  cardQuestion: { fontSize: 13, color: '#666', lineHeight: 18, flexShrink: 1 },
+  cardQuestion: { fontSize: 13, color: '#666', lineHeight: 18 },
   toggle: {
     paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: 20, borderWidth: 1.5,
     borderColor: '#ccc', backgroundColor: '#f5f5f5',
-    marginLeft: 12,
+    minWidth: 70, alignItems: 'center',
   },
   toggleActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
   toggleText: { fontSize: 13, color: '#888', fontWeight: '600' },
