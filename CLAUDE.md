@@ -649,12 +649,37 @@ Each feature is built end-to-end (backend API + mobile screen) before moving to 
 
 **Milestone: App proactively tells owners what service is coming up, with source cited.**
 
-### Phase 6 — AI & Marketplace `Future`
+### Phase 6 — AI, Marketplace & Vehicle Knowledge Hub `Future`
 - AI/ML prediction layer trained on real platform data
 - Natural language vehicle history Q&A
 - Anomaly detection and cost forecasting
 - Vehicle marketplace with verified history listings
 - OBD-II Bluetooth integration (premium tier)
+
+#### Vehicle Knowledge Hub (Phase 6 sub-feature)
+
+Two modes in one screen:
+
+**1. Personalised Knowledge (per-owner vehicle)**
+Evaluates the owner's actual vehicle records against manufacturer recommendations:
+- Oil brand/grade they are using vs what the manufacturer recommends
+- Tyre size and brand used vs OEM spec
+- Service interval adherence (are they servicing on time?)
+- Fuel consumption vs model average
+- Flags deviations: "Toyota recommends 0W-20 for your Prius. Your last 3 services used 10W-40."
+
+**2. General Knowledge (searchable by anyone)**
+A read-only vehicle encyclopedia — search any make/model and see:
+- Manufacturer recommended oil grade, tyre size, service intervals
+- Common known issues for that model in Sri Lanka
+- Estimated service costs (community-sourced over time)
+
+**Data foundation required (build for top 20 Sri Lanka vehicles first):**
+Toyota Prius, Corolla, Axio, KDH HiAce, Aqua · Honda Vezel, Fit/Jazz, City · Suzuki Alto, Wagon R, Swift · Mitsubishi L300, Montero · Nissan Dayz · Bajaj RE three-wheeler · TVS King · Yamaha FZ · Honda CB series · Perodua Axia
+
+Each entry needs: recommended oil grade + type, tyre size (front/rear), timing belt or chain, major service intervals, known weak points for that model.
+
+**Implementation approach:** Manual curation for the first 20 models. AI-assisted generation (GPT/Claude) for the rest with human review before publishing.
 
 ---
 
