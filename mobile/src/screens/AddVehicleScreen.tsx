@@ -74,7 +74,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         ownerCount: ownerCount ?? undefined,
         vehicleNotes: vehicleNotes.trim() || undefined,
       })
-      onVehicleAdded(newVehicle)
+      // Always pass vehicleType from local state — API response may omit it if DB hasn't been pushed yet
+      onVehicleAdded({ ...newVehicle, vehicleType: vehicleType || null })
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
