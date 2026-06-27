@@ -20,19 +20,22 @@ type Prediction = {
   remainingDays: number | null
 }
 
+type Tab = 'services' | 'setup'
+
 type Props = {
   token: string
   vehicleId: string
   vehicleName: string
   currentMileage: number
+  initialTab?: Tab
   onBack: () => void
 }
 
 const STATUS_CONFIG = {
-  overdue:  { color: '#c62828', bg: '#fff5f5', badge: '⚠️ Overdue',   badgeColor: '#c62828', badgeBg: '#fdecea' },
-  due_soon: { color: '#e65100', bg: '#fff8f0', badge: '🔔 Due Soon',  badgeColor: '#e65100', badgeBg: '#fff3e0' },
-  ok:       { color: '#2e7d32', bg: '#fff',    badge: '✓ OK',          badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
-  no_data:  { color: '#999',    bg: '#fff',    badge: '? No Record',   badgeColor: '#777',    badgeBg: '#f5f5f5' },
+  overdue:  { color: '#c62828', bg: '#fff5f5', badge: '⚠️ Overdue',  badgeColor: '#c62828', badgeBg: '#fdecea' },
+  due_soon: { color: '#e65100', bg: '#fff8f0', badge: '🔔 Due Soon', badgeColor: '#e65100', badgeBg: '#fff3e0' },
+  ok:       { color: '#2e7d32', bg: '#fff',    badge: '✓ OK',         badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
+  no_data:  { color: '#999',    bg: '#fff',    badge: '? No Record',  badgeColor: '#777',    badgeBg: '#f5f5f5' },
 }
 
 function formatDate(iso: string) {
@@ -45,11 +48,15 @@ function kmStr(km: number) {
 
 type SetupEntry = { date: string; mileage: string }
 
-export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, onBack }: Props) {
+export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [setupEntries, setSetupEntries] = useState<Record<string, SetupEntry>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
+
+  // Allow parent to switch tab via prop change (e.g. from notification)
+  useEffect(() => { setActiveTab(initialTab) }, [initialTab])
 
   const load = async () => {
     setLoading(true)
@@ -57,7 +64,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       const data = await api.getPredictions(token, vehicleId)
       setPredictions(data)
     } catch (e) {
-      // silently fail — empty list shown
+      // silently fail
     } finally {
       setLoading(false)
     }
@@ -65,19 +72,13 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
   useEffect(() => { load() }, [])
 
-  const urgent = predictions.filter(p => p.status === 'overdue' || p.status === 'due_soon')
-  const ok = predictions.filter(p => p.status === 'ok')
-  const noData = predictions.filter(p => p.status === 'no_data')
+  const urgent  = predictions.filter(p => p.status === 'overdue' || p.status === 'due_soon')
+  const ok      = predictions.filter(p => p.status === 'ok')
+  const noData  = predictions.filter(p => p.status === 'no_data')
 
-  const getEntry = (id: string): SetupEntry =>
-    setupEntries[id] || { date: '', mileage: '' }
-
-  const setEntry = (id: string, field: keyof SetupEntry, value: string) => {
-    setSetupEntries(prev => ({
-      ...prev,
-      [id]: { ...getEntry(id), [field]: value },
-    }))
-  }
+  const getEntry = (id: string): SetupEntry => setupEntries[id] || { date: '', mileage: '' }
+  const setEntry = (id: string, field: keyof SetupEntry, value: string) =>
+    setSetupEntries(prev => ({ ...prev, [id]: { ...getEntry(id), [field]: value } }))
 
   const handleSave = async (p: Prediction) => {
     const entry = getEntry(p.id)
@@ -92,14 +93,14 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       return
     }
     const month = parseInt(parts[0], 10)
-    const year = parseInt(parts[1], 10)
+    const year  = parseInt(parts[1], 10)
     const currentYear = new Date().getFullYear()
     if (isNaN(month) || isNaN(year) || month < 1 || month > 12 || year < 1990 || year > currentYear) {
       Alert.alert('Invalid date', `Month must be 01–12 and year must be 1990–${currentYear}`)
       return
     }
 
-    const isoDate = new Date(year, month - 1, 15).toISOString()
+    const isoDate  = new Date(year, month - 1, 15).toISOString()
     const mileageNum = entry.mileage.trim() ? parseInt(entry.mileage, 10) : undefined
 
     setSavingId(p.id)
@@ -111,14 +112,14 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         notes: 'Added via Prediction Setup',
       })
       await load()
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Failed to save. Please try again.')
     } finally {
       setSavingId(null)
     }
   }
 
-  const renderCard = (p: Prediction) => {
+  const renderServiceCard = (p: Prediction) => {
     const cfg = STATUS_CONFIG[p.status]
 
     let distanceLine = ''
@@ -158,32 +159,22 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
           </View>
         </View>
-
-        {distanceLine !== '' && (
-          <Text style={[styles.distanceLine, { color: cfg.color }]}>{distanceLine}</Text>
-        )}
-        {timeLine !== '' && (
-          <Text style={styles.timeLine}>{timeLine}</Text>
-        )}
-        {lastLine !== '' && (
-          <Text style={styles.lastLine}>{lastLine}</Text>
-        )}
+        {distanceLine !== '' && <Text style={[styles.distanceLine, { color: cfg.color }]}>{distanceLine}</Text>}
+        {timeLine      !== '' && <Text style={styles.timeLine}>{timeLine}</Text>}
+        {lastLine      !== '' && <Text style={styles.lastLine}>{lastLine}</Text>}
         <Text style={styles.source}>{p.source}</Text>
       </View>
     )
   }
 
   const renderSetupCard = (p: Prediction) => {
-    const entry = getEntry(p.id)
+    const entry    = getEntry(p.id)
     const isSaving = savingId === p.id
 
     return (
       <View key={p.id} style={styles.setupCard}>
-        <View style={styles.setupHeader}>
-          <Text style={styles.setupName}>{p.name}</Text>
-          <View style={styles.setupBadge}>
-            <Text style={styles.setupBadgeText}>? Setup</Text>
-          </View>
+        <View style={styles.setupCardHeader}>
+          <Text style={styles.setupCardName}>{p.name}</Text>
         </View>
         <Text style={styles.setupQuestion}>When was this last done?</Text>
 
@@ -218,17 +209,115 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
           onPress={() => handleSave(p)}
           disabled={isSaving}
         >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.setupSaveBtnText}>Save & Start Predicting →</Text>
-          )}
+          {isSaving
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.setupSaveBtnText}>Save & Start Predicting →</Text>
+          }
         </TouchableOpacity>
 
         <Text style={styles.setupSource}>{p.source}</Text>
       </View>
     )
   }
+
+  const tabBar = (
+    <View style={styles.tabBar}>
+      <TouchableOpacity
+        style={[styles.tabBtn, activeTab === 'services' && styles.tabBtnActive]}
+        onPress={() => setActiveTab('services')}
+      >
+        <Text style={[styles.tabBtnText, activeTab === 'services' && styles.tabBtnTextActive]}>
+          Upcoming Services
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabBtn, activeTab === 'setup' && styles.tabBtnActive]}
+        onPress={() => setActiveTab('setup')}
+      >
+        <Text style={[styles.tabBtnText, activeTab === 'setup' && styles.tabBtnTextActive]}>
+          Set Up
+        </Text>
+        {noData.length > 0 && (
+          <View style={[styles.tabBadge, activeTab === 'setup' && styles.tabBadgeActive]}>
+            <Text style={[styles.tabBadgeText, activeTab === 'setup' && styles.tabBadgeTextActive]}>
+              {noData.length}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  )
+
+  const servicesContent = (
+    <ScrollView
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {/* Setup nudge banner — shown on services tab when items need setup */}
+      {noData.length > 0 && (
+        <TouchableOpacity style={styles.setupNudge} onPress={() => setActiveTab('setup')} activeOpacity={0.85}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.setupNudgeTitle}>
+              {noData.length} item{noData.length > 1 ? 's' : ''} waiting for your history
+            </Text>
+            <Text style={styles.setupNudgeBody}>
+              Add when these were last done to unlock more predictions
+            </Text>
+          </View>
+          <Text style={styles.setupNudgeArrow}>→</Text>
+        </TouchableOpacity>
+      )}
+
+      {urgent.length === 0 && ok.length === 0 && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>No tracked services yet</Text>
+          <Text style={styles.emptyBody}>
+            Add service records or use the Set Up tab to enter when services were last done.
+          </Text>
+        </View>
+      )}
+
+      {urgent.length > 0 && (
+        <View>
+          <Text style={styles.sectionLabel}>Needs Attention</Text>
+          {urgent.map(renderServiceCard)}
+        </View>
+      )}
+
+      {ok.length > 0 && (
+        <View>
+          <Text style={styles.sectionLabel}>On Track</Text>
+          {ok.map(renderServiceCard)}
+        </View>
+      )}
+    </ScrollView>
+  )
+
+  const setupContent = (
+    <ScrollView
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {noData.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>All set!</Text>
+          <Text style={styles.emptyBody}>
+            All service items have history. Check the Upcoming Services tab for predictions.
+          </Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.setupBanner}>
+            <Text style={styles.setupBannerTitle}>Set up your predictions</Text>
+            <Text style={styles.setupBannerBody}>
+              Tell us when each service was last done — even an approximate month and year is enough. This data never changes unless you add a new service record.
+            </Text>
+          </View>
+          {noData.map(renderSetupCard)}
+        </>
+      )}
+    </ScrollView>
+  )
 
   return (
     <View style={styles.container}>
@@ -244,46 +333,12 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         <Text style={styles.mileageValue}>{currentMileage.toLocaleString()} km</Text>
       </View>
 
+      {tabBar}
+
       {loading ? (
         <ActivityIndicator style={{ marginTop: 60 }} size="large" color="#1a73e8" />
       ) : (
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {predictions.length === 0 && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No predictions yet</Text>
-              <Text style={styles.emptyBody}>Add service records to your vehicle history to unlock service predictions.</Text>
-            </View>
-          )}
-
-          {urgent.length > 0 && (
-            <View>
-              <Text style={styles.sectionLabel}>Needs Attention</Text>
-              {urgent.map(renderCard)}
-            </View>
-          )}
-
-          {ok.length > 0 && (
-            <View>
-              <Text style={styles.sectionLabel}>On Track</Text>
-              {ok.map(renderCard)}
-            </View>
-          )}
-
-          {noData.length > 0 && (
-            <View>
-              <Text style={styles.sectionLabel}>Set Up Predictions</Text>
-              <View style={styles.setupBanner}>
-                <Text style={styles.setupBannerText}>
-                  These items have no history yet. Enter when you last had each one done — even an estimate unlocks predictions immediately.
-                </Text>
-              </View>
-              {noData.map(renderSetupCard)}
-            </View>
-          )}
-        </ScrollView>
+        activeTab === 'services' ? servicesContent : setupContent
       )}
     </View>
   )
@@ -291,6 +346,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
+
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12,
@@ -307,14 +363,48 @@ const styles = StyleSheet.create({
   mileageLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
   mileageValue: { fontSize: 16, color: '#fff', fontWeight: '800' },
 
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row', backgroundColor: '#fff',
+    borderBottomWidth: 1, borderBottomColor: '#eee',
+  },
+  tabBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
+    gap: 6,
+  },
+  tabBtnActive: { borderBottomColor: '#1a73e8' },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#888' },
+  tabBtnTextActive: { color: '#1a73e8' },
+  tabBadge: {
+    backgroundColor: '#e0e0e0', borderRadius: 10,
+    minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  tabBadgeActive: { backgroundColor: '#1a73e8' },
+  tabBadgeText: { fontSize: 11, fontWeight: '700', color: '#555' },
+  tabBadgeTextActive: { color: '#fff' },
+
   scrollContent: { padding: 16, paddingBottom: 40 },
+
+  // Setup nudge on services tab
+  setupNudge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff8e1', borderRadius: 12,
+    borderLeftWidth: 4, borderLeftColor: '#f9a825',
+    padding: 12, marginBottom: 14,
+  },
+  setupNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#5d4037', marginBottom: 2 },
+  setupNudgeBody: { fontSize: 12, color: '#795548' },
+  setupNudgeArrow: { fontSize: 18, color: '#f9a825', marginLeft: 8, fontWeight: '700' },
 
   sectionLabel: {
     fontSize: 12, fontWeight: '700', color: '#888',
     letterSpacing: 0.8, textTransform: 'uppercase',
-    marginTop: 16, marginBottom: 8, marginLeft: 2,
+    marginTop: 8, marginBottom: 8, marginLeft: 2,
   },
 
+  // Prediction card
   card: {
     borderRadius: 12, borderLeftWidth: 4,
     padding: 14, marginBottom: 10,
@@ -326,7 +416,6 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', flex: 1, marginRight: 8 },
   badge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-
   distanceLine: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   timeLine: { fontSize: 13, color: '#555', marginBottom: 4 },
   lastLine: { fontSize: 12, color: '#777', marginBottom: 4 },
@@ -336,27 +425,24 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8 },
   emptyBody: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22 },
 
-  // Setup section
+  // Setup tab
   setupBanner: {
-    backgroundColor: '#e8f0fe', borderRadius: 10, padding: 12,
-    marginBottom: 12,
+    backgroundColor: '#e8f0fe', borderRadius: 12, padding: 14, marginBottom: 14,
   },
-  setupBannerText: { fontSize: 13, color: '#1a3a6b', lineHeight: 19 },
+  setupBannerTitle: { fontSize: 15, fontWeight: '700', color: '#1a3a6b', marginBottom: 4 },
+  setupBannerBody: { fontSize: 13, color: '#1a3a6b', lineHeight: 19 },
 
   setupCard: {
     backgroundColor: '#fff', borderRadius: 12, borderLeftWidth: 4,
-    borderLeftColor: '#9e9e9e', padding: 14, marginBottom: 10,
+    borderLeftColor: '#9e9e9e', padding: 14, marginBottom: 12,
     shadowColor: '#000', shadowOpacity: 0.05,
     shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  setupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  setupName: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', flex: 1, marginRight: 8 },
-  setupBadge: { backgroundColor: '#f5f5f5', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  setupBadgeText: { fontSize: 11, fontWeight: '700', color: '#777' },
+  setupCardHeader: { marginBottom: 8 },
+  setupCardName: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
 
   setupQuestion: { fontSize: 13, color: '#555', marginBottom: 10 },
-
   setupFields: { flexDirection: 'row', marginBottom: 12 },
   setupField: {},
   setupFieldLabel: { fontSize: 11, color: '#999', fontWeight: '600', marginBottom: 4 },
@@ -371,6 +457,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10, alignItems: 'center', marginBottom: 10,
   },
   setupSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-
   setupSource: { fontSize: 11, color: '#bbb', fontStyle: 'italic' },
 })

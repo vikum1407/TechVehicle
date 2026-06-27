@@ -5,7 +5,52 @@ import { createNotification } from '../utils/appNotifications'
 
 const prisma = new PrismaClient()
 
-const HOURS_24 = 24 * 60 * 60 * 1000
+const HOURS_24  = 24 * 60 * 60 * 1000
+const DAYS_7    = 7  * HOURS_24
+
+async function checkSetupReminders() {
+  const users = await prisma.user.findMany({
+    where: { pushToken: { not: null } },
+  })
+
+  for (const user of users) {
+    const vehicles = await prisma.vehicle.findMany({
+      where: { ownerPhone: user.phoneNumber },
+    })
+
+    for (const vehicle of vehicles) {
+      const records = await prisma.serviceRecord.findMany({
+        where: { vehicleId: vehicle.id },
+        orderBy: { date: 'desc' },
+      })
+      const predictions = computePredictions(vehicle, records)
+      const noDataCount = predictions.filter(p => p.status === 'no_data').length
+
+      // Only nudge if there are 3+ unconfigured predictions
+      if (noDataCount < 3) continue
+
+      // Skip if already sent a setup reminder for this vehicle in the last 7 days
+      const recent = await prisma.appNotification.findFirst({
+        where: {
+          userPhone: user.phoneNumber,
+          type: 'setup_reminder',
+          createdAt: { gte: new Date(Date.now() - DAYS_7) },
+          linkTo: { contains: vehicle.id },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (recent) continue
+
+      const vehicleName = `${vehicle.make} ${vehicle.model} (${vehicle.registrationNo})`
+      const title = `Set up predictions — ${vehicleName}`
+      const body  = `${noDataCount} service items have no history yet. Add when they were last done to start getting predictions.`
+      const data  = { screen: 'predictions_setup', vehicleId: vehicle.id }
+
+      await sendPush(user.pushToken, title, body, data)
+      await createNotification(prisma, user.phoneNumber, 'setup_reminder', title, body, data)
+    }
+  }
+}
 
 async function checkServicesDue() {
   const users = await prisma.user.findMany({
@@ -72,10 +117,12 @@ export function startServiceNotificationJob() {
   // Run once at startup (after a 10s delay to let DB settle), then every 24 hours
   setTimeout(() => {
     checkServicesDue().catch(e => console.error('Service notification error:', e))
+    checkSetupReminders().catch(e => console.error('Setup reminder error:', e))
   }, 10000)
 
   setInterval(() => {
     checkServicesDue().catch(e => console.error('Service notification error:', e))
+    checkSetupReminders().catch(e => console.error('Setup reminder error:', e))
   }, HOURS_24)
 
   console.log('Service notification job started (runs daily)')

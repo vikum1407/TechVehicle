@@ -61,6 +61,7 @@ export default function App() {
   const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
+  const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
 
   // Load persisted seen counts on startup
   useEffect(() => {
@@ -124,6 +125,17 @@ export default function App() {
           }
         } else {
           setScreen('vehicles')
+        }
+      } else if (targetScreen === 'predictions_setup') {
+        if (vehicleId) {
+          const vehicle = vehicles.find(v => v.id === vehicleId)
+          if (vehicle) {
+            setSelectedVehicle(vehicle)
+            setPredictionsInitialTab('setup')
+            setScreen('predictions')
+          } else {
+            setScreen('vehicles')
+          }
         }
       }
     })
@@ -434,7 +446,8 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
-          onBack={() => setScreen('vehicleDashboard')}
+          initialTab={predictionsInitialTab}
+          onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
         />
       )}
       {screen === 'knowledgeHub' && selectedVehicle && (
