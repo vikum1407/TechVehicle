@@ -173,6 +173,13 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
       return
     }
+    if (mileageNum < currentMileage) {
+      Alert.alert(
+        'Check mileage',
+        `The mileage you entered (${mileageNum.toLocaleString()} km) is less than the current vehicle mileage of ${currentMileage.toLocaleString()} km. Please re-enter.`
+      )
+      return
+    }
     if (!cost.trim()) {
       Alert.alert('Cost required', 'Please enter the total cost for this service.')
       return

@@ -49,6 +49,13 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       Alert.alert('Enter mileage', 'Please enter the odometer reading.')
       return
     }
+    if (mileageNum < currentMileage) {
+      Alert.alert(
+        'Check mileage',
+        `Odometer reading cannot be less than the current mileage of ${currentMileage.toLocaleString()} km. Please re-enter.`
+      )
+      return
+    }
     const isoDate = parseDate(date)
     if (!isoDate) {
       Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')

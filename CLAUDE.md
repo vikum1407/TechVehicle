@@ -55,8 +55,14 @@ cat > /workspaces/TechVehicle/backend/.env << 'EOF'
 PORT=3001
 JWT_SECRET=dev-secret-change-in-production
 DATABASE_URL="postgresql://neondb_owner:npg_rTfoMUK98SFD@ep-falling-salad-ao50kj3h-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+R2_ACCOUNT_ID=your-r2-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET_NAME=your-bucket-name
+R2_PUBLIC_URL=https://your-public-domain.r2.dev
 EOF
 ```
+Replace the R2 values with your actual Cloudflare R2 credentials (found in the Cloudflare dashboard → R2 → your bucket → Settings).
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git (git IS initialised here). Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.

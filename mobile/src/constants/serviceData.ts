@@ -210,7 +210,7 @@ export const SERVICE_CATEGORIES = [
   {
     title: 'General & Other',
     items: [
-      'Full Service', 'Inspection', 'Emission Test / Carbon Test', 'Exhaust Service',
+      'Full Service', 'Inspection', 'Exhaust Service',
       'Muffler Repair', 'Seat / Upholstery',
       'Dashboard Repair', 'Audio System',
       'Modification', 'General Repair',

@@ -61,6 +61,16 @@ type Props = {
   onNotifSeen?: (newCount: number) => void
 }
 
+type Expense = {
+  id: string
+  date: string
+  category: string
+  amount: number
+  description: string | null
+  mileage: number | null
+  notes: string | null
+}
+
 type OwnerBooking = {
   id: string
   date: string
@@ -177,6 +187,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [expenses, setExpenses] = useState<Expense[]>([])
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
@@ -191,17 +202,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs, transfer, analytics, preds, allBookings] = await Promise.all([
+      const [recs, subs, transfer, analytics, preds, allBookings, exps] = await Promise.all([
         api.getServiceRecords(token, vehicle.id),
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
         api.getMyBookings(token).catch(() => []),
+        api.getExpenses(token, vehicle.id).catch(() => []),
       ])
       setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
+      setExpenses(exps)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
       setMyBookings(vehicleBookings)
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
@@ -938,6 +951,31 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         ) : (
           records.map(item => renderRecord({ item }))
         )}
+
+        {/* Expense History */}
+        {expenses.length > 0 && (
+          <View style={styles.expenseSection}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Expense History</Text>
+              <Text style={styles.sectionCount}>{expenses.length} records</Text>
+            </View>
+            {expenses.map(exp => (
+              <View key={exp.id} style={styles.expenseCard}>
+                <View style={styles.expenseTop}>
+                  <View style={styles.expenseCatBadge}>
+                    <Text style={styles.expenseCatText}>{exp.category}</Text>
+                  </View>
+                  <Text style={styles.expenseAmount}>LKR {exp.amount.toLocaleString()}</Text>
+                </View>
+                <View style={styles.expenseMeta}>
+                  <Text style={styles.expenseDate}>{new Date(exp.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                  {exp.mileage != null && <Text style={styles.expenseKm}>{exp.mileage.toLocaleString()} km</Text>}
+                </View>
+                {exp.notes && <Text style={styles.expenseNotes}>{exp.notes}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Full-screen photo viewer */}
@@ -1080,6 +1118,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 8, marginTop: 4 },
+  sectionCount: { fontSize: 12, color: '#888', fontWeight: '600' },
+  expenseSection: { paddingBottom: 8 },
+  expenseCard: {
+    backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 8, borderRadius: 12, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  },
+  expenseTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  expenseCatBadge: { backgroundColor: '#f0f4ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  expenseCatText: { fontSize: 12, fontWeight: '700', color: '#1a73e8' },
+  expenseAmount: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+  expenseMeta: { flexDirection: 'row', gap: 12 },
+  expenseDate: { fontSize: 12, color: '#888' },
+  expenseKm: { fontSize: 12, color: '#aaa' },
+  expenseNotes: { fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' },
   exportBtn: {
     flexDirection: 'row', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 8,

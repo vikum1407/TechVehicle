@@ -57,6 +57,14 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
     if (!result) { Alert.alert('Required', 'Please select Pass or Fail'); return }
     const isoDate = parseDMY(date)
     if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    const mileageNum = mileage ? parseInt(mileage) : null
+    if (mileageNum !== null && mileageNum < currentMileage) {
+      Alert.alert(
+        'Check mileage',
+        `The mileage entered (${mileageNum.toLocaleString()} km) is less than the current vehicle mileage of ${currentMileage.toLocaleString()} km. Please re-enter.`
+      )
+      return
+    }
 
     let nextExpiryISO: string | undefined
     if (nextExpiry.trim()) {
