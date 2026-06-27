@@ -173,13 +173,6 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
       return
     }
-    if (mileageNum < currentMileage) {
-      Alert.alert(
-        'Check mileage',
-        `The mileage you entered (${mileageNum.toLocaleString()} km) is less than the current vehicle mileage of ${currentMileage.toLocaleString()} km. Please re-enter.`
-      )
-      return
-    }
     if (!cost.trim()) {
       Alert.alert('Cost required', 'Please enter the total cost for this service.')
       return
@@ -193,8 +186,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
     // use that brand in the description so history cards still show "Oil Change (Castrol)"
     const brandForItem = (name: string, itemBrand: string): string => {
       const sd = structuredData[name] || {}
-      if (name === 'Oil Change')     return sd.oilBrand       || itemBrand
-      if (name === 'Tyre Change')    return sd.tyreBrand      || itemBrand
+      if (name === 'Oil Change')     return sd.oilBrand        || itemBrand
+      if (name === 'Tyre Change')    return sd.tyreBrand       || itemBrand
       if (name === 'AC Gas Refill')  return sd.refrigerantType || itemBrand
       return itemBrand
     }
@@ -202,32 +195,47 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       .map(i => { const b = brandForItem(i.name, i.brand); return b ? `${i.name} (${b})` : i.name })
       .join(', ')
     const brands = [...new Set(allItems.map(i => brandForItem(i.name, i.brand)).filter(Boolean))].join(', ')
-
-    // Only include structured data for items that are actually selected
     const selectedNames = new Set(allItems.map(i => i.name))
     const filteredStructured = Object.fromEntries(
       Object.entries(structuredData).filter(([k]) => selectedNames.has(k))
     )
     const hasStructured = Object.keys(filteredStructured).length > 0
 
-    setLoading(true)
-    try {
-      await api.addServiceRecord(token, vehicleId, {
-        date: isoDate,
-        description,
-        mileage: mileage ? parseInt(mileage) : undefined,
-        brand: brands || undefined,
-        cost: cost ? parseFloat(cost) : undefined,
-        notes: notes.trim() || undefined,
-        photos: photos.length > 0 ? photos : undefined,
-        structuredData: hasStructured ? filteredStructured : undefined,
-      })
-      onRecordAdded()
-    } catch (error: any) {
-      Alert.alert('Error', error.message)
-    } finally {
-      setLoading(false)
+    const doSave = async () => {
+      setLoading(true)
+      try {
+        await api.addServiceRecord(token, vehicleId, {
+          date: isoDate,
+          description,
+          mileage: mileageNum,
+          brand: brands || undefined,
+          cost: parseFloat(cost),
+          notes: notes.trim() || undefined,
+          photos: photos.length > 0 ? photos : undefined,
+          structuredData: hasStructured ? filteredStructured : undefined,
+        })
+        onRecordAdded()
+      } catch (error: any) {
+        Alert.alert('Error', error.message)
+      } finally {
+        setLoading(false)
+      }
     }
+
+    // Warn (don't block) if mileage is higher than current — could be a typo
+    if (mileageNum > currentMileage + 500) {
+      Alert.alert(
+        'Check mileage',
+        `The mileage you entered (${mileageNum.toLocaleString()} km) is higher than the vehicle's current recorded mileage of ${currentMileage.toLocaleString()} km. Is this correct?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes, save', onPress: doSave },
+        ]
+      )
+      return
+    }
+
+    await doSave()
   }
 
   const itemsNeedingBrand = selectedItems.filter(i => !NO_BRAND_ITEMS.has(i.name))

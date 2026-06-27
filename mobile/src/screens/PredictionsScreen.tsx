@@ -5,6 +5,32 @@ import {
   TextInput, Alert,
 } from 'react-native'
 import { api } from '../config/api'
+import { ITEM_BRANDS } from '../constants/serviceData'
+
+// Maps the first keyword of a prediction to { structuredKey, brandLookupKey }
+// structuredKey = the field name stored in structuredData JSON
+// brandLookupKey = the key in ITEM_BRANDS to pull the chip list from
+const SETUP_BRAND_MAP: Record<string, { structuredKey: string; brandLookupKey: string }> = {
+  'Oil Change':               { structuredKey: 'oilBrand',  brandLookupKey: 'Oil Change' },
+  'Timing Belt':              { structuredKey: 'brandName', brandLookupKey: 'Timing Belt' },
+  'Drive Belts':              { structuredKey: 'brandName', brandLookupKey: 'Drive Belts' },
+  'Coolant Flush':            { structuredKey: 'brandName', brandLookupKey: 'Coolant Flush' },
+  'Brake Pads (Front)':       { structuredKey: 'brandName', brandLookupKey: 'Brake Pads (Front)' },
+  'Brake Fluid':              { structuredKey: 'brandName', brandLookupKey: 'Brake Fluid' },
+  'Transmission Oil (Auto)':  { structuredKey: 'brandName', brandLookupKey: 'Transmission Oil (Auto)' },
+  'Gear Oil (Manual)':        { structuredKey: 'brandName', brandLookupKey: 'Gear Oil (Manual)' },
+  'Power Steering Fluid':     { structuredKey: 'brandName', brandLookupKey: 'Power Steering Fluid' },
+  'Battery':                  { structuredKey: 'brandName', brandLookupKey: 'Battery' },
+  'AC Filter':                { structuredKey: 'brandName', brandLookupKey: 'AC Filter' },
+  'Air Filter':               { structuredKey: 'brandName', brandLookupKey: 'Air Filter' },
+  'Fuel Filter':              { structuredKey: 'brandName', brandLookupKey: 'Fuel Filter' },
+  'Spark Plugs':              { structuredKey: 'brandName', brandLookupKey: 'Spark Plugs' },
+  'Glow Plugs':               { structuredKey: 'brandName', brandLookupKey: 'Glow Plugs (Diesel)' },
+  'Shock Absorbers':          { structuredKey: 'brandName', brandLookupKey: 'Shock Absorbers (Front)' },
+  'Water Pump':               { structuredKey: 'brandName', brandLookupKey: 'Water Pump' },
+  'Chain & Sprocket':         { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
+  'Chain Lubrication':        { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
+}
 
 type Prediction = {
   id: string
@@ -46,7 +72,7 @@ function kmStr(km: number) {
   return km.toLocaleString() + ' km'
 }
 
-type SetupEntry = { date: string; mileage: string }
+type SetupEntry = { date: string; mileage: string; brand: string }
 
 export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
@@ -76,7 +102,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const ok      = predictions.filter(p => p.status === 'ok')
   const noData  = predictions.filter(p => p.status === 'no_data')
 
-  const getEntry = (id: string): SetupEntry => setupEntries[id] || { date: '', mileage: '' }
+  const getEntry = (id: string): SetupEntry => setupEntries[id] || { date: '', mileage: '', brand: '' }
   const setEntry = (id: string, field: keyof SetupEntry, value: string) =>
     setSetupEntries(prev => ({ ...prev, [id]: { ...getEntry(id), [field]: value } }))
 
@@ -100,8 +126,13 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       return
     }
 
-    const isoDate  = new Date(year, month - 1, 15).toISOString()
+    const isoDate    = new Date(year, month - 1, 15).toISOString()
     const mileageNum = entry.mileage.trim() ? parseInt(entry.mileage, 10) : undefined
+
+    const brandConfig = SETUP_BRAND_MAP[p.keywords[0]]
+    const structuredData = brandConfig && entry.brand
+      ? { [p.keywords[0]]: { [brandConfig.structuredKey]: entry.brand } }
+      : undefined
 
     setSavingId(p.id)
     try {
@@ -110,6 +141,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         description: p.keywords[0],
         mileage: mileageNum,
         notes: 'Added via Prediction Setup',
+        structuredData,
       })
       await load()
     } catch {
@@ -168,8 +200,10 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   }
 
   const renderSetupCard = (p: Prediction) => {
-    const entry    = getEntry(p.id)
-    const isSaving = savingId === p.id
+    const entry      = getEntry(p.id)
+    const isSaving   = savingId === p.id
+    const brandConfig = SETUP_BRAND_MAP[p.keywords[0]]
+    const brandOptions = brandConfig ? ITEM_BRANDS[brandConfig.brandLookupKey] : undefined
 
     return (
       <View key={p.id} style={styles.setupCard}>
@@ -203,6 +237,25 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             />
           </View>
         </View>
+
+        {brandOptions && brandOptions.length > 0 && (
+          <View style={styles.brandSection}>
+            <Text style={styles.setupFieldLabel}>Brand Used (optional)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandRow}>
+              {brandOptions.map(brand => (
+                <TouchableOpacity
+                  key={brand}
+                  style={[styles.brandChip, entry.brand === brand && styles.brandChipSelected]}
+                  onPress={() => setEntry(p.id, 'brand', entry.brand === brand ? '' : brand)}
+                >
+                  <Text style={[styles.brandChipText, entry.brand === brand && styles.brandChipTextSelected]}>
+                    {brand}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.setupSaveBtn, isSaving && { opacity: 0.6 }]}
@@ -458,4 +511,15 @@ const styles = StyleSheet.create({
   },
   setupSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   setupSource: { fontSize: 11, color: '#bbb', fontStyle: 'italic' },
+
+  brandSection: { marginBottom: 12 },
+  brandRow: { marginTop: 6 },
+  brandChip: {
+    borderWidth: 1, borderColor: '#ddd', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6, marginRight: 8,
+    backgroundColor: '#fafafa',
+  },
+  brandChipSelected: { borderColor: '#1a73e8', backgroundColor: '#e8f0fe' },
+  brandChipText: { fontSize: 13, color: '#555', fontWeight: '500' },
+  brandChipTextSelected: { color: '#1a73e8', fontWeight: '700' },
 })

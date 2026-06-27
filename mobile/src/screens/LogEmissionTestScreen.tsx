@@ -57,14 +57,6 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
     if (!result) { Alert.alert('Required', 'Please select Pass or Fail'); return }
     const isoDate = parseDMY(date)
     if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
-    const mileageNum = mileage ? parseInt(mileage) : null
-    if (mileageNum !== null && mileageNum < currentMileage) {
-      Alert.alert(
-        'Check mileage',
-        `The mileage entered (${mileageNum.toLocaleString()} km) is less than the current vehicle mileage of ${currentMileage.toLocaleString()} km. Please re-enter.`
-      )
-      return
-    }
 
     let nextExpiryISO: string | undefined
     if (nextExpiry.trim()) {
@@ -73,32 +65,48 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
       nextExpiryISO = parsed
     }
 
-    setLoading(true)
-    try {
-      await api.logEmissionTest(token, vehicleId, {
-        date: isoDate,
-        mileage: mileage ? parseInt(mileage) : undefined,
-        result,
-        co: co || undefined,
-        hc: hc || undefined,
-        co2: co2 || undefined,
-        lambda: lambda || undefined,
-        station: station || undefined,
-        cost: cost ? parseFloat(cost) : undefined,
-        nextExpiryDate: nextExpiryISO,
-      })
+    const mileageNum = mileage ? parseInt(mileage) : null
 
-      if (nextExpiryISO) {
-        await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+    const performSave = async () => {
+      setLoading(true)
+      try {
+        await api.logEmissionTest(token, vehicleId, {
+          date: isoDate,
+          mileage: mileageNum ?? undefined,
+          result,
+          co: co || undefined,
+          hc: hc || undefined,
+          co2: co2 || undefined,
+          lambda: lambda || undefined,
+          station: station || undefined,
+          cost: cost ? parseFloat(cost) : undefined,
+          nextExpiryDate: nextExpiryISO,
+        })
+        if (nextExpiryISO) {
+          await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+        }
+        Alert.alert('Saved', 'Emission test recorded.')
+        onSaved()
+      } catch (e: any) {
+        Alert.alert('Error', e.message)
+      } finally {
+        setLoading(false)
       }
-
-      Alert.alert('Saved', 'Emission test recorded.')
-      onSaved()
-    } catch (e: any) {
-      Alert.alert('Error', e.message)
-    } finally {
-      setLoading(false)
     }
+
+    if (mileageNum !== null && mileageNum > currentMileage + 500) {
+      Alert.alert(
+        'Check mileage',
+        `The mileage entered (${mileageNum.toLocaleString()} km) is higher than the vehicle's current recorded mileage of ${currentMileage.toLocaleString()} km. Is this correct?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes, save', onPress: performSave },
+        ]
+      )
+      return
+    }
+
+    await performSave()
   }
 
   return (
