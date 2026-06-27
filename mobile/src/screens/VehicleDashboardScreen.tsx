@@ -189,6 +189,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyDateFilter, setHistoryDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
@@ -536,6 +538,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       </TouchableOpacity>
     )
   }
+
+  const filteredRecords = records.filter(r => {
+    if (historySearch.trim()) {
+      if (!r.description.toLowerCase().includes(historySearch.toLowerCase())) return false
+    }
+    if (historyDateFilter !== 'all') {
+      const months = historyDateFilter === '1y' ? 12 : historyDateFilter === '6m' ? 6 : 3
+      const cutoff = new Date()
+      cutoff.setMonth(cutoff.getMonth() - months)
+      if (new Date(r.date) < cutoff) return false
+    }
+    return true
+  })
 
   return (
     <View style={styles.container}>
@@ -945,6 +960,38 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </TouchableOpacity>
         )}
 
+        {/* History filter bar */}
+        {records.length > 0 && (
+          <View style={styles.filterBar}>
+            <TextInput
+              style={styles.filterInput}
+              placeholder="Search records (e.g. Oil, Brake, Tyre...)"
+              placeholderTextColor="#aaa"
+              value={historySearch}
+              onChangeText={setHistorySearch}
+              clearButtonMode="while-editing"
+            />
+            <View style={styles.filterChips}>
+              {(['all', '1y', '6m', '3m'] as const).map(f => (
+                <TouchableOpacity
+                  key={f}
+                  style={[styles.filterChip, historyDateFilter === f && styles.filterChipActive]}
+                  onPress={() => setHistoryDateFilter(f)}
+                >
+                  <Text style={[styles.filterChipText, historyDateFilter === f && styles.filterChipTextActive]}>
+                    {f === 'all' ? 'All' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {(historySearch.trim() || historyDateFilter !== 'all') && (
+              <Text style={styles.filterCount}>
+                {filteredRecords.length} of {records.length} records
+              </Text>
+            )}
+          </View>
+        )}
+
         {loading ? (
           <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
         ) : records.length === 0 ? (
@@ -952,8 +999,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <Text style={styles.emptyText}>No service records yet</Text>
             <Text style={styles.emptySubText}>Tap "Add Service" above to log your first service</Text>
           </View>
+        ) : filteredRecords.length === 0 ? (
+          <View style={styles.emptyInline}>
+            <Text style={styles.emptyText}>No records match your filter</Text>
+            <TouchableOpacity onPress={() => { setHistorySearch(''); setHistoryDateFilter('all') }}>
+              <Text style={styles.filterClearLink}>Clear filter</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          records.map(item => renderRecord({ item }))
+          filteredRecords.map(item => renderRecord({ item }))
         )}
 
         {/* Expense History */}
@@ -1122,6 +1176,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  filterBar: { marginHorizontal: 16, marginBottom: 8, marginTop: 4 },
+  filterInput: {
+    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
+    fontSize: 13, color: '#1a1a1a', borderWidth: 1, borderColor: '#e8e8e8', marginBottom: 8,
+  },
+  filterChips: { flexDirection: 'row', gap: 6 },
+  filterChip: {
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
+    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  filterChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  filterChipText: { fontSize: 12, color: '#555', fontWeight: '600' },
+  filterChipTextActive: { color: '#fff' },
+  filterCount: { fontSize: 11, color: '#888', marginTop: 6 },
+  filterClearLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600', textAlign: 'center', marginTop: 8 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 8, marginTop: 4 },
   sectionCount: { fontSize: 12, color: '#888', fontWeight: '600' },
   expenseSection: { paddingBottom: 8 },
