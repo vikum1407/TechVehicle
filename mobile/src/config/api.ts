@@ -658,4 +658,21 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to save emission test')
     return data
   },
+
+  getVehicleKnowledgeAll: async () => {
+    const res = await fetch(`${API_URL}/vehicle-knowledge`)
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch knowledge')
+    return data
+  },
+
+  getVehicleKnowledgeMatch: async (make: string, model: string, year?: number) => {
+    const params = new URLSearchParams({ make, model })
+    if (year) params.set('year', String(year))
+    const res = await fetch(`${API_URL}/vehicle-knowledge/match?${params}`)
+    if (res.status === 404) return null
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch knowledge')
+    return data
+  },
 }

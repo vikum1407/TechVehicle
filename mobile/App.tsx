@@ -23,13 +23,14 @@ import PredictionsScreen from './src/screens/PredictionsScreen'
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import NotificationsScreen from './src/screens/NotificationsScreen'
 import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen'
+import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'addExpense' | 'logEmissionTest' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking'
+  | 'logFuel' | 'addExpense' | 'logEmissionTest' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
   | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
@@ -164,6 +165,7 @@ export default function App() {
       logEmissionTest: 'vehicleDashboard',
       analytics: 'vehicleDashboard',
       predictions: 'vehicleDashboard',
+      knowledgeHub: 'vehicleDashboard',
       share: 'vehicleDashboard',
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
@@ -355,6 +357,7 @@ export default function App() {
           onAnalytics={() => setScreen('analytics')}
           onLogEmissionTest={() => setScreen('logEmissionTest')}
           onPredictions={() => setScreen('predictions')}
+          onKnowledgeHub={() => setScreen('knowledgeHub')}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
@@ -431,6 +434,13 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'knowledgeHub' && selectedVehicle && (
+        <KnowledgeHubScreen
+          token={token}
+          vehicle={selectedVehicle}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}

@@ -49,6 +49,7 @@ type Props = {
   onAnalytics: () => void
   onLogEmissionTest: () => void
   onPredictions: () => void
+  onKnowledgeHub: () => void
   onMileageUpdated: (newMileage: number) => void
   onShare: () => void
   onSell: () => void
@@ -167,7 +168,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onLogEmissionTest, onPredictions, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onLogEmissionTest, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -594,6 +595,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </View>
           <TouchableOpacity style={styles.bookBtn} onPress={onLogEmissionTest}>
             <Text style={styles.bookBtnText}>💨 Log Emission / Carbon Test</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
+            <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>

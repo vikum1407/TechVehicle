@@ -16,6 +16,7 @@ import bookingRoutes from './routes/bookings'
 import predictionRoutes from './routes/predictions'
 import notificationRoutes from './routes/notifications'
 import uploadRoutes from './routes/uploads'
+import vehicleKnowledgeRoutes from './routes/vehicleKnowledge'
 import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 
@@ -50,6 +51,7 @@ app.use('/bookings', bookingRoutes)
 app.use('/predictions', predictionRoutes)
 app.use('/notifications', notificationRoutes)
 app.use('/uploads', uploadRoutes)
+app.use('/vehicle-knowledge', vehicleKnowledgeRoutes)
 
 app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)
