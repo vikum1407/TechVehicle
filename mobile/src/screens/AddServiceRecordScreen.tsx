@@ -286,8 +286,12 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       {/* ── Structured details section ────────────────────── */}
       {itemsWithStructured.length > 0 && (
         <View style={styles.structuredSection}>
-          <Text style={styles.structuredTitle}>Additional Details</Text>
-          <Text style={styles.structuredSub}>These readings are saved for analytics and predictions</Text>
+          <Text style={styles.structuredTitle}>
+            {itemsWithStructured.length === 1
+              ? `${itemsWithStructured[0].name} Details`
+              : 'Service Details'}
+          </Text>
+          <Text style={styles.structuredSub}>Saved for analytics and predictions</Text>
 
           {itemsWithStructured.map(item => {
             const fields = STRUCTURED_ITEMS[item.name]
