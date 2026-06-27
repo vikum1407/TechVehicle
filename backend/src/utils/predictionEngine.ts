@@ -5,6 +5,7 @@ export type PredictionRow = {
   group: string
   name: string
   source: string
+  keywords: string[]
   status: 'overdue' | 'due_soon' | 'ok' | 'no_data'
   lastDoneKm: number | null
   lastDoneDate: string | null
@@ -109,6 +110,7 @@ export function computePredictions(
     if (!last) {
       return {
         id: interval.id, group: interval.group, name: interval.name, source: interval.source,
+        keywords: interval.keywords,
         status: 'no_data' as const,
         lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
         remainingKm: null, dueAtDate: null, remainingDays: null,
@@ -149,6 +151,7 @@ export function computePredictions(
 
     return {
       id: interval.id, group: interval.group, name: interval.name, source: interval.source,
+      keywords: interval.keywords,
       status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(),
       dueAtKm, remainingKm, dueAtDate, remainingDays,
     }
