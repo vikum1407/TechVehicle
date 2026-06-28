@@ -556,6 +556,44 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )
         })()}
 
+        {/* Upcoming Services — top prediction warnings surfaced on dashboard */}
+        {topPredictions.length > 0 && (
+          <View style={styles.predictionsSection}>
+            <View style={styles.predictionsSectionHeader}>
+              <Text style={styles.predictionsSectionTitle}>🔧 Upcoming Services</Text>
+              <TouchableOpacity onPress={onPredictions}>
+                <Text style={styles.predictionsViewAll}>View all →</Text>
+              </TouchableOpacity>
+            </View>
+            {topPredictions.map(p => {
+              const isOverdue = p.status === 'overdue'
+              const cardBg    = isOverdue ? '#ffebee' : '#fff8e1'
+              const borderClr = isOverdue ? '#c62828' : '#f9a825'
+              const textClr   = isOverdue ? '#c62828' : '#e65100'
+              const badge     = isOverdue ? '🚨 Overdue' : '⚠ Due Soon'
+              const kmText    = p.remainingKm  != null ? `${Math.abs(p.remainingKm).toLocaleString()} km${isOverdue ? ' overdue' : ' remaining'}` : null
+              const daysText  = p.remainingDays != null ? `${Math.abs(p.remainingDays)} day${Math.abs(p.remainingDays) !== 1 ? 's' : ''}${isOverdue ? ' overdue' : ' remaining'}` : null
+              const detail    = kmText || daysText || (isOverdue ? 'Service needed now' : 'Service due soon')
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.predictionCard, { backgroundColor: cardBg, borderLeftColor: borderClr }]}
+                  onPress={onPredictions}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.predictionName, { color: textClr }]}>{p.name}</Text>
+                    <Text style={styles.predictionDetail}>{detail}</Text>
+                  </View>
+                  <View style={[styles.predictionBadge, { backgroundColor: borderClr }]}>
+                    <Text style={styles.predictionBadgeText}>{badge}</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        )}
+
         {/* My Appointments — owner's booked service slots */}
         {myBookings.length > 0 && (
           <View style={styles.appointmentsSection}>
@@ -1020,6 +1058,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   tagMoreText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  predictionsSection: { marginHorizontal: 16, marginBottom: 10 },
+  predictionsSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  predictionsSectionTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
+  predictionsViewAll: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  predictionCard: {
+    borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center',
+    borderLeftWidth: 4, marginBottom: 8,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  predictionName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  predictionDetail: { fontSize: 12, color: '#555' },
+  predictionBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
+  predictionBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+
   renewalSection: { marginHorizontal: 16, marginBottom: 10, gap: 8 },
   renewalCard: {
     borderRadius: 10, padding: 14, flexDirection: 'row',
