@@ -15,6 +15,8 @@ type Vehicle = {
   year: number
   fuelType: string
   mileage: number
+  emissionTestExpiry?: string | null
+  revenueLicenceExpiry?: string | null
 }
 
 
@@ -145,6 +147,22 @@ function getTrend(data: number[], higherIsBetter: boolean) {
   if (pct > 3) return { arrow: '↑', label: 'Increasing', color: higherIsBetter ? '#34a853' : '#e65100' }
   if (pct < -3) return { arrow: '↓', label: 'Declining', color: higherIsBetter ? '#e65100' : '#34a853' }
   return { arrow: '→', label: 'Stable', color: '#888' }
+}
+
+function getExpiryAlert(dateStr: string | null | undefined): { daysLeft: number; urgency: 'expired' | 'critical' | 'warning' } | null {
+  if (!dateStr) return null
+  const days = Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
+  if (days < -60) return null // expired too long ago — already past caring
+  if (days < 0)  return { daysLeft: days, urgency: 'expired' }
+  if (days <= 7)  return { daysLeft: days, urgency: 'critical' }
+  if (days <= 30) return { daysLeft: days, urgency: 'warning' }
+  return null
+}
+
+function expiryLabel(days: number): string {
+  if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`
+  if (days === 0) return 'Expires today!'
+  return `Expires in ${days} day${days !== 1 ? 's' : ''}`
 }
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -484,6 +502,59 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Renewal expiry banners */}
+        {(() => {
+          const emission = getExpiryAlert(vehicle.emissionTestExpiry)
+          const licence  = getExpiryAlert(vehicle.revenueLicenceExpiry)
+          if (!emission && !licence) return null
+          const urgencyColor = (u: string) => u === 'expired' || u === 'critical' ? '#c62828' : '#e65100'
+          const urgencyBg    = (u: string) => u === 'expired' || u === 'critical' ? '#ffebee' : '#fff3e0'
+          return (
+            <View style={styles.renewalSection}>
+              {emission && (
+                <TouchableOpacity
+                  style={[styles.renewalCard, { borderLeftColor: urgencyColor(emission.urgency), backgroundColor: urgencyBg(emission.urgency) }]}
+                  onPress={onVehicleTests}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.renewalLeft}>
+                    <Text style={[styles.renewalTitle, { color: urgencyColor(emission.urgency) }]}>
+                      {emission.urgency === 'expired' ? '🚨' : '⚠️'} Emission Test
+                    </Text>
+                    <Text style={[styles.renewalDays, { color: urgencyColor(emission.urgency) }]}>
+                      {expiryLabel(emission.daysLeft)}
+                    </Text>
+                    <Text style={styles.renewalDate}>
+                      {new Date(vehicle.emissionTestExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  <Text style={[styles.renewalArrow, { color: urgencyColor(emission.urgency) }]}>›</Text>
+                </TouchableOpacity>
+              )}
+              {licence && (
+                <TouchableOpacity
+                  style={[styles.renewalCard, { borderLeftColor: urgencyColor(licence.urgency), backgroundColor: urgencyBg(licence.urgency) }]}
+                  onPress={onAddExpense}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.renewalLeft}>
+                    <Text style={[styles.renewalTitle, { color: urgencyColor(licence.urgency) }]}>
+                      {licence.urgency === 'expired' ? '🚨' : '⚠️'} Revenue Licence
+                    </Text>
+                    <Text style={[styles.renewalDays, { color: urgencyColor(licence.urgency) }]}>
+                      {expiryLabel(licence.daysLeft)}
+                    </Text>
+                    <Text style={styles.renewalDate}>
+                      {new Date(vehicle.revenueLicenceExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  <Text style={[styles.renewalArrow, { color: urgencyColor(licence.urgency) }]}>›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
+        })()}
 
         {/* My Appointments — owner's booked service slots */}
         {myBookings.length > 0 && (
@@ -949,6 +1020,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   tagMoreText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+  renewalSection: { marginHorizontal: 16, marginBottom: 10, gap: 8 },
+  renewalCard: {
+    borderRadius: 10, padding: 14, flexDirection: 'row',
+    alignItems: 'center', borderLeftWidth: 4,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  renewalLeft: { flex: 1 },
+  renewalTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  renewalDays: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  renewalDate: { fontSize: 11, color: '#777' },
+  renewalArrow: { fontSize: 22, fontWeight: '300', marginLeft: 8 },
+
   transferBanner: {
     backgroundColor: '#fff3e0', marginHorizontal: 16, marginBottom: 10,
     borderRadius: 10, padding: 14, flexDirection: 'row',

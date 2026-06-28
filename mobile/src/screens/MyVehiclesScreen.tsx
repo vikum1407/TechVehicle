@@ -13,6 +13,9 @@ type Vehicle = {
   year: number
   fuelType: string
   mileage: number
+  vehicleType?: string | null
+  emissionTestExpiry?: string | null
+  revenueLicenceExpiry?: string | null
 }
 
 type IncomingTransfer = {

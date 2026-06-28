@@ -43,6 +43,8 @@ type Vehicle = {
   fuelType: string
   vehicleType?: string | null
   mileage: number
+  emissionTestExpiry?: string | null
+  revenueLicenceExpiry?: string | null
 }
 
 // Screens that show the bottom tab bar
