@@ -130,6 +130,8 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
           date: r.date.toISOString(),
           km: r.mileage,
           brand: sd.oilBrand || extractBrand(r.description, 'Oil Change') || r.brand || null,
+          grade: sd.oilGrade || null,
+          oilType: sd.oilType || null,
           intervalKm: r.mileage && prev?.mileage ? r.mileage - prev.mileage : null,
         }
       }).reverse()  // most recent first

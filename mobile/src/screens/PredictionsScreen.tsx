@@ -22,12 +22,12 @@ const SETUP_EXTRA_FIELDS: Record<string, ExtraFieldConfig[]> = {
     { key: 'oilType',  label: 'Oil Type',  type: 'chips', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
   ],
   'Tyre Change': [
-    { key: 'tyreSize',  label: 'Tyre Size',        type: 'text',  placeholder: 'e.g. 185/65R15' },
-    { key: 'tyreCount', label: 'Tyres Replaced',   type: 'chips', options: ['1', '2', '4'] },
+    { key: 'tyreSize',    label: 'Tyre Size',      type: 'text',  placeholder: 'e.g. 185/65R15' },
+    { key: 'tyresChanged', label: 'Tyres Replaced', type: 'chips', options: ['1', '2', '4'] },
   ],
   'AC Gas Refill': [
     { key: 'refrigerantType', label: 'Refrigerant Type', type: 'chips', options: ['R134a', 'R1234yf', 'R22'] },
-    { key: 'grams',           label: 'Quantity',          type: 'number', placeholder: 'grams, e.g. 500' },
+    { key: 'quantityGrams',   label: 'Quantity',          type: 'number', placeholder: 'grams, e.g. 500' },
   ],
   'Brake Fluid': [
     { key: 'fluidType', label: 'Fluid Type', type: 'chips', options: ['DOT 3', 'DOT 4', 'DOT 5.1'] },
@@ -66,7 +66,7 @@ const SETUP_BRAND_MAP: Record<string, { structuredKey: string; brandLookupKey: s
   'Water Pump':               { structuredKey: 'brandName', brandLookupKey: 'Water Pump' },
   'Chain & Sprocket':         { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
   'Chain Lubrication':        { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
-  'Tyre Change':              { structuredKey: 'brandName', brandLookupKey: 'Tyre Change' },
+  'Tyre Change':              { structuredKey: 'tyreBrand', brandLookupKey: 'Tyre Change' },
 }
 
 type Prediction = {

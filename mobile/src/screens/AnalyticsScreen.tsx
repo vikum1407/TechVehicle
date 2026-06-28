@@ -17,7 +17,7 @@ type Props = {
 
 type OilHistoryItem = {
   date: string; km: number | null
-  brand: string | null; intervalKm: number | null
+  brand: string | null; grade: string | null; oilType: string | null; intervalKm: number | null
 }
 type TyreHistoryItem = {
   date: string; km: number | null
@@ -195,10 +195,13 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
             {item.km && <Text style={styles.tableKm}>{item.km.toLocaleString()} km</Text>}
           </View>
           <View style={styles.tableCol2}>
-            {item.brand
-              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.brand}</Text></View>
-              : <Text style={styles.tableDash}>—</Text>
+            {item.grade
+              ? <View style={styles.gradeBadge}><Text style={styles.gradeBadgeText}>{item.grade}</Text></View>
+              : null
             }
+            {item.brand && <Text style={styles.tableSubText}>{item.brand}</Text>}
+            {item.oilType && <Text style={[styles.tableSubText, { color: '#888' }]}>{item.oilType}</Text>}
+            {!item.grade && !item.brand && <Text style={styles.tableDash}>—</Text>}
           </View>
           <View style={styles.tableCol3}>
             {item.intervalKm && (
