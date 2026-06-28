@@ -446,6 +446,37 @@ export const api = {
     return data
   },
 
+  counterBooking: async (token: string, bookingId: string, counterDate: string, counterSlot: string | null) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/counter`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ counterDate, counterSlot }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to suggest slot')
+    return data
+  },
+
+  acceptCounter: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/accept-counter`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to accept counter')
+    return data
+  },
+
+  declineCounter: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/decline-counter`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to decline counter')
+    return data
+  },
+
   getPredictions: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/predictions/${vehicleId}`, {
       headers: authHeaders(token),

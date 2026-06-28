@@ -110,6 +110,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [bookings, setBookings] = useState<Booking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [counterModal, setCounterModal] = useState<{ bookingId: string } | null>(null)
+  const [counterDate, setCounterDate] = useState('')
+  const [counterSlot, setCounterSlot] = useState('')
+  const [submittingCounter, setSubmittingCounter] = useState(false)
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null)
   const [bookingNotesMap, setBookingNotesMap] = useState<Record<string, BookingNote[]>>({})
@@ -208,6 +212,22 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       Alert.alert('Error', e.message)
     } finally {
       setConfirmingId(null)
+    }
+  }
+
+  const handleCounterSubmit = async () => {
+    if (!counterModal || !counterDate) return
+    setSubmittingCounter(true)
+    try {
+      await api.counterBooking(token, counterModal.bookingId, counterDate, counterSlot || null)
+      setBookings(prev => prev.map(b => b.id === counterModal.bookingId ? { ...b, status: 'counter_suggested' } : b))
+      setCounterModal(null)
+      setCounterDate('')
+      setCounterSlot('')
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSubmittingCounter(false)
     }
   }
 
@@ -1190,6 +1210,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
             const isPending = booking.status === 'pending'
             const isConfirmed = booking.status === 'confirmed'
+            const isCounter = booking.status === 'counter_suggested'
             const isExpanded = expandedBooking === booking.id
             const bAny = booking as any
             const attachedShare = bAny.shareSessionId
@@ -1206,6 +1227,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   styles.bookingCard,
                   isPending && styles.bookingCardPending,
                   isConfirmed && styles.bookingCardConfirmed,
+                  isCounter && styles.bookingCardCounter,
                 ]}
                 onPress={() => handleExpandBooking(booking.id)}
                 activeOpacity={0.85}
@@ -1220,10 +1242,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
                     <View style={[
                       styles.bookingBadge,
-                      isPending ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
+                      isPending ? styles.bookingBadgePending : isCounter ? styles.bookingBadgeCounter : styles.bookingBadgeConfirmed,
                     ]}>
                       <Text style={styles.bookingBadgeText}>
-                        {isPending ? 'Pending' : 'Confirmed'}
+                        {isPending ? 'Pending' : isCounter ? '🔄 Counter Sent' : 'Confirmed'}
                       </Text>
                     </View>
                     {attachedShare && (
@@ -1251,16 +1273,29 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 ) : null}
 
                 {isPending && (
-                  <TouchableOpacity
-                    style={[styles.confirmBookingBtn, confirmingId === booking.id && styles.confirmBookingBtnDisabled]}
-                    onPress={(e) => { e.stopPropagation?.(); handleConfirmBooking(booking.id) }}
-                    disabled={confirmingId === booking.id}
-                  >
-                    {confirmingId === booking.id
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={styles.confirmBookingBtnText}>Confirm Appointment</Text>
-                    }
-                  </TouchableOpacity>
+                  <View style={styles.bookingActionRow}>
+                    <TouchableOpacity
+                      style={[styles.confirmBookingBtn, { flex: 1 }, confirmingId === booking.id && styles.confirmBookingBtnDisabled]}
+                      onPress={(e) => { e.stopPropagation?.(); handleConfirmBooking(booking.id) }}
+                      disabled={confirmingId === booking.id}
+                    >
+                      {confirmingId === booking.id
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={styles.confirmBookingBtnText}>✓ Confirm</Text>
+                      }
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.counterSuggestBtn}
+                      onPress={(e) => { e.stopPropagation?.(); setCounterDate(''); setCounterSlot(''); setCounterModal({ bookingId: booking.id }) }}
+                    >
+                      <Text style={styles.counterSuggestBtnText}>🔄 Suggest Slot</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {isCounter && (
+                  <View style={styles.counterSentNote}>
+                    <Text style={styles.counterSentText}>🔄 Counter suggestion sent — awaiting owner response</Text>
+                  </View>
                 )}
 
                 {isConfirmed && !attachedShare && !isExpanded && (
@@ -1607,6 +1642,78 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           })()}
         </ScrollView>
       )}
+
+      {/* ── Counter-suggest modal ─────────────────────────────────────── */}
+      {counterModal && (() => {
+        const next14 = Array.from({ length: 14 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() + i + 1); return d
+        })
+        const slots = schedSlots.length > 0 ? schedSlots : ['Morning', 'Afternoon']
+        return (
+          <Modal visible animationType="slide" transparent={false} onRequestClose={() => setCounterModal(null)}>
+            <View style={styles.counterModalContainer}>
+              <View style={styles.counterModalHeader}>
+                <TouchableOpacity onPress={() => setCounterModal(null)}>
+                  <Text style={styles.counterModalBack}>✕ Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.counterModalTitle}>Suggest Different Slot</Text>
+                <View style={{ width: 60 }} />
+              </View>
+
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
+                <Text style={styles.counterLabel}>Select a new date</Text>
+                <View style={styles.counterDateGrid}>
+                  {next14.map(d => {
+                    const iso = d.toISOString().split('T')[0]
+                    const isSelected = counterDate === iso
+                    return (
+                      <TouchableOpacity
+                        key={iso}
+                        style={[styles.counterDateCell, isSelected && styles.counterDateCellActive]}
+                        onPress={() => setCounterDate(iso)}
+                      >
+                        <Text style={[styles.counterDateDay, isSelected && styles.counterDateDayActive]}>
+                          {d.toLocaleDateString('en-GB', { weekday: 'short' })}
+                        </Text>
+                        <Text style={[styles.counterDateNum, isSelected && styles.counterDateNumActive]}>
+                          {d.getDate()}
+                        </Text>
+                        <Text style={[styles.counterDateMon, isSelected && styles.counterDateMonActive]}>
+                          {d.toLocaleDateString('en-GB', { month: 'short' })}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+
+                <Text style={[styles.counterLabel, { marginTop: 20 }]}>Select a time slot (optional)</Text>
+                <View style={styles.counterSlotRow}>
+                  {slots.map(s => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.counterSlotChip, counterSlot === s && styles.counterSlotChipActive]}
+                      onPress={() => setCounterSlot(counterSlot === s ? '' : s)}
+                    >
+                      <Text style={[styles.counterSlotChipText, counterSlot === s && styles.counterSlotChipTextActive]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.counterSubmitBtn, (!counterDate || submittingCounter) && styles.counterSubmitBtnDisabled]}
+                  onPress={handleCounterSubmit}
+                  disabled={!counterDate || submittingCounter}
+                >
+                  {submittingCounter
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.counterSubmitBtnText}>Send Suggestion to Owner</Text>
+                  }
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </Modal>
+        )
+      })()}
     </View>
   )
 }
@@ -1803,6 +1910,7 @@ const styles = StyleSheet.create({
   bookingBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   bookingBadgePending: { backgroundColor: '#fff8e1' },
   bookingBadgeConfirmed: { backgroundColor: '#e6f4ea' },
+  bookingBadgeCounter: { backgroundColor: '#e3f2fd' },
   bookingBadgeText: { fontSize: 12, fontWeight: '700', color: '#555' },
   bookingMeta: { gap: 3, marginBottom: 10 },
   bookingDate: { fontSize: 14, fontWeight: '600', color: '#333' },
@@ -1916,6 +2024,50 @@ const styles = StyleSheet.create({
   // Booking card color-coding by status
   bookingCardPending: { borderLeftWidth: 4, borderLeftColor: '#FF9800' },
   bookingCardConfirmed: { borderLeftWidth: 4, borderLeftColor: '#34a853' },
+  bookingCardCounter: { borderLeftWidth: 4, borderLeftColor: '#1a73e8' },
+  bookingActionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  counterSuggestBtn: {
+    flex: 1, borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  counterSuggestBtnText: { color: '#1a73e8', fontSize: 14, fontWeight: '700' },
+  counterSentNote: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10 },
+  counterSentText: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
+  counterModalContainer: { flex: 1, backgroundColor: '#f5f5f5' },
+  counterModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: '#eee',
+  },
+  counterModalBack: { fontSize: 14, color: '#888', fontWeight: '600', width: 60 },
+  counterModalTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+  counterLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 12 },
+  counterDateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  counterDateCell: {
+    width: 64, borderRadius: 10, padding: 8, alignItems: 'center',
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  counterDateCellActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  counterDateDay: { fontSize: 10, color: '#888', fontWeight: '600' },
+  counterDateDayActive: { color: 'rgba(255,255,255,0.8)' },
+  counterDateNum: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginVertical: 2 },
+  counterDateNumActive: { color: '#fff' },
+  counterDateMon: { fontSize: 10, color: '#888' },
+  counterDateMonActive: { color: 'rgba(255,255,255,0.8)' },
+  counterSlotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  counterSlotChip: {
+    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20,
+    borderWidth: 1.5, borderColor: '#e0e0e0', backgroundColor: '#fff',
+  },
+  counterSlotChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  counterSlotChipText: { fontSize: 14, color: '#555', fontWeight: '600' },
+  counterSlotChipTextActive: { color: '#fff' },
+  counterSubmitBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 16,
+    alignItems: 'center', marginTop: 28,
+  },
+  counterSubmitBtnDisabled: { opacity: 0.4 },
+  counterSubmitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   // Notes / message thread in booking card
   notesSection: {

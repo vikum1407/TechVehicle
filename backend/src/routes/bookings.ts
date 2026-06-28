@@ -194,6 +194,116 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /bookings/:id/counter — garage proposes a different date/slot
+router.post('/:id/counter', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  const { counterDate, counterSlot } = req.body
+  if (!counterDate) { res.status(400).json({ error: 'counterDate is required' }); return }
+  try {
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
+    if (!garage) { res.status(404).json({ error: 'No garage account' }); return }
+
+    const booking = await prisma.booking.findFirst({
+      where: { id, garageId: garage.id, status: 'pending' },
+      include: { vehicle: true },
+    })
+    if (!booking) { res.status(404).json({ error: 'Booking not found or not pending' }); return }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: { status: 'counter_suggested', counterDate: new Date(counterDate), counterSlot: counterSlot || null },
+    })
+
+    const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+    const prefs = parsePrefs(owner?.notificationPrefs)
+    const dateStr = new Date(counterDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    const slotPart = counterSlot ? ` · ${counterSlot}` : ''
+    const title = `${garage.name} suggests a different slot`
+    const body  = `${booking.vehicle.registrationNo} — ${dateStr}${slotPart}`
+    if (prefs.booking) {
+      await sendPush(owner?.pushToken, title, body, { screen: 'vehicles', vehicleId: booking.vehicleId })
+    }
+    await createNotification(prisma, booking.ownerPhone, 'booking_counter', title, body, {
+      screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: id,
+    })
+
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to counter-suggest booking' })
+  }
+})
+
+// POST /bookings/:id/accept-counter — owner accepts the garage's counter suggestion
+router.post('/:id/accept-counter', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const booking = await prisma.booking.findFirst({
+      where: { id, ownerPhone: req.phoneNumber!, status: 'counter_suggested' },
+      include: { garage: true, vehicle: true },
+    })
+    if (!booking || !booking.counterDate) { res.status(404).json({ error: 'Booking not found or no counter pending' }); return }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: {
+        status: 'confirmed',
+        date: booking.counterDate,
+        slotLabel: booking.counterSlot ?? null,
+        counterDate: null,
+        counterSlot: null,
+      },
+    })
+
+    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: booking.garage.ownerPhone } })
+    const prefs = parsePrefs(garageOwner?.notificationPrefs)
+    const dateStr = booking.counterDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    const title = `Counter offer accepted — ${booking.vehicle.registrationNo}`
+    const body  = `Owner confirmed the new slot: ${dateStr}${booking.counterSlot ? ` · ${booking.counterSlot}` : ''}`
+    if (prefs.booking) {
+      await sendPush(garageOwner?.pushToken, title, body, { screen: 'garage', bookingId: id })
+    }
+    await createNotification(prisma, booking.garage.ownerPhone, 'booking_counter_accepted', title, body, {
+      screen: 'garage', bookingId: id,
+    })
+
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to accept counter' })
+  }
+})
+
+// POST /bookings/:id/decline-counter — owner declines the counter, cancels the booking
+router.post('/:id/decline-counter', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const booking = await prisma.booking.findFirst({
+      where: { id, ownerPhone: req.phoneNumber!, status: 'counter_suggested' },
+      include: { garage: true, vehicle: true },
+    })
+    if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
+
+    await prisma.booking.update({
+      where: { id },
+      data: { status: 'cancelled', counterDate: null, counterSlot: null },
+    })
+
+    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: booking.garage.ownerPhone } })
+    const prefs = parsePrefs(garageOwner?.notificationPrefs)
+    const title = `Counter offer declined — ${booking.vehicle.registrationNo}`
+    const body  = 'Owner declined the suggested slot. The booking has been cancelled.'
+    if (prefs.booking) {
+      await sendPush(garageOwner?.pushToken, title, body, { screen: 'garage' })
+    }
+    await createNotification(prisma, booking.garage.ownerPhone, 'booking_counter_declined', title, body, {
+      screen: 'garage',
+    })
+
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to decline counter' })
+  }
+})
+
 // GET /bookings/:id/notes — owner or garage fetches notes for a booking
 router.get('/:id/notes', async (req: AuthRequest, res) => {
   const id = req.params.id as string

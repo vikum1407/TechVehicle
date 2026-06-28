@@ -165,6 +165,8 @@ model Booking {
   serviceType    String?
   shareSessionId String?
   reminderSent   Boolean       @default(false)
+  counterDate    DateTime?
+  counterSlot    String?
   createdAt      DateTime      @default(now())
   vehicle        Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage         Garage        @relation(fields: [garageId], references: [id], onDelete: Cascade)

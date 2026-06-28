@@ -66,6 +66,8 @@ type OwnerBooking = {
   notes: string | null
   noteType: string | null
   serviceType: string | null
+  counterDate: string | null
+  counterSlot: string | null
   garage: { id: string; name: string; verified: boolean }
   _count?: { bookingNotes: number }
 }
@@ -371,6 +373,43 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     )
   }
 
+  const [respondingCounter, setRespondingCounter] = useState<string | null>(null)
+
+  const handleAcceptCounter = async (bookingId: string) => {
+    setRespondingCounter(bookingId)
+    try {
+      const updated = await api.acceptCounter(token, bookingId)
+      setMyBookings(prev => prev.map(b => b.id === bookingId
+        ? { ...b, status: 'confirmed', date: updated.date, slotLabel: updated.slotLabel, counterDate: null, counterSlot: null }
+        : b
+      ))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setRespondingCounter(null)
+    }
+  }
+
+  const handleDeclineCounter = async (bookingId: string) => {
+    Alert.alert('Decline Suggestion', 'Decline this slot suggestion? The booking will be cancelled.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Decline', style: 'destructive',
+        onPress: async () => {
+          setRespondingCounter(bookingId)
+          try {
+            await api.declineCounter(token, bookingId)
+            setMyBookings(prev => prev.filter(b => b.id !== bookingId))
+          } catch (e: any) {
+            Alert.alert('Error', e.message)
+          } finally {
+            setRespondingCounter(null)
+          }
+        },
+      },
+    ])
+  }
+
   const toggleBookingMessages = async (bookingId: string) => {
     if (expandedMessages.has(bookingId)) {
       setExpandedMessages(prev => { const s = new Set(prev); s.delete(bookingId); return s })
@@ -653,8 +692,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <Text style={styles.appointmentsSectionTitle}>📅 My Appointments ({myBookings.length})</Text>
             {myBookings.map(bk => {
               const isConfirmed = bk.status === 'confirmed'
-              const statusColor = isConfirmed ? '#2e7d32' : '#e65100'
-              const statusLabel = isConfirmed ? '✓ Confirmed' : '⏳ Pending'
+              const isCounter   = bk.status === 'counter_suggested'
+              const statusColor = isConfirmed ? '#2e7d32' : isCounter ? '#1565c0' : '#e65100'
+              const statusLabel = isConfirmed ? '✓ Confirmed' : isCounter ? '🔄 Counter Suggested' : '⏳ Pending'
               const isExpanded = expandedMessages.has(bk.id)
               return (
                 <View key={bk.id} style={[styles.appointmentCard, { borderLeftColor: statusColor }]}>
@@ -687,6 +727,35 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     </Text>
                   )}
 
+                  {isCounter && bk.counterDate && (
+                    <View style={styles.counterOfferCard}>
+                      <Text style={styles.counterOfferTitle}>🔄 Garage suggests a different slot:</Text>
+                      <Text style={styles.counterOfferDate}>
+                        {new Date(bk.counterDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {bk.counterSlot ? `  ·  ${bk.counterSlot}` : ''}
+                      </Text>
+                      <View style={styles.counterOfferActions}>
+                        <TouchableOpacity
+                          style={[styles.counterAcceptBtn, respondingCounter === bk.id && { opacity: 0.5 }]}
+                          onPress={() => handleAcceptCounter(bk.id)}
+                          disabled={respondingCounter === bk.id}
+                        >
+                          {respondingCounter === bk.id
+                            ? <ActivityIndicator size="small" color="#fff" />
+                            : <Text style={styles.counterAcceptBtnText}>✓ Accept</Text>
+                          }
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.counterDeclineBtn, respondingCounter === bk.id && { opacity: 0.5 }]}
+                          onPress={() => handleDeclineCounter(bk.id)}
+                          disabled={respondingCounter === bk.id}
+                        >
+                          <Text style={styles.counterDeclineBtnText}>✕ Decline</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity
                       style={styles.messagesToggleSmall}
@@ -702,7 +771,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         })()}
                       </View>
                     </TouchableOpacity>
-                    {!isConfirmed && (
+                    {!isConfirmed && !isCounter && (
                       <TouchableOpacity
                         style={[styles.cancelBkBtn, cancellingBooking === bk.id && styles.cancelBkBtnDisabled]}
                         onPress={() => handleCancelBooking(bk.id)}
@@ -1279,6 +1348,23 @@ const styles = StyleSheet.create({
   },
   cancelBkBtnDisabled: { opacity: 0.5 },
   cancelBkBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
+  counterOfferCard: {
+    backgroundColor: '#e3f2fd', borderRadius: 10, padding: 12,
+    marginTop: 10, borderLeftWidth: 3, borderLeftColor: '#1565c0',
+  },
+  counterOfferTitle: { fontSize: 12, color: '#1565c0', fontWeight: '700', marginBottom: 4 },
+  counterOfferDate: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 10 },
+  counterOfferActions: { flexDirection: 'row', gap: 10 },
+  counterAcceptBtn: {
+    flex: 1, backgroundColor: '#2e7d32', borderRadius: 8,
+    paddingVertical: 9, alignItems: 'center',
+  },
+  counterAcceptBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  counterDeclineBtn: {
+    flex: 1, borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
+    paddingVertical: 9, alignItems: 'center',
+  },
+  counterDeclineBtnText: { color: '#c62828', fontSize: 13, fontWeight: '700' },
   photoStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   recordThumb: { width: 72, height: 72, borderRadius: 8 },
   thumbCountBadge: {
