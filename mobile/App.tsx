@@ -452,6 +452,7 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           onBack={() => setScreen('vehicleDashboard')}
+          onKnowledgeHub={() => setScreen('knowledgeHub')}
         />
       )}
       {screen === 'predictions' && selectedVehicle && (

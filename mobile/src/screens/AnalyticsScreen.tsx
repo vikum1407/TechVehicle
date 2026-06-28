@@ -13,6 +13,7 @@ type Props = {
   token: string
   vehicleId: string
   onBack: () => void
+  onKnowledgeHub?: () => void
 }
 
 type OilHistoryItem = {
@@ -342,7 +343,7 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 
-export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
+export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeHub }: Props) {
   const [data, setData] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -502,6 +503,21 @@ export default function AnalyticsScreen({ token, vehicleId, onBack }: Props) {
       {data.tyreAnalytics     && <TyreCard     data={data.tyreAnalytics}     />}
       {data.emissionAnalytics && <EmissionCard data={data.emissionAnalytics} />}
       {data.acAnalytics       && <AcCard       data={data.acAnalytics}       />}
+
+      {/* Knowledge Hub nudge — appears when structured oil or tyre data exists */}
+      {onKnowledgeHub && (data.oilAnalytics || data.tyreAnalytics) && (
+        <TouchableOpacity style={styles.knowledgeNudge} onPress={onKnowledgeHub} activeOpacity={0.8}>
+          <View style={styles.knowledgeNudgeLeft}>
+            <Text style={styles.knowledgeNudgeTitle}>Check Against Manufacturer Specs</Text>
+            <Text style={styles.knowledgeNudgeSub}>
+              {data.oilAnalytics?.history.some(h => h.grade)
+                ? 'Compare your logged oil grade, tyre size, and service intervals against manufacturer recommendations for your vehicle.'
+                : 'Add oil grade in Prediction Setup, then compare everything against manufacturer recommendations in Knowledge Hub.'}
+            </Text>
+          </View>
+          <Text style={styles.knowledgeNudgeArrow}>→</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   )
 }
@@ -607,6 +623,18 @@ const styles = StyleSheet.create({
   resultFail: { backgroundColor: '#ea4335' },
   resultNeutral: { backgroundColor: '#f0f0f0' },
   resultText: { fontSize: 11, fontWeight: '700', color: '#555' },
+
+  // Knowledge Hub nudge
+  knowledgeNudge: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#e8f0fe', borderRadius: 14, padding: 16,
+    marginTop: 8, marginBottom: 16,
+    borderLeftWidth: 4, borderLeftColor: '#1a73e8',
+  },
+  knowledgeNudgeLeft: { flex: 1 },
+  knowledgeNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#1a55a8', marginBottom: 4 },
+  knowledgeNudgeSub: { fontSize: 12, color: '#3c4f8a', lineHeight: 17 },
+  knowledgeNudgeArrow: { fontSize: 18, color: '#1a73e8', fontWeight: '700' },
 
   // Warning banners
   warnBanner: {
