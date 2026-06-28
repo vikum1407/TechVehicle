@@ -642,11 +642,10 @@ export const api = {
         ...(payload.station ? { station: payload.station } : {}),
       },
     }
-    const res = await fetch(`${API_URL}/service-records`, {
+    const res = await fetch(`${API_URL}/service-records/${vehicleId}`, {
       method: 'POST',
       headers: authHeaders(token),
       body: JSON.stringify({
-        vehicleId,
         date: payload.date,
         description,
         mileage: payload.mileage,
