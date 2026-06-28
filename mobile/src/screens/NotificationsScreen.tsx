@@ -27,7 +27,11 @@ const TYPE_ICON: Record<string, string> = {
   booking_confirmed: '✅',
   submission: '📋',
   transfer: '🚗',
+  licence_reminder: '🚨',
+  emission_reminder: '🚨',
 }
+
+const URGENT_TYPES = new Set(['licence_reminder', 'emission_reminder'])
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -96,17 +100,22 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
           contentContainerStyle={{ paddingVertical: 8 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.card, !item.read && styles.cardUnread]}
+              style={[
+                styles.card,
+                URGENT_TYPES.has(item.type) ? styles.cardUrgent : (!item.read && styles.cardUnread),
+              ]}
               onPress={() => handleTap(item)}
               activeOpacity={0.75}
             >
               <Text style={styles.cardIcon}>{TYPE_ICON[item.type] ?? '🔔'}</Text>
               <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={[styles.cardTitle, URGENT_TYPES.has(item.type) && styles.cardTitleUrgent]}>
+                  {item.title}
+                </Text>
                 <Text style={styles.cardText} numberOfLines={2}>{item.body}</Text>
                 <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
               </View>
-              {!item.read && <View style={styles.unreadDot} />}
+              {!item.read && <View style={[styles.unreadDot, URGENT_TYPES.has(item.type) && styles.unreadDotUrgent]} />}
             </TouchableOpacity>
           )}
         />
@@ -140,6 +149,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 }, elevation: 2,
   },
   cardUnread: { backgroundColor: '#e8f0fe' },
+  cardUrgent: {
+    backgroundColor: '#fff3e0',
+    borderLeftWidth: 4, borderLeftColor: '#e65100',
+  },
+  cardTitleUrgent: { color: '#c62828' },
+  unreadDotUrgent: { backgroundColor: '#e65100' },
   cardIcon: { fontSize: 22, marginRight: 12, marginTop: 2 },
   cardBody: { flex: 1 },
   cardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 3 },
