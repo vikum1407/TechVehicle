@@ -29,8 +29,7 @@
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.USE_EXACT_ALARM"
-      ],
-      "googleServicesFile": "./google-services.json"
+      ]
     },
     "notification": {
       "icon": "./assets/notification-icon.png",
