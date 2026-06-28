@@ -2,11 +2,10 @@ import React, { useEffect, useState, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
-  Image, Modal, FlatList, Dimensions
+  Image, Modal, FlatList, Dimensions,
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { api } from '../config/api'
-import { exportVehiclePdf } from '../utils/pdfExport'
 
 type Vehicle = {
   id: string
@@ -18,17 +17,6 @@ type Vehicle = {
   mileage: number
 }
 
-type ServiceRecord = {
-  id: string
-  date: string
-  description: string
-  mileage: number | null
-  parts: string | null
-  brand: string | null
-  cost: number | null
-  notes: string | null
-  photos: string[]
-}
 
 type TopPrediction = {
   id: string
@@ -54,22 +42,13 @@ type Props = {
   onShare: () => void
   onSell: () => void
   onBookService: () => void
+  onViewHistory: () => void
   onMessageCountChange?: (count: number) => void
   bookingSeenCounts?: Record<string, number>
   onBookingSeen?: (bookingId: string, count: number) => void
   focusBookingId?: string | null
   onFocusHandled?: () => void
   onNotifSeen?: (newCount: number) => void
-}
-
-type Expense = {
-  id: string
-  date: string
-  category: string
-  amount: number
-  description: string | null
-  mileage: number | null
-  notes: string | null
 }
 
 type OwnerBooking = {
@@ -168,10 +147,8 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
-  const [records, setRecords] = useState<ServiceRecord[]>([])
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
   const [loading, setLoading] = useState(true)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
@@ -188,36 +165,23 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [historySearch, setHistorySearch] = useState('')
-  const [historyDateFilter, setHistoryDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
-
-  const openPhotos = (photos: string[], startIndex: number, label: string) => {
-    setPhotoViewer({ photos, index: startIndex, label })
-    setPhotoViewerIndex(startIndex)
-  }
-  const closePhotoViewer = () => setPhotoViewer(null)
-  const [exporting, setExporting] = useState(false)
+  const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
 
   const loadRecords = async () => {
     setLoading(true)
     try {
-      const [recs, subs, transfer, analytics, preds, allBookings, exps] = await Promise.all([
-        api.getServiceRecords(token, vehicle.id),
+      const [subs, transfer, analytics, preds, allBookings] = await Promise.all([
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
         api.getMyBookings(token).catch(() => []),
-        api.getExpenses(token, vehicle.id).catch(() => []),
       ])
-      setRecords(recs)
       setSubmissions(subs)
       setPendingTransfer(transfer)
-      setExpenses(exps)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
       setMyBookings(vehicleBookings)
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
@@ -355,21 +319,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     )
   }
 
-  const handleExportPdf = async () => {
-    setExporting(true)
-    try {
-      const [fuelLogs, expenses] = await Promise.all([
-        api.getFuelLogs(token, vehicle.id).catch(() => []),
-        api.getExpenses(token, vehicle.id).catch(() => []),
-      ])
-      await exportVehiclePdf(vehicle, records, fuelLogs, expenses)
-    } catch (e: any) {
-      Alert.alert('Export failed', e.message || 'Could not generate PDF')
-    } finally {
-      setExporting(false)
-    }
-  }
-
   const toggleBookingMessages = async (bookingId: string) => {
     if (expandedMessages.has(bookingId)) {
       setExpandedMessages(prev => { const s = new Set(prev); s.delete(bookingId); return s })
@@ -453,10 +402,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
-  const parseServices = (description: string) => {
-    return description.split(',').map(s => s.trim()).filter(Boolean)
-  }
-
   // Sparkline data
   const mileageValues = miniAnalytics?.mileageTrend.map(d => d.mileage) ?? []
   const effValues = miniAnalytics?.fuelEfficiencyTrend.map(d => d.kmPerL) ?? []
@@ -464,93 +409,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const effTrend = getTrend(effValues, true)
 
   const showSparklines = mileageValues.length >= 2 || effValues.length >= 2
-
-  const renderRecord = ({ item }: { item: ServiceRecord }) => {
-    const isExpanded = expandedId === item.id
-    const services = parseServices(item.description)
-    const preview = services.slice(0, 2)
-    const extra = services.length - 2
-
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={styles.card}
-        onPress={() => setExpandedId(isExpanded ? null : item.id)}
-        activeOpacity={0.85}
-      >
-        <View style={styles.cardTop}>
-          <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
-          {item.cost != null && (
-            <Text style={styles.cardCost}>LKR {item.cost.toLocaleString()}</Text>
-          )}
-        </View>
-
-        {!isExpanded ? (
-          <View>
-            <View style={styles.tagRow}>
-              {preview.map((s, i) => (
-                <View key={i} style={styles.tag}>
-                  <Text style={styles.tagText} numberOfLines={1}>{s}</Text>
-                </View>
-              ))}
-              {extra > 0 && (
-                <View style={styles.tagMore}>
-                  <Text style={styles.tagMoreText}>+{extra} more</Text>
-                </View>
-              )}
-            </View>
-            {item.mileage != null && (
-              <Text style={styles.cardMeta}>{item.mileage.toLocaleString()} km</Text>
-            )}
-          </View>
-        ) : (
-          <View>
-            {services.map((s, i) => (
-              <Text key={i} style={styles.expandedItem}>• {s}</Text>
-            ))}
-            {item.mileage != null && (
-              <Text style={styles.cardMeta}>{item.mileage.toLocaleString()} km</Text>
-            )}
-            {item.notes && (
-              <Text style={styles.cardNotes}>{item.notes}</Text>
-            )}
-            {item.photos && item.photos.length > 0 && (
-              <View style={styles.photoStrip}>
-                {item.photos.map((url, i) => (
-                  <TouchableOpacity key={i} onPress={() => openPhotos(item.photos, i, item.description)} activeOpacity={0.8}>
-                    <Image source={{ uri: url }} style={styles.recordThumb} />
-                    {item.photos.length > 1 && i === 0 && (
-                      <View style={styles.thumbCountBadge}>
-                        <Text style={styles.thumbCountText}>{item.photos.length}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            <Text style={styles.collapseHint}>Tap to collapse</Text>
-          </View>
-        )}
-
-        {!isExpanded && services.length > 2 && (
-          <Text style={styles.expandHint}>Tap to see all</Text>
-        )}
-      </TouchableOpacity>
-    )
-  }
-
-  const filteredRecords = records.filter(r => {
-    if (historySearch.trim()) {
-      if (!r.description.toLowerCase().includes(historySearch.toLowerCase())) return false
-    }
-    if (historyDateFilter !== 'all') {
-      const months = historyDateFilter === '1y' ? 12 : historyDateFilter === '6m' ? 6 : 3
-      const cutoff = new Date()
-      cutoff.setMonth(cutoff.getMonth() - months)
-      if (new Date(r.date) < cutoff) return false
-    }
-    return true
-  })
 
   return (
     <View style={styles.container}>
@@ -940,164 +798,52 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </View>
         )}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Service History</Text>
-          <TouchableOpacity
-            style={[styles.exportBtn, exporting && styles.exportBtnDisabled]}
-            onPress={handleExportPdf}
-            disabled={exporting}
-          >
-            {exporting
-              ? <ActivityIndicator size="small" color="#1a73e8" />
-              : <Text style={styles.exportBtnText}>📄 Export PDF</Text>
-            }
-          </TouchableOpacity>
-        </View>
-
         {!pendingTransfer && (
           <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
             <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
           </TouchableOpacity>
         )}
 
-        {/* History filter bar */}
-        {records.length > 0 && (
-          <View style={styles.filterBar}>
-            <TextInput
-              style={styles.filterInput}
-              placeholder="Search records (e.g. Oil, Brake, Tyre...)"
-              placeholderTextColor="#aaa"
-              value={historySearch}
-              onChangeText={setHistorySearch}
-              clearButtonMode="while-editing"
-            />
-            <View style={styles.filterChips}>
-              {(['all', '1y', '6m', '3m'] as const).map(f => (
-                <TouchableOpacity
-                  key={f}
-                  style={[styles.filterChip, historyDateFilter === f && styles.filterChipActive]}
-                  onPress={() => setHistoryDateFilter(f)}
-                >
-                  <Text style={[styles.filterChipText, historyDateFilter === f && styles.filterChipTextActive]}>
-                    {f === 'all' ? 'All' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {(historySearch.trim() || historyDateFilter !== 'all') && (
-              <Text style={styles.filterCount}>
-                {filteredRecords.length} of {records.length} records
-              </Text>
-            )}
-          </View>
-        )}
+        <TouchableOpacity style={styles.historyBtn} onPress={onViewHistory} activeOpacity={0.8}>
+          <Text style={styles.historyBtnText}>📋 Full History & Expenses</Text>
+          <Text style={styles.historyBtnArrow}>›</Text>
+        </TouchableOpacity>
 
-        {loading ? (
-          <ActivityIndicator style={styles.loader} size="large" color="#1a73e8" />
-        ) : records.length === 0 ? (
-          <View style={styles.emptyInline}>
-            <Text style={styles.emptyText}>No service records yet</Text>
-            <Text style={styles.emptySubText}>Tap "Add Service" above to log your first service</Text>
-          </View>
-        ) : filteredRecords.length === 0 ? (
-          <View style={styles.emptyInline}>
-            <Text style={styles.emptyText}>No records match your filter</Text>
-            <TouchableOpacity onPress={() => { setHistorySearch(''); setHistoryDateFilter('all') }}>
-              <Text style={styles.filterClearLink}>Clear filter</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          filteredRecords.map(item => renderRecord({ item }))
-        )}
-
-        {/* Expense History */}
-        {expenses.length > 0 && (
-          <View style={styles.expenseSection}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Expense History</Text>
-              <Text style={styles.sectionCount}>{expenses.length} records</Text>
-            </View>
-            {expenses.map(exp => (
-              <View key={exp.id} style={styles.expenseCard}>
-                <View style={styles.expenseTop}>
-                  <View style={styles.expenseCatBadge}>
-                    <Text style={styles.expenseCatText}>{exp.category}</Text>
-                  </View>
-                  <Text style={styles.expenseAmount}>LKR {exp.amount.toLocaleString()}</Text>
-                </View>
-                <View style={styles.expenseMeta}>
-                  <Text style={styles.expenseDate}>{new Date(exp.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-                  {exp.mileage != null && <Text style={styles.expenseKm}>{exp.mileage.toLocaleString()} km</Text>}
-                </View>
-                {exp.notes && <Text style={styles.expenseNotes}>{exp.notes}</Text>}
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
-      {/* Full-screen photo viewer */}
-      <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={closePhotoViewer} statusBarTranslucent>
+      <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos, label } = photoViewer
-          const SCREEN_W = Dimensions.get('window').width
+          const W = Dimensions.get('window').width
           return (
             <View style={styles.photoModalBg}>
-              {/* Header */}
               <View style={styles.photoModalHeader}>
                 <Text style={styles.photoModalLabel} numberOfLines={1}>{label}</Text>
-                <TouchableOpacity onPress={closePhotoViewer} style={styles.photoModalClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <TouchableOpacity onPress={() => setPhotoViewer(null)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                   <Text style={styles.photoModalCloseText}>✕</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Swipeable photos */}
               <FlatList
                 ref={photoViewerRef}
                 data={photos}
                 keyExtractor={(_, i) => String(i)}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
+                horizontal pagingEnabled showsHorizontalScrollIndicator={false}
                 initialScrollIndex={photoViewer.index}
-                getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
-                onMomentumScrollEnd={e => {
-                  const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W)
-                  setPhotoViewerIndex(idx)
-                }}
+                getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
+                onMomentumScrollEnd={e => setPhotoViewerIndex(Math.round(e.nativeEvent.contentOffset.x / W))}
                 renderItem={({ item: url }) => (
-                  <View style={{ width: SCREEN_W, justifyContent: 'center', alignItems: 'center' }}>
-                    <Image source={{ uri: url }} style={{ width: SCREEN_W, height: '100%' }} resizeMode="contain" />
+                  <View style={{ width: W, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={{ uri: url }} style={{ width: W, height: '100%' }} resizeMode="contain" />
                   </View>
                 )}
                 style={{ flex: 1 }}
               />
-
-              {/* Counter + nav row */}
               <View style={styles.photoModalFooter}>
-                <TouchableOpacity
-                  disabled={photoViewerIndex === 0}
-                  onPress={() => {
-                    const newIdx = photoViewerIndex - 1
-                    photoViewerRef.current?.scrollToIndex({ index: newIdx, animated: true })
-                    setPhotoViewerIndex(newIdx)
-                  }}
-                  style={[styles.photoNavBtn, photoViewerIndex === 0 && styles.photoNavBtnDisabled]}
-                >
+                <TouchableOpacity disabled={photoViewerIndex === 0} onPress={() => { const i = photoViewerIndex - 1; photoViewerRef.current?.scrollToIndex({ index: i, animated: true }); setPhotoViewerIndex(i) }} style={[styles.photoNavBtn, photoViewerIndex === 0 && styles.photoNavBtnDisabled]}>
                   <Text style={styles.photoNavText}>‹</Text>
                 </TouchableOpacity>
-
                 <Text style={styles.photoCounter}>{photoViewerIndex + 1} / {photos.length}</Text>
-
-                <TouchableOpacity
-                  disabled={photoViewerIndex === photos.length - 1}
-                  onPress={() => {
-                    const newIdx = photoViewerIndex + 1
-                    photoViewerRef.current?.scrollToIndex({ index: newIdx, animated: true })
-                    setPhotoViewerIndex(newIdx)
-                  }}
-                  style={[styles.photoNavBtn, photoViewerIndex === photos.length - 1 && styles.photoNavBtnDisabled]}
-                >
+                <TouchableOpacity disabled={photoViewerIndex === photos.length - 1} onPress={() => { const i = photoViewerIndex + 1; photoViewerRef.current?.scrollToIndex({ index: i, animated: true }); setPhotoViewerIndex(i) }} style={[styles.photoNavBtn, photoViewerIndex === photos.length - 1 && styles.photoNavBtnDisabled]}>
                   <Text style={styles.photoNavText}>›</Text>
                 </TouchableOpacity>
               </View>
@@ -1171,61 +917,16 @@ const styles = StyleSheet.create({
   sparkUnit: { fontSize: 11, fontWeight: '500', color: '#888' },
   sparkTrend: { fontSize: 11, fontWeight: '600', marginTop: 3 },
 
-  sectionHeader: {
-    paddingHorizontal: 16, marginBottom: 8, marginTop: 4,
+  historyBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12, marginBottom: 8,
+    borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16,
+    borderWidth: 1.5, borderColor: '#e8eaf0',
+    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  filterBar: { marginHorizontal: 16, marginBottom: 8, marginTop: 4 },
-  filterInput: {
-    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
-    fontSize: 13, color: '#1a1a1a', borderWidth: 1, borderColor: '#e8e8e8', marginBottom: 8,
-  },
-  filterChips: { flexDirection: 'row', gap: 6 },
-  filterChip: {
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  filterChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  filterChipText: { fontSize: 12, color: '#555', fontWeight: '600' },
-  filterChipTextActive: { color: '#fff' },
-  filterCount: { fontSize: 11, color: '#888', marginTop: 6 },
-  filterClearLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600', textAlign: 'center', marginTop: 8 },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 8, marginTop: 4 },
-  sectionCount: { fontSize: 12, color: '#888', fontWeight: '600' },
-  expenseSection: { paddingBottom: 8 },
-  expenseCard: {
-    backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 8, borderRadius: 12, padding: 14,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
-  },
-  expenseTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  expenseCatBadge: { backgroundColor: '#f0f4ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  expenseCatText: { fontSize: 12, fontWeight: '700', color: '#1a73e8' },
-  expenseAmount: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
-  expenseMeta: { flexDirection: 'row', gap: 12 },
-  expenseDate: { fontSize: 12, color: '#888' },
-  expenseKm: { fontSize: 12, color: '#aaa' },
-  expenseNotes: { fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' },
-  exportBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 5, minWidth: 36, justifyContent: 'center',
-  },
-  exportBtnDisabled: { opacity: 0.4 },
-  exportBtnText: { fontSize: 12, color: '#1a73e8', fontWeight: '700' },
+  historyBtnText: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  historyBtnArrow: { fontSize: 20, color: '#1a73e8', fontWeight: '300' },
   loader: { marginTop: 40 },
-  emptyInline: { alignItems: 'center', padding: 32, marginTop: 8 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: '#555', marginBottom: 8 },
-  emptySubText: { fontSize: 13, color: '#888', textAlign: 'center' },
-  card: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16,
-    marginBottom: 10, shadowColor: '#000',
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  cardDate: { fontSize: 12, color: '#888', fontWeight: '600' },
-  cardCost: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   tag: {
     backgroundColor: '#f0f4ff', borderRadius: 6,
@@ -1237,11 +938,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   tagMoreText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
-  cardMeta: { fontSize: 12, color: '#aaa', marginTop: 4 },
-  cardNotes: { fontSize: 12, color: '#aaa', marginTop: 6, fontStyle: 'italic' },
-  expandHint: { fontSize: 11, color: '#bbb', marginTop: 6 },
-  collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8 },
-  expandedItem: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
   transferBanner: {
     backgroundColor: '#fff3e0', marginHorizontal: 16, marginBottom: 10,
     borderRadius: 10, padding: 14, flexDirection: 'row',
@@ -1374,19 +1070,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, paddingVertical: 2,
   },
   thumbCountText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  photoModalBg: { flex: 1, backgroundColor: '#000' },
-  photoModalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  photoModalLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13, flex: 1, marginRight: 12 },
-  photoModalClose: { padding: 4 },
+  photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
+  photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
+  photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },
   photoModalCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  photoModalFooter: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24,
-    paddingVertical: 18, backgroundColor: 'rgba(0,0,0,0.7)',
-  },
+  photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 18 },
   photoCounter: { color: '#fff', fontSize: 15, fontWeight: '600', minWidth: 50, textAlign: 'center' },
   photoNavBtn: { paddingHorizontal: 16, paddingVertical: 8 },
   photoNavBtnDisabled: { opacity: 0.25 },

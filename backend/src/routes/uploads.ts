@@ -46,8 +46,9 @@ router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
   const bucket = process.env.R2_BUCKET_NAME || ''
   const publicUrl = process.env.R2_PUBLIC_URL || ''
 
-  if (!bucket || !publicUrl || !process.env.R2_ACCOUNT_ID) {
-    res.status(500).json({ error: 'Storage not configured — add R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL to .env' })
+  const isPlaceholder = (v?: string) => !v || v.startsWith('your-') || v === ''
+  if (isPlaceholder(process.env.R2_ACCOUNT_ID) || isPlaceholder(bucket) || isPlaceholder(publicUrl) || isPlaceholder(process.env.R2_ACCESS_KEY_ID) || isPlaceholder(process.env.R2_SECRET_ACCESS_KEY)) {
+    res.status(503).json({ error: 'Photo storage not configured — set real Cloudflare R2 credentials in .env to enable photo upload.' })
     return
   }
 

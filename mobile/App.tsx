@@ -13,6 +13,7 @@ import AddServiceRecordScreen from './src/screens/AddServiceRecordScreen'
 import LogFuelScreen from './src/screens/LogFuelScreen'
 import AddExpenseScreen from './src/screens/AddExpenseScreen'
 import VehicleTestsScreen from './src/screens/VehicleTestsScreen'
+import VehicleHistoryScreen from './src/screens/VehicleHistoryScreen'
 import AnalyticsScreen from './src/screens/AnalyticsScreen'
 import GarageScreen from './src/screens/GarageScreen'
 import ShareScreen from './src/screens/ShareScreen'
@@ -30,7 +31,7 @@ type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'addExpense' | 'vehicleTests' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
+  | 'logFuel' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
   | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
@@ -175,6 +176,7 @@ export default function App() {
       logFuel: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
       vehicleTests: 'vehicleDashboard',
+      vehicleHistory: 'vehicleDashboard',
       analytics: 'vehicleDashboard',
       predictions: 'vehicleDashboard',
       knowledgeHub: 'vehicleDashboard',
@@ -368,6 +370,7 @@ export default function App() {
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
           onVehicleTests={() => setScreen('vehicleTests')}
+          onViewHistory={() => setScreen('vehicleHistory')}
           onPredictions={() => setScreen('predictions')}
           onKnowledgeHub={() => setScreen('knowledgeHub')}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
@@ -430,6 +433,13 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'vehicleHistory' && selectedVehicle && (
+        <VehicleHistoryScreen
+          token={token}
+          vehicle={selectedVehicle}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}
