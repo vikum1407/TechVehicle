@@ -79,6 +79,67 @@ export function urgencyScore(status: string, remainingKm: number | null, remaini
   return 1000000 + Math.min(kmVal < Infinity ? kmVal : 999999, daysVal < Infinity ? daysVal * 10 : 999999)
 }
 
+const BASE_TYRE_LIFE_KM = 40000
+
+function computeTyrePrediction(
+  vehicle: VehicleInput,
+  records: { description: string; mileage: number | null; date: Date }[]
+): PredictionRow {
+  const tyreRecord = records
+    .filter(r => r.description.toLowerCase().includes('tyre change'))
+    .sort((a, b) => b.date.getTime() - a.date.getTime())[0] || null
+
+  if (!tyreRecord) {
+    return {
+      id: 'tyre_change', group: 'tyre_change', name: 'Tyre Change',
+      keywords: ['Tyre Change'],
+      source: 'Log a tyre change in service records to unlock a personalised prediction',
+      status: 'no_data',
+      lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
+      remainingKm: null, dueAtDate: null, remainingDays: null,
+    }
+  }
+
+  const lastTyreKm = tyreRecord.mileage
+  const lastTyreDate = tyreRecord.date
+
+  const alignmentsSince = records.filter(r =>
+    r.description.toLowerCase().includes('wheel alignment') && r.date > lastTyreDate
+  )
+
+  const kmSinceChange = lastTyreKm !== null ? vehicle.mileage - lastTyreKm : null
+  let multiplier = 1.0
+  let freqNote = `${BASE_TYRE_LIFE_KM.toLocaleString()} km baseline`
+
+  if (kmSinceChange !== null && kmSinceChange > 0 && alignmentsSince.length > 0) {
+    const per10k = (alignmentsSince.length / kmSinceChange) * 10000
+    if (per10k <= 0.5)      { multiplier = 1.2; freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} since last change (low frequency — good roads, longer tyre life)` }
+    else if (per10k <= 1.0) { multiplier = 1.0; freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} since last change (normal frequency)` }
+    else if (per10k <= 2.0) { multiplier = 0.8; freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} since last change (high frequency — rough roads or wear)` }
+    else                    { multiplier = 0.65; freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} since last change (very high — inspect suspension)` }
+  } else if (alignmentsSince.length > 0) {
+    freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} logged since last tyre change`
+  }
+
+  const predictedLife = Math.round(BASE_TYRE_LIFE_KM * multiplier)
+  const dueAtKm = lastTyreKm !== null ? lastTyreKm + predictedLife : null
+  const remainingKm = dueAtKm !== null ? dueAtKm - vehicle.mileage : null
+
+  let status: 'overdue' | 'due_soon' | 'ok' = 'ok'
+  if (remainingKm !== null && remainingKm < 0) status = 'overdue'
+  else if (remainingKm !== null && remainingKm <= 3000) status = 'due_soon'
+
+  return {
+    id: 'tyre_change', group: 'tyre_change', name: 'Tyre Change',
+    keywords: ['Tyre Change'],
+    source: freqNote,
+    status,
+    lastDoneKm: lastTyreKm,
+    lastDoneDate: lastTyreDate.toISOString(),
+    dueAtKm, remainingKm, dueAtDate: null, remainingDays: null,
+  }
+}
+
 export function computePredictions(
   vehicle: VehicleInput,
   records: { description: string; mileage: number | null; date: Date }[]
@@ -101,7 +162,7 @@ export function computePredictions(
     }
   }
 
-  return Array.from(grouped.values()).map(interval => {
+  const mainRows = Array.from(grouped.values()).map(interval => {
     const matching = records.filter(r =>
       interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
     )
@@ -155,5 +216,8 @@ export function computePredictions(
       status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(),
       dueAtKm, remainingKm, dueAtDate, remainingDays,
     }
-  }).sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
+  })
+
+  const tyreRow = computeTyrePrediction(vehicle, records)
+  return [...mainRows, tyreRow].sort((a, b) => urgencyScore(a.status, a.remainingKm, a.remainingDays) - urgencyScore(b.status, b.remainingKm, b.remainingDays))
 }

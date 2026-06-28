@@ -285,6 +285,19 @@ const GENERAL: ServiceInterval[] = [
     urgencyKm: 8000,
     urgencyDays: 90,
   },
+  {
+    id: 'emission_test',
+    group: 'emission_test',
+    name: 'Emission Test',
+    keywords: ['Emission Test / Carbon Test'],
+    daysInterval: 365,
+    fuelScope: 'not-electric',
+    excludeMakes: MOTO_MAKES,
+    excludeVehicleTypes: MOTO_TYPES,
+    source: 'Sri Lanka legal requirement — annual emission test for revenue licence renewal',
+    urgencyKm: 0,
+    urgencyDays: 30,
+  },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────

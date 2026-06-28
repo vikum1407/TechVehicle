@@ -47,7 +47,7 @@ type Props = {
   onLogFuel: () => void
   onAddExpense: () => void
   onAnalytics: () => void
-  onLogEmissionTest: () => void
+  onVehicleTests: () => void
   onPredictions: () => void
   onKnowledgeHub: () => void
   onMileageUpdated: (newMileage: number) => void
@@ -168,7 +168,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onLogEmissionTest, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -608,8 +608,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <Text style={styles.quickBtnText}>📊 Insights</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.bookBtn} onPress={onLogEmissionTest}>
-            <Text style={styles.bookBtnText}>💨 Log Emission / Carbon Test</Text>
+          <TouchableOpacity style={styles.bookBtn} onPress={onVehicleTests}>
+            <Text style={styles.bookBtnText}>🧪 Vehicle Tests</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
             <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>

@@ -12,7 +12,7 @@ import VehicleDashboardScreen from './src/screens/VehicleDashboardScreen'
 import AddServiceRecordScreen from './src/screens/AddServiceRecordScreen'
 import LogFuelScreen from './src/screens/LogFuelScreen'
 import AddExpenseScreen from './src/screens/AddExpenseScreen'
-import LogEmissionTestScreen from './src/screens/LogEmissionTestScreen'
+import VehicleTestsScreen from './src/screens/VehicleTestsScreen'
 import AnalyticsScreen from './src/screens/AnalyticsScreen'
 import GarageScreen from './src/screens/GarageScreen'
 import ShareScreen from './src/screens/ShareScreen'
@@ -30,7 +30,7 @@ type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'addExpense' | 'logEmissionTest' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
+  | 'logFuel' | 'addExpense' | 'vehicleTests' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
   | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
@@ -174,7 +174,7 @@ export default function App() {
       addServiceRecord: 'vehicleDashboard',
       logFuel: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
-      logEmissionTest: 'vehicleDashboard',
+      vehicleTests: 'vehicleDashboard',
       analytics: 'vehicleDashboard',
       predictions: 'vehicleDashboard',
       knowledgeHub: 'vehicleDashboard',
@@ -367,7 +367,7 @@ export default function App() {
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
-          onLogEmissionTest={() => setScreen('logEmissionTest')}
+          onVehicleTests={() => setScreen('vehicleTests')}
           onPredictions={() => setScreen('predictions')}
           onKnowledgeHub={() => setScreen('knowledgeHub')}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
@@ -424,12 +424,12 @@ export default function App() {
           onBooked={() => setScreen('vehicleDashboard')}
         />
       )}
-      {screen === 'logEmissionTest' && selectedVehicle && (
-        <LogEmissionTestScreen
+      {screen === 'vehicleTests' && selectedVehicle && (
+        <VehicleTestsScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
-          onSaved={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}
