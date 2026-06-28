@@ -20,6 +20,7 @@ import vehicleKnowledgeRoutes from './routes/vehicleKnowledge'
 import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
+import { startMileageReminderJob } from './jobs/mileageReminders'
 
 dotenv.config()
 
@@ -59,4 +60,5 @@ app.listen(PORT, () => {
   startRenewalReminderJob()
   startServiceNotificationJob()
   startBookingReminderJob()
+  startMileageReminderJob()
 })
