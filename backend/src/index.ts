@@ -19,6 +19,7 @@ import uploadRoutes from './routes/uploads'
 import vehicleKnowledgeRoutes from './routes/vehicleKnowledge'
 import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
+import { startBookingReminderJob } from './jobs/bookingReminders'
 
 dotenv.config()
 
@@ -57,4 +58,5 @@ app.listen(PORT, () => {
   console.log(`TechVehicle backend running on port ${PORT}`)
   startRenewalReminderJob()
   startServiceNotificationJob()
+  startBookingReminderJob()
 })

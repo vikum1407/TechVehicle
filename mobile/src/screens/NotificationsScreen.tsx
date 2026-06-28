@@ -25,6 +25,7 @@ type Props = {
 const TYPE_ICON: Record<string, string> = {
   message: '💬',
   booking_confirmed: '✅',
+  booking_reminder: '📅',
   submission: '📋',
   transfer: '🚗',
   licence_reminder: '🚨',
