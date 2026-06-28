@@ -25,6 +25,7 @@ import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import NotificationsScreen from './src/screens/NotificationsScreen'
 import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen'
 import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
+import ProfileScreen from './src/screens/ProfileScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
@@ -32,7 +33,7 @@ type Screen =
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
-  | 'notificationPrefs' | 'notifications'
+  | 'profile' | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
   id: string
@@ -187,6 +188,7 @@ export default function App() {
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
       onboardingWizard: 'vehicles',
+      profile: 'vehicles',
       notificationPrefs: 'vehicles',
       notifications: 'vehicles',
     }
@@ -306,7 +308,7 @@ export default function App() {
                 onSelectVehicle={handleSelectVehicle}
                 onVehiclesLoaded={setVehicles}
                 onLogout={handleLogout}
-                onSettings={() => setScreen('notificationPrefs')}
+                onSettings={() => setScreen('profile')}
                 notifUnread={notifUnreadCount > 0}
                 onNotifPress={() => setScreen('notifications')}
               />
@@ -479,6 +481,15 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           onExpenseAdded={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'profile' && (
+        <ProfileScreen
+          token={token}
+          phoneNumber={phoneNumber}
+          userType={userType || 'owner'}
+          onBack={() => setScreen('vehicles')}
+          onLogout={handleLogout}
         />
       )}
       {screen === 'notificationPrefs' && (

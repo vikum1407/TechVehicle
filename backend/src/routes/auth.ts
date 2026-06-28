@@ -154,4 +154,20 @@ router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
   }
 })
 
+// GET /auth/stats — account summary counts
+router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const phone = req.phoneNumber!
+    const [vehicleCount, serviceCount, fuelCount, expenseCount] = await Promise.all([
+      prisma.vehicle.count({ where: { ownerPhone: phone } }),
+      prisma.serviceRecord.count({ where: { vehicle: { ownerPhone: phone } } }),
+      prisma.fuelLog.count({ where: { vehicle: { ownerPhone: phone } } }),
+      prisma.expense.count({ where: { vehicle: { ownerPhone: phone } } }),
+    ])
+    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch stats' })
+  }
+})
+
 export default router

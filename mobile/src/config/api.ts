@@ -508,6 +508,15 @@ export const api = {
     return data
   },
 
+  getAccountStats: async (token: string) => {
+    const res = await fetch(`${API_URL}/auth/stats`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch stats')
+    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number }
+  },
+
   getNotificationPrefs: async (token: string) => {
     const res = await fetch(`${API_URL}/auth/notification-prefs`, {
       headers: authHeaders(token),
