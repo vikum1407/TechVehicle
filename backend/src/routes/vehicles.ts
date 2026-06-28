@@ -107,6 +107,58 @@ router.patch('/:id/photo', async (req: AuthRequest, res) => {
   }
 })
 
+// GET /vehicles/:id/progress — vehicle profile completion score
+router.get('/:id/progress', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const [serviceCount, fuelCount] = await Promise.all([
+      prisma.serviceRecord.count({ where: { vehicleId: id } }),
+      prisma.fuelLog.count({ where: { vehicleId: id } }),
+    ])
+
+    const items = [
+      {
+        id: 'photo',
+        label: 'Vehicle photo',
+        done: !!vehicle.photoUrl,
+        hint: 'Add a photo of your vehicle',
+      },
+      {
+        id: 'service1',
+        label: 'First service record',
+        done: serviceCount >= 1,
+        hint: 'Log at least one past service',
+      },
+      {
+        id: 'service3',
+        label: '3 service records',
+        done: serviceCount >= 3,
+        hint: `Add ${Math.max(0, 3 - serviceCount)} more service record${3 - serviceCount !== 1 ? 's' : ''} to improve predictions`,
+      },
+      {
+        id: 'fuel',
+        label: 'First fuel log',
+        done: fuelCount >= 1,
+        hint: 'Log a fuel fill-up to enable efficiency tracking',
+      },
+      {
+        id: 'expiry',
+        label: 'Renewal dates',
+        done: !!(vehicle.emissionTestExpiry || vehicle.revenueLicenceExpiry),
+        hint: 'Set emission test or revenue licence expiry to get renewal reminders',
+      },
+    ]
+
+    const score = Math.round((items.filter(i => i.done).length / items.length) * 100)
+    res.json({ score, items })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get progress' })
+  }
+})
+
 // PATCH /vehicles/:id — edit vehicle profile (make, model, year, fuelType, vehicleType, vehicleNotes)
 router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }

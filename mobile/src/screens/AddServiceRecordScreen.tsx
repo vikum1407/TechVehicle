@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image
@@ -60,6 +60,9 @@ const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
 }
 
 export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, currentMileage, onRecordAdded, onBack }: Props) {
+  const [categories, setCategories] = useState<{ title: string; items: string[] }[]>(
+    () => getServiceCategories(vehicleType)
+  )
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
@@ -70,6 +73,12 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [saveAttempted, setSaveAttempted] = useState(false)
+
+  useEffect(() => {
+    api.getServiceCategoriesRemote(vehicleType).then(setCategories).catch(() => {
+      // fallback to local data already set in initial state
+    })
+  }, [vehicleType])
   const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
@@ -257,7 +266,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         <Text style={styles.fieldError}>Please select at least one service</Text>
       )}
 
-      {getServiceCategories(vehicleType).map(cat => (
+      {categories.map(cat => (
         <View key={cat.title}>
           <Text style={styles.catLabel}>{cat.title}</Text>
           <View style={styles.chipRow}>

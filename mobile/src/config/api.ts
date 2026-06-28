@@ -687,6 +687,23 @@ export const api = {
     return d
   },
 
+  getServiceCategoriesRemote: async (vehicleType?: string | null) => {
+    const q = vehicleType ? `?vehicleType=${encodeURIComponent(vehicleType)}` : ''
+    const res = await fetch(`${API_URL}/service-categories${q}`)
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch categories')
+    return data.categories as { title: string; items: string[] }[]
+  },
+
+  getVehicleProgress: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/progress`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch progress')
+    return data as { score: number; items: { id: string; label: string; done: boolean; hint: string }[] }
+  },
+
   updateVehicle: async (token: string, id: string, data: {
     make?: string; model?: string; year?: number; fuelType?: string
     vehicleType?: string | null; vehicleNotes?: string | null

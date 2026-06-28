@@ -194,6 +194,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadFailed, setLoadFailed] = useState(false)
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(vehicle.photoUrl ?? null)
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
+  const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
   const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType })
   const [savingVehicle, setSavingVehicle] = useState(false)
@@ -253,13 +254,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     setLoading(true)
     setLoadFailed(false)
     try {
-      const [subs, transfer, analytics, preds, allBookings] = await Promise.all([
+      const [subs, transfer, analytics, preds, allBookings, progress] = await Promise.all([
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
         api.getMyBookings(token).catch(() => []),
+        api.getVehicleProgress(token, vehicle.id).catch(() => null),
       ])
+      setVehicleProgress(progress)
       setSubmissions(subs)
       setPendingTransfer(transfer)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
@@ -625,6 +628,22 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
           </TouchableOpacity>
         </View>
+
+        {/* ── Vehicle profile progress card ── */}
+        {vehicleProgress && vehicleProgress.score < 100 && (
+          <View style={styles.progressCard}>
+            <View style={styles.progressCardHeader}>
+              <Text style={styles.progressCardTitle}>Vehicle Profile</Text>
+              <Text style={styles.progressCardPct}>{vehicleProgress.score}% complete</Text>
+            </View>
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${vehicleProgress.score}%` as any }]} />
+            </View>
+            {vehicleProgress.items.filter(i => !i.done).slice(0, 2).map(item => (
+              <Text key={item.id} style={styles.progressHint}>· {item.hint}</Text>
+            ))}
+          </View>
+        )}
 
         {/* Renewal expiry banners */}
         {(() => {
@@ -1438,6 +1457,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, paddingVertical: 2,
   },
   thumbCountText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  progressCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
+    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
+  },
+  progressCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  progressCardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  progressCardPct: { fontSize: 14, fontWeight: '800', color: '#1a73e8' },
+  progressBarTrack: { height: 6, backgroundColor: '#e8eaf0', borderRadius: 3, marginBottom: 10 },
+  progressBarFill: { height: 6, backgroundColor: '#1a73e8', borderRadius: 3 },
+  progressHint: { fontSize: 12, color: '#666', marginTop: 3, paddingLeft: 4 },
+
   editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   editVehicleCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
   editVehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
