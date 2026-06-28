@@ -59,6 +59,7 @@ export const api = {
     purchaseDate?: string
     ownerCount?: number
     vehicleNotes?: string
+    photoUrl?: string
   }) => {
     const res = await fetch(`${API_URL}/vehicles`, {
       method: 'POST',
@@ -451,6 +452,17 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to fetch predictions')
+    return data
+  },
+
+  updateVehiclePhoto: async (token: string, vehicleId: string, photoUrl: string | null) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/photo`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ photoUrl }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update vehicle photo')
     return data
   },
 

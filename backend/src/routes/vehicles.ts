@@ -24,7 +24,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
 // POST /vehicles — add a new vehicle
 router.post('/', async (req: AuthRequest, res) => {
-  const { registrationNo, make, model, year, fuelType, vehicleType, mileage, purchaseDate, ownerCount, vehicleNotes } = req.body
+  const { registrationNo, make, model, year, fuelType, vehicleType, mileage, purchaseDate, ownerCount, vehicleNotes, photoUrl } = req.body
 
   if (!registrationNo || !make || !model || !year || !fuelType || mileage === undefined) {
     res.status(400).json({ error: 'All fields are required' })
@@ -52,6 +52,7 @@ router.post('/', async (req: AuthRequest, res) => {
         purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
         ownerCount: ownerCount ? Number(ownerCount) : 1,
         vehicleNotes: vehicleNotes?.trim() || null,
+        photoUrl: photoUrl || null,
       },
     })
 
@@ -89,6 +90,20 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     res.json(updated)
   } catch (error) {
     res.status(500).json({ error: 'Failed to update expiry dates' })
+  }
+})
+
+// PATCH /vehicles/:id/photo — update vehicle photo
+router.patch('/:id/photo', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { photoUrl } = req.body
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    const updated = await prisma.vehicle.update({ where: { id }, data: { photoUrl: photoUrl || null } })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update vehicle photo' })
   }
 })
 

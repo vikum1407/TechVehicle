@@ -31,6 +31,7 @@ model Vehicle {
   purchaseDate   DateTime?
   ownerCount                Int?                @default(1)
   vehicleNotes              String?
+  photoUrl                  String?
   emissionTestExpiry        DateTime?
   revenueLicenceExpiry      DateTime?
   lastEmissionReminderSent  DateTime?

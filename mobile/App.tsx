@@ -43,6 +43,7 @@ type Vehicle = {
   fuelType: string
   vehicleType?: string | null
   mileage: number
+  photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
 }

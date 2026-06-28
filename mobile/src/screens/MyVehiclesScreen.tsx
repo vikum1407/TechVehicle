@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert, ScrollView, Modal
+  FlatList, ActivityIndicator, Alert, ScrollView, Modal, Image
 } from 'react-native'
 import { api } from '../config/api'
 
@@ -14,6 +14,7 @@ type Vehicle = {
   fuelType: string
   mileage: number
   vehicleType?: string | null
+  photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
 }
@@ -157,12 +158,23 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
 
   const renderVehicle = ({ item }: { item: Vehicle }) => (
     <TouchableOpacity style={styles.card} onPress={() => onSelectVehicle(item)}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.regNo}>{item.registrationNo}</Text>
-        <Text style={styles.fuelType}>{item.fuelType}</Text>
+      <View style={styles.cardInner}>
+        {item.photoUrl ? (
+          <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} />
+        ) : (
+          <View style={styles.cardPhotoPlaceholder}>
+            <Text style={styles.cardPhotoIcon}>🚗</Text>
+          </View>
+        )}
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.regNo}>{item.registrationNo}</Text>
+            <Text style={styles.fuelType}>{item.fuelType}</Text>
+          </View>
+          <Text style={styles.vehicleName}>{item.year} {item.make} {item.model}</Text>
+          <Text style={styles.mileage}>{item.mileage.toLocaleString()} km</Text>
+        </View>
       </View>
-      <Text style={styles.vehicleName}>{item.year} {item.make} {item.model}</Text>
-      <Text style={styles.mileage}>{item.mileage.toLocaleString()} km</Text>
     </TouchableOpacity>
   )
 
@@ -424,10 +436,18 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: '#888', marginBottom: 32, textAlign: 'center' },
   card: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16,
+    backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden',
     marginBottom: 12, shadowColor: '#000',
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
   },
+  cardInner: { flexDirection: 'row', alignItems: 'center' },
+  cardPhoto: { width: 80, height: 80, resizeMode: 'cover' },
+  cardPhotoPlaceholder: {
+    width: 80, height: 80, backgroundColor: '#e8f0fe',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cardPhotoIcon: { fontSize: 28 },
+  cardContent: { flex: 1, padding: 14 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   regNo: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
   fuelType: { fontSize: 12, color: '#1a73e8', fontWeight: '600' },

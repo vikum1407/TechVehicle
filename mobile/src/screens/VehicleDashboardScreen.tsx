@@ -2,9 +2,11 @@ import React, { useEffect, useState, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
-  Image, Modal, FlatList, Dimensions,
+  Image, ImageBackground, Modal, FlatList, Dimensions,
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 
 type Vehicle = {
@@ -15,6 +17,7 @@ type Vehicle = {
   year: number
   fuelType: string
   mileage: number
+  photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
 }
@@ -185,10 +188,37 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(vehicle.photoUrl ?? null)
+  const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
+
+  const pickVehiclePhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    if (result.canceled || !result.assets[0]) return
+    setUploadingVehiclePhoto(true)
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      )
+      const url = await api.uploadPhoto(token, compressed.uri)
+      await api.updateVehiclePhoto(token, vehicle.id, url)
+      setVehiclePhotoUrl(url)
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+    } finally {
+      setUploadingVehiclePhoto(false)
+    }
+  }
 
   const loadRecords = async () => {
     setLoading(true)
@@ -450,6 +480,22 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.vehicleCard}>
+          {vehiclePhotoUrl ? (
+            <TouchableOpacity onPress={pickVehiclePhoto} activeOpacity={0.9} disabled={uploadingVehiclePhoto}>
+              <Image source={{ uri: vehiclePhotoUrl }} style={styles.vehicleCardPhoto} resizeMode="cover" />
+              <View style={styles.vehiclePhotoOverlay}>
+                {uploadingVehiclePhoto
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.vehiclePhotoOverlayText}>📷 Change</Text>}
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.vehiclePhotoAdd} onPress={pickVehiclePhoto} disabled={uploadingVehiclePhoto} activeOpacity={0.8}>
+              {uploadingVehiclePhoto
+                ? <ActivityIndicator color="rgba(255,255,255,0.8)" size="small" />
+                : <Text style={styles.vehiclePhotoAddText}>📷  Add vehicle photo</Text>}
+            </TouchableOpacity>
+          )}
           <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
           <View style={styles.vehicleRow}>
             <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
@@ -987,10 +1033,23 @@ const styles = StyleSheet.create({
   bellIcon: { fontSize: 22 },
   bellDot: { position: 'absolute', top: 2, right: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff' },
   vehicleCard: {
-    backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14, padding: 20,
+    backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14,
+    overflow: 'hidden', padding: 0,
   },
-  vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center' },
+  vehicleCardPhoto: { width: '100%', height: 180 },
+  vehiclePhotoOverlay: {
+    position: 'absolute', bottom: 8, right: 8,
+    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  vehiclePhotoOverlayText: { fontSize: 12, color: '#fff', fontWeight: '600' },
+  vehiclePhotoAdd: {
+    paddingVertical: 10, alignItems: 'center',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+  vehiclePhotoAddText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+  vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8, marginTop: 20, paddingHorizontal: 20 },
+  vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', paddingHorizontal: 20 },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
   mileageRow: { flexDirection: 'row', alignItems: 'center' },
   mileageEditHint: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },

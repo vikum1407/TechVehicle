@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Modal, FlatList,
+  ScrollView, ActivityIndicator, Alert, Modal, FlatList, Image,
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { BRANDS_LIST, BRAND_MODELS } from '../constants/vehicleData'
@@ -119,6 +121,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const [purchaseDate, setPurchaseDate] = useState('')
   const [ownerCount, setOwnerCount] = useState<number | null>(null)
   const [vehicleNotes, setVehicleNotes] = useState('')
+  const [photoUrl, setPhotoUrl]     = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [loading, setLoading]       = useState(false)
   const [showBrandPicker, setShowBrandPicker] = useState(false)
   const [showModelPicker, setShowModelPicker] = useState(false)
@@ -139,6 +143,30 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
     setModel(mod)
     setModelCustom('')
     setShowModelPicker(false)
+  }
+
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    if (result.canceled || !result.assets[0]) return
+    setUploadingPhoto(true)
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      )
+      const url = await api.uploadPhoto(token, compressed.uri)
+      setPhotoUrl(url)
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -174,6 +202,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         purchaseDate: parsedPurchaseDate,
         ownerCount: ownerCount ?? undefined,
         vehicleNotes: vehicleNotes.trim() || undefined,
+        photoUrl: photoUrl || undefined,
       })
       onVehicleAdded({ ...newVehicle, vehicleType: vehicleType || null })
     } catch (error: any) {
@@ -350,6 +379,25 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         textAlignVertical="top"
       />
 
+      <Text style={styles.label}>Vehicle Photo <Text style={styles.optional}>(optional)</Text></Text>
+      <TouchableOpacity style={styles.photoPicker} onPress={pickPhoto} disabled={uploadingPhoto} activeOpacity={0.8}>
+        {uploadingPhoto ? (
+          <ActivityIndicator color="#1a73e8" />
+        ) : photoUrl ? (
+          <Image source={{ uri: photoUrl }} style={styles.photoPreview} resizeMode="cover" />
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <Text style={styles.photoIcon}>📷</Text>
+            <Text style={styles.photoHint}>Tap to add a photo of your vehicle</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      {photoUrl && (
+        <TouchableOpacity onPress={() => setPhotoUrl(null)} style={styles.removePhoto}>
+          <Text style={styles.removePhotoText}>Remove photo</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleSubmit}
@@ -400,6 +448,18 @@ const styles = StyleSheet.create({
   },
   customInput: { marginTop: 8 },
   textArea:    { minHeight: 80, paddingTop: 12 },
+  optional:    { color: '#aaa', fontWeight: '400' },
+  photoPicker: {
+    height: 180, borderRadius: 12, borderWidth: 1.5, borderColor: '#e0e0e0',
+    borderStyle: 'dashed', overflow: 'hidden', marginBottom: 8,
+    backgroundColor: '#fafafa', justifyContent: 'center', alignItems: 'center',
+  },
+  photoPreview: { width: '100%', height: '100%' },
+  photoPlaceholder: { alignItems: 'center', gap: 8 },
+  photoIcon: { fontSize: 36 },
+  photoHint: { fontSize: 13, color: '#aaa' },
+  removePhoto: { alignSelf: 'flex-end', marginBottom: 16 },
+  removePhotoText: { fontSize: 12, color: '#e53935' },
   divider:     { height: 1, backgroundColor: '#e8e8e8', marginTop: 28, marginBottom: 8 },
   chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
