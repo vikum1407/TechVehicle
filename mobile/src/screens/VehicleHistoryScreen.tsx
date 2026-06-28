@@ -61,11 +61,21 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   // Service tab state
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
+  const [catFilter, setCatFilter] = useState('All')
+  const [mileageMin, setMileageMin] = useState('')
+  const [mileageMax, setMileageMax] = useState('')
+  const [showMileageFilter, setShowMileageFilter] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
 
   // Expense tab state
   const [expCatFilter, setExpCatFilter] = useState('All')
+  const [expDateFilter, setExpDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
+  const [expSearch, setExpSearch] = useState('')
+
+  // Fuel tab state
+  const [fuelDateFilter, setFuelDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
+  const [fuelSearch, setFuelSearch] = useState('')
 
   // Photo viewer
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
@@ -92,25 +102,55 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 
   useEffect(() => { loadAll() }, [loadAll])
 
+  // Unique categories extracted from service records
+  const serviceCategories = ['All', ...Array.from(new Set(
+    records.flatMap(r => r.description.split(',').map(c => c.trim()).filter(Boolean))
+  )).sort()]
+
   // Filtered service records
   const filteredRecords = records.filter(r => {
     if (search.trim() && !r.description.toLowerCase().includes(search.toLowerCase())) return false
+    if (catFilter !== 'All') {
+      const cats = r.description.split(',').map(c => c.trim())
+      if (!cats.some(c => c.toLowerCase() === catFilter.toLowerCase())) return false
+    }
     if (dateFilter !== 'all') {
       const months = dateFilter === '1y' ? 12 : dateFilter === '6m' ? 6 : 3
       const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - months)
       if (new Date(r.date) < cutoff) return false
     }
+    if (mileageMin.trim() && r.mileage != null && r.mileage < Number(mileageMin)) return false
+    if (mileageMax.trim() && r.mileage != null && r.mileage > Number(mileageMax)) return false
     return true
   })
 
   // Filtered expenses
-  const filteredExpenses = expCatFilter === 'All'
-    ? expenses
-    : expenses.filter(e => e.category === expCatFilter)
+  const filteredExpenses = expenses.filter(e => {
+    if (expCatFilter !== 'All' && e.category !== expCatFilter) return false
+    if (expSearch.trim() && !(e.description ?? '').toLowerCase().includes(expSearch.toLowerCase()) &&
+        !e.category.toLowerCase().includes(expSearch.toLowerCase())) return false
+    if (expDateFilter !== 'all') {
+      const months = expDateFilter === '1y' ? 12 : expDateFilter === '6m' ? 6 : 3
+      const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - months)
+      if (new Date(e.date) < cutoff) return false
+    }
+    return true
+  })
   const expenseTotal = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0)
 
+  // Filtered fuel logs
+  const filteredFuelLogs = fuelLogs.filter(f => {
+    if (fuelSearch.trim() && !(f.station ?? '').toLowerCase().includes(fuelSearch.toLowerCase())) return false
+    if (fuelDateFilter !== 'all') {
+      const months = fuelDateFilter === '1y' ? 12 : fuelDateFilter === '6m' ? 6 : 3
+      const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - months)
+      if (new Date(f.date) < cutoff) return false
+    }
+    return true
+  })
+
   // Fuel summary
-  const logsWithKm = fuelLogs.filter(f => f.litres && f.litres > 0 && f.mileage)
+  const logsWithKm = filteredFuelLogs.filter(f => f.litres && f.litres > 0 && f.mileage)
   const avgKmPerL = logsWithKm.length >= 2 ? (() => {
     const sorted = [...logsWithKm].sort((a, b) => (a.mileage ?? 0) - (b.mileage ?? 0))
     const first = sorted[0], last = sorted[sorted.length - 1]
@@ -118,7 +158,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
     const totalL = sorted.slice(1).reduce((s, f) => s + (f.litres ?? 0), 0)
     return totalL > 0 ? (totalKm / totalL).toFixed(1) : null
   })() : null
-  const totalFuelCost = fuelLogs.reduce((s, f) => s + (f.cost ?? 0), 0)
+  const totalFuelCost = filteredFuelLogs.reduce((s, f) => s + (f.cost ?? 0), 0)
 
   const handleExportPdf = async () => {
     setExporting(true)
@@ -252,7 +292,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 </TouchableOpacity>
               </View>
 
-              <View style={s.filterChips}>
+              {/* Date filter chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterChipsScroll} contentContainerStyle={s.filterChipsContent}>
                 {(['all', '1y', '6m', '3m'] as const).map(f => (
                   <TouchableOpacity
                     key={f}
@@ -264,10 +305,66 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+                <TouchableOpacity
+                  style={[s.filterChip, showMileageFilter && s.filterChipActive]}
+                  onPress={() => setShowMileageFilter(v => !v)}
+                >
+                  <Text style={[s.filterChipText, showMileageFilter && s.filterChipTextActive]}>
+                    {(mileageMin || mileageMax) ? `${mileageMin || '0'}–${mileageMax || '∞'} km` : '⊕ Mileage'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
 
-              {(search.trim() || dateFilter !== 'all') && (
-                <Text style={s.filterCount}>{filteredRecords.length} of {records.length} records</Text>
+              {/* Mileage range inputs */}
+              {showMileageFilter && (
+                <View style={s.mileageRow}>
+                  <TextInput
+                    style={s.mileageInput}
+                    placeholder="Min km"
+                    placeholderTextColor="#aaa"
+                    value={mileageMin}
+                    onChangeText={setMileageMin}
+                    keyboardType="number-pad"
+                  />
+                  <Text style={s.mileageSep}>—</Text>
+                  <TextInput
+                    style={s.mileageInput}
+                    placeholder="Max km"
+                    placeholderTextColor="#aaa"
+                    value={mileageMax}
+                    onChangeText={setMileageMax}
+                    keyboardType="number-pad"
+                  />
+                  {(mileageMin || mileageMax) && (
+                    <TouchableOpacity onPress={() => { setMileageMin(''); setMileageMax('') }}>
+                      <Text style={s.mileageClear}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Category filter chips */}
+              {serviceCategories.length > 1 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catFilterScroll} contentContainerStyle={s.filterChipsContent}>
+                  {serviceCategories.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[s.filterChip, catFilter === cat && s.filterChipActive]}
+                      onPress={() => setCatFilter(cat)}
+                    >
+                      <Text style={[s.filterChipText, catFilter === cat && s.filterChipTextActive]}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              {(search.trim() || dateFilter !== 'all' || catFilter !== 'All' || mileageMin || mileageMax) && (
+                <View style={s.filterCountRow}>
+                  <Text style={s.filterCount}>{filteredRecords.length} of {records.length} records</Text>
+                  <TouchableOpacity onPress={() => { setSearch(''); setDateFilter('all'); setCatFilter('All'); setMileageMin(''); setMileageMax(''); setShowMileageFilter(false) }}>
+                    <Text style={s.clearLink}>Clear all</Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
               {records.length === 0 ? (
@@ -281,9 +378,10 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 </View>
               ) : filteredRecords.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyText}>No records match your filter</Text>
-                  <TouchableOpacity onPress={() => { setSearch(''); setDateFilter('all') }}>
-                    <Text style={s.clearLink}>Clear filter</Text>
+                  <Text style={s.emptyIcon}>🔍</Text>
+                  <Text style={s.emptyText}>No records match</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={() => { setSearch(''); setDateFilter('all'); setCatFilter('All'); setMileageMin(''); setMileageMax(''); setShowMileageFilter(false) }}>
+                    <Text style={s.emptyBtnText}>Clear all filters</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -304,6 +402,31 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 <Text style={s.totalSub}>{filteredExpenses.length} record{filteredExpenses.length !== 1 ? 's' : ''}</Text>
               </View>
 
+              {/* Search */}
+              <TextInput
+                style={s.searchInput}
+                placeholder="Search by description..."
+                placeholderTextColor="#aaa"
+                value={expSearch}
+                onChangeText={setExpSearch}
+                clearButtonMode="while-editing"
+              />
+
+              {/* Date filter chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterChipsScroll} contentContainerStyle={s.filterChipsContent}>
+                {(['all', '1y', '6m', '3m'] as const).map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    style={[s.filterChip, expDateFilter === f && s.filterChipActive]}
+                    onPress={() => setExpDateFilter(f)}
+                  >
+                    <Text style={[s.filterChipText, expDateFilter === f && s.filterChipTextActive]}>
+                      {f === 'all' ? 'All time' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
               {/* Category filter chips */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.catScroll} contentContainerStyle={s.catScrollContent}>
                 {EXPENSE_CATEGORIES.map(cat => {
@@ -323,13 +446,30 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 })}
               </ScrollView>
 
-              {filteredExpenses.length === 0 ? (
+              {(expSearch.trim() || expDateFilter !== 'all' || expCatFilter !== 'All') && (
+                <View style={s.filterCountRow}>
+                  <Text style={s.filterCount}>{filteredExpenses.length} of {expenses.length} expenses</Text>
+                  <TouchableOpacity onPress={() => { setExpSearch(''); setExpDateFilter('all'); setExpCatFilter('All') }}>
+                    <Text style={s.clearLink}>Clear all</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {expenses.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>💰</Text>
                   <Text style={s.emptyText}>No expenses yet</Text>
                   <Text style={s.emptySub}>Tap Add Expense on the dashboard to track insurance, fuel, and other costs</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
                     <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : filteredExpenses.length === 0 ? (
+                <View style={s.empty}>
+                  <Text style={s.emptyIcon}>🔍</Text>
+                  <Text style={s.emptyText}>No expenses match</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={() => { setExpSearch(''); setExpDateFilter('all'); setExpCatFilter('All') }}>
+                    <Text style={s.emptyBtnText}>Clear all filters</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -355,11 +495,43 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
           {/* ── Fuel tab ─────────────────────────────── */}
           {activeTab === 'fuel' && (
             <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
-              {/* Summary */}
-              {fuelLogs.length > 0 && (
+              {/* Search + date filter */}
+              <TextInput
+                style={s.searchInput}
+                placeholder="Search by station name..."
+                placeholderTextColor="#aaa"
+                value={fuelSearch}
+                onChangeText={setFuelSearch}
+                clearButtonMode="while-editing"
+              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterChipsScroll} contentContainerStyle={s.filterChipsContent}>
+                {(['all', '1y', '6m', '3m'] as const).map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    style={[s.filterChip, fuelDateFilter === f && s.filterChipActive]}
+                    onPress={() => setFuelDateFilter(f)}
+                  >
+                    <Text style={[s.filterChipText, fuelDateFilter === f && s.filterChipTextActive]}>
+                      {f === 'all' ? 'All time' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {(fuelSearch.trim() || fuelDateFilter !== 'all') && (
+                <View style={s.filterCountRow}>
+                  <Text style={s.filterCount}>{filteredFuelLogs.length} of {fuelLogs.length} fill-ups</Text>
+                  <TouchableOpacity onPress={() => { setFuelSearch(''); setFuelDateFilter('all') }}>
+                    <Text style={s.clearLink}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Summary — based on filtered set */}
+              {filteredFuelLogs.length > 0 && (
                 <View style={s.fuelSummary}>
                   <View style={s.fuelStat}>
-                    <Text style={s.fuelStatVal}>{fuelLogs.length}</Text>
+                    <Text style={s.fuelStatVal}>{filteredFuelLogs.length}</Text>
                     <Text style={s.fuelStatLabel}>Fill-ups</Text>
                   </View>
                   {avgKmPerL && (
@@ -386,8 +558,16 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                     <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
                   </TouchableOpacity>
                 </View>
+              ) : filteredFuelLogs.length === 0 ? (
+                <View style={s.empty}>
+                  <Text style={s.emptyIcon}>🔍</Text>
+                  <Text style={s.emptyText}>No fill-ups match</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={() => { setFuelSearch(''); setFuelDateFilter('all') }}>
+                    <Text style={s.emptyBtnText}>Clear filters</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                fuelLogs.map(f => (
+                filteredFuelLogs.map(f => (
                   <View key={f.id} style={s.fuelCard}>
                     <View style={s.fuelCardTop}>
                       <Text style={s.fuelDate}>{fmt(f.date)}</Text>
@@ -514,8 +694,25 @@ const s = StyleSheet.create({
   filterChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
   filterChipText: { fontSize: 12, color: '#666', fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  filterCount: { fontSize: 12, color: '#aaa', marginBottom: 8 },
-  clearLink: { fontSize: 13, color: '#1a73e8', textDecorationLine: 'underline', textAlign: 'center', marginTop: 8 },
+  filterChipsScroll: { marginBottom: 10 },
+  filterChipsContent: { gap: 8, paddingRight: 16 },
+  catFilterScroll: { marginBottom: 10 },
+  mileageRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginBottom: 10, marginTop: 2,
+  },
+  mileageInput: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e0e0e0',
+    paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#1a1a2e',
+  },
+  mileageSep: { fontSize: 14, color: '#aaa' },
+  mileageClear: { fontSize: 13, color: '#1a73e8', fontWeight: '600', paddingHorizontal: 4 },
+  filterCountRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 8,
+  },
+  filterCount: { fontSize: 12, color: '#aaa' },
+  clearLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
 
   // Record cards
   card: {
