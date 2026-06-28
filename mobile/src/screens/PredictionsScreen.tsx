@@ -7,6 +7,42 @@ import {
 import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
 
+type ExtraFieldConfig = {
+  key: string
+  label: string
+  type: 'chips' | 'text' | 'number'
+  options?: string[]
+  placeholder?: string
+}
+
+// Extra structured fields shown in the setup card per service type
+const SETUP_EXTRA_FIELDS: Record<string, ExtraFieldConfig[]> = {
+  'Oil Change': [
+    { key: 'oilGrade', label: 'Oil Grade', type: 'chips', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
+    { key: 'oilType',  label: 'Oil Type',  type: 'chips', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
+  ],
+  'Tyre Change': [
+    { key: 'tyreSize',  label: 'Tyre Size',        type: 'text',  placeholder: 'e.g. 185/65R15' },
+    { key: 'tyreCount', label: 'Tyres Replaced',   type: 'chips', options: ['1', '2', '4'] },
+  ],
+  'AC Gas Refill': [
+    { key: 'refrigerantType', label: 'Refrigerant Type', type: 'chips', options: ['R134a', 'R1234yf', 'R22'] },
+    { key: 'grams',           label: 'Quantity',          type: 'number', placeholder: 'grams, e.g. 500' },
+  ],
+  'Brake Fluid': [
+    { key: 'fluidType', label: 'Fluid Type', type: 'chips', options: ['DOT 3', 'DOT 4', 'DOT 5.1'] },
+  ],
+  'Coolant Flush': [
+    { key: 'coolantType', label: 'Coolant Type', type: 'chips', options: ['Green (Conventional)', 'Red/Pink (Long-life)', 'Blue (OAT)', 'HOAT'] },
+  ],
+  'Transmission Oil (Auto)': [
+    { key: 'fluidType', label: 'Fluid Type', type: 'chips', options: ['ATF', 'CVT Fluid', 'DCT Fluid'] },
+  ],
+  'Gear Oil (Manual)': [
+    { key: 'gearOilGrade', label: 'Oil Grade', type: 'chips', options: ['75W-90', '80W-90', '85W-90', 'GL-4', 'GL-5'] },
+  ],
+}
+
 // Maps the first keyword of a prediction to { structuredKey, brandLookupKey }
 // structuredKey = the field name stored in structuredData JSON
 // brandLookupKey = the key in ITEM_BRANDS to pull the chip list from
@@ -73,7 +109,7 @@ function kmStr(km: number) {
   return km.toLocaleString() + ' km'
 }
 
-type SetupEntry = { date: string; mileage: string; brand: string }
+type SetupEntry = { date: string; mileage: string; brand: string; extras: Record<string, string> }
 
 export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
@@ -103,9 +139,11 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const ok      = predictions.filter(p => p.status === 'ok')
   const noData  = predictions.filter(p => p.status === 'no_data')
 
-  const getEntry = (id: string): SetupEntry => setupEntries[id] || { date: '', mileage: '', brand: '' }
-  const setEntry = (id: string, field: keyof SetupEntry, value: string) =>
+  const getEntry = (id: string): SetupEntry => setupEntries[id] || { date: '', mileage: '', brand: '', extras: {} }
+  const setEntry = (id: string, field: 'date' | 'mileage' | 'brand', value: string) =>
     setSetupEntries(prev => ({ ...prev, [id]: { ...getEntry(id), [field]: value } }))
+  const setExtra = (id: string, key: string, value: string) =>
+    setSetupEntries(prev => ({ ...prev, [id]: { ...getEntry(id), extras: { ...getEntry(id).extras, [key]: value } } }))
 
   const handleSave = async (p: Prediction) => {
     const entry = getEntry(p.id)
@@ -130,9 +168,16 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     const isoDate    = new Date(year, month - 1, 15).toISOString()
     const mileageNum = entry.mileage.trim() ? parseInt(entry.mileage, 10) : undefined
 
-    const brandConfig = SETUP_BRAND_MAP[p.keywords[0]]
-    const structuredData = brandConfig && entry.brand
-      ? { [p.keywords[0]]: { [brandConfig.structuredKey]: entry.brand } }
+    const brandConfig  = SETUP_BRAND_MAP[p.keywords[0]]
+    const extraFields  = SETUP_EXTRA_FIELDS[p.keywords[0]] || []
+    const structured: Record<string, string | number> = {}
+    if (brandConfig && entry.brand) structured[brandConfig.structuredKey] = entry.brand
+    for (const ef of extraFields) {
+      const val = (entry.extras || {})[ef.key]
+      if (val) structured[ef.key] = ef.type === 'number' ? Number(val) : val
+    }
+    const structuredData = Object.keys(structured).length > 0
+      ? { [p.keywords[0]]: structured }
       : undefined
 
     setSavingId(p.id)
@@ -201,10 +246,11 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   }
 
   const renderSetupCard = (p: Prediction) => {
-    const entry      = getEntry(p.id)
-    const isSaving   = savingId === p.id
-    const brandConfig = SETUP_BRAND_MAP[p.keywords[0]]
+    const entry       = getEntry(p.id)
+    const isSaving    = savingId === p.id
+    const brandConfig  = SETUP_BRAND_MAP[p.keywords[0]]
     const brandOptions = brandConfig ? ITEM_BRANDS[brandConfig.brandLookupKey] : undefined
+    const extraFields  = SETUP_EXTRA_FIELDS[p.keywords[0]] || []
 
     return (
       <View key={p.id} style={styles.setupCard}>
@@ -257,6 +303,37 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             </ScrollView>
           </View>
         )}
+
+        {extraFields.map(ef => (
+          <View key={ef.key} style={styles.brandSection}>
+            <Text style={styles.setupFieldLabel}>{ef.label} (optional)</Text>
+            {ef.type === 'chips' ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandRow}>
+                {(ef.options || []).map(opt => {
+                  const selected = (entry.extras[ef.key] || '') === opt
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.brandChip, selected && styles.brandChipSelected]}
+                      onPress={() => setExtra(p.id, ef.key, selected ? '' : opt)}
+                    >
+                      <Text style={[styles.brandChipText, selected && styles.brandChipTextSelected]}>{opt}</Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            ) : (
+              <TextInput
+                style={styles.setupInput}
+                placeholder={ef.placeholder || ''}
+                placeholderTextColor="#bbb"
+                value={entry.extras[ef.key] || ''}
+                onChangeText={v => setExtra(p.id, ef.key, ef.type === 'number' ? v.replace(/[^0-9]/g, '') : v)}
+                keyboardType={ef.type === 'number' ? 'number-pad' : 'default'}
+              />
+            )}
+          </View>
+        ))}
 
         <TouchableOpacity
           style={[styles.setupSaveBtn, isSaving && { opacity: 0.6 }]}
