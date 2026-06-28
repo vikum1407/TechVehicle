@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Image, Modal, FlatList, Dimensions,
+  ScrollView, ActivityIndicator, Image, Modal, FlatList, Dimensions, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { exportVehiclePdf } from '../utils/pdfExport'
@@ -76,6 +76,15 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   // Fuel tab state
   const [fuelDateFilter, setFuelDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
   const [fuelSearch, setFuelSearch] = useState('')
+
+  // Edit/delete state
+  const [editService, setEditService] = useState<ServiceRecord | null>(null)
+  const [editExpense, setEditExpense] = useState<Expense | null>(null)
+  const [editFuel, setEditFuel] = useState<FuelLog | null>(null)
+  const [draftService, setDraftService] = useState({ date: '', description: '', mileage: '', parts: '', brand: '', cost: '', notes: '' })
+  const [draftExpense, setDraftExpense] = useState({ date: '', category: '', amount: '', description: '', mileage: '', notes: '' })
+  const [draftFuel, setDraftFuel] = useState({ date: '', mileage: '', litres: '', cost: '', station: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   // Photo viewer
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
@@ -165,11 +174,171 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
     try {
       await exportVehiclePdf(vehicle, records, fuelLogs, expenses)
     } catch (e: any) {
-      const { Alert } = require('react-native')
-      Alert.alert('Export failed', e.message || 'Could not generate PDF')
+      Alert.alert('Export failed', (e as any).message || 'Could not generate PDF')
     } finally {
       setExporting(false)
     }
+  }
+
+  // ── Edit/delete handlers ──────────────────────────────────────────────────
+
+  const openEditService = (r: ServiceRecord) => {
+    setDraftService({
+      date: new Date(r.date).toISOString().split('T')[0],
+      description: r.description,
+      mileage: r.mileage?.toString() ?? '',
+      parts: r.parts ?? '',
+      brand: r.brand ?? '',
+      cost: r.cost?.toString() ?? '',
+      notes: r.notes ?? '',
+    })
+    setEditService(r)
+  }
+
+  const openEditExpense = (e: Expense) => {
+    setDraftExpense({
+      date: new Date(e.date).toISOString().split('T')[0],
+      category: e.category,
+      amount: e.amount.toString(),
+      description: e.description ?? '',
+      mileage: e.mileage?.toString() ?? '',
+      notes: e.notes ?? '',
+    })
+    setEditExpense(e)
+  }
+
+  const openEditFuel = (f: FuelLog) => {
+    setDraftFuel({
+      date: new Date(f.date).toISOString().split('T')[0],
+      mileage: f.mileage?.toString() ?? '',
+      litres: f.litres?.toString() ?? '',
+      cost: f.cost?.toString() ?? '',
+      station: f.station ?? '',
+    })
+    setEditFuel(f)
+  }
+
+  const handleSaveService = async () => {
+    if (!editService) return
+    setSavingEdit(true)
+    try {
+      const updated = await api.updateServiceRecord(token, editService.id, {
+        date: draftService.date || undefined,
+        description: draftService.description || undefined,
+        mileage: draftService.mileage ? Number(draftService.mileage) : null,
+        parts: draftService.parts || null,
+        brand: draftService.brand || null,
+        cost: draftService.cost ? Number(draftService.cost) : null,
+        notes: draftService.notes || null,
+      })
+      setRecords(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+      setEditService(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save changes')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleSaveExpense = async () => {
+    if (!editExpense) return
+    setSavingEdit(true)
+    try {
+      const updated = await api.updateExpense(token, editExpense.id, {
+        date: draftExpense.date || undefined,
+        category: draftExpense.category || undefined,
+        amount: draftExpense.amount ? Number(draftExpense.amount) : undefined,
+        description: draftExpense.description || null,
+        mileage: draftExpense.mileage ? Number(draftExpense.mileage) : null,
+        notes: draftExpense.notes || null,
+      })
+      setExpenses(prev => prev.map(e => e.id === updated.id ? { ...e, ...updated } : e))
+      setEditExpense(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save changes')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleSaveFuel = async () => {
+    if (!editFuel) return
+    setSavingEdit(true)
+    try {
+      const updated = await api.updateFuelLog(token, editFuel.id, {
+        date: draftFuel.date || undefined,
+        mileage: draftFuel.mileage ? Number(draftFuel.mileage) : undefined,
+        litres: draftFuel.litres ? Number(draftFuel.litres) : null,
+        cost: draftFuel.cost ? Number(draftFuel.cost) : null,
+        station: draftFuel.station || null,
+      })
+      setFuelLogs(prev => prev.map(f => f.id === updated.id ? { ...f, ...updated } : f))
+      setEditFuel(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save changes')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const confirmDeleteService = (id: string) => {
+    Alert.alert('Delete Record', 'Delete this service record permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.deleteServiceRecord(token, id)
+          setRecords(prev => prev.filter(r => r.id !== id))
+        } catch (e: any) { Alert.alert('Error', e.message) }
+      }},
+    ])
+  }
+
+  const confirmDeleteExpense = (id: string) => {
+    Alert.alert('Delete Expense', 'Delete this expense permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.deleteExpense(token, id)
+          setExpenses(prev => prev.filter(e => e.id !== id))
+        } catch (e: any) { Alert.alert('Error', e.message) }
+      }},
+    ])
+  }
+
+  const confirmDeleteFuel = (id: string) => {
+    Alert.alert('Delete Fuel Log', 'Delete this fill-up record permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.deleteFuelLog(token, id)
+          setFuelLogs(prev => prev.filter(f => f.id !== id))
+        } catch (e: any) { Alert.alert('Error', e.message) }
+      }},
+    ])
+  }
+
+  const openServiceMenu = (r: ServiceRecord) => {
+    Alert.alert(fmt(r.date), r.description.split(',')[0].trim(), [
+      { text: 'Edit', onPress: () => openEditService(r) },
+      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteService(r.id) },
+      { text: 'Cancel', style: 'cancel' },
+    ])
+  }
+
+  const openExpenseMenu = (e: Expense) => {
+    Alert.alert(fmt(e.date), `${e.category} — LKR ${e.amount.toLocaleString()}`, [
+      { text: 'Edit', onPress: () => openEditExpense(e) },
+      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteExpense(e.id) },
+      { text: 'Cancel', style: 'cancel' },
+    ])
+  }
+
+  const openFuelMenu = (f: FuelLog) => {
+    Alert.alert(fmt(f.date), `${f.mileage?.toLocaleString() ?? '?'} km${f.litres ? ` · ${f.litres}L` : ''}`, [
+      { text: 'Edit', onPress: () => openEditFuel(f) },
+      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteFuel(f.id) },
+      { text: 'Cancel', style: 'cancel' },
+    ])
   }
 
   const openPhotos = (photos: string[], idx: number, label: string) => {
@@ -192,7 +361,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
       >
         <View style={s.cardTop}>
           <Text style={s.cardDate}>{fmt(r.date)}</Text>
-          {r.cost != null && <Text style={s.cardCost}>LKR {r.cost.toLocaleString()}</Text>}
+          <View style={s.cardTopRight}>
+            {r.cost != null && <Text style={s.cardCost}>LKR {r.cost.toLocaleString()}</Text>}
+            <TouchableOpacity onPress={(e) => { e.stopPropagation(); openServiceMenu(r) }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={s.menuBtn}>
+              <Text style={s.menuBtnText}>⋮</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {!isExpanded ? (
@@ -480,6 +654,9 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                         <Text style={s.expCatText}>{exp.category}</Text>
                       </View>
                       <Text style={s.expAmount}>LKR {exp.amount.toLocaleString()}</Text>
+                      <TouchableOpacity onPress={() => openExpenseMenu(exp)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={s.menuBtn}>
+                        <Text style={s.menuBtnText}>⋮</Text>
+                      </TouchableOpacity>
                     </View>
                     <View style={s.expMeta}>
                       <Text style={s.expDate}>{fmt(exp.date)}</Text>
@@ -571,7 +748,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                   <View key={f.id} style={s.fuelCard}>
                     <View style={s.fuelCardTop}>
                       <Text style={s.fuelDate}>{fmt(f.date)}</Text>
-                      {f.cost != null && <Text style={s.fuelCost}>LKR {f.cost.toLocaleString()}</Text>}
+                      <View style={s.cardTopRight}>
+                        {f.cost != null && <Text style={s.fuelCost}>LKR {f.cost.toLocaleString()}</Text>}
+                        <TouchableOpacity onPress={() => openFuelMenu(f)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={s.menuBtn}>
+                          <Text style={s.menuBtnText}>⋮</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                     <View style={s.fuelCardMeta}>
                       {f.mileage != null && <Text style={s.fuelMeta}>{f.mileage.toLocaleString()} km</Text>}
@@ -588,6 +770,99 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
           )}
         </>
       )}
+
+      {/* ── Edit service record modal ─── */}
+      <Modal visible={!!editService} transparent animationType="slide" onRequestClose={() => setEditService(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
+          <View style={s.editModalCard}>
+            <View style={s.editModalHeader}>
+              <Text style={s.editModalTitle}>Edit Service Record</Text>
+              <TouchableOpacity onPress={() => setEditService(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={s.editModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <TextInput style={s.editInput} value={draftService.date} onChangeText={v => setDraftService(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Services done</Text>
+              <TextInput style={s.editInput} value={draftService.description} onChangeText={v => setDraftService(p => ({ ...p, description: v }))} placeholder="Oil Change, Air Filter" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Odometer (km)</Text>
+              <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Parts</Text>
+              <TextInput style={s.editInput} value={draftService.parts} onChangeText={v => setDraftService(p => ({ ...p, parts: v }))} placeholder="e.g. NGK Spark Plug" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Brand</Text>
+              <TextInput style={s.editInput} value={draftService.brand} onChangeText={v => setDraftService(p => ({ ...p, brand: v }))} placeholder="e.g. Bosch" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <TextInput style={s.editInput} value={draftService.cost} onChangeText={v => setDraftService(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 4500" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Notes</Text>
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftService.notes} onChangeText={v => setDraftService(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor="#bbb" />
+              <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveService} disabled={savingEdit}>
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Edit expense modal ─── */}
+      <Modal visible={!!editExpense} transparent animationType="slide" onRequestClose={() => setEditExpense(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
+          <View style={s.editModalCard}>
+            <View style={s.editModalHeader}>
+              <Text style={s.editModalTitle}>Edit Expense</Text>
+              <TouchableOpacity onPress={() => setEditExpense(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={s.editModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <TextInput style={s.editInput} value={draftExpense.date} onChangeText={v => setDraftExpense(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Category</Text>
+              <TextInput style={s.editInput} value={draftExpense.category} onChangeText={v => setDraftExpense(p => ({ ...p, category: v }))} placeholder="e.g. Insurance" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Amount (LKR)</Text>
+              <TextInput style={s.editInput} value={draftExpense.amount} onChangeText={v => setDraftExpense(p => ({ ...p, amount: v }))} keyboardType="number-pad" placeholder="e.g. 24000" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Description</Text>
+              <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder="Optional description" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Odometer (km)</Text>
+              <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Notes</Text>
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor="#bbb" />
+              <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveExpense} disabled={savingEdit}>
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Edit fuel log modal ─── */}
+      <Modal visible={!!editFuel} transparent animationType="slide" onRequestClose={() => setEditFuel(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
+          <View style={s.editModalCard}>
+            <View style={s.editModalHeader}>
+              <Text style={s.editModalTitle}>Edit Fill-up</Text>
+              <TouchableOpacity onPress={() => setEditFuel(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={s.editModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Odometer (km)</Text>
+              <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Litres</Text>
+              <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <TextInput style={s.editInput} value={draftFuel.cost} onChangeText={v => setDraftFuel(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 8900" placeholderTextColor="#bbb" />
+              <Text style={s.editLabel}>Station</Text>
+              <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder="e.g. Ceylinco Petrol" placeholderTextColor="#bbb" />
+              <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveFuel} disabled={savingEdit}>
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Full-screen photo viewer */}
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
@@ -714,6 +989,11 @@ const s = StyleSheet.create({
   filterCount: { fontSize: 12, color: '#aaa' },
   clearLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
 
+  // Card top row with cost + menu
+  cardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  menuBtn: { paddingHorizontal: 4 },
+  menuBtnText: { fontSize: 18, color: '#aaa', fontWeight: '700', lineHeight: 22 },
+
   // Record cards
   card: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
@@ -800,6 +1080,31 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 10,
   },
   emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  // Edit modals
+  editModalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+  },
+  editModalCard: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%',
+  },
+  editModalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+  },
+  editModalTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a2e' },
+  editModalClose: { fontSize: 18, color: '#888', fontWeight: '700' },
+  editLabel: { fontSize: 12, fontWeight: '700', color: '#888', marginBottom: 6, marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  editInput: {
+    backgroundColor: '#f5f7fa', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
+    paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: '#1a1a2e',
+  },
+  editInputMulti: { minHeight: 80, textAlignVertical: 'top' },
+  editSaveBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24,
+  },
+  editSaveBtnDisabled: { opacity: 0.6 },
+  editSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   // Photo viewer modal
   photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },

@@ -70,4 +70,50 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /fuel-logs/:id — edit a fuel log
+router.patch('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { date, mileage, litres, cost, station } = req.body
+  try {
+    const log = await prisma.fuelLog.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!log || log.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Fuel log not found' }); return
+    }
+    const updated = await prisma.fuelLog.update({
+      where: { id },
+      data: {
+        ...(date && { date: new Date(date) }),
+        ...(mileage !== undefined && { mileage: Number(mileage) }),
+        ...(litres !== undefined && { litres: litres ? Number(litres) : null }),
+        ...(cost !== undefined && { cost: cost ? Number(cost) : null }),
+        ...(station !== undefined && { station: station?.trim() || null }),
+      },
+    })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update fuel log' })
+  }
+})
+
+// DELETE /fuel-logs/:id — delete a fuel log
+router.delete('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  try {
+    const log = await prisma.fuelLog.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!log || log.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Fuel log not found' }); return
+    }
+    await prisma.fuelLog.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete fuel log' })
+  }
+})
+
 export default router

@@ -79,4 +79,52 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /service-records/:id — edit a service record
+router.patch('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { date, description, mileage, parts, brand, cost, notes } = req.body
+  try {
+    const record = await prisma.serviceRecord.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!record || record.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Record not found' }); return
+    }
+    const updated = await prisma.serviceRecord.update({
+      where: { id },
+      data: {
+        ...(date && { date: new Date(date) }),
+        ...(description !== undefined && { description }),
+        ...(mileage !== undefined && { mileage: mileage ? Number(mileage) : null }),
+        ...(parts !== undefined && { parts: parts || null }),
+        ...(brand !== undefined && { brand: brand || null }),
+        ...(cost !== undefined && { cost: cost !== '' && cost != null ? Number(cost) : null }),
+        ...(notes !== undefined && { notes: notes || null }),
+      },
+    })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update service record' })
+  }
+})
+
+// DELETE /service-records/:id — delete a service record
+router.delete('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  try {
+    const record = await prisma.serviceRecord.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!record || record.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Record not found' }); return
+    }
+    await prisma.serviceRecord.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete service record' })
+  }
+})
+
 export default router

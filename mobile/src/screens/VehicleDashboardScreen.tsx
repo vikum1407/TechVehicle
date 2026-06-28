@@ -36,6 +36,7 @@ type Props = {
   phoneNumber: string
   vehicle: Vehicle
   onBack: () => void
+  onVehicleUpdated?: (vehicle: Vehicle) => void
   onAddRecord: () => void
   onLogFuel: () => void
   onAddExpense: () => void
@@ -172,7 +173,7 @@ function expiryLabel(days: number): string {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -193,10 +194,35 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadFailed, setLoadFailed] = useState(false)
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(vehicle.photoUrl ?? null)
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
+  const [editVehicleModal, setEditVehicleModal] = useState(false)
+  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType })
+  const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
+
+  const handleSaveVehicle = async () => {
+    if (!draftVehicle.make.trim() || !draftVehicle.model.trim() || !draftVehicle.year || !draftVehicle.fuelType) {
+      Alert.alert('Required', 'Make, model, year, and fuel type are required.')
+      return
+    }
+    setSavingVehicle(true)
+    try {
+      const updated = await api.updateVehicle(token, vehicle.id, {
+        make: draftVehicle.make.trim(),
+        model: draftVehicle.model.trim(),
+        year: Number(draftVehicle.year),
+        fuelType: draftVehicle.fuelType,
+      })
+      setEditVehicleModal(false)
+      onVehicleUpdated?.(updated)
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save vehicle details')
+    } finally {
+      setSavingVehicle(false)
+    }
+  }
 
   const pickVehiclePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -542,7 +568,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 : <Text style={styles.vehiclePhotoAddText}>📷  Add vehicle photo</Text>}
             </TouchableOpacity>
           )}
-          <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+          <View style={styles.vehicleNameRow}>
+            <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+              <Text style={styles.editVehicleBtnText}>✏️ Edit</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.vehicleRow}>
             <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
             {!editingMileage ? (
@@ -1050,6 +1081,37 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
       </ScrollView>
 
+      {/* ── Edit vehicle modal ─── */}
+      <Modal visible={editVehicleModal} transparent animationType="slide" onRequestClose={() => setEditVehicleModal(false)}>
+        <View style={styles.editVehicleOverlay}>
+          <View style={styles.editVehicleCard}>
+            <View style={styles.editVehicleHeaderRow}>
+              <Text style={styles.editVehicleTitle}>Edit Vehicle Details</Text>
+              <TouchableOpacity onPress={() => setEditVehicleModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.editVehicleClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.editVehicleLabel}>Make</Text>
+            <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor="#bbb" />
+            <Text style={styles.editVehicleLabel}>Model</Text>
+            <TextInput style={styles.editVehicleInput} value={draftVehicle.model} onChangeText={v => setDraftVehicle(p => ({ ...p, model: v }))} placeholder="e.g. Prius" placeholderTextColor="#bbb" />
+            <Text style={styles.editVehicleLabel}>Year</Text>
+            <TextInput style={styles.editVehicleInput} value={draftVehicle.year} onChangeText={v => setDraftVehicle(p => ({ ...p, year: v }))} keyboardType="number-pad" placeholder="e.g. 2018" placeholderTextColor="#bbb" />
+            <Text style={styles.editVehicleLabel}>Fuel Type</Text>
+            <View style={styles.fuelTypeRow}>
+              {['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Hybrid'].map(ft => (
+                <TouchableOpacity key={ft} style={[styles.fuelTypeChip, draftVehicle.fuelType === ft && styles.fuelTypeChipActive]} onPress={() => setDraftVehicle(p => ({ ...p, fuelType: ft }))}>
+                  <Text style={[styles.fuelTypeChipText, draftVehicle.fuelType === ft && styles.fuelTypeChipTextActive]}>{ft}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
+              {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>Save Changes</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos, label } = photoViewer
@@ -1129,7 +1191,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.15)',
   },
   vehiclePhotoAddText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-  vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8, marginTop: 20, paddingHorizontal: 20 },
+  vehicleNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 20, paddingHorizontal: 20 },
+  vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', flex: 1 },
+  editVehicleBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8 },
+  editVehicleBtnText: { fontSize: 12, color: '#fff', fontWeight: '600' },
   vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', paddingHorizontal: 20 },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
   mileageRow: { flexDirection: 'row', alignItems: 'center' },
@@ -1373,6 +1438,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, paddingVertical: 2,
   },
   thumbCountText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  editVehicleCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  editVehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  editVehicleTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a2e' },
+  editVehicleClose: { fontSize: 18, color: '#888', fontWeight: '700' },
+  editVehicleLabel: { fontSize: 12, fontWeight: '700', color: '#888', marginBottom: 6, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
+  editVehicleInput: { backgroundColor: '#f5f7fa', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0', paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: '#1a1a2e' },
+  fuelTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  fuelTypeChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0' },
+  fuelTypeChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  fuelTypeChipText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  fuelTypeChipTextActive: { color: '#fff' },
+  editVehicleSaveBtn: { backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
+  editVehicleSaveBtnDisabled: { opacity: 0.6 },
+  editVehicleSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
   photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
   photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },

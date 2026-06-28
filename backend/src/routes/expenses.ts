@@ -61,4 +61,51 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /expenses/:id — edit an expense
+router.patch('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { date, category, amount, description, mileage, notes } = req.body
+  try {
+    const expense = await prisma.expense.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!expense || expense.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Expense not found' }); return
+    }
+    const updated = await prisma.expense.update({
+      where: { id },
+      data: {
+        ...(date && { date: new Date(date) }),
+        ...(category !== undefined && { category }),
+        ...(amount !== undefined && { amount: Number(amount) }),
+        ...(description !== undefined && { description: description?.trim() || null }),
+        ...(mileage !== undefined && { mileage: mileage ? Number(mileage) : null }),
+        ...(notes !== undefined && { notes: notes?.trim() || null }),
+      },
+    })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update expense' })
+  }
+})
+
+// DELETE /expenses/:id — delete an expense
+router.delete('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  try {
+    const expense = await prisma.expense.findFirst({
+      where: { id },
+      include: { vehicle: true },
+    })
+    if (!expense || expense.vehicle.ownerPhone !== req.phoneNumber!) {
+      res.status(404).json({ error: 'Expense not found' }); return
+    }
+    await prisma.expense.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete expense' })
+  }
+})
+
 export default router

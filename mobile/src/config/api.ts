@@ -616,6 +616,91 @@ export const api = {
     return data
   },
 
+  updateServiceRecord: async (token: string, id: string, data: {
+    date?: string; description?: string; mileage?: number | null
+    parts?: string | null; brand?: string | null; cost?: number | null; notes?: string | null
+  }) => {
+    const res = await fetch(`${API_URL}/service-records/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to update service record')
+    return d
+  },
+
+  deleteServiceRecord: async (token: string, id: string) => {
+    const res = await fetch(`${API_URL}/service-records/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to delete service record')
+    return d
+  },
+
+  updateExpense: async (token: string, id: string, data: {
+    date?: string; category?: string; amount?: number
+    description?: string | null; mileage?: number | null; notes?: string | null
+  }) => {
+    const res = await fetch(`${API_URL}/expenses/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to update expense')
+    return d
+  },
+
+  deleteExpense: async (token: string, id: string) => {
+    const res = await fetch(`${API_URL}/expenses/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to delete expense')
+    return d
+  },
+
+  updateFuelLog: async (token: string, id: string, data: {
+    date?: string; mileage?: number; litres?: number | null; cost?: number | null; station?: string | null
+  }) => {
+    const res = await fetch(`${API_URL}/fuel-logs/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to update fuel log')
+    return d
+  },
+
+  deleteFuelLog: async (token: string, id: string) => {
+    const res = await fetch(`${API_URL}/fuel-logs/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to delete fuel log')
+    return d
+  },
+
+  updateVehicle: async (token: string, id: string, data: {
+    make?: string; model?: string; year?: number; fuelType?: string
+    vehicleType?: string | null; vehicleNotes?: string | null
+  }) => {
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to update vehicle')
+    return d
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

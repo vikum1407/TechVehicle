@@ -107,6 +107,32 @@ router.patch('/:id/photo', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /vehicles/:id — edit vehicle profile (make, model, year, fuelType, vehicleType, vehicleNotes)
+router.patch('/:id', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { make, model, year, fuelType, vehicleType, vehicleNotes, purchaseDate, ownerCount } = req.body
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        ...(make !== undefined && { make: make.trim() }),
+        ...(model !== undefined && { model: model.trim() }),
+        ...(year !== undefined && { year: Number(year) }),
+        ...(fuelType !== undefined && { fuelType }),
+        ...(vehicleType !== undefined && { vehicleType: vehicleType || null }),
+        ...(vehicleNotes !== undefined && { vehicleNotes: vehicleNotes?.trim() || null }),
+        ...(purchaseDate !== undefined && { purchaseDate: purchaseDate ? new Date(purchaseDate) : null }),
+        ...(ownerCount !== undefined && { ownerCount: ownerCount ? Number(ownerCount) : null }),
+      },
+    })
+    res.json(updated)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update vehicle' })
+  }
+})
+
 // PATCH /vehicles/:id/mileage — manual odometer update
 router.patch('/:id/mileage', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }

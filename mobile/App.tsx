@@ -381,6 +381,10 @@ export default function App() {
           onPredictions={() => setScreen('predictions')}
           onKnowledgeHub={() => setScreen('knowledgeHub')}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
+          onVehicleUpdated={(updated) => {
+            setSelectedVehicle(prev => prev ? { ...prev, ...updated } : prev)
+            setVehicles(prev => prev.map(v => v.id === updated.id ? { ...v, ...updated } : v))
+          }}
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
           onBookService={() => setScreen('booking')}
