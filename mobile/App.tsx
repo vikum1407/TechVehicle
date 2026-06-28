@@ -364,6 +364,8 @@ export default function App() {
           focusBookingId={focusVehicleBookingId}
           onFocusHandled={() => setFocusVehicleBookingId(null)}
           onNotifSeen={setNotifUnreadCount}
+          notifUnread={notifUnreadCount > 0}
+          onNotifications={() => setScreen('notifications')}
           onBack={() => setScreen('vehicles')}
           onAddRecord={() => setScreen('addServiceRecord')}
           onLogFuel={() => setScreen('logFuel')}

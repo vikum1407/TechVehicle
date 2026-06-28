@@ -49,6 +49,8 @@ type Props = {
   focusBookingId?: string | null
   onFocusHandled?: () => void
   onNotifSeen?: (newCount: number) => void
+  notifUnread?: boolean
+  onNotifications?: () => void
 }
 
 type OwnerBooking = {
@@ -147,7 +149,7 @@ function getTrend(data: number[], higherIsBetter: boolean) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -417,6 +419,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.regNo}>{vehicle.registrationNo}</Text>
+        {onNotifications && (
+          <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
+            <Text style={styles.bellIcon}>🔔</Text>
+            {notifUnread && <View style={styles.bellDot} />}
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -865,7 +873,10 @@ const styles = StyleSheet.create({
   },
   backBtn: { marginRight: 16 },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  regNo: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
+  regNo: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', flex: 1 },
+  bellBtn: { marginLeft: 12, padding: 4, position: 'relative' },
+  bellIcon: { fontSize: 22 },
+  bellDot: { position: 'absolute', top: 2, right: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff' },
   vehicleCard: {
     backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14, padding: 20,
   },

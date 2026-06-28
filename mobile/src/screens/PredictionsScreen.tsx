@@ -30,6 +30,7 @@ const SETUP_BRAND_MAP: Record<string, { structuredKey: string; brandLookupKey: s
   'Water Pump':               { structuredKey: 'brandName', brandLookupKey: 'Water Pump' },
   'Chain & Sprocket':         { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
   'Chain Lubrication':        { structuredKey: 'brandName', brandLookupKey: 'Chain & Sprocket' },
+  'Tyre Change':              { structuredKey: 'brandName', brandLookupKey: 'Tyre Change' },
 }
 
 type Prediction = {
