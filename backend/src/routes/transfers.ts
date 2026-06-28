@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { createNotification } from '../utils/appNotifications'
+import { sendPush } from '../utils/push'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -131,6 +132,14 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'accepted' },
     })
+
+    // Notify the seller that the buyer accepted
+    const seller = await prisma.user.findUnique({ where: { phoneNumber: transfer.sellerPhone } })
+    const regNo = transfer.vehicle.registrationNo
+    const notifTitle = `Transfer accepted — ${regNo}`
+    const notifBody = `The buyer has accepted the transfer of ${regNo}. The sale is complete.`
+    await sendPush(seller?.pushToken, notifTitle, notifBody, { screen: 'vehicles' })
+    await createNotification(prisma, transfer.sellerPhone, 'transfer_accepted', notifTitle, notifBody, { screen: 'vehicles' })
 
     res.json({ success: true, vehicle: transfer.vehicle })
   } catch (error) {

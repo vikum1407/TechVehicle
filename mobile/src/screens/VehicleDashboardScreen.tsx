@@ -574,7 +574,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <View style={styles.vehicleNameRow}>
             <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
             <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
-              <Text style={styles.editVehicleBtnText}>✏️ Edit</Text>
+              <Text style={styles.editVehicleBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.vehicleRow}>
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14,
     overflow: 'hidden', padding: 0,
   },
-  vehicleCardPhoto: { width: '100%', height: 180 },
+  vehicleCardPhoto: { width: '100%', height: 150 },
   vehiclePhotoOverlay: {
     position: 'absolute', bottom: 8, right: 8,
     backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 8,
@@ -1212,8 +1212,8 @@ const styles = StyleSheet.create({
   vehiclePhotoAddText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
   vehicleNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 20, paddingHorizontal: 20 },
   vehicleName: { fontSize: 18, fontWeight: '700', color: '#fff', flex: 1 },
-  editVehicleBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8 },
-  editVehicleBtnText: { fontSize: 12, color: '#fff', fontWeight: '600' },
+  editVehicleBtn: { paddingHorizontal: 12, paddingVertical: 5, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  editVehicleBtnText: { fontSize: 12, color: '#fff', fontWeight: '700', letterSpacing: 0.3 },
   vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', paddingHorizontal: 20 },
   vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
   mileageRow: { flexDirection: 'row', alignItems: 'center' },

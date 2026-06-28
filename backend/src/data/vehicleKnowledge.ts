@@ -193,6 +193,31 @@ export const VEHICLE_KNOWLEDGE: VehicleSpec[] = [
   },
 
   {
+    id: 'toyota-corolla-gen11',
+    make: 'Toyota', model: 'Corolla', yearFrom: 2014, yearTo: null,
+    fuelType: 'petrol', engine: '2ZR-FE / 2ZR-FAE (Valvematic)', engineCapacityCC: 1798,
+    oilGrade: '0W-20', oilType: 'Full Synthetic', oilCapacityL: 4.2, oilChangeKm: 10000,
+    tyreSizeFront: '195/65R15',
+    timingType: 'chain',
+    coolantType: 'Toyota SLLC (Pink, OAT long-life)',
+    coolantFlushIntervalKm: 160000,
+    transmissionFluidType: 'Toyota ATF WS (Auto) / Super CVT-i (CVT)',
+    transmissionFluidIntervalKm: 80000,
+    sparkPlugType: 'Iridium',
+    sparkPlugIntervalKm: 120000,
+    brakeFluidType: 'DOT 3',
+    brakeFluidIntervalDays: 730,
+    airFilterIntervalKm: 30000,
+    fuelEconomyKmL: 16,
+    knownIssues: [
+      'Valvematic actuator failure on 2ZR-FAE engines — symptoms include rough idle and MIL light',
+      'CVT shudder on acceleration in high-mileage units — ensure CVT fluid changed every 80,000 km',
+      'Oil consumption higher than spec if 0W-20 replaced with heavier grade — use manufacturer spec',
+    ],
+    notes: 'Gen 11 Corolla. Chain-driven — no timing belt. Toyota recommends 0W-20 full synthetic; using 5W-30 or 10W-40 is a common mistake in Sri Lanka and increases wear on Valvematic components.',
+  },
+
+  {
     id: 'toyota-axio',
     make: 'Toyota', model: 'Axio', yearFrom: 2006, yearTo: 2019,
     fuelType: 'petrol', engine: '1NZ-FE / 1NR-FE', engineCapacityCC: 1497,

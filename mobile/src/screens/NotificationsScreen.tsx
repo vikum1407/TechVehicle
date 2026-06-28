@@ -35,12 +35,14 @@ const TYPE_ICON: Record<string, string> = {
   setup_reminder:   '🔧',
   service_reminder: '⚠️',
   submission: '📋',
-  transfer: '🚗',
+  transfer: '🔑',
+  transfer_accepted: '🏆',
   licence_reminder: '🚨',
   emission_reminder: '🚨',
 }
 
 const URGENT_TYPES = new Set(['licence_reminder', 'emission_reminder'])
+const TRANSFER_TYPES = new Set(['transfer', 'transfer_accepted'])
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -111,20 +113,30 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
             <TouchableOpacity
               style={[
                 styles.card,
-                URGENT_TYPES.has(item.type) ? styles.cardUrgent : (!item.read && styles.cardUnread),
+                URGENT_TYPES.has(item.type) ? styles.cardUrgent
+                  : TRANSFER_TYPES.has(item.type) ? styles.cardTransfer
+                  : (!item.read && styles.cardUnread),
               ]}
               onPress={() => handleTap(item)}
               activeOpacity={0.75}
             >
               <Text style={styles.cardIcon}>{TYPE_ICON[item.type] ?? '🔔'}</Text>
               <View style={styles.cardBody}>
-                <Text style={[styles.cardTitle, URGENT_TYPES.has(item.type) && styles.cardTitleUrgent]}>
+                <Text style={[
+                  styles.cardTitle,
+                  URGENT_TYPES.has(item.type) && styles.cardTitleUrgent,
+                  TRANSFER_TYPES.has(item.type) && styles.cardTitleTransfer,
+                ]}>
                   {item.title}
                 </Text>
                 <Text style={styles.cardText} numberOfLines={2}>{item.body}</Text>
                 <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
               </View>
-              {!item.read && <View style={[styles.unreadDot, URGENT_TYPES.has(item.type) && styles.unreadDotUrgent]} />}
+              {!item.read && <View style={[
+                styles.unreadDot,
+                URGENT_TYPES.has(item.type) && styles.unreadDotUrgent,
+                TRANSFER_TYPES.has(item.type) && styles.unreadDotTransfer,
+              ]} />}
             </TouchableOpacity>
           )}
         />
@@ -164,6 +176,12 @@ const styles = StyleSheet.create({
   },
   cardTitleUrgent: { color: '#c62828' },
   unreadDotUrgent: { backgroundColor: '#e65100' },
+  cardTransfer: {
+    backgroundColor: '#fffde7',
+    borderLeftWidth: 4, borderLeftColor: '#f9a825',
+  },
+  cardTitleTransfer: { color: '#e65100' },
+  unreadDotTransfer: { backgroundColor: '#f9a825' },
   cardIcon: { fontSize: 22, marginRight: 12, marginTop: 2 },
   cardBody: { flex: 1 },
   cardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 3 },
