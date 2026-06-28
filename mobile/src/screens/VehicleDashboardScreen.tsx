@@ -188,6 +188,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loadingNotes, setLoadingNotes] = useState<Set<string>>(new Set())
   const [myBookings, setMyBookings] = useState<OwnerBooking[]>([])
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(vehicle.photoUrl ?? null)
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
@@ -222,6 +223,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   const loadRecords = async () => {
     setLoading(true)
+    setLoadFailed(false)
     try {
       const [subs, transfer, analytics, preds, allBookings] = await Promise.all([
         api.getVehicleSubmissions(token, vehicle.id),
@@ -244,7 +246,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         })
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -479,6 +481,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecords} />}
         contentContainerStyle={styles.scrollContent}
       >
+        {loadFailed && (
+          <TouchableOpacity style={styles.errorBanner} onPress={loadRecords} activeOpacity={0.8}>
+            <Text style={styles.errorBannerText}>⚠️  Could not load data — tap to retry</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.vehicleCard}>
           {vehiclePhotoUrl ? (
             <TouchableOpacity onPress={pickVehiclePhoto} activeOpacity={0.9} disabled={uploadingVehiclePhoto}>
@@ -1032,6 +1039,11 @@ const styles = StyleSheet.create({
   bellBtn: { marginLeft: 12, padding: 4, position: 'relative' },
   bellIcon: { fontSize: 22 },
   bellDot: { position: 'absolute', top: 2, right: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff' },
+  errorBanner: {
+    backgroundColor: '#fbe9e7', marginHorizontal: 16, marginBottom: 8,
+    borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: '#e53935',
+  },
+  errorBannerText: { fontSize: 13, color: '#c62828', fontWeight: '600' },
   vehicleCard: {
     backgroundColor: '#1a73e8', margin: 16, marginBottom: 10, borderRadius: 14,
     overflow: 'hidden', padding: 0,

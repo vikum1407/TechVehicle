@@ -346,16 +346,45 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
 export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeHub }: Props) {
   const [data, setData] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
+    setLoadError(false)
     api.getAnalytics(token, vehicleId)
       .then(setData)
-      .catch((e: any) => Alert.alert('Error', e.message))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#1a73e8" /></View>
-  if (!data) return null
+
+  if (loadError) return (
+    <View style={styles.center}>
+      <Text style={styles.errorIcon}>⚠️</Text>
+      <Text style={styles.errorTitle}>Could not load analytics</Text>
+      <Text style={styles.errorSub}>Check your connection and try again</Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={load}>
+        <Text style={styles.retryBtnText}>Retry</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onBack} style={{ marginTop: 12 }}>
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  )
+
+  if (!data || (data.totalSpend === 0 && data.fuelLogs.length === 0 && data.serviceRecords.length === 0)) return (
+    <View style={styles.center}>
+      <Text style={styles.errorIcon}>📊</Text>
+      <Text style={styles.errorTitle}>No data yet</Text>
+      <Text style={styles.errorSub}>Log a fuel fill-up or service record to start seeing analytics</Text>
+      <TouchableOpacity onPress={onBack} style={styles.retryBtn}>
+        <Text style={styles.retryBtnText}>← Back to Dashboard</Text>
+      </TouchableOpacity>
+    </View>
+  )
 
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
   const maxBreakdown = Math.max(...data.expenseBreakdown.map(e => e.amount), 1)
@@ -531,7 +560,15 @@ const cs = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   content: { padding: 24, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, backgroundColor: '#f5f5f5' },
+  errorIcon: { fontSize: 48, marginBottom: 16 },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 8, textAlign: 'center' },
+  errorSub: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  retryBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingHorizontal: 28, paddingVertical: 12,
+  },
+  retryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   topRow: { marginTop: 48, marginBottom: 8 },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
   title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 20 },

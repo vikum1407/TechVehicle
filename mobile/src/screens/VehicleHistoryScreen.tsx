@@ -272,8 +272,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 
               {records.length === 0 ? (
                 <View style={s.empty}>
+                  <Text style={s.emptyIcon}>🔧</Text>
                   <Text style={s.emptyText}>No service records yet</Text>
-                  <Text style={s.emptySub}>Add a service record from the vehicle dashboard</Text>
+                  <Text style={s.emptySub}>Tap + Add Record on the dashboard to log your first service</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
+                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                  </TouchableOpacity>
                 </View>
               ) : filteredRecords.length === 0 ? (
                 <View style={s.empty}>
@@ -321,8 +325,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 
               {filteredExpenses.length === 0 ? (
                 <View style={s.empty}>
+                  <Text style={s.emptyIcon}>💰</Text>
                   <Text style={s.emptyText}>No expenses yet</Text>
-                  <Text style={s.emptySub}>Log expenses from the vehicle dashboard</Text>
+                  <Text style={s.emptySub}>Tap Add Expense on the dashboard to track insurance, fuel, and other costs</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
+                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 filteredExpenses.map(exp => (
@@ -371,8 +379,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 
               {fuelLogs.length === 0 ? (
                 <View style={s.empty}>
+                  <Text style={s.emptyIcon}>⛽</Text>
                   <Text style={s.emptyText}>No fuel logs yet</Text>
-                  <Text style={s.emptySub}>Log a fuel fill-up from the vehicle dashboard</Text>
+                  <Text style={s.emptySub}>Tap Log Fuel on the dashboard to start tracking efficiency and mileage</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
+                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 fuelLogs.map(f => (
@@ -582,9 +594,15 @@ const s = StyleSheet.create({
   fuelStation: { fontSize: 12, color: '#aaa', marginTop: 4 },
 
   // Empty state
-  empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyText: { fontSize: 16, fontWeight: '700', color: '#aaa', marginBottom: 6 },
-  emptySub: { fontSize: 13, color: '#ccc', textAlign: 'center' },
+  empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32 },
+  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyText: { fontSize: 17, fontWeight: '700', color: '#333', marginBottom: 8, textAlign: 'center' },
+  emptySub: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  emptyBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingHorizontal: 20, paddingVertical: 10,
+  },
+  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   // Photo viewer modal
   photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
