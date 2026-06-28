@@ -86,6 +86,36 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   const [draftFuel, setDraftFuel] = useState({ date: '', mileage: '', litres: '', cost: '', station: '' })
   const [savingEdit, setSavingEdit] = useState(false)
 
+  // Quick-add past record
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [quickDraft, setQuickDraft] = useState({ description: '', year: '', mileage: '', cost: '' })
+  const [savingQuick, setSavingQuick] = useState(false)
+
+  const handleQuickAdd = async () => {
+    if (!quickDraft.description.trim()) { Alert.alert('Required', 'Please describe what was done.'); return }
+    const yearNum = parseInt(quickDraft.year)
+    const isoDate = (!isNaN(yearNum) && yearNum >= 1990 && yearNum <= new Date().getFullYear())
+      ? new Date(`${yearNum}-07-01`).toISOString()
+      : new Date().toISOString()
+    setSavingQuick(true)
+    try {
+      await api.addServiceRecord(token, vehicle.id, {
+        date: isoDate,
+        description: quickDraft.description.trim(),
+        mileage: quickDraft.mileage.trim() ? parseInt(quickDraft.mileage) : undefined,
+        cost: quickDraft.cost.trim() ? parseFloat(quickDraft.cost) : undefined,
+        notes: 'Historical record',
+      })
+      setQuickDraft({ description: '', year: '', mileage: '', cost: '' })
+      setShowQuickAdd(false)
+      await loadAll()
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to save record.')
+    } finally {
+      setSavingQuick(false)
+    }
+  }
+
   // Photo viewer
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -454,6 +484,9 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                   onChangeText={setSearch}
                   clearButtonMode="while-editing"
                 />
+                <TouchableOpacity style={s.addPastBtn} onPress={() => setShowQuickAdd(true)}>
+                  <Text style={s.addPastBtnText}>+ Add</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.exportBtn, exporting && s.exportBtnDisabled]}
                   onPress={handleExportPdf}
@@ -771,6 +804,72 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
         </>
       )}
 
+      {/* ── Quick-add past record modal ─── */}
+      <Modal visible={showQuickAdd} transparent animationType="slide" onRequestClose={() => setShowQuickAdd(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
+          <View style={s.editModalCard}>
+            <View style={s.editModalHeader}>
+              <Text style={s.editModalTitle}>Add Past Record</Text>
+              <TouchableOpacity onPress={() => setShowQuickAdd(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={s.editModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={s.editLabel}>What was done? *</Text>
+              <TextInput
+                style={s.editInput}
+                value={quickDraft.description}
+                onChangeText={v => setQuickDraft(p => ({ ...p, description: v }))}
+                placeholder="e.g. Full service, Tyre change, Timing belt"
+                placeholderTextColor="#bbb"
+                autoFocus
+              />
+              <Text style={s.editLabel}>Approximate year</Text>
+              <TextInput
+                style={s.editInput}
+                value={quickDraft.year}
+                onChangeText={v => setQuickDraft(p => ({ ...p, year: v }))}
+                placeholder="e.g. 2022  (leave blank if unsure)"
+                placeholderTextColor="#bbb"
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+              <Text style={s.editLabel}>Mileage at the time (km)</Text>
+              <TextInput
+                style={s.editInput}
+                value={quickDraft.mileage}
+                onChangeText={v => setQuickDraft(p => ({ ...p, mileage: v }))}
+                placeholder="Optional"
+                placeholderTextColor="#bbb"
+                keyboardType="number-pad"
+              />
+              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <TextInput
+                style={s.editInput}
+                value={quickDraft.cost}
+                onChangeText={v => setQuickDraft(p => ({ ...p, cost: v }))}
+                placeholder="Optional"
+                placeholderTextColor="#bbb"
+                keyboardType="number-pad"
+              />
+              <Text style={[s.editLabel, { color: '#aaa', fontSize: 12, marginTop: 4 }]}>
+                All fields except the description are optional — approximate values are fine.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={[s.editSaveBtn, (!quickDraft.description.trim() || savingQuick) && s.editSaveBtnDisabled]}
+              onPress={handleQuickAdd}
+              disabled={!quickDraft.description.trim() || savingQuick}
+            >
+              {savingQuick
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.editSaveBtnText}>Save Record</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* ── Edit service record modal ─── */}
       <Modal visible={!!editService} transparent animationType="slide" onRequestClose={() => setEditService(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
@@ -956,8 +1055,12 @@ const s = StyleSheet.create({
     flex: 1, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
     paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#1a1a2e',
   },
+  addPastBtn: {
+    backgroundColor: '#e6f4ea', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginLeft: 6,
+  },
+  addPastBtnText: { fontSize: 13, color: '#1e7e34', fontWeight: '700' },
   exportBtn: {
-    backgroundColor: '#e8f0fe', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: '#e8f0fe', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, marginLeft: 6,
   },
   exportBtnDisabled: { opacity: 0.5 },
   exportBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
