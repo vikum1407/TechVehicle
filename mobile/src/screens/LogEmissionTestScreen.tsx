@@ -23,10 +23,20 @@ function todayDMY() {
 }
 
 function parseDMY(s: string): string | null {
-  const [d, m, y] = s.split('/')
-  if (!d || !m || !y || y.length !== 4) return null
-  const date = new Date(Number(y), Number(m) - 1, Number(d))
-  return isNaN(date.getTime()) ? null : date.toISOString()
+  const parts = s.trim().split('/')
+  if (parts.length !== 3) return null
+  const [dStr, mStr, yStr] = parts
+  const d = parseInt(dStr, 10), m = parseInt(mStr, 10), y = parseInt(yStr, 10)
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null
+  if (yStr.length !== 4) return null
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null
+  if (y < 1990 || y > new Date().getFullYear()) return null
+  const date = new Date(y, m - 1, d)
+  // Guard against JS normalising invalid dates (e.g. 31 Feb → March 3)
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null
+  // Emission test must be today or in the past — can't log a future test
+  if (date > new Date()) return null
+  return date.toISOString()
 }
 
 // Parse MM/YYYY into a Date ISO string (last day of that month)

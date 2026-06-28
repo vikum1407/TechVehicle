@@ -369,10 +369,18 @@ export const todayDMY = () => {
 }
 
 export const parseDMY = (str: string): string | null => {
-  const parts = str.split('/')
+  const parts = str.trim().split('/')
   if (parts.length !== 3) return null
-  const [d, m, y] = parts
-  const parsed = new Date(`${y}-${m}-${d}`)
-  if (isNaN(parsed.getTime())) return null
-  return parsed.toISOString()
+  const [dStr, mStr, yStr] = parts
+  const d = parseInt(dStr, 10), m = parseInt(mStr, 10), y = parseInt(yStr, 10)
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null
+  if (yStr.length !== 4) return null
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null
+  if (y < 1990 || y > new Date().getFullYear()) return null
+  const date = new Date(y, m - 1, d)
+  // Guard against JS normalising invalid dates (e.g. 31 Feb → March 3)
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null
+  // Service records must be today or in the past
+  if (date > new Date()) return null
+  return date.toISOString()
 }
