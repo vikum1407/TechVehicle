@@ -560,7 +560,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {topPredictions.length > 0 && (
           <View style={styles.predictionsSection}>
             <View style={styles.predictionsSectionHeader}>
-              <Text style={styles.predictionsSectionTitle}>🔧 Upcoming Services</Text>
+              <Text style={styles.predictionsSectionTitle}>💡 Predictions</Text>
               <TouchableOpacity onPress={onPredictions}>
                 <Text style={styles.predictionsViewAll}>View all →</Text>
               </TouchableOpacity>
