@@ -9,9 +9,18 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.startsWith('94') && digits.length === 11) return '+' + digits
+  if (digits.startsWith('0') && digits.length === 10) return '+94' + digits.slice(1)
+  if (digits.length === 9) return '+94' + digits
+  return phone
+}
+
 // POST /vehicle-shares — owner shares a vehicle with another phone number
 router.post('/', async (req: AuthRequest, res) => {
-  const { vehicleId, sharedWithPhone } = req.body
+  const { vehicleId } = req.body
+  const sharedWithPhone = normalizePhone(req.body.sharedWithPhone ?? '')
   if (!vehicleId || !sharedWithPhone) {
     res.status(400).json({ error: 'vehicleId and sharedWithPhone are required' })
     return
