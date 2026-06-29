@@ -426,6 +426,19 @@ export const api = {
     return data
   },
 
+  getGarageHistory: async (token: string) => {
+    const res = await fetch(`${API_URL}/service-submissions/garage`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch garage history')
+    return data as {
+      id: string; status: string; createdAt: string
+      description: string; cost: number | null; mileage: number | null
+      vehicle: { registrationNo: string; make: string; model: string; year: number }
+    }[]
+  },
+
   confirmBooking: async (token: string, bookingId: string) => {
     const res = await fetch(`${API_URL}/bookings/${bookingId}/confirm`, {
       method: 'POST',

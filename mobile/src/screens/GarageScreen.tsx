@@ -59,7 +59,13 @@ type IncomingShare = {
   records: SharedRecord[]
 }
 
-type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar'
+type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar' | 'history'
+
+type CompletedJob = {
+  id: string; status: string; createdAt: string
+  description: string; cost: number | null; mileage: number | null
+  vehicle: { registrationNo: string; make: string; model: string; year: number }
+}
 
 type CalendarOverride = {
   id: string
@@ -145,6 +151,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [ovMessage, setOvMessage] = useState('')
   const [ovColor, setOvColor] = useState('#FF9800')
   const [savingOverride, setSavingOverride] = useState(false)
+
+  // History / Revenue tab state
+  const [historyJobs, setHistoryJobs] = useState<CompletedJob[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // Garage profile form
   const [name, setName] = useState('')
@@ -306,6 +316,16 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
   }
 
+  const loadHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const data = await api.getGarageHistory(token)
+      setHistoryJobs(data.filter((j: CompletedJob) => j.status === 'accepted'))
+    } catch {} finally {
+      setHistoryLoading(false)
+    }
+  }
+
   const handleSaveSchedule = async () => {
     setSavingSchedule(true)
     try {
@@ -390,6 +410,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
     if (tab === 'schedule' && garage) { loadSchedule(); loadOverrides(calMonth) }
     if (tab === 'calendar' && garage) { loadBookings(); loadSchedule(); loadOverrides(calMonth) }
+    if (tab === 'history' && garage) { loadHistory() }
   }, [tab, garage])
 
   const handleRegister = async () => {
@@ -912,6 +933,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             onPress={() => setTab('calendar')}
           >
             <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'history' && styles.tabActive]}
+            onPress={() => setTab('history')}
+          >
+            <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>Revenue</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1643,6 +1670,108 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </ScrollView>
       )}
 
+      {/* ── Revenue / History tab ──────────────────────────────────────── */}
+      {tab === 'history' && (
+        <ScrollView contentContainerStyle={styles.content}>
+          {historyLoading ? (
+            <ActivityIndicator size="large" color="#1a73e8" style={{ marginTop: 40 }} />
+          ) : (() => {
+            const completed = historyJobs
+            const totalRevenue = completed.reduce((s, j) => s + (j.cost ?? 0), 0)
+
+            // This month
+            const now = new Date()
+            const thisMonthJobs = completed.filter(j => {
+              const d = new Date(j.createdAt)
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+            })
+            const thisMonthRevenue = thisMonthJobs.reduce((s, j) => s + (j.cost ?? 0), 0)
+
+            // Last 6 months bar data
+            const months: { label: string; revenue: number }[] = []
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
+              const label = d.toLocaleDateString('en-GB', { month: 'short' })
+              const revenue = completed.filter(j => {
+                const jd = new Date(j.createdAt)
+                return jd.getMonth() === d.getMonth() && jd.getFullYear() === d.getFullYear()
+              }).reduce((s, j) => s + (j.cost ?? 0), 0)
+              months.push({ label, revenue })
+            }
+            const maxRev = Math.max(...months.map(m => m.revenue), 1)
+
+            return (
+              <>
+                {/* Summary cards */}
+                <View style={styles.revSummaryRow}>
+                  <View style={styles.revCard}>
+                    <Text style={styles.revCardLabel}>Total Revenue</Text>
+                    <Text style={styles.revCardValue}>LKR {totalRevenue.toLocaleString()}</Text>
+                    <Text style={styles.revCardSub}>{completed.length} completed job{completed.length !== 1 ? 's' : ''}</Text>
+                  </View>
+                  <View style={styles.revCard}>
+                    <Text style={styles.revCardLabel}>This Month</Text>
+                    <Text style={styles.revCardValue}>LKR {thisMonthRevenue.toLocaleString()}</Text>
+                    <Text style={styles.revCardSub}>{thisMonthJobs.length} job{thisMonthJobs.length !== 1 ? 's' : ''}</Text>
+                  </View>
+                </View>
+
+                {/* Monthly bar chart */}
+                <View style={styles.revChartCard}>
+                  <Text style={styles.revChartTitle}>Revenue — Last 6 Months</Text>
+                  <View style={styles.revBars}>
+                    {months.map((m, i) => (
+                      <View key={i} style={styles.revBarCol}>
+                        <View style={styles.revBarTrack}>
+                          <View style={[styles.revBarFill, { height: `${Math.round((m.revenue / maxRev) * 100)}%` as any }]} />
+                        </View>
+                        <Text style={styles.revBarLabel}>{m.label}</Text>
+                        {m.revenue > 0 && (
+                          <Text style={styles.revBarValue}>{Math.round(m.revenue / 1000)}k</Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Completed jobs list */}
+                <Text style={styles.revSectionTitle}>Completed Jobs</Text>
+                {completed.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyIcon}>🔧</Text>
+                    <Text style={styles.emptyText}>No completed jobs yet</Text>
+                    <Text style={styles.emptySub}>Accepted service submissions will appear here</Text>
+                  </View>
+                ) : (
+                  completed.map(job => (
+                    <View key={job.id} style={styles.revJobCard}>
+                      <View style={styles.revJobTop}>
+                        <Text style={styles.revJobReg}>{job.vehicle.registrationNo}</Text>
+                        {job.cost != null && (
+                          <Text style={styles.revJobCost}>LKR {job.cost.toLocaleString()}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.revJobVehicle}>
+                        {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+                      </Text>
+                      <Text style={styles.revJobDesc} numberOfLines={2}>{job.description}</Text>
+                      <View style={styles.revJobMeta}>
+                        <Text style={styles.revJobDate}>
+                          {new Date(job.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                        {job.mileage != null && (
+                          <Text style={styles.revJobMileage}>{job.mileage.toLocaleString()} km</Text>
+                        )}
+                      </View>
+                    </View>
+                  ))
+                )}
+              </>
+            )
+          })()}
+        </ScrollView>
+      )}
+
       {/* ── Counter-suggest modal ─────────────────────────────────────── */}
       {counterModal && (() => {
         const next14 = Array.from({ length: 14 }, (_, i) => {
@@ -1818,9 +1947,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', backgroundColor: '#fff',
     borderBottomWidth: 1, borderBottomColor: '#eee',
   },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#1a73e8' },
-  tabText: { fontSize: 14, color: '#888', fontWeight: '600' },
+  tabText: { fontSize: 12, color: '#888', fontWeight: '600' },
   tabTextActive: { color: '#1a73e8' },
   content: { padding: 20, paddingBottom: 48 },
   profileCard: {
@@ -2148,4 +2277,39 @@ const styles = StyleSheet.create({
   calDayBookingVehicle: { fontSize: 13, fontWeight: '700', color: '#1a1a1a', flex: 1 },
   calDaySlot: { fontSize: 12, color: '#555', marginBottom: 3 },
   calDayNotes: { fontSize: 12, color: '#555', fontStyle: 'italic' },
+
+  // Revenue / History tab
+  revSummaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  revCard: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 16,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+  },
+  revCardLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 4 },
+  revCardValue: { fontSize: 18, fontWeight: '800', color: '#1a73e8', marginBottom: 2 },
+  revCardSub: { fontSize: 12, color: '#aaa' },
+  revChartCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+  },
+  revChartTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 16 },
+  revBars: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 8 },
+  revBarCol: { flex: 1, alignItems: 'center' },
+  revBarTrack: { width: '100%', height: 80, backgroundColor: '#f0f4ff', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  revBarFill: { width: '100%', backgroundColor: '#1a73e8', borderRadius: 6, minHeight: 3 },
+  revBarLabel: { fontSize: 10, color: '#888', marginTop: 4, fontWeight: '600' },
+  revBarValue: { fontSize: 9, color: '#1a73e8', fontWeight: '700' },
+  revSectionTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a1a', marginBottom: 10 },
+  revJobCard: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    borderLeftWidth: 3, borderLeftColor: '#34a853',
+  },
+  revJobTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  revJobReg: { fontSize: 15, fontWeight: '800', color: '#1a1a1a' },
+  revJobCost: { fontSize: 15, fontWeight: '800', color: '#34a853' },
+  revJobVehicle: { fontSize: 12, color: '#888', marginBottom: 4 },
+  revJobDesc: { fontSize: 13, color: '#444', marginBottom: 6, lineHeight: 18 },
+  revJobMeta: { flexDirection: 'row', gap: 12 },
+  revJobDate: { fontSize: 12, color: '#aaa' },
+  revJobMileage: { fontSize: 12, color: '#aaa' },
 })
