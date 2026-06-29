@@ -320,17 +320,18 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     setLoading(true)
     setLoadFailed(false)
     try {
+      const isShared = vehicle.isShared ?? false
       const [subs, transfer, analytics, preds, allBookings, progress, sentShares] = await Promise.all([
-        api.getVehicleSubmissions(token, vehicle.id),
-        api.getVehicleTransfer(token, vehicle.id),
+        isShared ? Promise.resolve([]) : api.getVehicleSubmissions(token, vehicle.id),
+        isShared ? Promise.resolve(null) : api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
-        api.getMyBookings(token).catch(() => []),
+        isShared ? Promise.resolve([]) : api.getMyBookings(token).catch(() => []),
         api.getVehicleProgress(token, vehicle.id).catch(() => null),
-        api.getSentVehicleShares(token).catch(() => []),
+        isShared ? Promise.resolve([]) : api.getSentVehicleShares(token).catch(() => []),
       ])
       setVehicleProgress(progress)
-      setSubmissions(subs)
+      setSubmissions(subs as any[])
       setPendingTransfer(transfer)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
       setMyBookings(vehicleBookings)
