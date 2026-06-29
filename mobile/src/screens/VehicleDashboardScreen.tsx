@@ -215,7 +215,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
-  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' })
+  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -245,8 +245,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         purchaseDate: draftVehicle.purchaseDate.trim() || null,
         ownerCount: draftVehicle.ownerCount.trim() ? Number(draftVehicle.ownerCount) : null,
       })
+      await api.updateVehicleExpiry(token, vehicle.id, {
+        insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null,
+        insuranceCompany: draftVehicle.insuranceCompany.trim() || null,
+        insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null,
+      })
       setEditVehicleModal(false)
-      onVehicleUpdated?.(updated)
+      onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null })
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not save vehicle details')
     } finally {
@@ -1424,6 +1429,32 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. imported from Japan 2021, AC recently serviced..."
               placeholderTextColor={colors.textFaint}
             />
+            <View style={styles.editSectionDivider} />
+            <Text style={styles.editSectionTitle}>🛡️ Insurance Details</Text>
+            <Text style={styles.editVehicleLabel}>Insurance Company</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.insuranceCompany}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, insuranceCompany: v }))}
+              placeholder="e.g. Ceylinco, Union, Allianz  (optional)"
+              placeholderTextColor={colors.textFaint}
+            />
+            <Text style={styles.editVehicleLabel}>Policy Number</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.insurancePolicyNo}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, insurancePolicyNo: v }))}
+              placeholder="e.g. POL-2024-001234  (optional)"
+              placeholderTextColor={colors.textFaint}
+            />
+            <Text style={styles.editVehicleLabel}>Insurance Expiry (YYYY-MM-DD)</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.insuranceExpiry}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, insuranceExpiry: v }))}
+              placeholder="e.g. 2025-08-31  (optional)"
+              placeholderTextColor={colors.textFaint}
+            />
             <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
               {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>Save Changes</Text>}
             </TouchableOpacity>
@@ -1807,6 +1838,8 @@ function makeStyles(c: Colors) {
     editVehicleSaveBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
     editVehicleSaveBtnDisabled: { opacity: 0.6 },
     editVehicleSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    editSectionDivider: { height: 1, backgroundColor: c.border, marginVertical: 20 },
+    editSectionTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 12 },
     photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
     photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
     photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },
