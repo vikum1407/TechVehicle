@@ -1082,7 +1082,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <View key={sub.id} style={styles.submissionCard}>
                 <View style={styles.submissionHeader}>
                   <Text style={styles.submissionGarage}>
-                    {sub.garage.name}{sub.garage.verified ? ' ✅' : ''}
+                    {sub.garage ? `${sub.garage.name}${sub.garage.verified ? ' ✅' : ''}` : sub.submittedByPhone ?? 'Shared user'}
                   </Text>
                   <Text style={styles.submissionDate}>
                     {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}

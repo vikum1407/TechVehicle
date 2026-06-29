@@ -777,8 +777,8 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
     },
     chipSel: { backgroundColor: c.primaryTint, borderColor: c.primary },
-    chipPass: { backgroundColor: '#e6f4ea', borderColor: '#2e7d32' },
-    chipFail: { backgroundColor: '#fce8e6', borderColor: '#c62828' },
+    chipPass: { backgroundColor: c.surfaceAlt, borderColor: '#2e7d32', borderWidth: 2 },
+    chipFail: { backgroundColor: c.surfaceAlt, borderColor: '#c62828', borderWidth: 2 },
     chipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
     chipTextSel: { color: c.text },
 
