@@ -67,6 +67,7 @@ export default function App() {
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
+  const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain'>('emission')
 
   // Load persisted seen counts on startup
   useEffect(() => {
@@ -376,7 +377,8 @@ export default function App() {
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
-          onVehicleTests={() => setScreen('vehicleTests')}
+          onVehicleTests={() => { setTestsInitialTab('emission'); setScreen('vehicleTests') }}
+          onChainService={() => { setTestsInitialTab('chain'); setScreen('vehicleTests') }}
           onViewHistory={() => setScreen('vehicleHistory')}
           onPredictions={() => setScreen('predictions')}
           onKnowledgeHub={() => setScreen('knowledgeHub')}
@@ -445,7 +447,8 @@ export default function App() {
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
           vehicleType={selectedVehicle.vehicleType}
-          onBack={() => setScreen('vehicleDashboard')}
+          initialTab={testsInitialTab}
+          onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
         />
       )}
       {screen === 'vehicleHistory' && selectedVehicle && (

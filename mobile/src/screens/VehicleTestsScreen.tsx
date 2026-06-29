@@ -12,6 +12,7 @@ type Props = {
   vehicleName: string
   currentMileage: number
   vehicleType?: string | null
+  initialTab?: Tab
   onBack: () => void
 }
 
@@ -51,9 +52,9 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, onBack }: Props) {
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
-  const [activeTab, setActiveTab] = useState<Tab>('emission')
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'emission')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
 

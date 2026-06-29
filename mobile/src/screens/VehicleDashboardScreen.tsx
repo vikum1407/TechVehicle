@@ -16,11 +16,14 @@ type Vehicle = {
   model: string
   year: number
   fuelType: string
+  vehicleType?: string | null
   mileage: number
   photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
 }
+
+const CHAIN_VEHICLE_TYPES = new Set(['motorcycle', 'electric-cycle', 'three-wheeler'])
 
 
 type TopPrediction = {
@@ -42,6 +45,7 @@ type Props = {
   onAddExpense: () => void
   onAnalytics: () => void
   onVehicleTests: () => void
+  onChainService?: () => void
   onPredictions: () => void
   onKnowledgeHub: () => void
   onMileageUpdated: (newMileage: number) => void
@@ -173,7 +177,7 @@ function expiryLabel(days: number): string {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onChainService, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -621,6 +625,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <TouchableOpacity style={styles.bookBtn} onPress={onVehicleTests}>
             <Text style={styles.bookBtnText}>🧪 Vehicle Tests</Text>
           </TouchableOpacity>
+          {CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.25)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.5)' }]} onPress={onChainService}>
+              <Text style={styles.bookBtnText}>⛓ Chain Service</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
             <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>
           </TouchableOpacity>
