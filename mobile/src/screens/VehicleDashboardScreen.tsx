@@ -100,12 +100,14 @@ type Submission = {
   description: string
   parts: string | null
   brand: string | null
+  mileage: number | null
   cost: number | null
   notes: string | null
   photos: string[]
   createdAt: string
   bookingId: string | null
-  garage: { name: string; verified: boolean }
+  garage: { name: string; verified: boolean } | null
+  submittedByPhone: string | null
 }
 
 type BookingNote = {
