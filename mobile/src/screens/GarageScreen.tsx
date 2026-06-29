@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image
@@ -6,6 +6,8 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
   getServiceCategories, todayDMY, parseDMY,
@@ -174,6 +176,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [subPhotos, setSubPhotos] = useState<string[]>([])
   const [uploadingSubPhoto, setUploadingSubPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => {
     api.getGarage(token)
@@ -599,7 +604,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     desc.split(',').map(s => s.trim()).filter(Boolean)
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#1a73e8" /></View>
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
   }
 
   // ── Full-screen submission form ──────────────────────────────────────────
@@ -754,7 +759,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 disabled={uploadingSubPhoto}
               >
                 {uploadingSubPhoto
-                  ? <ActivityIndicator size="small" color="#1a73e8" />
+                  ? <ActivityIndicator size="small" color={colors.primary} />
                   : <Text style={styles.photoBtnText}>📷 Camera</Text>
                 }
               </TouchableOpacity>
@@ -1152,7 +1157,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
 
           {overridesLoading ? (
-            <ActivityIndicator style={{ marginTop: 24 }} color="#1a73e8" />
+            <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary} />
           ) : (() => {
             const year = calMonth.getFullYear()
             const month = calMonth.getMonth()
@@ -1224,7 +1229,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {tab === 'bookings' && garage && (
         <ScrollView contentContainerStyle={styles.content}>
           {bookingsLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
           ) : bookings.length === 0 ? (
             <View style={styles.emptyShares}>
               <Text style={styles.emptySharesTitle}>No bookings yet</Text>
@@ -1431,7 +1436,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {expandedMessagesSet.has(booking.id) && (
                   <View style={styles.notesSection}>
                     {loadingNotesId === booking.id ? (
-                      <ActivityIndicator size="small" color="#1a73e8" style={{ marginVertical: 8 }} />
+                      <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />
                     ) : (
                       <>
                         {(bookingNotesMap[booking.id] || []).length === 0 ? (
@@ -1674,7 +1679,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {tab === 'history' && (
         <ScrollView contentContainerStyle={styles.content}>
           {historyLoading ? (
-            <ActivityIndicator size="large" color="#1a73e8" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
           ) : (() => {
             const completed = historyJobs
             const totalRevenue = completed.reduce((s, j) => s + (j.cost ?? 0), 0)
@@ -1847,469 +1852,459 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Submission form
-  formContent: { padding: 20, paddingBottom: 56 },
-  formTopRow: { marginTop: 48, marginBottom: 8 },
-  formTitle: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 12 },
-  formSubtitle: { fontSize: 14, color: '#888', marginBottom: 16 },
-  formSubtitleSmall: { fontSize: 14, color: '#888', marginBottom: 20, lineHeight: 20 },
-  vehicleBanner: {
-    backgroundColor: '#1a73e8', borderRadius: 12, padding: 16, marginBottom: 20,
-  },
-  vehicleBannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  vehicleBannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
-  vehicleBannerMileage: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-  catLabel: { fontSize: 12, fontWeight: '700', color: '#555', marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: 22, borderWidth: 1.5,
-    borderColor: '#ddd', backgroundColor: '#fff',
-  },
-  chipSelected: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  check: { fontSize: 13, color: '#fff' },
-  chipText: { fontSize: 14, color: '#444' },
-  chipTextSelected: { color: '#fff', fontWeight: '600' },
-  brandsSection: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginTop: 24,
-    borderWidth: 1, borderColor: '#e8f0fe',
-  },
-  brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 2 },
-  brandsSectionSub: { fontSize: 12, color: '#888', marginBottom: 12 },
-  brandRow: { borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 14, marginTop: 14 },
-  brandItemName: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
-  brandChip: {
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 18, borderWidth: 1.5,
-    borderColor: '#e0e0e0', backgroundColor: '#f9f9f9',
-  },
-  brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
-  brandChipText: { fontSize: 12, color: '#555' },
-  brandChipTextSelected: { color: '#fff', fontWeight: '600' },
-  fInput: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  multiline: { height: 90, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1 },
-  summary: { backgroundColor: '#e6f4ea', borderRadius: 12, padding: 16, marginTop: 20 },
-  summaryLabel: { fontSize: 13, fontWeight: '700', color: '#2e7d32', marginBottom: 8 },
-  summaryLine: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
-  submitServiceBtn: {
-    backgroundColor: '#2e7d32', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 24,
-  },
-  submitServiceBtnDisabled: { opacity: 0.6 },
-  submitServiceBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  requiredStar: { color: '#e53935', fontWeight: '700' },
-  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
-  photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
-  thumbImg: { width: 80, height: 80 },
-  photoRemove: {
-    position: 'absolute', top: 2, right: 2,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
-    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
-  },
-  photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  photoActions: { flexDirection: 'row', gap: 8 },
-  photoBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#1a73e8',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#e8f0fe', minWidth: 100,
-  },
-  photoBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '600' },
+    formContent: { padding: 20, paddingBottom: 56 },
+    formTopRow: { marginTop: 48, marginBottom: 8 },
+    formTitle: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 12 },
+    formSubtitle: { fontSize: 14, color: c.textMuted, marginBottom: 16 },
+    formSubtitleSmall: { fontSize: 14, color: c.textMuted, marginBottom: 20, lineHeight: 20 },
+    vehicleBanner: {
+      backgroundColor: c.primary, borderRadius: 12, padding: 16, marginBottom: 20,
+    },
+    vehicleBannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+    vehicleBannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
+    vehicleBannerMileage: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+    catLabel: { fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderRadius: 22, borderWidth: 1.5,
+      borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    chipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    check: { fontSize: 13, color: '#fff' },
+    chipText: { fontSize: 14, color: c.textBody },
+    chipTextSelected: { color: '#fff', fontWeight: '600' },
+    brandsSection: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginTop: 24,
+      borderWidth: 1, borderColor: c.primaryTint,
+    },
+    brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: c.primary, marginBottom: 2 },
+    brandsSectionSub: { fontSize: 12, color: c.textMuted, marginBottom: 12 },
+    brandRow: { borderTopWidth: 1, borderTopColor: c.border, paddingTop: 14, marginTop: 14 },
+    brandItemName: { fontSize: 14, fontWeight: '600', color: c.textBody, marginBottom: 8 },
+    brandChip: {
+      paddingHorizontal: 12, paddingVertical: 7,
+      borderRadius: 18, borderWidth: 1.5,
+      borderColor: c.borderMid, backgroundColor: c.surfaceAlt,
+    },
+    brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
+    brandChipText: { fontSize: 12, color: c.textSub },
+    brandChipTextSelected: { color: '#fff', fontWeight: '600' },
+    fInput: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 13,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    multiline: { height: 90, textAlignVertical: 'top' },
+    row: { flexDirection: 'row', gap: 12 },
+    half: { flex: 1 },
+    summary: { backgroundColor: '#e6f4ea', borderRadius: 12, padding: 16, marginTop: 20 },
+    summaryLabel: { fontSize: 13, fontWeight: '700', color: '#2e7d32', marginBottom: 8 },
+    summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
+    submitServiceBtn: {
+      backgroundColor: '#2e7d32', borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 24,
+    },
+    submitServiceBtnDisabled: { opacity: 0.6 },
+    submitServiceBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    requiredStar: { color: '#e53935', fontWeight: '700' },
+    photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+    photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+    thumbImg: { width: 80, height: 80 },
+    photoRemove: {
+      position: 'absolute', top: 2, right: 2,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
+      width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    },
+    photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    photoActions: { flexDirection: 'row', gap: 8 },
+    photoBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      borderWidth: 1.5, borderColor: c.primary,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.primaryTint, minWidth: 100,
+    },
+    photoBtnText: { color: c.primary, fontSize: 13, fontWeight: '600' },
 
-  // Normal garage view
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingTop: 56, paddingBottom: 16,
-    paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600', marginBottom: 6 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a' },
-  bellBtn: { padding: 4, position: 'relative' },
-  bellIcon: { fontSize: 22 },
-  bellDot: {
-    position: 'absolute', top: 0, right: 0,
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#e53935', borderWidth: 1.5, borderColor: '#fff',
-  },
-  tabs: {
-    flexDirection: 'row', backgroundColor: '#fff',
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#1a73e8' },
-  tabText: { fontSize: 12, color: '#888', fontWeight: '600' },
-  tabTextActive: { color: '#1a73e8' },
-  content: { padding: 20, paddingBottom: 48 },
-  profileCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
-  },
-  garageName: { fontSize: 22, fontWeight: '800', color: '#1a1a1a', marginBottom: 12 },
-  badge: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 14 },
-  badgeVerified: { backgroundColor: '#e6f4ea' },
-  badgeUnverified: { backgroundColor: '#fff8e1' },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  detail: { fontSize: 14, color: '#555', marginBottom: 6 },
-  detailMuted: { fontSize: 13, color: '#aaa', fontStyle: 'italic', marginTop: 4 },
-  infoBox: { backgroundColor: '#e8f0fe', borderRadius: 12, padding: 16, marginBottom: 16 },
-  infoTitle: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 6 },
-  infoText: { fontSize: 13, color: '#333', lineHeight: 20 },
-  editBtn: {
-    borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  editBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '700' },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 18 },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 15, color: '#1a1a1a', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  brNote: { backgroundColor: '#e8f0fe', borderRadius: 10, padding: 14, marginTop: 14 },
-  brNoteText: { fontSize: 13, color: '#1a73e8', lineHeight: 19 },
-  cancelBtn: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', marginTop: 20,
-  },
-  cancelBtnText: { fontSize: 15, color: '#888', fontWeight: '600' },
-  saveBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 16,
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  emptyShares: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
-  emptySharesTitle: { fontSize: 17, fontWeight: '700', color: '#555', marginBottom: 10 },
-  emptySharesText: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20 },
-  shareCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  shareCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  shareVehicle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  shareReg: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
-  shareRight: { alignItems: 'flex-end' },
-  shareRecordCount: { fontSize: 13, fontWeight: '700', color: '#1a73e8' },
-  shareMileage: { fontSize: 12, color: '#888', marginTop: 2 },
-  shareDate: { fontSize: 12, color: '#aaa', marginBottom: 6 },
-  expandHint: { fontSize: 11, color: '#bbb', marginTop: 4 },
-  shareRecords: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12 },
-  sharedRecord: { marginBottom: 12 },
-  sharedRecordTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  sharedRecordDate: { fontSize: 12, color: '#888', fontWeight: '600' },
-  sharedRecordCost: { fontSize: 12, color: '#1a73e8', fontWeight: '700' },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  tag: { backgroundColor: '#f0f4ff', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  tagText: { fontSize: 12, color: '#333' },
-  sharedRecordMileage: { fontSize: 11, color: '#aaa' },
-  collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8, textAlign: 'center' },
-  profileSection: { backgroundColor: '#f0f6ff', borderRadius: 10, padding: 14, marginBottom: 14 },
-  profileSectionTitle: { fontSize: 12, fontWeight: '700', color: '#1a73e8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  profileItem: { width: '47%' },
-  profileLabel: { fontSize: 11, color: '#888', fontWeight: '600', marginBottom: 2 },
-  profileValue: { fontSize: 13, color: '#1a1a1a', fontWeight: '600' },
-  profileValueHighlight: { fontSize: 14, color: '#1a73e8', fontWeight: '800' },
-  recordsSectionTitle: { fontSize: 12, fontWeight: '700', color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  submitArea: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 14 },
-  submittedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
-  submittedText: { fontSize: 14, color: '#2e7d32', fontWeight: '700' },
-  openSubmitBtn: { backgroundColor: '#2e7d32', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  openSubmitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
+      paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600', marginBottom: 6 },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: c.text },
+    bellBtn: { padding: 4, position: 'relative' },
+    bellIcon: { fontSize: 22 },
+    bellDot: {
+      position: 'absolute', top: 0, right: 0,
+      width: 10, height: 10, borderRadius: 5,
+      backgroundColor: '#e53935', borderWidth: 1.5, borderColor: c.surface,
+    },
+    tabs: {
+      flexDirection: 'row', backgroundColor: c.surface,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+    tabActive: { borderBottomWidth: 2, borderBottomColor: c.primary },
+    tabText: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+    tabTextActive: { color: c.primary },
+    content: { padding: 20, paddingBottom: 48 },
+    profileCard: {
+      backgroundColor: c.surface, borderRadius: 16, padding: 24, marginBottom: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
+    },
+    garageName: { fontSize: 22, fontWeight: '800', color: c.text, marginBottom: 12 },
+    badge: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 14 },
+    badgeVerified: { backgroundColor: '#e6f4ea' },
+    badgeUnverified: { backgroundColor: '#fff8e1' },
+    badgeText: { fontSize: 13, fontWeight: '700' },
+    detail: { fontSize: 14, color: c.textSub, marginBottom: 6 },
+    detailMuted: { fontSize: 13, color: c.textFaint, fontStyle: 'italic', marginTop: 4 },
+    infoBox: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginBottom: 16 },
+    infoTitle: { fontSize: 13, fontWeight: '700', color: c.primaryTintText, marginBottom: 6 },
+    infoText: { fontSize: 13, color: c.textBody, lineHeight: 20 },
+    editBtn: {
+      borderWidth: 1.5, borderColor: c.primary, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center',
+    },
+    editBtnText: { fontSize: 15, color: c.primary, fontWeight: '700' },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 18 },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 15, color: c.text, borderWidth: 1, borderColor: c.borderMid,
+    },
+    brNote: { backgroundColor: c.primaryTint, borderRadius: 10, padding: 14, marginTop: 14 },
+    brNoteText: { fontSize: 13, color: c.primaryTintText, lineHeight: 19 },
+    cancelBtn: {
+      borderWidth: 1, borderColor: c.borderStrong, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center', marginTop: 20,
+    },
+    cancelBtnText: { fontSize: 15, color: c.textMuted, fontWeight: '600' },
+    saveBtn: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 16,
+    },
+    saveBtnDisabled: { opacity: 0.6 },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    emptyShares: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
+    emptySharesTitle: { fontSize: 17, fontWeight: '700', color: c.textSub, marginBottom: 10 },
+    emptySharesText: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20 },
+    shareCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 12,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    shareCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    shareVehicle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
+    shareReg: { fontSize: 13, color: c.primary, fontWeight: '600' },
+    shareRight: { alignItems: 'flex-end' },
+    shareRecordCount: { fontSize: 13, fontWeight: '700', color: c.primary },
+    shareMileage: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+    shareDate: { fontSize: 12, color: c.textFaint, marginBottom: 6 },
+    expandHint: { fontSize: 11, color: c.textFaint, marginTop: 4 },
+    shareRecords: { marginTop: 12, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 12 },
+    sharedRecord: { marginBottom: 12 },
+    sharedRecordTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    sharedRecordDate: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+    sharedRecordCost: { fontSize: 12, color: c.primary, fontWeight: '700' },
+    tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+    tag: { backgroundColor: c.primaryTint, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    tagText: { fontSize: 12, color: c.textBody },
+    sharedRecordMileage: { fontSize: 11, color: c.textFaint },
+    collapseHint: { fontSize: 11, color: c.textFaint, marginTop: 8, textAlign: 'center' },
+    profileSection: { backgroundColor: c.primaryTint, borderRadius: 10, padding: 14, marginBottom: 14 },
+    profileSectionTitle: { fontSize: 12, fontWeight: '700', color: c.primaryTintText, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+    profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    profileItem: { width: '47%' },
+    profileLabel: { fontSize: 11, color: c.textMuted, fontWeight: '600', marginBottom: 2 },
+    profileValue: { fontSize: 13, color: c.text, fontWeight: '600' },
+    profileValueHighlight: { fontSize: 14, color: c.primary, fontWeight: '800' },
+    recordsSectionTitle: { fontSize: 12, fontWeight: '700', color: c.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+    submitArea: { marginTop: 16, borderTopWidth: 1, borderTopColor: c.borderMid, paddingTop: 14 },
+    submittedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
+    submittedText: { fontSize: 14, color: '#2e7d32', fontWeight: '700' },
+    openSubmitBtn: { backgroundColor: '#2e7d32', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+    openSubmitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // Booking cards
-  bookingCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  bookingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  bookingVehicle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  bookingReg: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
-  bookingBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  bookingBadgePending: { backgroundColor: '#fff8e1' },
-  bookingBadgeConfirmed: { backgroundColor: '#e6f4ea' },
-  bookingBadgeCounter: { backgroundColor: '#e3f2fd' },
-  bookingBadgeText: { fontSize: 12, fontWeight: '700', color: '#555' },
-  bookingMeta: { gap: 3, marginBottom: 10 },
-  bookingDate: { fontSize: 14, fontWeight: '600', color: '#333' },
-  bookingOwner: { fontSize: 13, color: '#888' },
-  bookingMileage: { fontSize: 13, color: '#888' },
-  bookingNotes: { fontSize: 13, color: '#555', fontStyle: 'italic', marginBottom: 12, lineHeight: 18 },
-  confirmBookingBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
-  },
-  confirmBookingBtnDisabled: { opacity: 0.6 },
-  confirmBookingBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  confirmedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
-  confirmedText: { fontSize: 13, color: '#2e7d32', fontWeight: '700' },
-  bookingSlot: { fontSize: 13, color: '#555' },
-  bookingNotesUrgent: { color: '#e53935', fontWeight: '700' },
+    bookingCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    bookingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+    bookingVehicle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
+    bookingReg: { fontSize: 13, color: c.primary, fontWeight: '600' },
+    bookingBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+    bookingBadgePending: { backgroundColor: '#fff8e1' },
+    bookingBadgeConfirmed: { backgroundColor: '#e6f4ea' },
+    bookingBadgeCounter: { backgroundColor: '#e3f2fd' },
+    bookingBadgeText: { fontSize: 12, fontWeight: '700', color: c.textSub },
+    bookingMeta: { gap: 3, marginBottom: 10 },
+    bookingDate: { fontSize: 14, fontWeight: '600', color: c.textBody },
+    bookingOwner: { fontSize: 13, color: c.textMuted },
+    bookingMileage: { fontSize: 13, color: c.textMuted },
+    bookingNotes: { fontSize: 13, color: c.textSub, fontStyle: 'italic', marginBottom: 12, lineHeight: 18 },
+    confirmBookingBtn: {
+      backgroundColor: c.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center',
+    },
+    confirmBookingBtnDisabled: { opacity: 0.6 },
+    confirmBookingBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    confirmedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
+    confirmedText: { fontSize: 13, color: '#2e7d32', fontWeight: '700' },
+    bookingSlot: { fontSize: 13, color: c.textSub },
+    bookingNotesUrgent: { color: '#e53935', fontWeight: '700' },
 
-  // Override editor
-  overrideDateBanner: {
-    backgroundColor: '#1a73e8', borderRadius: 12, padding: 16, marginBottom: 8,
-  },
-  overrideDateText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  statusRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  statusBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff',
-  },
-  statusBtnActive: { borderColor: '#1a73e8', backgroundColor: '#e8f0fe' },
-  statusBtnText: { fontSize: 13, fontWeight: '600', color: '#888' },
-  statusBtnTextActive: { color: '#1a1a1a' },
-  colorRow: { flexDirection: 'row', gap: 14, marginTop: 8, marginBottom: 4 },
-  colorBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  colorBtnSelected: { borderWidth: 3, borderColor: '#1a1a1a' },
-  colorBtnCheck: { color: '#fff', fontSize: 18, fontWeight: '900' },
-  removeOverrideBtn: {
-    borderWidth: 1.5, borderColor: '#e53935', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', marginTop: 12,
-  },
-  removeOverrideBtnText: { fontSize: 15, color: '#e53935', fontWeight: '700' },
+    overrideDateBanner: {
+      backgroundColor: c.primary, borderRadius: 12, padding: 16, marginBottom: 8,
+    },
+    overrideDateText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    statusRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+    statusBtn: {
+      flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    statusBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    statusBtnText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    statusBtnTextActive: { color: c.text },
+    colorRow: { flexDirection: 'row', gap: 14, marginTop: 8, marginBottom: 4 },
+    colorBtn: {
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    colorBtnSelected: { borderWidth: 3, borderColor: c.text },
+    colorBtnCheck: { color: '#fff', fontSize: 18, fontWeight: '900' },
+    removeOverrideBtn: {
+      borderWidth: 1.5, borderColor: '#e53935', borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center', marginTop: 12,
+    },
+    removeOverrideBtnText: { fontSize: 15, color: '#e53935', fontWeight: '700' },
 
-  // Schedule tab
-  schedSection: {
-    fontSize: 12, fontWeight: '700', color: '#555', marginTop: 20, marginBottom: 12,
-    textTransform: 'uppercase', letterSpacing: 0.6,
-  },
-  dayRow: { flexDirection: 'row', gap: 6 },
-  dayBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center',
-    backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#ddd',
-  },
-  dayBtnOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  dayBtnText: { fontSize: 11, fontWeight: '700', color: '#888' },
-  dayBtnTextOn: { color: '#fff' },
-  counterRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
-  counterBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff',
-    borderWidth: 1.5, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center',
-  },
-  counterBtnText: { fontSize: 22, fontWeight: '700', color: '#1a73e8' },
-  counterValue: { fontSize: 28, fontWeight: '800', color: '#1a1a1a', minWidth: 40, textAlign: 'center' },
-  slotChip: {
-    backgroundColor: '#e8f0fe', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  slotChipText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
-  addSlotRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  addSlotInput: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 1, borderColor: '#ddd',
-    paddingHorizontal: 14, paddingVertical: 11, fontSize: 14,
-  },
-  addSlotBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingHorizontal: 18, justifyContent: 'center',
-  },
-  addSlotBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    schedSection: {
+      fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 12,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+    },
+    dayRow: { flexDirection: 'row', gap: 6 },
+    dayBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center',
+      backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.borderMid,
+    },
+    dayBtnOn: { backgroundColor: c.primary, borderColor: c.primary },
+    dayBtnText: { fontSize: 11, fontWeight: '700', color: c.textMuted },
+    dayBtnTextOn: { color: '#fff' },
+    counterRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+    counterBtn: {
+      width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface,
+      borderWidth: 1.5, borderColor: c.borderMid, justifyContent: 'center', alignItems: 'center',
+    },
+    counterBtnText: { fontSize: 22, fontWeight: '700', color: c.primary },
+    counterValue: { fontSize: 28, fontWeight: '800', color: c.text, minWidth: 40, textAlign: 'center' },
+    slotChip: {
+      backgroundColor: c.primaryTint, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 8,
+    },
+    slotChipText: { fontSize: 13, color: c.primaryTintText, fontWeight: '600' },
+    addSlotRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+    addSlotInput: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 10,
+      borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 11, fontSize: 14,
+    },
+    addSlotBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 18, justifyContent: 'center',
+    },
+    addSlotBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
-  // Calendar
-  calHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 28, marginBottom: 16,
-  },
-  calNavBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff',
-    borderWidth: 1, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center',
-  },
-  calNavText: { fontSize: 20, fontWeight: '700', color: '#1a73e8' },
-  calMonthLabel: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  calDowRow: { flexDirection: 'row', marginBottom: 4 },
-  calDow: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: '#888' },
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  calCell: {
-    width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center',
-    borderRadius: 8,
-  },
-  calCellPast: { opacity: 0.35 },
-  calDayNum: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
-  calDayNumPast: { color: '#bbb' },
-  calDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
-  calClosed: { fontSize: 10, color: '#e53935', fontWeight: '900', marginTop: 1 },
-  calHoliday: { fontSize: 10, color: '#e91e63', fontWeight: '900', marginTop: 1 },
-  calLegend: { flexDirection: 'row', gap: 16, marginTop: 14, justifyContent: 'center' },
-  calLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  calLegendDot: { width: 8, height: 8, borderRadius: 4 },
-  calLegendIcon: { fontSize: 10, color: '#555', fontWeight: '700' },
-  calLegendText: { fontSize: 11, color: '#888' },
-  calTip: { fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
+    calHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginTop: 28, marginBottom: 16,
+    },
+    calNavBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: c.surface,
+      borderWidth: 1, borderColor: c.borderMid, justifyContent: 'center', alignItems: 'center',
+    },
+    calNavText: { fontSize: 20, fontWeight: '700', color: c.primary },
+    calMonthLabel: { fontSize: 16, fontWeight: '700', color: c.text },
+    calDowRow: { flexDirection: 'row', marginBottom: 4 },
+    calDow: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: c.textMuted },
+    calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    calCell: {
+      width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center',
+      borderRadius: 8,
+    },
+    calCellPast: { opacity: 0.35 },
+    calDayNum: { fontSize: 14, fontWeight: '600', color: c.text },
+    calDayNumPast: { color: c.textFaint },
+    calDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+    calClosed: { fontSize: 10, color: '#e53935', fontWeight: '900', marginTop: 1 },
+    calHoliday: { fontSize: 10, color: '#e91e63', fontWeight: '900', marginTop: 1 },
+    calLegend: { flexDirection: 'row', gap: 16, marginTop: 14, justifyContent: 'center' },
+    calLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    calLegendDot: { width: 8, height: 8, borderRadius: 4 },
+    calLegendIcon: { fontSize: 10, color: c.textSub, fontWeight: '700' },
+    calLegendText: { fontSize: 11, color: c.textMuted },
+    calTip: { fontSize: 12, color: c.textFaint, textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
 
-  // Booking card color-coding by status
-  bookingCardPending: { borderLeftWidth: 4, borderLeftColor: '#FF9800' },
-  bookingCardConfirmed: { borderLeftWidth: 4, borderLeftColor: '#34a853' },
-  bookingCardCounter: { borderLeftWidth: 4, borderLeftColor: '#1a73e8' },
-  bookingActionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  counterSuggestBtn: {
-    flex: 1, borderWidth: 1.5, borderColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 12, alignItems: 'center',
-  },
-  counterSuggestBtnText: { color: '#1a73e8', fontSize: 14, fontWeight: '700' },
-  counterSentNote: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10 },
-  counterSentText: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
-  counterModalContainer: { flex: 1, backgroundColor: '#f5f5f5' },
-  counterModalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  counterModalBack: { fontSize: 14, color: '#888', fontWeight: '600', width: 60 },
-  counterModalTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  counterLabel: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 12 },
-  counterDateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  counterDateCell: {
-    width: 64, borderRadius: 10, padding: 8, alignItems: 'center',
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  counterDateCellActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  counterDateDay: { fontSize: 10, color: '#888', fontWeight: '600' },
-  counterDateDayActive: { color: 'rgba(255,255,255,0.8)' },
-  counterDateNum: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginVertical: 2 },
-  counterDateNumActive: { color: '#fff' },
-  counterDateMon: { fontSize: 10, color: '#888' },
-  counterDateMonActive: { color: 'rgba(255,255,255,0.8)' },
-  counterSlotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  counterSlotChip: {
-    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20,
-    borderWidth: 1.5, borderColor: '#e0e0e0', backgroundColor: '#fff',
-  },
-  counterSlotChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  counterSlotChipText: { fontSize: 14, color: '#555', fontWeight: '600' },
-  counterSlotChipTextActive: { color: '#fff' },
-  counterSubmitBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 16,
-    alignItems: 'center', marginTop: 28,
-  },
-  counterSubmitBtnDisabled: { opacity: 0.4 },
-  counterSubmitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    bookingCardPending: { borderLeftWidth: 4, borderLeftColor: '#FF9800' },
+    bookingCardConfirmed: { borderLeftWidth: 4, borderLeftColor: '#34a853' },
+    bookingCardCounter: { borderLeftWidth: 4, borderLeftColor: c.primary },
+    bookingActionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    counterSuggestBtn: {
+      flex: 1, borderWidth: 1.5, borderColor: c.primary, borderRadius: 10,
+      paddingVertical: 12, alignItems: 'center',
+    },
+    counterSuggestBtnText: { color: c.primary, fontSize: 14, fontWeight: '700' },
+    counterSentNote: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10 },
+    counterSentText: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
+    counterModalContainer: { flex: 1, backgroundColor: c.background },
+    counterModalHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    counterModalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 60 },
+    counterModalTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+    counterLabel: { fontSize: 13, fontWeight: '700', color: c.textSub, marginBottom: 12 },
+    counterDateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    counterDateCell: {
+      width: 64, borderRadius: 10, padding: 8, alignItems: 'center',
+      backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderMid,
+    },
+    counterDateCellActive: { backgroundColor: c.primary, borderColor: c.primary },
+    counterDateDay: { fontSize: 10, color: c.textMuted, fontWeight: '600' },
+    counterDateDayActive: { color: 'rgba(255,255,255,0.8)' },
+    counterDateNum: { fontSize: 20, fontWeight: '800', color: c.text, marginVertical: 2 },
+    counterDateNumActive: { color: '#fff' },
+    counterDateMon: { fontSize: 10, color: c.textMuted },
+    counterDateMonActive: { color: 'rgba(255,255,255,0.8)' },
+    counterSlotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    counterSlotChip: {
+      paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20,
+      borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    counterSlotChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    counterSlotChipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
+    counterSlotChipTextActive: { color: '#fff' },
+    counterSubmitBtn: {
+      backgroundColor: c.primary, borderRadius: 12, paddingVertical: 16,
+      alignItems: 'center', marginTop: 28,
+    },
+    counterSubmitBtnDisabled: { opacity: 0.4 },
+    counterSubmitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
-  // Notes / message thread in booking card
-  notesSection: {
-    marginTop: 14, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 12,
-  },
-  notesSectionTitle: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 10 },
-  noNotes: { fontSize: 12, color: '#aaa', fontStyle: 'italic', textAlign: 'center', paddingVertical: 4 },
-  noteItem: {
-    backgroundColor: '#e8f0fe', borderRadius: 8, padding: 10, marginBottom: 6,
-    alignSelf: 'flex-end', maxWidth: '85%',
-  },
-  noteItemThem: { backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
-  noteSender: { fontSize: 10, color: '#888', marginBottom: 2, fontWeight: '600' },
-  noteText: { fontSize: 13, color: '#1a1a1a', lineHeight: 18 },
-  noteTime: { fontSize: 10, color: '#aaa', marginTop: 3, alignSelf: 'flex-end' },
-  noteInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  noteInput: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 9,
-    fontSize: 13, borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  noteSendBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 8, paddingHorizontal: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  noteSendBtnDisabled: { opacity: 0.4 },
-  noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  messagesToggleBtn: {
-    marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
-    backgroundColor: '#f0f4ff', borderRadius: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
-  messagesToggleBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700', flex: 1 },
-  msgDot: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#e53935',
-  },
-  shareAttachedTag: { fontSize: 11, color: '#1a73e8', fontWeight: '600' },
+    notesSection: {
+      marginTop: 14, borderTopWidth: 1, borderTopColor: c.borderMid, paddingTop: 12,
+    },
+    notesSectionTitle: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 10 },
+    noNotes: { fontSize: 12, color: c.textFaint, fontStyle: 'italic', textAlign: 'center', paddingVertical: 4 },
+    noteItem: {
+      backgroundColor: c.primaryTint, borderRadius: 8, padding: 10, marginBottom: 6,
+      alignSelf: 'flex-end', maxWidth: '85%',
+    },
+    noteItemThem: { backgroundColor: c.border, alignSelf: 'flex-start' },
+    noteSender: { fontSize: 10, color: c.textMuted, marginBottom: 2, fontWeight: '600' },
+    noteText: { fontSize: 13, color: c.text, lineHeight: 18 },
+    noteTime: { fontSize: 10, color: c.textFaint, marginTop: 3, alignSelf: 'flex-end' },
+    noteInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+    noteInput: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 9,
+      fontSize: 13, borderWidth: 1, borderColor: c.borderMid,
+    },
+    noteSendBtn: {
+      backgroundColor: c.primary, borderRadius: 8, paddingHorizontal: 14,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    noteSendBtnDisabled: { opacity: 0.4 },
+    noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+    messagesToggleBtn: {
+      marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
+      backgroundColor: c.primaryTint, borderRadius: 8,
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+    },
+    messagesToggleBtnText: { fontSize: 13, color: c.primary, fontWeight: '700', flex: 1 },
+    msgDot: {
+      width: 10, height: 10, borderRadius: 5,
+      backgroundColor: '#e53935',
+    },
+    shareAttachedTag: { fontSize: 11, color: c.primary, fontWeight: '600' },
 
-  // Inline shared records inside booking card
-  inlineShareSection: {
-    marginTop: 14, borderTopWidth: 1, borderTopColor: '#e8e8e8', paddingTop: 12,
-  },
-  inlineShareTitle: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 10 },
-  inlineVehicleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  inlineVehicleItem: {
-    backgroundColor: '#f0f4ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, minWidth: '30%',
-  },
-  inlineVehicleLabel: { fontSize: 10, color: '#888', marginBottom: 2 },
-  inlineVehicleValue: { fontSize: 12, fontWeight: '700', color: '#1a1a1a' },
-  inlineRecord: { marginBottom: 10, backgroundColor: '#fafafa', borderRadius: 8, padding: 10 },
-  inlineRecordTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  inlineRecordDate: { fontSize: 11, color: '#888', fontWeight: '600' },
-  inlineRecordCost: { fontSize: 11, color: '#1a73e8', fontWeight: '700' },
-  inlineRecordMileage: { fontSize: 10, color: '#aaa', marginTop: 4 },
+    inlineShareSection: {
+      marginTop: 14, borderTopWidth: 1, borderTopColor: c.borderMid, paddingTop: 12,
+    },
+    inlineShareTitle: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 10 },
+    inlineVehicleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    inlineVehicleItem: {
+      backgroundColor: c.primaryTint, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, minWidth: '30%',
+    },
+    inlineVehicleLabel: { fontSize: 10, color: c.textMuted, marginBottom: 2 },
+    inlineVehicleValue: { fontSize: 12, fontWeight: '700', color: c.text },
+    inlineRecord: { marginBottom: 10, backgroundColor: c.surfaceAlt, borderRadius: 8, padding: 10 },
+    inlineRecordTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    inlineRecordDate: { fontSize: 11, color: c.textMuted, fontWeight: '600' },
+    inlineRecordCost: { fontSize: 11, color: c.primary, fontWeight: '700' },
+    inlineRecordMileage: { fontSize: 10, color: c.textFaint, marginTop: 4 },
 
-  // Calendar tab — booking density
-  calCellSelected: { borderWidth: 2, borderColor: '#1a73e8', borderRadius: 8 },
-  calBookingCount: { fontSize: 9, fontWeight: '700', marginTop: 1 },
-  calBookingCountPartial: { color: '#E65100' },
-  calBookingCountFull: { color: '#c62828' },
+    calCellSelected: { borderWidth: 2, borderColor: c.primary, borderRadius: 8 },
+    calBookingCount: { fontSize: 9, fontWeight: '700', marginTop: 1 },
+    calBookingCountPartial: { color: '#E65100' },
+    calBookingCountFull: { color: '#c62828' },
 
-  // Calendar day detail panel
-  calDayDetail: {
-    marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
-  },
-  calDayDetailDate: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
-  calDayMessage: { fontSize: 13, color: '#e53935', fontWeight: '600', marginBottom: 8, lineHeight: 18 },
-  calDayClosedMsg: { fontSize: 13, color: '#e53935', fontWeight: '700', marginBottom: 8 },
-  calDayEmpty: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingVertical: 12 },
-  calDayBookingCard: {
-    backgroundColor: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 8,
-    borderLeftWidth: 3, borderLeftColor: '#FF9800',
-  },
-  calDayBookingConfirmed: { borderLeftColor: '#34a853' },
-  calDayBookingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  calDayBookingVehicle: { fontSize: 13, fontWeight: '700', color: '#1a1a1a', flex: 1 },
-  calDaySlot: { fontSize: 12, color: '#555', marginBottom: 3 },
-  calDayNotes: { fontSize: 12, color: '#555', fontStyle: 'italic' },
+    calDayDetail: {
+      marginTop: 16, backgroundColor: c.surface, borderRadius: 14, padding: 16,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    },
+    calDayDetailDate: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 8 },
+    calDayMessage: { fontSize: 13, color: '#e53935', fontWeight: '600', marginBottom: 8, lineHeight: 18 },
+    calDayClosedMsg: { fontSize: 13, color: '#e53935', fontWeight: '700', marginBottom: 8 },
+    calDayEmpty: { fontSize: 14, color: c.textFaint, textAlign: 'center', paddingVertical: 12 },
+    calDayBookingCard: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginBottom: 8,
+      borderLeftWidth: 3, borderLeftColor: '#FF9800',
+    },
+    calDayBookingConfirmed: { borderLeftColor: '#34a853' },
+    calDayBookingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    calDayBookingVehicle: { fontSize: 13, fontWeight: '700', color: c.text, flex: 1 },
+    calDaySlot: { fontSize: 12, color: c.textSub, marginBottom: 3 },
+    calDayNotes: { fontSize: 12, color: c.textSub, fontStyle: 'italic' },
 
-  // Revenue / History tab
-  revSummaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  revCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
-  },
-  revCardLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 4 },
-  revCardValue: { fontSize: 18, fontWeight: '800', color: '#1a73e8', marginBottom: 2 },
-  revCardSub: { fontSize: 12, color: '#aaa' },
-  revChartCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
-  },
-  revChartTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 16 },
-  revBars: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 8 },
-  revBarCol: { flex: 1, alignItems: 'center' },
-  revBarTrack: { width: '100%', height: 80, backgroundColor: '#f0f4ff', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  revBarFill: { width: '100%', backgroundColor: '#1a73e8', borderRadius: 6, minHeight: 3 },
-  revBarLabel: { fontSize: 10, color: '#888', marginTop: 4, fontWeight: '600' },
-  revBarValue: { fontSize: 9, color: '#1a73e8', fontWeight: '700' },
-  revSectionTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a1a', marginBottom: 10 },
-  revJobCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-    borderLeftWidth: 3, borderLeftColor: '#34a853',
-  },
-  revJobTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  revJobReg: { fontSize: 15, fontWeight: '800', color: '#1a1a1a' },
-  revJobCost: { fontSize: 15, fontWeight: '800', color: '#34a853' },
-  revJobVehicle: { fontSize: 12, color: '#888', marginBottom: 4 },
-  revJobDesc: { fontSize: 13, color: '#444', marginBottom: 6, lineHeight: 18 },
-  revJobMeta: { flexDirection: 'row', gap: 12 },
-  revJobDate: { fontSize: 12, color: '#aaa' },
-  revJobMileage: { fontSize: 12, color: '#aaa' },
-})
+    revSummaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+    revCard: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 14, padding: 16,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    },
+    revCardLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
+    revCardValue: { fontSize: 18, fontWeight: '800', color: c.primary, marginBottom: 2 },
+    revCardSub: { fontSize: 12, color: c.textFaint },
+    revChartCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    },
+    revChartTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 16 },
+    revBars: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 8 },
+    revBarCol: { flex: 1, alignItems: 'center' },
+    revBarTrack: { width: '100%', height: 80, backgroundColor: c.primaryTint, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+    revBarFill: { width: '100%', backgroundColor: c.primary, borderRadius: 6, minHeight: 3 },
+    revBarLabel: { fontSize: 10, color: c.textMuted, marginTop: 4, fontWeight: '600' },
+    revBarValue: { fontSize: 9, color: c.primary, fontWeight: '700' },
+    revSectionTitle: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 10 },
+    revJobCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+      borderLeftWidth: 3, borderLeftColor: '#34a853',
+    },
+    revJobTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+    revJobReg: { fontSize: 15, fontWeight: '800', color: c.text },
+    revJobCost: { fontSize: 15, fontWeight: '800', color: '#34a853' },
+    revJobVehicle: { fontSize: 12, color: c.textMuted, marginBottom: 4 },
+    revJobDesc: { fontSize: 13, color: c.textBody, marginBottom: 6, lineHeight: 18 },
+    revJobMeta: { flexDirection: 'row', gap: 12 },
+    revJobDate: { fontSize: 12, color: c.textFaint },
+    revJobMileage: { fontSize: 12, color: c.textFaint },
+  })
+}
