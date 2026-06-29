@@ -48,6 +48,9 @@ type Vehicle = {
   photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
+  purchaseDate?: string | null
+  ownerCount?: number | null
+  vehicleNotes?: string | null
 }
 
 // Screens that show the bottom tab bar

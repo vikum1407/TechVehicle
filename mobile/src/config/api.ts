@@ -720,6 +720,7 @@ export const api = {
   updateVehicle: async (token: string, id: string, data: {
     make?: string; model?: string; year?: number; fuelType?: string
     vehicleType?: string | null; vehicleNotes?: string | null
+    purchaseDate?: string | null; ownerCount?: number | null
   }) => {
     const res = await fetch(`${API_URL}/vehicles/${id}`, {
       method: 'PATCH',

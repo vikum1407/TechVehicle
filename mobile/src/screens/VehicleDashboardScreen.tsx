@@ -22,6 +22,9 @@ type Vehicle = {
   photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
+  purchaseDate?: string | null
+  ownerCount?: number | null
+  vehicleNotes?: string | null
 }
 
 const CHAIN_VEHICLE_TYPES = new Set(['motorcycle', 'electric-cycle', 'three-wheeler'])
@@ -202,7 +205,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
-  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '' })
+  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -222,6 +225,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         year: Number(draftVehicle.year),
         fuelType: draftVehicle.fuelType,
         vehicleType: draftVehicle.vehicleType || undefined,
+        vehicleNotes: draftVehicle.vehicleNotes.trim() || null,
+        purchaseDate: draftVehicle.purchaseDate.trim() || null,
+        ownerCount: draftVehicle.ownerCount.trim() ? Number(draftVehicle.ownerCount) : null,
       })
       setEditVehicleModal(false)
       onVehicleUpdated?.(updated)
@@ -580,7 +586,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )}
           <View style={styles.vehicleNameRow}>
             <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
               <Text style={styles.editVehicleBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -659,6 +665,37 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             {vehicleProgress.items.filter(i => !i.done).slice(0, 2).map(item => (
               <Text key={item.id} style={styles.progressHint}>· {item.hint}</Text>
             ))}
+          </View>
+        )}
+
+        {/* ── Vehicle profile info card ── */}
+        {(vehicle.purchaseDate || vehicle.ownerCount != null || vehicle.vehicleNotes) && (
+          <View style={styles.profileCard}>
+            <View style={styles.profileCardRow}>
+              {vehicle.purchaseDate && (
+                <View style={styles.profileStat}>
+                  <Text style={styles.profileStatLabel}>Purchased</Text>
+                  <Text style={styles.profileStatValue}>
+                    {new Date(vehicle.purchaseDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+              )}
+              {vehicle.ownerCount != null && (
+                <View style={styles.profileStat}>
+                  <Text style={styles.profileStatLabel}>Owners</Text>
+                  <Text style={styles.profileStatValue}>{vehicle.ownerCount}</Text>
+                </View>
+              )}
+              {vehicle.registrationNo && (
+                <View style={styles.profileStat}>
+                  <Text style={styles.profileStatLabel}>Reg No</Text>
+                  <Text style={styles.profileStatValue} numberOfLines={1}>{vehicle.registrationNo}</Text>
+                </View>
+              )}
+            </View>
+            {vehicle.vehicleNotes ? (
+              <Text style={styles.profileNotes}>{vehicle.vehicleNotes}</Text>
+            ) : null}
           </View>
         )}
 
@@ -1155,6 +1192,32 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={styles.editVehicleLabel}>Purchase Date (YYYY-MM-DD)</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.purchaseDate}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, purchaseDate: v }))}
+              placeholder="e.g. 2021-06-15  (optional)"
+              placeholderTextColor="#bbb"
+            />
+            <Text style={styles.editVehicleLabel}>Previous Owners</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.ownerCount}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, ownerCount: v }))}
+              keyboardType="number-pad"
+              placeholder="e.g. 2  (optional)"
+              placeholderTextColor="#bbb"
+            />
+            <Text style={styles.editVehicleLabel}>Vehicle Notes</Text>
+            <TextInput
+              style={[styles.editVehicleInput, { minHeight: 80, textAlignVertical: 'top' }]}
+              value={draftVehicle.vehicleNotes}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, vehicleNotes: v }))}
+              multiline
+              placeholder="e.g. imported from Japan 2021, AC recently serviced..."
+              placeholderTextColor="#bbb"
+            />
             <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
               {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>Save Changes</Text>}
             </TouchableOpacity>
@@ -1518,6 +1581,15 @@ const styles = StyleSheet.create({
   vehicleTypeChipIcon: { fontSize: 14 },
   vehicleTypeChipText: { fontSize: 12, color: '#666', fontWeight: '600' },
   vehicleTypeChipTextActive: { color: '#fff' },
+  profileCard: {
+    backgroundColor: '#fff', borderRadius: 14, marginHorizontal: 16, marginTop: 12,
+    padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
+  },
+  profileCardRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
+  profileStat: { alignItems: 'center', flex: 1 },
+  profileStatLabel: { fontSize: 10, color: '#aaa', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  profileStatValue: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  profileNotes: { fontSize: 13, color: '#555', fontStyle: 'italic', marginTop: 8, lineHeight: 18, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 8 },
   editVehicleSaveBtn: { backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
   editVehicleSaveBtnDisabled: { opacity: 0.6 },
   editVehicleSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
