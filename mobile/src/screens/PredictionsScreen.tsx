@@ -96,6 +96,7 @@ type Props = {
   vehicleName: string
   currentMileage: number
   initialTab?: Tab
+  readOnly?: boolean
   onBack: () => void
   onLogNow?: (serviceName: string) => void
 }
@@ -119,7 +120,7 @@ function kmStr(km: number) {
 
 type SetupEntry = { date: string; mileage: string; brand: string; extras: Record<string, string> }
 
-export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack, onLogNow }: Props) {
+export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', readOnly = false, onBack, onLogNow }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
@@ -579,16 +580,18 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                       ].filter(Boolean).join(' · ') || 'Set a custom interval below'}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.customizeBtn}
-                    onPress={() => {
-                      setOverrideKm(p.customKmInterval != null ? String(p.customKmInterval) : '')
-                      setOverrideDays(p.customDaysInterval != null ? String(p.customDaysInterval) : '')
-                      setShowOverrideModal(true)
-                    }}
-                  >
-                    <Text style={styles.customizeBtnText}>✏️ Customize</Text>
-                  </TouchableOpacity>
+                  {!readOnly && (
+                    <TouchableOpacity
+                      style={styles.customizeBtn}
+                      onPress={() => {
+                        setOverrideKm(p.customKmInterval != null ? String(p.customKmInterval) : '')
+                        setOverrideDays(p.customDaysInterval != null ? String(p.customDaysInterval) : '')
+                        setShowOverrideModal(true)
+                      }}
+                    >
+                      <Text style={styles.customizeBtnText}>✏️ Customize</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>

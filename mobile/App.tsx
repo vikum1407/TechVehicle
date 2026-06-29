@@ -499,6 +499,7 @@ export default function App() {
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
           initialTab={predictionsInitialTab}
+          readOnly={selectedVehicle.isShared}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
           onLogNow={() => { setPredictionsInitialTab('services'); setScreen('addServiceRecord') }}
         />
