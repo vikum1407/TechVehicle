@@ -462,7 +462,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </>
             )}
           </>
-        ) : (
+        ) : activeTab === 'alignment' ? (
           <>
             <Text style={s.sectionTitle}>Log Wheel Alignment</Text>
 
