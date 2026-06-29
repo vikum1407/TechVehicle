@@ -711,12 +711,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <Text style={styles.bookBtnText}>🧪 Vehicle Tests</Text>
           </TouchableOpacity>
           {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.25)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.5)' }]} onPress={onChainService}>
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.45)', borderWidth: 1, borderColor: 'rgba(255,160,0,0.8)' }]} onPress={onChainService}>
               <Text style={styles.bookBtnText}>⛓ Chain Service</Text>
             </TouchableOpacity>
           )}
           {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(230,81,0,0.25)', borderWidth: 1, borderColor: 'rgba(230,81,0,0.5)' }]} onPress={onTripLog}>
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(230,81,0,0.45)', borderWidth: 1, borderColor: 'rgba(230,81,0,0.8)' }]} onPress={onTripLog}>
               <Text style={styles.bookBtnText}>🛺 Daily Trip Log</Text>
             </TouchableOpacity>
           )}

@@ -654,17 +654,17 @@ function makeStyles(c: Colors) {
     },
     modalAcceptBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     sharedBadge: {
-      backgroundColor: '#e3f2fd', borderRadius: 12,
+      backgroundColor: c.primaryTint, borderRadius: 12,
       paddingHorizontal: 10, paddingVertical: 4,
     },
-    sharedBadgeText: { fontSize: 12, color: '#1565c0', fontWeight: '700' },
+    sharedBadgeText: { fontSize: 12, color: c.primaryTintText, fontWeight: '700' },
     sharedByText: { fontSize: 12, color: c.primary, fontWeight: '500', marginTop: 2 },
     sharesSection: {
-      backgroundColor: '#e3f2fd', borderRadius: 14, padding: 14,
-      marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#1565c0',
+      backgroundColor: c.primaryTint, borderRadius: 14, padding: 14,
+      marginBottom: 12, borderLeftWidth: 4, borderLeftColor: c.primary,
     },
     sharesSectionTitle: {
-      fontSize: 13, fontWeight: '800', color: '#1565c0',
+      fontSize: 13, fontWeight: '800', color: c.primaryTintText,
       marginBottom: 10, letterSpacing: 0.3,
     },
     shareInviteCard: {
@@ -675,10 +675,10 @@ function makeStyles(c: Colors) {
     shareInviteVehicle: { fontSize: 13, color: c.textBody, marginBottom: 2 },
     shareInviteMeta: { fontSize: 12, color: c.textMuted },
     shareInviteBadge: {
-      backgroundColor: '#e3f2fd', borderRadius: 12,
+      backgroundColor: c.primaryTint, borderRadius: 12,
       paddingHorizontal: 10, paddingVertical: 4,
     },
-    shareInviteBadgeText: { fontSize: 12, color: '#1565c0', fontWeight: '700' },
+    shareInviteBadgeText: { fontSize: 12, color: c.primaryTintText, fontWeight: '700' },
     shareInviteFrom: { fontSize: 12, color: c.textMuted, marginBottom: 10 },
     shareInviteActions: { flexDirection: 'row', gap: 10 },
     declineShareBtn: {

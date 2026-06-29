@@ -94,6 +94,63 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /service-submissions/shared — shared user submits an emission test or alignment for owner approval
+router.post('/shared', async (req: AuthRequest, res) => {
+  const { vehicleId, description, mileage, cost, notes, structuredData } = req.body
+  if (!vehicleId || !description?.trim()) {
+    res.status(400).json({ error: 'vehicleId and description are required' })
+    return
+  }
+  try {
+    const share = await prisma.vehicleShare.findFirst({
+      where: { vehicleId, sharedWithPhone: req.phoneNumber!, status: 'active' },
+      include: { vehicle: true },
+    })
+    if (!share) { res.status(403).json({ error: 'No active share found for this vehicle' }); return }
+
+    const ownerPhone = share.vehicle.ownerPhone
+    const submission = await prisma.serviceSubmission.create({
+      data: {
+        vehicleId,
+        garageId: null,
+        submittedByPhone: req.phoneNumber!,
+        ownerPhone,
+        description: description.trim(),
+        mileage: mileage ? Number(mileage) : null,
+        cost: cost ? Number(cost) : null,
+        notes: notes?.trim() || null,
+        structuredData: structuredData ?? null,
+        photos: [],
+        status: 'pending',
+      },
+    })
+
+    const vReg = share.vehicle.registrationNo
+    const ownerUser = await prisma.user.findUnique({ where: { phoneNumber: ownerPhone } })
+    const ownerPrefs = parsePrefs(ownerUser?.notificationPrefs)
+    if (ownerPrefs.submission) {
+      await sendPush(
+        ownerUser?.pushToken,
+        'Test Result Submitted for Approval',
+        `${req.phoneNumber} logged ${description} for ${vReg} — tap to review`,
+        { screen: 'vehicleDashboard', vehicleId }
+      )
+    }
+    await createNotification(
+      prisma, ownerPhone,
+      'submission',
+      vReg,
+      `${req.phoneNumber} submitted ${description} for your approval`,
+      { screen: 'vehicleDashboard', vehicleId }
+    )
+
+    res.status(201).json(submission)
+  } catch (error) {
+    console.error('POST /service-submissions/shared error:', error)
+    res.status(500).json({ error: 'Failed to create submission' })
+  }
+})
+
 // GET /service-submissions/vehicle/:vehicleId — owner sees pending submissions for a vehicle
 router.get('/vehicle/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
@@ -131,7 +188,8 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
     // Fall back to vehicle's stored mileage only if the garage didn't supply one
     const serviceMileage = submission.mileage ?? vehicle?.mileage ?? null
 
-    const garageNote = `Submitted by ${submission.garage.name}`
+    const submitterLabel = submission.garage?.name ?? submission.submittedByPhone ?? 'Shared user'
+    const garageNote = `Submitted by ${submitterLabel}`
     const record = await prisma.serviceRecord.create({
       data: {
         vehicleId: submission.vehicleId,
@@ -142,6 +200,7 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
         brand: submission.brand,
         cost: submission.cost,
         notes: submission.notes ? `${garageNote}. ${submission.notes}` : garageNote,
+        structuredData: submission.structuredData ?? undefined,
         photos: submission.photos ?? [],
       },
     })
@@ -173,25 +232,29 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
       })
     }
 
-    // Notify garage that owner accepted
-    const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: submission.garage.ownerPhone } })
-    const prefs = parsePrefs(garageOwner?.notificationPrefs)
+    // Notify submitter (garage or shared user) that owner accepted
     const acceptedVReg = vehicle?.registrationNo ?? 'Vehicle'
-    if (prefs.submission) {
-      await sendPush(
-        garageOwner?.pushToken,
-        'Service Record Accepted',
-        `${acceptedVReg} — owner accepted your submission and added it to their history`,
-        { screen: 'garage' }
+    const notifyPhone = submission.garage?.ownerPhone ?? submission.submittedByPhone
+    if (notifyPhone) {
+      const submitterUser = await prisma.user.findUnique({ where: { phoneNumber: notifyPhone } })
+      const prefs = parsePrefs(submitterUser?.notificationPrefs)
+      const screenTarget = submission.garage ? 'garage' : 'vehicles'
+      if (prefs.submission) {
+        await sendPush(
+          submitterUser?.pushToken,
+          'Submission Accepted',
+          `${acceptedVReg} — owner approved your submission and added it to their history`,
+          { screen: screenTarget }
+        )
+      }
+      await createNotification(
+        prisma, notifyPhone,
+        'submission_accepted',
+        acceptedVReg,
+        `Owner approved your submission and added it to their history`,
+        { screen: screenTarget }
       )
     }
-    await createNotification(
-      prisma, submission.garage.ownerPhone,
-      'submission_accepted',
-      acceptedVReg,
-      `Owner accepted your service submission and added it to their history`,
-      { screen: 'garage' }
-    )
 
     res.json({ success: true, record })
   } catch (error) {

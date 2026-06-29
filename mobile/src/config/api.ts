@@ -872,6 +872,17 @@ export const api = {
     return data
   },
 
+  submitSharedTest: async (token: string, vehicleId: string, description: string, mileage: number | undefined, cost: number | undefined, structuredData: Record<string, unknown>) => {
+    const res = await fetch(`${API_URL}/service-submissions/shared`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ vehicleId, description, mileage, cost, structuredData }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to submit for approval')
+    return data
+  },
+
   getVehicleKnowledgeAll: async () => {
     const res = await fetch(`${API_URL}/vehicle-knowledge`)
     const data = await res.json()

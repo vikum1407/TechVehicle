@@ -474,6 +474,7 @@ export default function App() {
           currentMileage={selectedVehicle.mileage}
           vehicleType={selectedVehicle.vehicleType}
           initialTab={testsInitialTab}
+          isShared={selectedVehicle.isShared}
           onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
         />
       )}

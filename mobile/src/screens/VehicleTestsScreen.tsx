@@ -15,6 +15,7 @@ type Props = {
   currentMileage: number
   vehicleType?: string | null
   initialTab?: Tab
+  isShared?: boolean
   onBack: () => void
 }
 
@@ -54,7 +55,7 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, onBack }: Props) {
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'emission')
   const [records, setRecords] = useState<ServiceRecord[]>([])
@@ -196,22 +197,35 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     const doSave = async () => {
       setESaving(true)
       try {
-        await api.logEmissionTest(token, vehicleId, {
-          date: isoDate,
-          mileage: mileageNum ?? undefined,
-          result: eResult,
-          co: eCo || undefined,
-          hc: eHc || undefined,
-          co2: eCo2 || undefined,
-          lambda: eLambda || undefined,
-          station: eStation || undefined,
-          cost: eCost ? parseFloat(eCost) : undefined,
-          nextExpiryDate: nextExpiryISO,
-        })
-        if (nextExpiryISO) {
-          await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+        if (isShared) {
+          const structuredData = {
+            'Emission Test / Carbon Test': {
+              result: eResult,
+              ...(eCo ? { co: eCo } : {}), ...(eHc ? { hc: eHc } : {}),
+              ...(eCo2 ? { co2: eCo2 } : {}), ...(eLambda ? { lambda: eLambda } : {}),
+              ...(eStation ? { station: eStation } : {}),
+            },
+          }
+          await api.submitSharedTest(token, vehicleId, 'Emission Test / Carbon Test', mileageNum ?? undefined, eCost ? parseFloat(eCost) : undefined, structuredData)
+          Alert.alert('Submitted', 'Emission test submitted to the owner for approval.')
+        } else {
+          await api.logEmissionTest(token, vehicleId, {
+            date: isoDate,
+            mileage: mileageNum ?? undefined,
+            result: eResult,
+            co: eCo || undefined,
+            hc: eHc || undefined,
+            co2: eCo2 || undefined,
+            lambda: eLambda || undefined,
+            station: eStation || undefined,
+            cost: eCost ? parseFloat(eCost) : undefined,
+            nextExpiryDate: nextExpiryISO,
+          })
+          if (nextExpiryISO) {
+            await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+          }
+          Alert.alert('Saved', 'Emission test recorded.')
         }
-        Alert.alert('Saved', 'Emission test recorded.')
         setEResult(''); setEDate(todayDMY()); setEMileage(String(currentMileage))
         setECo(''); setEHc(''); setECo2(''); setELambda('')
         setEStation(''); setECost(''); setENextExpiry('')
@@ -246,14 +260,19 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         const structuredData = aAxle
           ? { 'Wheel Alignment': { axle: aAxle } }
           : undefined
-        await api.addServiceRecord(token, vehicleId, {
-          date: isoDate,
-          description: 'Wheel Alignment',
-          mileage: mileageNum ?? undefined,
-          cost: aCost ? parseFloat(aCost) : undefined,
-          structuredData,
-        })
-        Alert.alert('Saved', 'Wheel alignment recorded.')
+        if (isShared) {
+          await api.submitSharedTest(token, vehicleId, 'Wheel Alignment', mileageNum ?? undefined, aCost ? parseFloat(aCost) : undefined, structuredData ?? {})
+          Alert.alert('Submitted', 'Wheel alignment submitted to the owner for approval.')
+        } else {
+          await api.addServiceRecord(token, vehicleId, {
+            date: isoDate,
+            description: 'Wheel Alignment',
+            mileage: mileageNum ?? undefined,
+            cost: aCost ? parseFloat(aCost) : undefined,
+            structuredData,
+          })
+          Alert.alert('Saved', 'Wheel alignment recorded.')
+        }
         setADate(todayDMY()); setAMileage(String(currentMileage)); setAAxle(''); setACost('')
         loadRecords()
       } catch (e: any) {
@@ -455,7 +474,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             </View>
 
             <TouchableOpacity style={s.saveBtn} onPress={saveEmissionTest} disabled={eSaving} activeOpacity={0.8}>
-              {eSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Emission Test</Text>}
+              {eSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>{isShared ? 'Submit for Approval' : 'Save Emission Test'}</Text>}
             </TouchableOpacity>
 
             {emissionHistory.length > 1 && (
@@ -544,7 +563,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             <TextInput style={s.input} value={aCost} onChangeText={setACost} placeholder="e.g. 1500" keyboardType="number-pad" />
 
             <TouchableOpacity style={s.saveBtn} onPress={saveAlignment} disabled={aSaving} activeOpacity={0.8}>
-              {aSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Alignment Record</Text>}
+              {aSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>{isShared ? 'Submit for Approval' : 'Save Alignment Record'}</Text>}
             </TouchableOpacity>
 
             {tyrePrediction ? (
