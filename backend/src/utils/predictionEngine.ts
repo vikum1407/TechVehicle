@@ -13,7 +13,11 @@ export type PredictionRow = {
   remainingKm: number | null
   dueAtDate: string | null
   remainingDays: number | null
+  customKmInterval: number | null
+  customDaysInterval: number | null
 }
+
+export type IntervalOverride = { kmInterval?: number | null; daysInterval?: number | null }
 
 export type VehicleInput = {
   make: string
@@ -22,6 +26,7 @@ export type VehicleInput = {
   fuelType: string
   mileage: number
   vehicleType: string | null
+  intervalOverrides?: Record<string, IntervalOverride> | null
 }
 
 export function passesScope(scope: FuelScope, fuelType: string): boolean {
@@ -97,6 +102,7 @@ function computeTyrePrediction(
       status: 'no_data',
       lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
       remainingKm: null, dueAtDate: null, remainingDays: null,
+      customKmInterval: null, customDaysInterval: null,
     }
   }
 
@@ -137,6 +143,7 @@ function computeTyrePrediction(
     lastDoneKm: lastTyreKm,
     lastDoneDate: lastTyreDate.toISOString(),
     dueAtKm, remainingKm, dueAtDate: null, remainingDays: null,
+    customKmInterval: null, customDaysInterval: null,
   }
 }
 
@@ -162,7 +169,15 @@ export function computePredictions(
     }
   }
 
+  const overrides = vehicle.intervalOverrides ?? {}
+
   const mainRows = Array.from(grouped.values()).map(interval => {
+    const override = (overrides as Record<string, IntervalOverride>)[interval.group] ?? null
+    const kmInterval   = (override?.kmInterval   != null) ? override.kmInterval   : interval.kmInterval
+    const daysInterval = (override?.daysInterval != null) ? override.daysInterval : interval.daysInterval
+    const customKmInterval   = override?.kmInterval   ?? null
+    const customDaysInterval = override?.daysInterval ?? null
+
     const matching = records.filter(r =>
       interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
     )
@@ -175,6 +190,7 @@ export function computePredictions(
         status: 'no_data' as const,
         lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
         remainingKm: null, dueAtDate: null, remainingDays: null,
+        customKmInterval, customDaysInterval,
       }
     }
 
@@ -183,16 +199,16 @@ export function computePredictions(
 
     let remainingKm: number | null = null
     let dueAtKm: number | null = null
-    if (interval.kmInterval && lastKm != null) {
-      dueAtKm = lastKm + interval.kmInterval
+    if (kmInterval && lastKm != null) {
+      dueAtKm = lastKm + kmInterval
       remainingKm = dueAtKm - vehicle.mileage
     }
 
     let remainingDays: number | null = null
     let dueAtDate: string | null = null
-    if (interval.daysInterval) {
+    if (daysInterval) {
       const due = new Date(lastDate)
-      due.setDate(due.getDate() + interval.daysInterval)
+      due.setDate(due.getDate() + daysInterval)
       dueAtDate = due.toISOString()
       remainingDays = Math.floor((due.getTime() - today.getTime()) / 86400000)
     }
@@ -215,6 +231,7 @@ export function computePredictions(
       keywords: interval.keywords,
       status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(),
       dueAtKm, remainingKm, dueAtDate, remainingDays,
+      customKmInterval, customDaysInterval,
     }
   })
 

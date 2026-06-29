@@ -36,6 +36,7 @@ model Vehicle {
   revenueLicenceExpiry      DateTime?
   lastEmissionReminderSent  DateTime?
   lastLicenceReminderSent   DateTime?
+  intervalOverrides         Json?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   owner          User                @relation(fields: [ownerPhone], references: [phoneNumber])

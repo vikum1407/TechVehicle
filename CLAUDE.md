@@ -66,15 +66,19 @@
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
+- Service Interval Personalisation — owners can override prediction engine km/days intervals per vehicle from the Predictions screen detail sheet; stored as `intervalOverrides Json?` on Vehicle; active overrides shown as "Your custom interval" label
+
 ### Database tables in Neon ✅
-`User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`, `emissionTestExpiry`, `revenueLicenceExpiry`, `lastEmissionReminderSent`, `lastLicenceReminderSent`), `ServiceRecord` (with `structuredData Json?`), `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
+`User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`, `emissionTestExpiry`, `revenueLicenceExpiry`, `lastEmissionReminderSent`, `lastLicenceReminderSent`, `intervalOverrides Json?`), `ServiceRecord` (with `structuredData Json?`), `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. No schema changes since last session — schema is stable.
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. **Schema has `intervalOverrides Json?` added to Vehicle — must run `prisma db push` before testing predictions.**
 
 ### Next Session — Start Here
-**Test the new vehicle profile card** — tap Edit on a vehicle, add a purchase date (YYYY-MM-DD format), owner count, and notes, save, confirm the profile card appears on the dashboard.
-**Next feature to build: Service interval personalisation** — let owners override the prediction engine intervals per vehicle (e.g. "I change oil every 3,000 km"). Requires adding `intervalOverrides Json?` to Vehicle model + `prisma db push`, a PATCH endpoint, prediction engine override logic, and a UI in the Predictions detail bottom-sheet.
+**Test the new features together:**
+1. Vehicle profile card — tap Edit, add purchase date (YYYY-MM-DD), owner count, notes, save → confirm profile card appears on dashboard
+2. Daily Trip Log — three-wheeler only; tap "Daily Trip Log" button on dashboard → log a trip → check it persists as a fuel log
+3. Service interval personalisation — open Predictions screen, tap any prediction card, tap "✏️ Customize" at the bottom of the detail sheet → enter a km override → Save → confirm the card reloads showing "Your custom interval"
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git. Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.

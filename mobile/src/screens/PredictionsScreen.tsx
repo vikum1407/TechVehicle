@@ -71,6 +71,7 @@ const SETUP_BRAND_MAP: Record<string, { structuredKey: string; brandLookupKey: s
 
 type Prediction = {
   id: string
+  group: string
   name: string
   source: string
   keywords: string[]
@@ -81,6 +82,8 @@ type Prediction = {
   remainingKm: number | null
   dueAtDate: string | null
   remainingDays: number | null
+  customKmInterval: number | null
+  customDaysInterval: number | null
 }
 
 type Tab = 'services' | 'setup'
@@ -119,6 +122,10 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const [setupEntries, setSetupEntries] = useState<Record<string, SetupEntry>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null)
+  const [showOverrideModal, setShowOverrideModal] = useState(false)
+  const [overrideKm, setOverrideKm] = useState('')
+  const [overrideDays, setOverrideDays] = useState('')
+  const [savingOverride, setSavingOverride] = useState(false)
 
   // Allow parent to switch tab via prop change (e.g. from notification)
   useEffect(() => { setActiveTab(initialTab) }, [initialTab])
@@ -544,7 +551,128 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               >
                 <Text style={styles.detailLogBtnText}>Log it now →</Text>
               </TouchableOpacity>
+
+              {/* Interval row */}
+              {p.group !== 'tyre_change' && (
+                <View style={styles.intervalRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.intervalLabel}>
+                      {p.customKmInterval != null || p.customDaysInterval != null
+                        ? 'Your custom interval'
+                        : 'Manufacturer interval'}
+                    </Text>
+                    <Text style={styles.intervalValue}>
+                      {[
+                        (p.customKmInterval ?? null) != null
+                          ? `${(p.customKmInterval as number).toLocaleString()} km`
+                          : null,
+                        (p.customDaysInterval ?? null) != null
+                          ? `${p.customDaysInterval} days`
+                          : null,
+                      ].filter(Boolean).join(' · ') || 'Set a custom interval below'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.customizeBtn}
+                    onPress={() => {
+                      setOverrideKm(p.customKmInterval != null ? String(p.customKmInterval) : '')
+                      setOverrideDays(p.customDaysInterval != null ? String(p.customDaysInterval) : '')
+                      setShowOverrideModal(true)
+                    }}
+                  >
+                    <Text style={styles.customizeBtnText}>✏️ Customize</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
+
+            {/* Override editor modal — nested inside the sheet modal */}
+            <Modal
+              transparent
+              animationType="fade"
+              visible={showOverrideModal}
+              onRequestClose={() => setShowOverrideModal(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalBackdrop}
+                activeOpacity={1}
+                onPress={() => setShowOverrideModal(false)}
+              />
+              <View style={styles.overrideCard}>
+                <Text style={styles.overrideTitle}>Customize Interval</Text>
+                <Text style={styles.overrideSubtitle}>{p.name}</Text>
+
+                <Text style={styles.overrideFieldLabel}>Every X km (leave blank to keep default)</Text>
+                <TextInput
+                  style={styles.overrideInput}
+                  keyboardType="number-pad"
+                  placeholder="e.g. 3000"
+                  placeholderTextColor="#aaa"
+                  value={overrideKm}
+                  onChangeText={setOverrideKm}
+                />
+
+                <Text style={styles.overrideFieldLabel}>Every X days (leave blank to keep default)</Text>
+                <TextInput
+                  style={styles.overrideInput}
+                  keyboardType="number-pad"
+                  placeholder="e.g. 90"
+                  placeholderTextColor="#aaa"
+                  value={overrideDays}
+                  onChangeText={setOverrideDays}
+                />
+
+                <TouchableOpacity
+                  style={[styles.overrideSaveBtn, savingOverride && { opacity: 0.6 }]}
+                  disabled={savingOverride}
+                  onPress={async () => {
+                    const kmNum = overrideKm.trim() ? Number(overrideKm.trim()) : null
+                    const daysNum = overrideDays.trim() ? Number(overrideDays.trim()) : null
+                    if ((kmNum !== null && isNaN(kmNum)) || (daysNum !== null && isNaN(daysNum))) {
+                      Alert.alert('Invalid input', 'Please enter valid numbers')
+                      return
+                    }
+                    setSavingOverride(true)
+                    try {
+                      await api.saveIntervalOverride(token, vehicleId, p.group, kmNum, daysNum)
+                      setShowOverrideModal(false)
+                      setSelectedPrediction(null)
+                      load()
+                    } catch {
+                      Alert.alert('Error', 'Failed to save custom interval')
+                    } finally {
+                      setSavingOverride(false)
+                    }
+                  }}
+                >
+                  <Text style={styles.overrideSaveBtnText}>
+                    {savingOverride ? 'Saving…' : 'Save Interval'}
+                  </Text>
+                </TouchableOpacity>
+
+                {(p.customKmInterval != null || p.customDaysInterval != null) && (
+                  <TouchableOpacity
+                    style={styles.overrideClearBtn}
+                    disabled={savingOverride}
+                    onPress={async () => {
+                      setSavingOverride(true)
+                      try {
+                        await api.saveIntervalOverride(token, vehicleId, p.group, null, null)
+                        setShowOverrideModal(false)
+                        setSelectedPrediction(null)
+                        load()
+                      } catch {
+                        Alert.alert('Error', 'Failed to clear custom interval')
+                      } finally {
+                        setSavingOverride(false)
+                      }
+                    }}
+                  >
+                    <Text style={styles.overrideClearBtnText}>Clear custom interval</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Modal>
           </Modal>
         )
       })()}
@@ -722,6 +850,51 @@ const styles = StyleSheet.create({
   detailLogBtn: {
     backgroundColor: '#1a73e8', borderRadius: 12,
     paddingVertical: 14, alignItems: 'center',
+    marginBottom: 14,
   },
   detailLogBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  intervalRow: {
+    flexDirection: 'row', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+    paddingTop: 12, gap: 10,
+  },
+  intervalLabel: { fontSize: 11, color: '#aaa', fontWeight: '600', marginBottom: 2 },
+  intervalValue: { fontSize: 13, color: '#333', fontWeight: '700' },
+  customizeBtn: {
+    backgroundColor: '#e8f0fe', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  customizeBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
+
+  // Override editor card (rendered inside nested Modal)
+  overrideCard: {
+    position: 'absolute',
+    left: 20, right: 20,
+    top: '25%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000', shadowOpacity: 0.15,
+    shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  overrideTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
+  overrideSubtitle: { fontSize: 13, color: '#888', marginBottom: 18 },
+  overrideFieldLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 6 },
+  overrideInput: {
+    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, color: '#1a1a1a', marginBottom: 14,
+  },
+  overrideSaveBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center', marginTop: 4, marginBottom: 10,
+  },
+  overrideSaveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  overrideClearBtn: {
+    borderWidth: 1, borderColor: '#e53935', borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center',
+  },
+  overrideClearBtnText: { fontSize: 14, fontWeight: '600', color: '#e53935' },
 })

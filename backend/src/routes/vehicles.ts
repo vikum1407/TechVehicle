@@ -185,6 +185,39 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 })
 
+// PATCH /vehicles/:id/overrides — save or clear a custom service interval
+router.patch('/:id/overrides', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { group, kmInterval, daysInterval } = req.body as {
+    group: string
+    kmInterval?: number | null
+    daysInterval?: number | null
+  }
+  if (!group) { res.status(400).json({ error: 'group is required' }); return }
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const existing = (vehicle.intervalOverrides as Record<string, any> | null) ?? {}
+    const isClearing = kmInterval == null && daysInterval == null
+    if (isClearing) {
+      delete existing[group]
+    } else {
+      existing[group] = {
+        ...(kmInterval   != null && { kmInterval }),
+        ...(daysInterval != null && { daysInterval }),
+      }
+    }
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: { intervalOverrides: existing },
+    })
+    res.json({ intervalOverrides: updated.intervalOverrides })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save interval override' })
+  }
+})
+
 // PATCH /vehicles/:id/mileage — manual odometer update
 router.patch('/:id/mileage', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }

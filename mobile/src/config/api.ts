@@ -732,6 +732,23 @@ export const api = {
     return d
   },
 
+  saveIntervalOverride: async (
+    token: string,
+    vehicleId: string,
+    group: string,
+    kmInterval: number | null,
+    daysInterval: number | null,
+  ) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/overrides`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ group, kmInterval, daysInterval }),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to save override')
+    return d
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string
