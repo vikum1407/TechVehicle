@@ -100,11 +100,13 @@ type Props = {
   onLogNow?: (serviceName: string) => void
 }
 
-const STATUS_CONFIG = {
-  overdue:  { color: '#c62828', bg: '#fff5f5', badge: '⚠️ Overdue',  badgeColor: '#c62828', badgeBg: '#fdecea' },
-  due_soon: { color: '#e65100', bg: '#fff8f0', badge: '🔔 Due Soon', badgeColor: '#e65100', badgeBg: '#fff3e0' },
-  ok:       { color: '#2e7d32', bg: '#fff',    badge: '✓ OK',         badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
-  no_data:  { color: '#999',    bg: '#fff',    badge: '? No Record',  badgeColor: '#777',    badgeBg: '#f5f5f5' },
+function statusConfig(c: Colors) {
+  return {
+    overdue:  { color: '#c62828', bg: c.surface, badge: '⚠️ Overdue',  badgeColor: '#c62828', badgeBg: '#fdecea' },
+    due_soon: { color: '#e65100', bg: c.surface, badge: '🔔 Due Soon', badgeColor: '#e65100', badgeBg: '#fff3e0' },
+    ok:       { color: '#2e7d32', bg: c.surface, badge: '✓ OK',        badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
+    no_data:  { color: '#999',    bg: c.surface, badge: '? No Record', badgeColor: '#777',    badgeBg: c.surfaceAlt },
+  }
 }
 
 function formatDate(iso: string) {
@@ -130,6 +132,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const [savingOverride, setSavingOverride] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const STATUS_CONFIG = useMemo(() => statusConfig(colors), [colors])
 
   // Allow parent to switch tab via prop change (e.g. from notification)
   useEffect(() => { setActiveTab(initialTab) }, [initialTab])
@@ -729,12 +732,12 @@ function makeStyles(c: Colors) {
 
     setupNudge: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: '#fff8e1', borderRadius: 12,
+      backgroundColor: c.surfaceAlt, borderRadius: 12,
       borderLeftWidth: 4, borderLeftColor: '#f9a825',
       padding: 12, marginBottom: 14,
     },
-    setupNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#5d4037', marginBottom: 2 },
-    setupNudgeBody: { fontSize: 12, color: '#795548' },
+    setupNudgeTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 2 },
+    setupNudgeBody: { fontSize: 12, color: c.textSub },
     setupNudgeArrow: { fontSize: 18, color: '#f9a825', marginLeft: 8, fontWeight: '700' },
 
     sectionLabel: {
