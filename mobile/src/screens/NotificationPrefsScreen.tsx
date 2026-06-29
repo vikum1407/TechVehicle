@@ -17,6 +17,16 @@ const PREFS = [
     description: 'Notify when a service is due or overdue based on your mileage',
   },
   {
+    key: 'mileage_reminder',
+    title: 'Mileage Update Nudges',
+    description: 'Weekly reminder to log a fuel fill-up when no mileage has been recorded',
+  },
+  {
+    key: 'renewal',
+    title: 'Renewal Reminders',
+    description: 'Alerts when Revenue Licence or Emission Test expiry is approaching',
+  },
+  {
     key: 'booking',
     title: 'Booking Notifications',
     description: 'Notify when a booking is confirmed, updated, or you receive a message',
@@ -36,6 +46,8 @@ const PREFS = [
 export default function NotificationPrefsScreen({ token, onBack }: Props) {
   const [prefs, setPrefs] = useState<Record<string, boolean>>({
     service_due: true,
+    mileage_reminder: true,
+    renewal: true,
     booking: true,
     transfer: true,
     submission: true,

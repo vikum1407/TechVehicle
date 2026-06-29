@@ -11,6 +11,12 @@ function daysUntil(date: Date): number {
   return Math.ceil((date.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
 }
 
+function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
+  const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
+  if (!raw) return defaults
+  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
+}
+
 async function checkRenewals() {
   const now = new Date()
   const in30Days = new Date(now.getTime() + DAYS_30)
@@ -27,6 +33,7 @@ async function checkRenewals() {
 
   for (const vehicle of vehicles) {
     const { owner } = vehicle
+    if (!parsePrefs(owner.notificationPrefs).renewal) continue
     const label = `${vehicle.make} ${vehicle.model} (${vehicle.registrationNo})`
 
     // ── Emission Test reminder ─────────────────────────────────────────

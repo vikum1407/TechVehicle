@@ -9,7 +9,7 @@ const HOURS_24  = 24 * 60 * 60 * 1000
 const DAYS_7    = 7  * HOURS_24
 
 function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+  const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
   if (!raw) return defaults
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }

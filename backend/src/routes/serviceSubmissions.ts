@@ -219,7 +219,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
 })
 
 function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+  const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
   if (!raw) return defaults
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }

@@ -523,7 +523,7 @@ export default function App() {
       {screen === 'notificationPrefs' && (
         <NotificationPrefsScreen
           token={token}
-          onBack={() => setScreen('vehicles')}
+          onBack={() => setScreen('notifications')}
         />
       )}
       {screen === 'notifications' && (
@@ -559,6 +559,7 @@ export default function App() {
               })
             }
           }}
+          onSettings={() => setScreen('notificationPrefs')}
         />
       )}
     </>

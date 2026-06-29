@@ -8,7 +8,7 @@ const DAYS_7  = 7  * 24 * 60 * 60 * 1000
 const HOURS_24 = 24 * 60 * 60 * 1000
 
 function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, booking: true, transfer: true, submission: true }
+  const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
   if (!raw) return defaults
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
@@ -21,7 +21,7 @@ async function checkMileageReminders() {
   })
 
   for (const user of users) {
-    if (!parsePrefs(user.notificationPrefs).service_due) continue
+    if (!parsePrefs(user.notificationPrefs).mileage_reminder) continue
     const vehicles = await prisma.vehicle.findMany({
       where: { ownerPhone: user.phoneNumber },
     })

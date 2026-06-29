@@ -20,6 +20,7 @@ type Props = {
   onBack: () => void
   onNavigate: (linkTo: string | null) => void
   onMarkAllRead: (seenBookingIds: string[]) => void
+  onSettings: () => void
 }
 
 const TYPE_ICON: Record<string, string> = {
@@ -56,7 +57,7 @@ function timeAgo(iso: string): string {
   return `${days}d ago`
 }
 
-export default function NotificationsScreen({ token, onBack, onNavigate, onMarkAllRead }: Props) {
+export default function NotificationsScreen({ token, onBack, onNavigate, onMarkAllRead, onSettings }: Props) {
   const [notifs, setNotifs] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -93,7 +94,9 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity onPress={onSettings} style={styles.settingsBtn}>
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -155,7 +158,8 @@ const styles = StyleSheet.create({
   backBtn: { paddingRight: 12 },
   backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  headerSpacer: { width: 60 },
+  settingsBtn: { paddingLeft: 12, width: 44, alignItems: 'flex-end' },
+  settingsIcon: { fontSize: 20 },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 16 },
