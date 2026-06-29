@@ -499,6 +499,26 @@ export const api = {
     return data
   },
 
+  getCostForecast: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/predictions/${vehicleId}/cost-forecast`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch cost forecast')
+    return data as {
+      items: {
+        name: string
+        status: string
+        remainingKm: number | null
+        remainingDays: number | null
+        estimatedCost: number | null
+        basedOn: number
+      }[]
+      totalEstimated: number
+      periodDays: number
+    }
+  },
+
   updateVehiclePhoto: async (token: string, vehicleId: string, photoUrl: string | null) => {
     const res = await fetch(`${API_URL}/vehicles/${vehicleId}/photo`, {
       method: 'PATCH',

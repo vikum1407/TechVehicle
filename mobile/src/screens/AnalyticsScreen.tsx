@@ -53,6 +53,21 @@ type Analytics = {
   acAnalytics: { history: AcHistoryItem[]; refillCount12m: number; warning: string | null } | null
 }
 
+type ForecastItem = {
+  name: string
+  status: string
+  remainingKm: number | null
+  remainingDays: number | null
+  estimatedCost: number | null
+  basedOn: number
+}
+
+type Forecast = {
+  items: ForecastItem[]
+  totalEstimated: number
+  periodDays: number
+}
+
 const COLORS = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
@@ -341,18 +356,102 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
   )
 }
 
+// ── Cost Forecast Card ─────────────────────────────────────────────────────────
+
+const STATUS_COLOR: Record<string, string> = {
+  overdue: '#e53935',
+  due_soon: '#f57c00',
+  ok: '#1a73e8',
+  no_data: '#9e9e9e',
+}
+
+function CostForecastCard({ forecast }: { forecast: Forecast }) {
+  const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
+  const hasAnyEstimate = forecast.items.some(i => i.estimatedCost !== null)
+
+  return (
+    <View style={styles.forecastCard}>
+      <View style={styles.forecastHeader}>
+        <View>
+          <Text style={styles.forecastTitle}>Cost Forecast</Text>
+          <Text style={styles.forecastSub}>Next 90 days — upcoming services</Text>
+        </View>
+        {hasAnyEstimate && (
+          <View style={styles.forecastTotal}>
+            <Text style={styles.forecastTotalLabel}>Estimated</Text>
+            <Text style={styles.forecastTotalValue}>{fmt(forecast.totalEstimated)}</Text>
+          </View>
+        )}
+      </View>
+
+      {forecast.items.length === 0 ? (
+        <Text style={styles.forecastEmpty}>No services due in the next 90 days.</Text>
+      ) : (
+        forecast.items.map((item, i) => {
+          const color = STATUS_COLOR[item.status] ?? '#888'
+          const timeStr = [
+            item.remainingKm !== null
+              ? item.remainingKm < 0
+                ? `${Math.abs(item.remainingKm).toLocaleString()} km overdue`
+                : `in ${item.remainingKm.toLocaleString()} km`
+              : null,
+            item.remainingDays !== null
+              ? item.remainingDays < 0
+                ? `${Math.abs(item.remainingDays)}d overdue`
+                : `in ${item.remainingDays}d`
+              : null,
+          ].filter(Boolean).join(' · ')
+
+          return (
+            <View key={i} style={[styles.forecastRow, i > 0 && styles.forecastRowBorder]}>
+              <View style={[styles.forecastDot, { backgroundColor: color }]} />
+              <View style={styles.forecastRowText}>
+                <Text style={styles.forecastItemName}>{item.name}</Text>
+                {timeStr ? <Text style={[styles.forecastItemTime, { color }]}>{timeStr}</Text> : null}
+              </View>
+              <View style={styles.forecastCostCol}>
+                {item.estimatedCost !== null ? (
+                  <>
+                    <Text style={styles.forecastCost}>{fmt(item.estimatedCost)}</Text>
+                    <Text style={styles.forecastCostNote}>avg of {item.basedOn}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.forecastCostNoData}>No estimate</Text>
+                )}
+              </View>
+            </View>
+          )
+        })
+      )}
+
+      {!hasAnyEstimate && forecast.items.length > 0 && (
+        <Text style={styles.forecastHint}>
+          Log service costs when you add records to unlock cost estimates here.
+        </Text>
+      )}
+    </View>
+  )
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeHub }: Props) {
   const [data, setData] = useState<Analytics | null>(null)
+  const [forecast, setForecast] = useState<Forecast | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
   const load = () => {
     setLoading(true)
     setLoadError(false)
-    api.getAnalytics(token, vehicleId)
-      .then(setData)
+    Promise.all([
+      api.getAnalytics(token, vehicleId),
+      api.getCostForecast(token, vehicleId).catch(() => null),
+    ])
+      .then(([analytics, fore]) => {
+        setData(analytics)
+        setForecast(fore)
+      })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }
@@ -375,7 +474,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
     </View>
   )
 
-  if (!data || (data.totalSpend === 0 && data.fuelLogs.length === 0 && data.serviceRecords.length === 0)) return (
+  if (!data || (data.totalSpend === 0 && data.recordCounts.fuelLogs === 0 && data.recordCounts.services === 0)) return (
     <View style={styles.center}>
       <Text style={styles.errorIcon}>📊</Text>
       <Text style={styles.errorTitle}>No data yet</Text>
@@ -424,6 +523,11 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
           <Text style={styles.statSub}>average efficiency</Text>
         </View>
       </View>
+
+      {/* Cost forecast */}
+      {forecast && forecast.items.length > 0 && (
+        <CostForecastCard forecast={forecast} />
+      )}
 
       {/* Mileage growth */}
       {(data.mileageTrend?.length ?? 0) > 0 && (
@@ -682,4 +786,36 @@ const styles = StyleSheet.create({
   warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
   warnIcon: { fontSize: 14, marginTop: 1 },
   warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
+
+  // Cost forecast
+  forecastCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  forecastHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  forecastTitle: { fontSize: 16, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
+  forecastSub: { fontSize: 12, color: '#888' },
+  forecastTotal: { alignItems: 'flex-end' },
+  forecastTotalLabel: { fontSize: 11, color: '#888', marginBottom: 2 },
+  forecastTotalValue: { fontSize: 18, fontWeight: '800', color: '#1a73e8' },
+  forecastEmpty: { fontSize: 13, color: '#aaa', textAlign: 'center', paddingVertical: 8 },
+  forecastRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10,
+  },
+  forecastRowBorder: { borderTopWidth: 1, borderTopColor: '#f5f5f5' },
+  forecastDot: { width: 8, height: 8, borderRadius: 4 },
+  forecastRowText: { flex: 1 },
+  forecastItemName: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
+  forecastItemTime: { fontSize: 12, fontWeight: '600' },
+  forecastCostCol: { alignItems: 'flex-end', minWidth: 80 },
+  forecastCost: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
+  forecastCostNote: { fontSize: 10, color: '#aaa' },
+  forecastCostNoData: { fontSize: 12, color: '#bbb', fontStyle: 'italic' },
+  forecastHint: {
+    fontSize: 11, color: '#aaa', fontStyle: 'italic',
+    textAlign: 'center', marginTop: 10, lineHeight: 16,
+  },
 })
