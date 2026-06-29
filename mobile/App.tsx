@@ -78,6 +78,7 @@ export default function App() {
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain'>('emission')
+  const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
   useEffect(() => {
@@ -283,8 +284,6 @@ export default function App() {
   }
 
   const showTabBar = TAB_SCREENS.includes(screen)
-
-  const scheme = useColorScheme()
 
   return (
     <ThemeProvider>
