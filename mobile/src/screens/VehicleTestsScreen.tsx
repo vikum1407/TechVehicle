@@ -363,7 +363,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const pass = sd.result === 'Pass'
               return (
                 <View style={[s.histCard, { borderLeftColor: pass ? '#2e7d32' : '#c62828', marginBottom: 20 }]}>
-                  <Text style={[s.historyTitle, { marginTop: 0, marginBottom: 8 }]}>Last Emission Test</Text>
+                  <View style={[s.histRow, { marginBottom: 6 }]}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
+                  </View>
                   <View style={s.histRow}>
                     <Text style={[s.histResult, { color: pass ? '#2e7d32' : '#c62828' }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
                     <Text style={s.histDate}>{fmtDate(last.date)}</Text>
@@ -456,10 +458,10 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               {eSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Emission Test</Text>}
             </TouchableOpacity>
 
-            {emissionHistory.length > 0 && (
+            {emissionHistory.length > 1 && (
               <>
-                <Text style={s.historyTitle}>Recent Tests</Text>
-                {emissionHistory.map(r => {
+                <Text style={s.historyTitle}>Previous Tests</Text>
+                {emissionHistory.slice(1).map(r => {
                   const sd = r.structuredData?.['Emission Test / Carbon Test'] || {}
                   const pass = sd.result === 'Pass'
                   return (
@@ -486,6 +488,25 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           </>
         ) : activeTab === 'alignment' ? (
           <>
+            {alignmentHistory.length > 0 && (() => {
+              const last = alignmentHistory[0]
+              const sd = last.structuredData?.['Wheel Alignment'] || {}
+              return (
+                <View style={[s.histCard, { borderLeftColor: '#1a73e8', marginBottom: 20 }]}>
+                  <View style={[s.histRow, { marginBottom: 6 }]}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
+                  </View>
+                  <View style={s.histRow}>
+                    <Text style={s.histLabel}>Wheel Alignment</Text>
+                    <Text style={s.histDate}>{fmtDate(last.date)}</Text>
+                    {last.mileage != null && <Text style={s.histMeta}>{last.mileage.toLocaleString()} km</Text>}
+                  </View>
+                  {sd.axle && <Text style={s.histMeta}>Axle: {sd.axle}</Text>}
+                  {last.cost != null && <Text style={s.histCost}>LKR {last.cost.toLocaleString()}</Text>}
+                </View>
+              )
+            })()}
+
             <Text style={s.sectionTitle}>Log Wheel Alignment</Text>
 
             <View style={s.row}>
@@ -570,10 +591,10 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </View>
             )}
 
-            {alignmentHistory.length > 0 && (
+            {alignmentHistory.length > 1 && (
               <>
-                <Text style={s.historyTitle}>Recent Alignments</Text>
-                {alignmentHistory.map(r => {
+                <Text style={s.historyTitle}>Previous Alignments</Text>
+                {alignmentHistory.slice(1).map(r => {
                   const sd = r.structuredData?.['Wheel Alignment'] || {}
                   return (
                     <View key={r.id} style={[s.histCard, { borderLeftColor: '#1a73e8' }]}>
