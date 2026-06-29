@@ -94,14 +94,14 @@ router.get('/sent', async (req: AuthRequest, res) => {
 router.patch('/:id/accept', async (req: AuthRequest, res) => {
   try {
     const share = await prisma.vehicleShare.findFirst({
-      where: { id: req.params.id, sharedWithPhone: req.phoneNumber },
+      where: { id: req.params.id as string, sharedWithPhone: req.phoneNumber },
     })
     if (!share) {
       res.status(404).json({ error: 'Share not found' })
       return
     }
     const updated = await prisma.vehicleShare.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { status: 'active' },
     })
 
@@ -124,7 +124,7 @@ router.patch('/:id/accept', async (req: AuthRequest, res) => {
 // DELETE /vehicle-shares/:id — owner revokes OR recipient declines
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    const share = await prisma.vehicleShare.findUnique({ where: { id: req.params.id } })
+    const share = await prisma.vehicleShare.findUnique({ where: { id: req.params.id as string } })
     if (!share) {
       res.status(404).json({ error: 'Share not found' })
       return
@@ -133,7 +133,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       res.status(403).json({ error: 'Not authorised' })
       return
     }
-    await prisma.vehicleShare.update({ where: { id: req.params.id }, data: { status: 'revoked' } })
+    await prisma.vehicleShare.update({ where: { id: req.params.id as string }, data: { status: 'revoked' } })
     res.json({ success: true })
   } catch (error) {
     console.error('DELETE /vehicle-shares/:id error:', error)
