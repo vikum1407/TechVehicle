@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Vehicle = {
   id: string
@@ -77,6 +79,8 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([])
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set())
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   // Load service records when entering confirm step
   useEffect(() => {
@@ -274,7 +278,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           <Text style={styles.sectionLabel}>Available in the next 14 days</Text>
 
           {datesLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
           ) : (
             <View style={styles.dateGrid}>
               {(() => {
@@ -522,7 +526,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         {shareEnabled && (
           <>
             {recordsLoading ? (
-              <ActivityIndicator style={{ marginVertical: 16 }} color="#1a73e8" />
+              <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
             ) : serviceRecords.length === 0 ? (
               <View style={styles.noRecordsBox}>
                 <Text style={styles.noRecordsText}>No service records found for this vehicle.</Text>
@@ -623,217 +627,218 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingTop: 52, paddingHorizontal: 16, paddingBottom: 14,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  backBtn: { marginRight: 12 },
-  backText: { fontSize: 16, color: '#1a73e8', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-  content: { padding: 16, paddingBottom: 40 },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingTop: 52, paddingHorizontal: 16, paddingBottom: 14,
+      backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { marginRight: 12 },
+    backText: { fontSize: 16, color: c.primary, fontWeight: '600' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: c.text },
+    content: { padding: 16, paddingBottom: 40 },
 
-  vehicleBanner: {
-    backgroundColor: '#1a73e8', borderRadius: 14, padding: 16, marginBottom: 20,
-  },
-  vehicleBannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  vehicleBannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
-  vehicleBannerMileage: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+    vehicleBanner: {
+      backgroundColor: c.primary, borderRadius: 14, padding: 16, marginBottom: 20,
+    },
+    vehicleBannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+    vehicleBannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
+    vehicleBannerMileage: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
 
-  sectionLabel: {
-    fontSize: 12, fontWeight: '700', color: '#555',
-    marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6,
-  },
+    sectionLabel: {
+      fontSize: 12, fontWeight: '700', color: c.textSub,
+      marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6,
+    },
 
-  searchRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  searchInput: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 1, borderColor: '#ddd',
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#1a1a1a',
-  },
-  searchBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingHorizontal: 18, justifyContent: 'center',
-  },
-  btnDisabled: { opacity: 0.6 },
-  searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    searchRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    searchInput: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 10,
+      borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: c.text,
+    },
+    searchBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 18, justifyContent: 'center',
+    },
+    btnDisabled: { opacity: 0.6 },
+    searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  emptyBox: { alignItems: 'center', marginTop: 40 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 6 },
-  emptyText: { fontSize: 14, color: '#888', textAlign: 'center' },
+    emptyBox: { alignItems: 'center', marginTop: 40 },
+    emptyTitle: { fontSize: 16, fontWeight: '600', color: c.textBody, marginBottom: 6 },
+    emptyText: { fontSize: 14, color: c.textMuted, textAlign: 'center' },
 
-  garageCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
-    flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
-  garageCardLeft: { flex: 1 },
-  garageCardRight: { alignItems: 'flex-end', gap: 6 },
-  garageName: { fontSize: 16, fontWeight: '700', color: '#1a1a1a', marginBottom: 3 },
-  garageAddress: { fontSize: 13, color: '#888' },
-  badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeVerified: { backgroundColor: '#e8f5e9' },
-  badgeUnverified: { backgroundColor: '#fff8e1' },
-  badgeText: { fontSize: 12, fontWeight: '600' },
-  selectText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+    garageCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
+      flexDirection: 'row', alignItems: 'center',
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    },
+    garageCardLeft: { flex: 1 },
+    garageCardRight: { alignItems: 'flex-end', gap: 6 },
+    garageName: { fontSize: 16, fontWeight: '700', color: c.text, marginBottom: 3 },
+    garageAddress: { fontSize: 13, color: c.textMuted },
+    badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    badgeVerified: { backgroundColor: '#e8f5e9' },
+    badgeUnverified: { backgroundColor: '#fff8e1' },
+    badgeText: { fontSize: 12, fontWeight: '600' },
+    selectText: { fontSize: 13, color: c.primary, fontWeight: '600' },
 
-  selectedGarageBanner: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
-  selectedGarageName: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  selectedDateLabel: { fontSize: 14, color: '#1a73e8', fontWeight: '600' },
-  verifiedLabel: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
+    selectedGarageBanner: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 20,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    },
+    selectedGarageName: { fontSize: 16, fontWeight: '700', color: c.text },
+    selectedDateLabel: { fontSize: 14, color: c.primary, fontWeight: '600' },
+    verifiedLabel: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
 
-  dateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  dateCell: {
-    width: '30%', backgroundColor: '#fff', borderRadius: 12, padding: 10,
-    alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e0e0',
-  },
-  dateCellAvailable: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
-  dateCellOff: { backgroundColor: '#f5f5f5', borderColor: '#e0e0e0' },
-  dateCellHoliday: { backgroundColor: '#fce4ec', borderColor: '#f48fb1' },
-  dateCellFull: { backgroundColor: '#fff5f5', borderColor: '#ffcdd2' },
-  dateDayName: { fontSize: 11, fontWeight: '600', color: '#888', marginBottom: 3 },
-  dateDimText: { color: '#bbb' },
-  dateDayNum: { fontSize: 20, fontWeight: '800', color: '#555', marginBottom: 2 },
-  dateDayNumAvailable: { color: '#1a73e8' },
-  dateMonth: { fontSize: 11, color: '#888', marginBottom: 3 },
-  dateSlotsAvail: { fontSize: 10, fontWeight: '700', color: '#34a853', marginTop: 2 },
-  dateClosedText: { fontSize: 10, color: '#bbb', fontWeight: '600', marginTop: 2 },
-  dateHolidayText: { fontSize: 10, color: '#e91e63', fontWeight: '700', marginTop: 2 },
-  dateFullText: { fontSize: 10, color: '#e53935', fontWeight: '700', marginTop: 2 },
-  msgDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
-  dateCellToday: { borderColor: '#FFC107', borderWidth: 2 },
-  todayCircleWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  todayCircleWrapActive: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#FFC107', alignItems: 'center', justifyContent: 'center',
-  },
-  dateDayNumToday: { color: '#1a1a1a' },
+    dateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+    dateCell: {
+      width: '30%', backgroundColor: c.surface, borderRadius: 12, padding: 10,
+      alignItems: 'center', borderWidth: 1.5, borderColor: c.borderMid,
+    },
+    dateCellAvailable: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    dateCellOff: { backgroundColor: c.surfaceAlt, borderColor: c.borderMid },
+    dateCellHoliday: { backgroundColor: '#fce4ec', borderColor: '#f48fb1' },
+    dateCellFull: { backgroundColor: '#fff5f5', borderColor: '#ffcdd2' },
+    dateDayName: { fontSize: 11, fontWeight: '600', color: c.textMuted, marginBottom: 3 },
+    dateDimText: { color: c.textFaint },
+    dateDayNum: { fontSize: 20, fontWeight: '800', color: c.textSub, marginBottom: 2 },
+    dateDayNumAvailable: { color: c.primary },
+    dateMonth: { fontSize: 11, color: c.textMuted, marginBottom: 3 },
+    dateSlotsAvail: { fontSize: 10, fontWeight: '700', color: '#34a853', marginTop: 2 },
+    dateClosedText: { fontSize: 10, color: c.textFaint, fontWeight: '600', marginTop: 2 },
+    dateHolidayText: { fontSize: 10, color: '#e91e63', fontWeight: '700', marginTop: 2 },
+    dateFullText: { fontSize: 10, color: '#e53935', fontWeight: '700', marginTop: 2 },
+    msgDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
+    dateCellToday: { borderColor: '#FFC107', borderWidth: 2 },
+    todayCircleWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+    todayCircleWrapActive: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: '#FFC107', alignItems: 'center', justifyContent: 'center',
+    },
+    dateDayNumToday: { color: '#1a1a1a' },
 
-  legend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: '#888' },
+    legend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    legendDot: { width: 8, height: 8, borderRadius: 4 },
+    legendText: { fontSize: 11, color: c.textMuted },
 
-  msgBanner: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 16,
-    borderLeftWidth: 4,
-  },
-  msgBannerText: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
+    msgBanner: {
+      backgroundColor: c.surface, borderRadius: 10, padding: 14, marginBottom: 16,
+      borderLeftWidth: 4,
+    },
+    msgBannerText: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
 
-  slotCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 10,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1.5, borderColor: '#1a73e8',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
-  },
-  slotCardPartial: { borderColor: '#FF9800', backgroundColor: '#fff8f0' },
-  slotCardUnavailable: { borderColor: '#e0e0e0', backgroundColor: '#fafafa' },
-  slotLabel: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  slotLabelDim: { color: '#aaa' },
-  slotBooked: { fontSize: 12, color: '#aaa', marginTop: 3 },
-  slotBookedWarning: { fontSize: 12, color: '#E65100', fontWeight: '700', marginTop: 3 },
-  slotSelectArrow: { fontSize: 14, color: '#1a73e8', fontWeight: '700' },
-  slotFullText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
+    slotCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 18, marginBottom: 10,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      borderWidth: 1.5, borderColor: c.primary,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+    },
+    slotCardPartial: { borderColor: '#FF9800', backgroundColor: '#fff8f0' },
+    slotCardUnavailable: { borderColor: c.borderMid, backgroundColor: c.surfaceAlt },
+    slotLabel: { fontSize: 16, fontWeight: '700', color: c.text },
+    slotLabelDim: { color: c.textFaint },
+    slotBooked: { fontSize: 12, color: c.textFaint, marginTop: 3 },
+    slotBookedWarning: { fontSize: 12, color: '#E65100', fontWeight: '700', marginTop: 3 },
+    slotSelectArrow: { fontSize: 14, color: c.primary, fontWeight: '700' },
+    slotFullText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
 
-  summaryCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 24,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
-  },
-  summaryTitle: { fontSize: 16, fontWeight: '700', color: '#1a73e8', marginBottom: 16 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  summaryLabel: { fontSize: 13, color: '#888', fontWeight: '500' },
-  summaryValue: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', textAlign: 'right', flex: 1, marginLeft: 12 },
-  summaryValueSub: { fontSize: 13, color: '#666', textAlign: 'right', flex: 1, marginLeft: 12 },
-  divider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 12 },
+    summaryCard: {
+      backgroundColor: c.surface, borderRadius: 16, padding: 20, marginBottom: 24,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
+    },
+    summaryTitle: { fontSize: 16, fontWeight: '700', color: c.primary, marginBottom: 16 },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    summaryLabel: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
+    summaryValue: { fontSize: 14, fontWeight: '700', color: c.text, textAlign: 'right', flex: 1, marginLeft: 12 },
+    summaryValueSub: { fontSize: 13, color: c.textSub, textAlign: 'right', flex: 1, marginLeft: 12 },
+    divider: { height: 1, backgroundColor: c.border, marginVertical: 12 },
 
-  // Share toggle
-  shareToggleCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1.5, borderColor: '#e0e0e0',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
-  },
-  shareToggleCardOn: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
-  shareToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  shareToggleIcon: { fontSize: 24 },
-  shareToggleText: { flex: 1 },
-  shareToggleTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  shareToggleTitleOn: { color: '#1a73e8' },
-  shareToggleDesc: { fontSize: 12, color: '#888', lineHeight: 17 },
-  togglePill: {
-    backgroundColor: '#e0e0e0', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8,
-  },
-  togglePillOn: { backgroundColor: '#1a73e8' },
-  togglePillText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+    shareToggleCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      borderWidth: 1.5, borderColor: c.borderMid,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+    },
+    shareToggleCardOn: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    shareToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    shareToggleIcon: { fontSize: 24 },
+    shareToggleText: { flex: 1 },
+    shareToggleTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
+    shareToggleTitleOn: { color: c.primary },
+    shareToggleDesc: { fontSize: 12, color: c.textMuted, lineHeight: 17 },
+    togglePill: {
+      backgroundColor: c.borderMid, borderRadius: 20,
+      paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8,
+    },
+    togglePillOn: { backgroundColor: c.primary },
+    togglePillText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
-  noRecordsBox: {
-    backgroundColor: '#f5f5f5', borderRadius: 10, padding: 16,
-    alignItems: 'center', marginBottom: 12,
-  },
-  noRecordsText: { fontSize: 14, color: '#888' },
+    noRecordsBox: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 16,
+      alignItems: 'center', marginBottom: 12,
+    },
+    noRecordsText: { fontSize: 14, color: c.textMuted },
 
-  recordHint: { fontSize: 13, color: '#555', marginBottom: 10, fontWeight: '500' },
+    recordHint: { fontSize: 13, color: c.textSub, marginBottom: 10, fontWeight: '500' },
 
-  recordCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8,
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#e0e0e0',
-    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
-  },
-  recordCardOn: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
-  recordCheck: {
-    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#ccc',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
-  },
-  recordCheckOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  recordCheckMark: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  recordInfo: { flex: 1 },
-  recordDate: { fontSize: 12, color: '#888', marginBottom: 2 },
-  recordDesc: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', marginBottom: 2 },
-  recordMileage: { fontSize: 12, color: '#666' },
-  recordCost: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginLeft: 8 },
+    recordCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8,
+      flexDirection: 'row', alignItems: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid,
+      shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
+    },
+    recordCardOn: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    recordCheck: {
+      width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.borderStrong,
+      alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    },
+    recordCheckOn: { backgroundColor: c.primary, borderColor: c.primary },
+    recordCheckMark: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    recordInfo: { flex: 1 },
+    recordDate: { fontSize: 12, color: c.textMuted, marginBottom: 2 },
+    recordDesc: { fontSize: 14, fontWeight: '600', color: c.text, marginBottom: 2 },
+    recordMileage: { fontSize: 12, color: c.textSub },
+    recordCost: { fontSize: 13, fontWeight: '700', color: c.primary, marginLeft: 8 },
 
-  noteTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  noteTypeBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff',
-  },
-  noteTypeBtnActive: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
-  noteTypeBtnUrgent: { borderColor: '#e53935', backgroundColor: '#fff5f5' },
-  noteTypeBtnText: { fontSize: 14, fontWeight: '600', color: '#888' },
-  noteTypeBtnTextActive: { color: '#1a1a1a' },
+    noteTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+    noteTypeBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    noteTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    noteTypeBtnUrgent: { borderColor: '#e53935', backgroundColor: '#fff5f5' },
+    noteTypeBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
+    noteTypeBtnTextActive: { color: c.text },
 
-  notesInput: {
-    backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 1, borderColor: '#ddd',
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#1a1a1a',
-    height: 90, textAlignVertical: 'top', marginBottom: 20,
-  },
-  notesInputUrgent: { borderColor: '#e53935', borderWidth: 2 },
+    notesInput: {
+      backgroundColor: c.surface, borderRadius: 10,
+      borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: c.text,
+      height: 90, textAlignVertical: 'top', marginBottom: 20,
+    },
+    notesInputUrgent: { borderColor: '#e53935', borderWidth: 2 },
 
-  confirmBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginBottom: 12,
-  },
-  confirmBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  confirmNote: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 18 },
+    confirmBtn: {
+      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 16,
+      alignItems: 'center', marginBottom: 12,
+    },
+    confirmBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+    confirmNote: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
 
-  serviceTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  serviceTypeBtn: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 12,
-    alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e0e0',
-  },
-  serviceTypeBtnActive: { borderColor: '#1a73e8', backgroundColor: '#f0f4ff' },
-  serviceTypeIcon: { fontSize: 20, marginBottom: 4 },
-  serviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: '#888', textAlign: 'center' },
-  serviceTypeBtnTextActive: { color: '#1a73e8' },
-})
+    serviceTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    serviceTypeBtn: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 10, padding: 12,
+      alignItems: 'center', borderWidth: 1.5, borderColor: c.borderMid,
+    },
+    serviceTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    serviceTypeIcon: { fontSize: 20, marginBottom: 4 },
+    serviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: c.textMuted, textAlign: 'center' },
+    serviceTypeBtnTextActive: { color: c.primary },
+  })
+}

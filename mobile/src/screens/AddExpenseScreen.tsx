@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -61,6 +63,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   const [insuranceCompany, setInsuranceCompany] = useState('')
   const [insurancePolicyNo, setInsurancePolicyNo] = useState('')
   const [loading, setLoading] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const handleSubmit = async () => {
     if (!category) {
@@ -254,43 +258,45 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 48 },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 10, marginTop: 20 },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  categoryCard: {
-    width: '30%', backgroundColor: '#fff', borderRadius: 12,
-    padding: 14, alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#e0e0e0',
-  },
-  categoryCardSelected: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  categoryIcon: { fontSize: 24, marginBottom: 6 },
-  categoryLabel: { fontSize: 11, color: '#555', fontWeight: '600', textAlign: 'center' },
-  categoryLabelSelected: { color: '#fff' },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  multiline: { height: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1 },
-  reminderCard: {
-    backgroundColor: '#e8f0fe', borderRadius: 14, padding: 16,
-    marginTop: 20, borderWidth: 1, borderColor: '#c5d8fd',
-  },
-  reminderTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 4 },
-  reminderSub: { fontSize: 12, color: '#555', marginBottom: 4 },
-  button: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 32,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 24, paddingBottom: 48 },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
+    subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 10, marginTop: 20 },
+    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    categoryCard: {
+      width: '30%', backgroundColor: c.surface, borderRadius: 12,
+      padding: 14, alignItems: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid,
+    },
+    categoryCardSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    categoryIcon: { fontSize: 24, marginBottom: 6 },
+    categoryLabel: { fontSize: 11, color: c.textSub, fontWeight: '600', textAlign: 'center' },
+    categoryLabelSelected: { color: '#fff' },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    multiline: { height: 80, textAlignVertical: 'top' },
+    row: { flexDirection: 'row', gap: 12 },
+    half: { flex: 1 },
+    reminderCard: {
+      backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
+      marginTop: 20, borderWidth: 1, borderColor: c.primaryTintText + '44',
+    },
+    reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
+    reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 4 },
+    button: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 32,
+    },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}

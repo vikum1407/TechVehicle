@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, Switch, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -28,6 +30,8 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => {
     api.getAccountStats(token)
@@ -66,7 +70,6 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back</Text>
@@ -75,7 +78,6 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <View style={{ width: 60 }} />
       </View>
 
-      {/* Avatar + identity */}
       <View style={styles.avatarSection}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>
@@ -88,23 +90,21 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </View>
       </View>
 
-      {/* Stats */}
       <Text style={styles.sectionTitle}>Account Summary</Text>
       {loadingStats ? (
-        <ActivityIndicator color="#1a73e8" style={{ marginVertical: 16 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
       ) : stats ? (
         <View style={styles.statsGrid}>
-          <StatCard value={stats.vehicleCount} label="Vehicles" icon="🚗" />
-          <StatCard value={stats.serviceCount} label="Service Records" icon="🔧" />
-          <StatCard value={stats.fuelCount}    label="Fuel Logs" icon="⛽" />
-          <StatCard value={stats.expenseCount} label="Expenses" icon="💰" />
+          <StatCard value={stats.vehicleCount} label="Vehicles" icon="🚗" colors={colors} />
+          <StatCard value={stats.serviceCount} label="Service Records" icon="🔧" colors={colors} />
+          <StatCard value={stats.fuelCount}    label="Fuel Logs" icon="⛽" colors={colors} />
+          <StatCard value={stats.expenseCount} label="Expenses" icon="💰" colors={colors} />
         </View>
       ) : null}
 
-      {/* Notification prefs */}
       <Text style={styles.sectionTitle}>Notification Preferences</Text>
       {loadingPrefs ? (
-        <ActivityIndicator color="#1a73e8" style={{ marginVertical: 16 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
       ) : (
         <View style={styles.card}>
           {PREFS.map((pref, i) => (
@@ -115,13 +115,13 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
               </View>
               <View style={styles.switchWrapper}>
                 {saving === pref.key ? (
-                  <ActivityIndicator size="small" color="#1a73e8" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <Switch
                     value={prefs[pref.key] ?? true}
                     onValueChange={(v) => handleToggle(pref.key, v)}
-                    trackColor={{ false: '#e0e0e0', true: '#90caf9' }}
-                    thumbColor={prefs[pref.key] ? '#1a73e8' : '#f5f5f5'}
+                    trackColor={{ false: colors.borderMid, true: '#90caf9' }}
+                    thumbColor={prefs[pref.key] ? colors.primary : colors.surfaceAlt}
                   />
                 )}
               </View>
@@ -136,7 +136,6 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </Text>
       </View>
 
-      {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
         <Text style={styles.logoutBtnText}>Log out</Text>
       </TouchableOpacity>
@@ -146,7 +145,8 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   )
 }
 
-function StatCard({ value, label, icon }: { value: number; label: string; icon: string }) {
+function StatCard({ value, label, icon, colors }: { value: number; label: string; icon: string; colors: Colors }) {
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.statCard}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -156,76 +156,78 @@ function StatCard({ value, label, icon }: { value: number; label: string; icon: 
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { paddingBottom: 48 },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { paddingBottom: 48 },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: 16,
-    paddingTop: 56, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  backBtn: { width: 60 },
-  backBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: c.surface, paddingHorizontal: 16,
+      paddingTop: 56, paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { width: 60 },
+    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
 
-  avatarSection: { alignItems: 'center', paddingVertical: 28, backgroundColor: '#fff', marginBottom: 8 },
-  avatar: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#1a73e8', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
-  },
-  avatarText: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  phone: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
-  roleBadge: {
-    backgroundColor: '#e8f0fe', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 5,
-  },
-  roleBadgeText: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+    avatarSection: { alignItems: 'center', paddingVertical: 28, backgroundColor: c.surface, marginBottom: 8 },
+    avatar: {
+      width: 72, height: 72, borderRadius: 36,
+      backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center',
+      marginBottom: 12,
+    },
+    avatarText: { fontSize: 22, fontWeight: '800', color: '#fff' },
+    phone: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
+    roleBadge: {
+      backgroundColor: c.primaryTint, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 5,
+    },
+    roleBadgeText: { fontSize: 13, color: c.primaryTintText, fontWeight: '600' },
 
-  sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: '#888',
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    marginTop: 20, marginBottom: 8, paddingHorizontal: 16,
-  },
+    sectionTitle: {
+      fontSize: 12, fontWeight: '700', color: c.textMuted,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+      marginTop: 20, marginBottom: 8, paddingHorizontal: 16,
+    },
 
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    paddingHorizontal: 16,
-  },
-  statCard: {
-    flex: 1, minWidth: '44%', backgroundColor: '#fff', borderRadius: 12,
-    padding: 16, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
-  statIcon: { fontSize: 22, marginBottom: 6 },
-  statValue: { fontSize: 24, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
-  statLabel: { fontSize: 11, color: '#888', fontWeight: '600', textAlign: 'center' },
+    statsGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+      paddingHorizontal: 16,
+    },
+    statCard: {
+      flex: 1, minWidth: '44%', backgroundColor: c.surface, borderRadius: 12,
+      padding: 16, alignItems: 'center',
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    },
+    statIcon: { fontSize: 22, marginBottom: 6 },
+    statValue: { fontSize: 24, fontWeight: '800', color: c.text, marginBottom: 2 },
+    statLabel: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
-  card: {
-    backgroundColor: '#fff', borderRadius: 14, marginHorizontal: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-    overflow: 'hidden',
-  },
-  prefRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
-  prefRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  prefText: { flex: 1 },
-  prefTitle: { fontSize: 15, fontWeight: '600', color: '#1a1a1a', marginBottom: 3 },
-  prefDesc: { fontSize: 12, color: '#888', lineHeight: 17 },
-  switchWrapper: { width: 52, alignItems: 'center' },
+    card: {
+      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+      overflow: 'hidden',
+    },
+    prefRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
+    prefRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
+    prefText: { flex: 1 },
+    prefTitle: { fontSize: 15, fontWeight: '600', color: c.text, marginBottom: 3 },
+    prefDesc: { fontSize: 12, color: c.textMuted, lineHeight: 17 },
+    switchWrapper: { width: 52, alignItems: 'center' },
 
-  noteBox: {
-    backgroundColor: '#e8f0fe', borderRadius: 10, margin: 16, marginTop: 12, padding: 14,
-  },
-  noteText: { fontSize: 12, color: '#1a73e8', lineHeight: 18 },
+    noteBox: {
+      backgroundColor: c.primaryTint, borderRadius: 10, margin: 16, marginTop: 12, padding: 14,
+    },
+    noteText: { fontSize: 12, color: c.primaryTintText, lineHeight: 18 },
 
-  logoutBtn: {
-    marginHorizontal: 16, marginTop: 8, borderRadius: 12,
-    borderWidth: 1.5, borderColor: '#e53935',
-    paddingVertical: 15, alignItems: 'center',
-  },
-  logoutBtnText: { fontSize: 15, color: '#e53935', fontWeight: '700' },
+    logoutBtn: {
+      marginHorizontal: 16, marginTop: 8, borderRadius: 12,
+      borderWidth: 1.5, borderColor: c.error,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    logoutBtnText: { fontSize: 15, color: c.error, fontWeight: '700' },
 
-  version: { textAlign: 'center', fontSize: 11, color: '#ccc', marginTop: 20 },
-})
+    version: { textAlign: 'center', fontSize: 11, color: c.textFaint, marginTop: 20 },
+  })
+}

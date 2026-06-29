@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, TextInput, Alert,
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type VehicleSpec = {
   id: string
@@ -77,6 +79,8 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
   const [allSpecs, setAllSpecs] = useState<VehicleSpec[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => { loadMyVehicleSpec() }, [])
   useEffect(() => { if (tab === 'search' && allSpecs.length === 0) loadAllSpecs() }, [tab])
@@ -461,7 +465,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
           </View>
 
           {specLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} color="#1a73e8" />
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
           ) : !spec ? (
             <View style={styles.noSpec}>
               <Text style={styles.noSpecTitle}>No spec data yet for this vehicle</Text>
@@ -500,14 +504,14 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
             <TextInput
               style={styles.searchInput}
               placeholder="Search make or model (e.g. Prius, Alto, KDH)"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={colors.textFaint}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
             />
           </View>
           {searchLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} color="#1a73e8" />
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
           ) : (
             <ScrollView contentContainerStyle={styles.content}>
               {filteredSpecs.length === 0 ? (
@@ -544,96 +548,98 @@ const specItemStyles = StyleSheet.create({
   valueHighlight: { color: '#e65100' },
 })
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    backgroundColor: '#fff', paddingTop: 56, paddingBottom: 16,
-    paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  backBtn: { marginRight: 16 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
+      paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center',
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { marginRight: 16 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: c.text },
 
-  tabBar: {
-    flexDirection: 'row', backgroundColor: '#fff',
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#1a73e8' },
-  tabText: { fontSize: 13, color: '#888', fontWeight: '600' },
-  tabTextActive: { color: '#1a73e8' },
+    tabBar: {
+      flexDirection: 'row', backgroundColor: c.surface,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+    tabActive: { borderBottomWidth: 2, borderBottomColor: c.primary },
+    tabText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+    tabTextActive: { color: c.primary },
 
-  content: { padding: 16, paddingBottom: 40 },
+    content: { padding: 16, paddingBottom: 40 },
 
-  vehicleBanner: {
-    backgroundColor: '#1a73e8', borderRadius: 14, padding: 18, marginBottom: 16,
-  },
-  vehicleBannerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  vehicleBannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+    vehicleBanner: {
+      backgroundColor: c.primary, borderRadius: 14, padding: 18, marginBottom: 16,
+    },
+    vehicleBannerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 4 },
+    vehicleBannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
 
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 10 },
+    section: { marginBottom: 20 },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 10 },
 
-  insightRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    borderRadius: 10, padding: 12, marginBottom: 8,
-  },
-  insightOk: { backgroundColor: '#e8f5e9' },
-  insightWarn: { backgroundColor: '#fff3e0' },
-  insightInfo: { backgroundColor: '#e8f0fe' },
-  insightIcon: { fontSize: 14, fontWeight: '700', marginTop: 1, width: 16, textAlign: 'center' },
-  insightText: { fontSize: 13, color: '#1a1a1a', flex: 1, lineHeight: 19 },
+    insightRow: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+      borderRadius: 10, padding: 12, marginBottom: 8,
+    },
+    insightOk: { backgroundColor: '#e8f5e9' },
+    insightWarn: { backgroundColor: '#fff3e0' },
+    insightInfo: { backgroundColor: c.primaryTint },
+    insightIcon: { fontSize: 14, fontWeight: '700', marginTop: 1, width: 16, textAlign: 'center' },
+    insightText: { fontSize: 13, color: c.text, flex: 1, lineHeight: 19 },
 
-  noSpec: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', marginTop: 24,
-  },
-  noSpecTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
-  noSpecSub: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 19 },
+    noSpec: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 24, alignItems: 'center', marginTop: 24,
+    },
+    noSpecTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 8 },
+    noSpecSub: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 19 },
 
-  specCard: {
-    backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  specCardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  specCardTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  specCardYear: { fontSize: 12, color: '#888', fontWeight: '600' },
-  specEngine: { fontSize: 12, color: '#1a73e8', fontWeight: '600', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
-  specSectionLabel: {
-    fontSize: 11, color: '#1a73e8', fontWeight: '700', textTransform: 'uppercase',
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, letterSpacing: 0.5,
-  },
-  specGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 4, gap: 4 },
+    specCard: {
+      backgroundColor: c.surface, borderRadius: 14, overflow: 'hidden',
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    specCardHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: 16, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    specCardTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+    specCardYear: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+    specEngine: { fontSize: 12, color: c.primary, fontWeight: '600', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
+    specSectionLabel: {
+      fontSize: 11, color: c.primary, fontWeight: '700', textTransform: 'uppercase',
+      paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, letterSpacing: 0.5,
+    },
+    specGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 4, gap: 4 },
 
-  noteBox: {
-    marginHorizontal: 16, marginBottom: 6, backgroundColor: '#fff3e0',
-    borderRadius: 8, padding: 10,
-  },
-  notesBox: {
-    marginHorizontal: 16, marginBottom: 12, backgroundColor: '#fff8e1',
-    borderRadius: 8, padding: 10,
-  },
-  noteText: { fontSize: 12, color: '#795548', lineHeight: 17 },
+    noteBox: {
+      marginHorizontal: 16, marginBottom: 6, backgroundColor: '#fff3e0',
+      borderRadius: 8, padding: 10,
+    },
+    notesBox: {
+      marginHorizontal: 16, marginBottom: 12, backgroundColor: '#fff8e1',
+      borderRadius: 8, padding: 10,
+    },
+    noteText: { fontSize: 12, color: '#795548', lineHeight: 17 },
 
-  issuesBox: {
-    margin: 16, marginTop: 8, backgroundColor: '#fff3e0',
-    borderRadius: 10, padding: 14,
-  },
-  issuesTitle: { fontSize: 13, fontWeight: '700', color: '#e65100', marginBottom: 10 },
-  issueRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
-  issueDot: { color: '#e65100', fontWeight: '700', marginTop: 1 },
-  issueText: { fontSize: 12, color: '#5d4037', flex: 1, lineHeight: 17 },
+    issuesBox: {
+      margin: 16, marginTop: 8, backgroundColor: '#fff3e0',
+      borderRadius: 10, padding: 14,
+    },
+    issuesTitle: { fontSize: 13, fontWeight: '700', color: '#e65100', marginBottom: 10 },
+    issueRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
+    issueDot: { color: '#e65100', fontWeight: '700', marginTop: 1 },
+    issueText: { fontSize: 12, color: '#5d4037', flex: 1, lineHeight: 17 },
 
-  searchBox: {
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  searchInput: {
-    backgroundColor: '#f5f5f5', borderRadius: 10, paddingHorizontal: 14,
-    paddingVertical: 10, fontSize: 14, color: '#1a1a1a',
-  },
-  noResultsText: { textAlign: 'center', color: '#aaa', fontSize: 14, marginTop: 40 },
-})
+    searchBox: {
+      backgroundColor: c.surface, paddingHorizontal: 16, paddingVertical: 12,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    searchInput: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, paddingHorizontal: 14,
+      paddingVertical: 10, fontSize: 14, color: c.text,
+    },
+    noResultsText: { textAlign: 'center', color: c.textFaint, fontSize: 14, marginTop: 40 },
+  })
+}

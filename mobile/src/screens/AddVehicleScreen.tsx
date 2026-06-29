@@ -3,6 +3,8 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Modal, FlatList, Image,
 } from 'react-native'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -45,6 +47,8 @@ type PickerModalProps = {
 
 function PickerModal({ visible, title, items, selected, onSelect, onClose }: PickerModalProps) {
   const [search, setSearch] = useState('')
+  const colors = useColors()
+  const m = useMemo(() => makeModalStyles(colors), [colors])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -126,6 +130,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const [loading, setLoading]       = useState(false)
   const [showBrandPicker, setShowBrandPicker] = useState(false)
   const [showModelPicker, setShowModelPicker] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeMainStyles(colors), [colors])
+  const ms = useMemo(() => makeModalStyles(colors), [colors])
 
   const brandIsOther = brand === OTHER
   const modelItems   = brand && !brandIsOther ? [...(BRAND_MODELS[brand] ?? []), OTHER] : []
@@ -382,7 +389,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <Text style={styles.label}>Vehicle Photo <Text style={styles.optional}>(optional)</Text></Text>
       <TouchableOpacity style={styles.photoPicker} onPress={pickPhoto} disabled={uploadingPhoto} activeOpacity={0.8}>
         {uploadingPhoto ? (
-          <ActivityIndicator color="#1a73e8" />
+          <ActivityIndicator color={colors.primary} />
         ) : photoUrl ? (
           <Image source={{ uri: photoUrl }} style={styles.photoPreview} resizeMode="cover" />
         ) : (
@@ -430,92 +437,94 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   )
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#f5f5f5' },
-  content:     { padding: 24, paddingBottom: 48 },
-  backBtn:     { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
-  backBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title:       { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4, marginTop: 16 },
-  subtitle:    { fontSize: 13, color: '#888', marginBottom: 28 },
-  label:       { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 16 },
-  sectionLabel:{ fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  customInput: { marginTop: 8 },
-  textArea:    { minHeight: 80, paddingTop: 12 },
-  optional:    { color: '#aaa', fontWeight: '400' },
-  photoPicker: {
-    height: 180, borderRadius: 12, borderWidth: 1.5, borderColor: '#e0e0e0',
-    borderStyle: 'dashed', overflow: 'hidden', marginBottom: 8,
-    backgroundColor: '#fafafa', justifyContent: 'center', alignItems: 'center',
-  },
-  photoPreview: { width: '100%', height: '100%' },
-  photoPlaceholder: { alignItems: 'center', gap: 8 },
-  photoIcon: { fontSize: 36 },
-  photoHint: { fontSize: 13, color: '#aaa' },
-  removePhoto: { alignSelf: 'flex-end', marginBottom: 16 },
-  removePhotoText: { fontSize: 12, color: '#e53935' },
-  divider:     { height: 1, backgroundColor: '#e8e8e8', marginTop: 28, marginBottom: 8 },
-  chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, borderWidth: 1.5,
-    borderColor: '#e0e0e0', backgroundColor: '#fff',
-  },
-  chipSelected:     { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  chipText:         { fontSize: 13, color: '#555' },
-  chipTextSelected: { color: '#fff', fontWeight: '600' },
-  selectorRow: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 16,
-    borderWidth: 1, borderColor: '#e0e0e0',
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  disabled:    { opacity: 0.5 },
-  selectorText:{ fontSize: 15, color: '#1a1a1a', flex: 1 },
-  placeholder: { color: '#aaa' },
-  chevron:     { fontSize: 20, color: '#aaa', marginLeft: 8 },
-  button: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 16, alignItems: 'center', marginTop: 32,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText:     { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeMainStyles(c: Colors) {
+  return StyleSheet.create({
+    container:   { flex: 1, backgroundColor: c.background },
+    content:     { padding: 24, paddingBottom: 48 },
+    backBtn:     { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
+    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title:       { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4, marginTop: 16 },
+    subtitle:    { fontSize: 13, color: c.textMuted, marginBottom: 28 },
+    label:       { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 16 },
+    sectionLabel:{ fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    customInput: { marginTop: 8 },
+    textArea:    { minHeight: 80, paddingTop: 12 },
+    optional:    { color: c.textFaint, fontWeight: '400' },
+    photoPicker: {
+      height: 180, borderRadius: 12, borderWidth: 1.5, borderColor: c.borderMid,
+      borderStyle: 'dashed', overflow: 'hidden', marginBottom: 8,
+      backgroundColor: c.surfaceAlt, justifyContent: 'center', alignItems: 'center',
+    },
+    photoPreview: { width: '100%', height: '100%' },
+    photoPlaceholder: { alignItems: 'center', gap: 8 },
+    photoIcon: { fontSize: 36 },
+    photoHint: { fontSize: 13, color: c.textFaint },
+    removePhoto: { alignSelf: 'flex-end', marginBottom: 16 },
+    removePhotoText: { fontSize: 12, color: c.error },
+    divider:     { height: 1, backgroundColor: c.border, marginTop: 28, marginBottom: 8 },
+    chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, borderWidth: 1.5,
+      borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    chipSelected:     { backgroundColor: c.primary, borderColor: c.primary },
+    chipText:         { fontSize: 13, color: c.textSub },
+    chipTextSelected: { color: '#fff', fontWeight: '600' },
+    selectorRow: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 16,
+      borderWidth: 1, borderColor: c.borderMid,
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    disabled:    { opacity: 0.5 },
+    selectorText:{ fontSize: 15, color: c.text, flex: 1 },
+    placeholder: { color: c.textFaint },
+    chevron:     { fontSize: 20, color: c.textFaint, marginLeft: 8 },
+    button: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingVertical: 16, alignItems: 'center', marginTop: 32,
+    },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText:     { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}
 
-// Modal styles
-const m = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  title:    { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-  closeBtn: { padding: 4 },
-  closeText:{ fontSize: 20, color: '#666' },
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  search: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  item: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16,
-  },
-  itemText:  { fontSize: 15, color: '#1a1a1a', flex: 1 },
-  otherText: { color: '#1a73e8', fontStyle: 'italic' },
-  check:     { fontSize: 16, color: '#1a73e8', fontWeight: '700', marginLeft: 8 },
-  sep:       { height: 1, backgroundColor: '#f0f0f0', marginHorizontal: 20 },
-  empty:     { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 14 },
-})
+function makeModalStyles(c: Colors) {
+  return StyleSheet.create({
+    container:  { flex: 1, backgroundColor: c.surface },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    title:    { fontSize: 18, fontWeight: '700', color: c.text },
+    closeBtn: { padding: 4 },
+    closeText:{ fontSize: 20, color: c.textSub },
+    searchWrap: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
+    search: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    item: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 16,
+    },
+    itemText:  { fontSize: 15, color: c.text, flex: 1 },
+    otherText: { color: c.primary, fontStyle: 'italic' },
+    check:     { fontSize: 16, color: c.primary, fontWeight: '700', marginLeft: 8 },
+    sep:       { height: 1, backgroundColor: c.border, marginHorizontal: 20 },
+    empty:     { textAlign: 'center', color: c.textFaint, marginTop: 40, fontSize: 14 },
+  })
+}

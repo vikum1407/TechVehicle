@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator,
@@ -6,6 +6,8 @@ import {
 } from 'react-native'
 import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type ExtraFieldConfig = {
   key: string
@@ -126,6 +128,8 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const [overrideKm, setOverrideKm] = useState('')
   const [overrideDays, setOverrideDays] = useState('')
   const [savingOverride, setSavingOverride] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   // Allow parent to switch tab via prop change (e.g. from notification)
   useEffect(() => { setActiveTab(initialTab) }, [initialTab])
@@ -276,7 +280,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             <TextInput
               style={styles.setupInput}
               placeholder="06/2023"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={colors.textFaint}
               value={entry.date}
               onChangeText={t => setEntry(p.id, 'date', t)}
               keyboardType="numbers-and-punctuation"
@@ -288,7 +292,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             <TextInput
               style={styles.setupInput}
               placeholder="e.g. 54000"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={colors.textFaint}
               value={entry.mileage}
               onChangeText={t => setEntry(p.id, 'mileage', t.replace(/[^0-9]/g, ''))}
               keyboardType="number-pad"
@@ -337,7 +341,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               <TextInput
                 style={styles.setupInput}
                 placeholder={ef.placeholder || ''}
-                placeholderTextColor="#bbb"
+                placeholderTextColor={colors.textFaint}
                 value={entry.extras[ef.key] || ''}
                 onChangeText={v => setExtra(p.id, ef.key, ef.type === 'number' ? v.replace(/[^0-9]/g, '') : v)}
                 keyboardType={ef.type === 'number' ? 'number-pad' : 'default'}
@@ -478,7 +482,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       {tabBar}
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} size="large" color="#1a73e8" />
+        <ActivityIndicator style={{ marginTop: 60 }} size="large" color={colors.primary} />
       ) : (
         activeTab === 'services' ? servicesContent : setupContent
       )}
@@ -607,7 +611,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   style={styles.overrideInput}
                   keyboardType="number-pad"
                   placeholder="e.g. 3000"
-                  placeholderTextColor="#aaa"
+                  placeholderTextColor={colors.textFaint}
                   value={overrideKm}
                   onChangeText={setOverrideKm}
                 />
@@ -617,7 +621,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   style={styles.overrideInput}
                   keyboardType="number-pad"
                   placeholder="e.g. 90"
-                  placeholderTextColor="#aaa"
+                  placeholderTextColor={colors.textFaint}
                   value={overrideDays}
                   onChangeText={setOverrideDays}
                 />
@@ -680,221 +684,217 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  backBtn: { marginRight: 12 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a1a' },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12,
+      backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { marginRight: 12 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: c.text },
 
-  mileageBanner: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#1a73e8', paddingHorizontal: 20, paddingVertical: 10,
-  },
-  mileageLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
-  mileageValue: { fontSize: 16, color: '#fff', fontWeight: '800' },
+    mileageBanner: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 10,
+    },
+    mileageLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+    mileageValue: { fontSize: 16, color: '#fff', fontWeight: '800' },
 
-  // Tab bar
-  tabBar: {
-    flexDirection: 'row', backgroundColor: '#fff',
-    borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  tabBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
-    gap: 6,
-  },
-  tabBtnActive: { borderBottomColor: '#1a73e8' },
-  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#888' },
-  tabBtnTextActive: { color: '#1a73e8' },
-  tabBadge: {
-    backgroundColor: '#e0e0e0', borderRadius: 10,
-    minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  tabBadgeActive: { backgroundColor: '#1a73e8' },
-  tabBadgeText: { fontSize: 11, fontWeight: '700', color: '#555' },
-  tabBadgeTextActive: { color: '#fff' },
+    tabBar: {
+      flexDirection: 'row', backgroundColor: c.surface,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    tabBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
+      gap: 6,
+    },
+    tabBtnActive: { borderBottomColor: c.primary },
+    tabBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
+    tabBtnTextActive: { color: c.primary },
+    tabBadge: {
+      backgroundColor: c.borderMid, borderRadius: 10,
+      minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 5,
+    },
+    tabBadgeActive: { backgroundColor: c.primary },
+    tabBadgeText: { fontSize: 11, fontWeight: '700', color: c.textSub },
+    tabBadgeTextActive: { color: '#fff' },
 
-  scrollContent: { padding: 16, paddingBottom: 40 },
+    scrollContent: { padding: 16, paddingBottom: 40 },
 
-  // Setup nudge on services tab
-  setupNudge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff8e1', borderRadius: 12,
-    borderLeftWidth: 4, borderLeftColor: '#f9a825',
-    padding: 12, marginBottom: 14,
-  },
-  setupNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#5d4037', marginBottom: 2 },
-  setupNudgeBody: { fontSize: 12, color: '#795548' },
-  setupNudgeArrow: { fontSize: 18, color: '#f9a825', marginLeft: 8, fontWeight: '700' },
+    setupNudge: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: '#fff8e1', borderRadius: 12,
+      borderLeftWidth: 4, borderLeftColor: '#f9a825',
+      padding: 12, marginBottom: 14,
+    },
+    setupNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#5d4037', marginBottom: 2 },
+    setupNudgeBody: { fontSize: 12, color: '#795548' },
+    setupNudgeArrow: { fontSize: 18, color: '#f9a825', marginLeft: 8, fontWeight: '700' },
 
-  sectionLabel: {
-    fontSize: 12, fontWeight: '700', color: '#888',
-    letterSpacing: 0.8, textTransform: 'uppercase',
-    marginTop: 8, marginBottom: 8, marginLeft: 2,
-  },
+    sectionLabel: {
+      fontSize: 12, fontWeight: '700', color: c.textMuted,
+      letterSpacing: 0.8, textTransform: 'uppercase',
+      marginTop: 8, marginBottom: 8, marginLeft: 2,
+    },
 
-  // Prediction card
-  card: {
-    borderRadius: 12, borderLeftWidth: 4,
-    padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOpacity: 0.05,
-    shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  cardName: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', flex: 1, marginRight: 8 },
-  badge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  distanceLine: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  timeLine: { fontSize: 13, color: '#555', marginBottom: 4 },
-  lastLine: { fontSize: 12, color: '#777', marginBottom: 4 },
-  source: { fontSize: 11, color: '#aaa', fontStyle: 'italic' },
+    card: {
+      borderRadius: 12, borderLeftWidth: 4,
+      padding: 14, marginBottom: 10,
+      shadowColor: '#000', shadowOpacity: 0.05,
+      shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    cardName: { fontSize: 15, fontWeight: '700', color: c.text, flex: 1, marginRight: 8 },
+    badge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+    badgeText: { fontSize: 11, fontWeight: '700' },
+    distanceLine: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+    timeLine: { fontSize: 13, color: c.textSub, marginBottom: 4 },
+    lastLine: { fontSize: 12, color: c.textMuted, marginBottom: 4 },
+    source: { fontSize: 11, color: c.textFaint, fontStyle: 'italic' },
 
-  emptyState: { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22 },
+    emptyState: { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
+    emptyTitle: { fontSize: 18, fontWeight: '700', color: c.textBody, marginBottom: 8 },
+    emptyBody: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 22 },
 
-  // Setup tab
-  setupBanner: {
-    backgroundColor: '#e8f0fe', borderRadius: 12, padding: 14, marginBottom: 14,
-  },
-  setupBannerTitle: { fontSize: 15, fontWeight: '700', color: '#1a3a6b', marginBottom: 4 },
-  setupBannerBody: { fontSize: 13, color: '#1a3a6b', lineHeight: 19 },
+    setupBanner: {
+      backgroundColor: c.primaryTint, borderRadius: 12, padding: 14, marginBottom: 14,
+    },
+    setupBannerTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
+    setupBannerBody: { fontSize: 13, color: c.primaryTintText, lineHeight: 19 },
 
-  setupCard: {
-    backgroundColor: '#fff', borderRadius: 12, borderLeftWidth: 4,
-    borderLeftColor: '#9e9e9e', padding: 14, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.05,
-    shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  setupCardHeader: { marginBottom: 8 },
-  setupCardName: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
+    setupCard: {
+      backgroundColor: c.surface, borderRadius: 12, borderLeftWidth: 4,
+      borderLeftColor: '#9e9e9e', padding: 14, marginBottom: 12,
+      shadowColor: '#000', shadowOpacity: 0.05,
+      shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    setupCardHeader: { marginBottom: 8 },
+    setupCardName: { fontSize: 15, fontWeight: '700', color: c.text },
 
-  setupQuestion: { fontSize: 13, color: '#555', marginBottom: 10 },
-  setupFields: { flexDirection: 'row', marginBottom: 12 },
-  setupField: {},
-  setupFieldLabel: { fontSize: 11, color: '#999', fontWeight: '600', marginBottom: 4 },
-  setupInput: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 8,
-    fontSize: 14, color: '#1a1a1a', backgroundColor: '#fafafa',
-  },
+    setupQuestion: { fontSize: 13, color: c.textSub, marginBottom: 10 },
+    setupFields: { flexDirection: 'row', marginBottom: 12 },
+    setupField: {},
+    setupFieldLabel: { fontSize: 11, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
+    setupInput: {
+      borderWidth: 1, borderColor: c.borderMid, borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 8,
+      fontSize: 14, color: c.text, backgroundColor: c.surfaceAlt,
+    },
 
-  setupSaveBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 8,
-    paddingVertical: 10, alignItems: 'center', marginBottom: 10,
-  },
-  setupSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  setupSource: { fontSize: 11, color: '#bbb', fontStyle: 'italic' },
+    setupSaveBtn: {
+      backgroundColor: c.primary, borderRadius: 8,
+      paddingVertical: 10, alignItems: 'center', marginBottom: 10,
+    },
+    setupSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    setupSource: { fontSize: 11, color: c.textFaint, fontStyle: 'italic' },
 
-  brandSection: { marginBottom: 12 },
-  brandRow: { marginTop: 6 },
-  brandChip: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 6, marginRight: 8,
-    backgroundColor: '#fafafa',
-  },
-  brandChipSelected: { borderColor: '#1a73e8', backgroundColor: '#e8f0fe' },
-  brandChipText: { fontSize: 13, color: '#555', fontWeight: '500' },
-  brandChipTextSelected: { color: '#1a73e8', fontWeight: '700' },
+    brandSection: { marginBottom: 12 },
+    brandRow: { marginTop: 6 },
+    brandChip: {
+      borderWidth: 1, borderColor: c.borderMid, borderRadius: 20,
+      paddingHorizontal: 12, paddingVertical: 6, marginRight: 8,
+      backgroundColor: c.surfaceAlt,
+    },
+    brandChipSelected: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    brandChipText: { fontSize: 13, color: c.textSub, fontWeight: '500' },
+    brandChipTextSelected: { color: c.primary, fontWeight: '700' },
 
-  // Detail bottom-sheet
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  detailSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-  },
-  detailHandle: {
-    width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2,
-    alignSelf: 'center', marginBottom: 18,
-  },
-  detailHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 16,
-  },
-  detailName: {
-    fontSize: 18, fontWeight: '800', color: '#1a1a1a',
-    flex: 1, marginRight: 10,
-  },
-  detailRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  detailRowLabel: { fontSize: 13, color: '#888', fontWeight: '600' },
-  detailRowValue: {
-    fontSize: 13, color: '#1a1a1a', fontWeight: '600',
-    flex: 1, textAlign: 'right', marginLeft: 16,
-  },
-  detailRemaining: {
-    borderWidth: 1.5, borderRadius: 10, padding: 12,
-    marginTop: 14, marginBottom: 4, alignItems: 'center',
-  },
-  detailRemainingMain: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
-  detailRemainingSecondary: { fontSize: 13, color: '#666' },
-  detailSource: {
-    fontSize: 11, color: '#aaa', fontStyle: 'italic',
-    textAlign: 'center', marginTop: 10, marginBottom: 18,
-  },
-  detailLogBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-    marginBottom: 14,
-  },
-  detailLogBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    modalBackdrop: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    detailSheet: {
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    detailHandle: {
+      width: 40, height: 4, backgroundColor: c.borderMid, borderRadius: 2,
+      alignSelf: 'center', marginBottom: 18,
+    },
+    detailHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between', marginBottom: 16,
+    },
+    detailName: {
+      fontSize: 18, fontWeight: '800', color: c.text,
+      flex: 1, marginRight: 10,
+    },
+    detailRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    detailRowLabel: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+    detailRowValue: {
+      fontSize: 13, color: c.text, fontWeight: '600',
+      flex: 1, textAlign: 'right', marginLeft: 16,
+    },
+    detailRemaining: {
+      borderWidth: 1.5, borderRadius: 10, padding: 12,
+      marginTop: 14, marginBottom: 4, alignItems: 'center',
+    },
+    detailRemainingMain: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
+    detailRemainingSecondary: { fontSize: 13, color: c.textSub },
+    detailSource: {
+      fontSize: 11, color: c.textFaint, fontStyle: 'italic',
+      textAlign: 'center', marginTop: 10, marginBottom: 18,
+    },
+    detailLogBtn: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center',
+      marginBottom: 14,
+    },
+    detailLogBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  intervalRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
-    paddingTop: 12, gap: 10,
-  },
-  intervalLabel: { fontSize: 11, color: '#aaa', fontWeight: '600', marginBottom: 2 },
-  intervalValue: { fontSize: 13, color: '#333', fontWeight: '700' },
-  customizeBtn: {
-    backgroundColor: '#e8f0fe', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-  },
-  customizeBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
+    intervalRow: {
+      flexDirection: 'row', alignItems: 'center',
+      borderTopWidth: 1, borderTopColor: c.border,
+      paddingTop: 12, gap: 10,
+    },
+    intervalLabel: { fontSize: 11, color: c.textFaint, fontWeight: '600', marginBottom: 2 },
+    intervalValue: { fontSize: 13, color: c.textBody, fontWeight: '700' },
+    customizeBtn: {
+      backgroundColor: c.primaryTint, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 8,
+    },
+    customizeBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
 
-  // Override editor card (rendered inside nested Modal)
-  overrideCard: {
-    position: 'absolute',
-    left: 20, right: 20,
-    top: '25%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000', shadowOpacity: 0.15,
-    shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  overrideTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
-  overrideSubtitle: { fontSize: 13, color: '#888', marginBottom: 18 },
-  overrideFieldLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 6 },
-  overrideInput: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 15, color: '#1a1a1a', marginBottom: 14,
-  },
-  overrideSaveBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 13, alignItems: 'center', marginTop: 4, marginBottom: 10,
-  },
-  overrideSaveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  overrideClearBtn: {
-    borderWidth: 1, borderColor: '#e53935', borderRadius: 10,
-    paddingVertical: 11, alignItems: 'center',
-  },
-  overrideClearBtnText: { fontSize: 14, fontWeight: '600', color: '#e53935' },
-})
+    overrideCard: {
+      position: 'absolute',
+      left: 20, right: 20,
+      top: '25%',
+      backgroundColor: c.surface,
+      borderRadius: 16,
+      padding: 20,
+      shadowColor: '#000', shadowOpacity: 0.15,
+      shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+    overrideTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 2 },
+    overrideSubtitle: { fontSize: 13, color: c.textMuted, marginBottom: 18 },
+    overrideFieldLabel: { fontSize: 12, color: c.textSub, fontWeight: '600', marginBottom: 6 },
+    overrideInput: {
+      borderWidth: 1, borderColor: c.borderMid, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10,
+      fontSize: 15, color: c.text, marginBottom: 14,
+    },
+    overrideSaveBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingVertical: 13, alignItems: 'center', marginTop: 4, marginBottom: 10,
+    },
+    overrideSaveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    overrideClearBtn: {
+      borderWidth: 1, borderColor: '#e53935', borderRadius: 10,
+      paddingVertical: 11, alignItems: 'center',
+    },
+    overrideClearBtnText: { fontSize: 14, fontWeight: '600', color: '#e53935' },
+  })
+}

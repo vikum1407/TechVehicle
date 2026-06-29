@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image
@@ -10,6 +10,8 @@ import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
   getServiceCategories, todayDMY, parseDMY,
 } from '../constants/serviceData'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -83,6 +85,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   }, [vehicleType])
   const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
 
@@ -447,7 +451,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
               disabled={uploadingPhoto}
             >
               {uploadingPhoto
-                ? <ActivityIndicator size="small" color="#1a73e8" />
+                ? <ActivityIndicator size="small" color={colors.primary} />
                 : <Text style={styles.photoBtnText}>📷 Camera</Text>
               }
             </TouchableOpacity>
@@ -497,100 +501,99 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 20, paddingBottom: 56 },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 16 },
-  catLabel: { fontSize: 12, fontWeight: '700', color: '#555', marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: 22, borderWidth: 1.5,
-    borderColor: '#ddd', backgroundColor: '#fff',
-  },
-  chipSelected: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  check: { fontSize: 13, color: '#fff' },
-  chipText: { fontSize: 14, color: '#444' },
-  chipTextSelected: { color: '#fff', fontWeight: '600' },
-  detailDot: { fontSize: 12, color: '#bbb' },
-  // Brand section
-  brandsSection: {
-    backgroundColor: '#fff', borderRadius: 14,
-    padding: 16, marginTop: 24,
-    borderWidth: 1, borderColor: '#e8f0fe',
-  },
-  brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 2 },
-  brandsSectionSub: { fontSize: 12, color: '#888', marginBottom: 12 },
-  brandRow: { borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 14, marginTop: 14 },
-  brandItemName: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
-  brandChip: {
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 18, borderWidth: 1.5,
-    borderColor: '#e0e0e0', backgroundColor: '#f9f9f9',
-  },
-  brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
-  brandChipText: { fontSize: 12, color: '#555' },
-  brandChipTextSelected: { color: '#fff', fontWeight: '600' },
-  // Structured data section
-  structuredSection: {
-    backgroundColor: '#f0f7ff', borderRadius: 14,
-    padding: 16, marginTop: 24,
-    borderWidth: 1.5, borderColor: '#c5dcff',
-  },
-  structuredTitle: { fontSize: 15, fontWeight: '700', color: '#1a55a8', marginBottom: 2 },
-  structuredSub: { fontSize: 12, color: '#5080b0', marginBottom: 4 },
-  structuredBlock: { borderTopWidth: 1, borderTopColor: '#d0e4f8', paddingTop: 14, marginTop: 14 },
-  structuredItemName: { fontSize: 14, fontWeight: '700', color: '#1a55a8', marginBottom: 10 },
-  structuredFieldWrap: { marginBottom: 12 },
-  structuredFieldLabel: { fontSize: 12, fontWeight: '600', color: '#446090', marginBottom: 6 },
-  structuredChip: {
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, borderWidth: 1.5,
-    borderColor: '#c5dcff', backgroundColor: '#fff',
-  },
-  structuredChipSelected: { backgroundColor: '#1a55a8', borderColor: '#1a55a8' },
-  structuredChipText: { fontSize: 13, color: '#446090', fontWeight: '500' },
-  structuredChipTextSelected: { color: '#fff', fontWeight: '700' },
-  // Common
-  input: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  multiline: { height: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1 },
-  summary: { backgroundColor: '#e8f0fe', borderRadius: 12, padding: 16, marginTop: 20 },
-  summaryLabel: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginBottom: 8 },
-  summaryLine: { fontSize: 13, color: '#333', marginBottom: 4, lineHeight: 20 },
-  button: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 24,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  requiredStar: { color: '#e53935', fontWeight: '700' },
-  fieldError: { color: '#e53935', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
-  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
-  photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
-  thumbImg: { width: 80, height: 80 },
-  photoRemove: {
-    position: 'absolute', top: 2, right: 2,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
-    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
-  },
-  photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  photoActions: { flexDirection: 'row', gap: 8 },
-  photoBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#1a73e8',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#e8f0fe', minWidth: 100,
-  },
-  photoBtnText: { color: '#1a73e8', fontSize: 13, fontWeight: '600' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 20, paddingBottom: 56 },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
+    subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 16 },
+    catLabel: { fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderRadius: 22, borderWidth: 1.5,
+      borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    chipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    check: { fontSize: 13, color: '#fff' },
+    chipText: { fontSize: 14, color: c.textSub },
+    chipTextSelected: { color: '#fff', fontWeight: '600' },
+    detailDot: { fontSize: 12, color: c.textFaint },
+    brandsSection: {
+      backgroundColor: c.surface, borderRadius: 14,
+      padding: 16, marginTop: 24,
+      borderWidth: 1, borderColor: c.primaryTint,
+    },
+    brandsSectionTitle: { fontSize: 15, fontWeight: '700', color: c.primary, marginBottom: 2 },
+    brandsSectionSub: { fontSize: 12, color: c.textMuted, marginBottom: 12 },
+    brandRow: { borderTopWidth: 1, borderTopColor: c.border, paddingTop: 14, marginTop: 14 },
+    brandItemName: { fontSize: 14, fontWeight: '600', color: c.textBody, marginBottom: 8 },
+    brandChip: {
+      paddingHorizontal: 12, paddingVertical: 7,
+      borderRadius: 18, borderWidth: 1.5,
+      borderColor: c.borderMid, backgroundColor: c.surfaceAlt,
+    },
+    brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
+    brandChipText: { fontSize: 12, color: c.textSub },
+    brandChipTextSelected: { color: '#fff', fontWeight: '600' },
+    structuredSection: {
+      backgroundColor: c.primaryTint, borderRadius: 14,
+      padding: 16, marginTop: 24,
+      borderWidth: 1.5, borderColor: c.primaryTintText + '44',
+    },
+    structuredTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 2 },
+    structuredSub: { fontSize: 12, color: c.textSub, marginBottom: 4 },
+    structuredBlock: { borderTopWidth: 1, borderTopColor: c.border, paddingTop: 14, marginTop: 14 },
+    structuredItemName: { fontSize: 14, fontWeight: '700', color: c.primaryTintText, marginBottom: 10 },
+    structuredFieldWrap: { marginBottom: 12 },
+    structuredFieldLabel: { fontSize: 12, fontWeight: '600', color: c.textSub, marginBottom: 6 },
+    structuredChip: {
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, borderWidth: 1.5,
+      borderColor: c.border, backgroundColor: c.surface,
+    },
+    structuredChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    structuredChipText: { fontSize: 13, color: c.textSub, fontWeight: '500' },
+    structuredChipTextSelected: { color: '#fff', fontWeight: '700' },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 13,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    multiline: { height: 80, textAlignVertical: 'top' },
+    row: { flexDirection: 'row', gap: 12 },
+    half: { flex: 1 },
+    summary: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginTop: 20 },
+    summaryLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 8 },
+    summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
+    button: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 24,
+    },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    requiredStar: { color: '#e53935', fontWeight: '700' },
+    fieldError: { color: '#e53935', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
+    photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+    photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+    thumbImg: { width: 80, height: 80 },
+    photoRemove: {
+      position: 'absolute', top: 2, right: 2,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
+      width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    },
+    photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    photoActions: { flexDirection: 'row', gap: 8 },
+    photoBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      borderWidth: 1.5, borderColor: c.primary,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.primaryTint, minWidth: 100,
+    },
+    photoBtnText: { color: c.primary, fontSize: 13, fontWeight: '600' },
+  })
+}

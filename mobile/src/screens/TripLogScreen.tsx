@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -36,6 +38,8 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   const [earnings, setEarnings] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const startNum = parseInt(startKm) || 0
   const endNum = parseInt(endKm) || 0
@@ -103,7 +107,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setDate}
         placeholder="DD/MM/YYYY"
         keyboardType="numbers-and-punctuation"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Start Odometer (km)</Text>
@@ -113,7 +117,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setStartKm}
         keyboardType="number-pad"
         placeholder="e.g. 142000"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>End Odometer (km) *</Text>
@@ -123,7 +127,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setEndKm}
         keyboardType="number-pad"
         placeholder="e.g. 142180"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       {kmDriven !== null && (
@@ -144,7 +148,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setLitres}
         keyboardType="decimal-pad"
         placeholder="e.g. 3.5"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Fuel Cost (LKR)</Text>
@@ -154,7 +158,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setFuelCost}
         keyboardType="number-pad"
         placeholder="e.g. 840"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       {(costPerKm || kmPerLitre) && (
@@ -185,7 +189,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setEarnings}
         keyboardType="number-pad"
         placeholder="e.g. 4500"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       {profit !== null && (
@@ -204,7 +208,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setNotes}
         multiline
         placeholder="e.g. route, extra runs, repairs..."
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textFaint}
       />
 
       <TouchableOpacity
@@ -221,55 +225,57 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 60 },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#e65100', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 20 },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  notesInput: { minHeight: 72, textAlignVertical: 'top' },
-  kmCard: {
-    backgroundColor: '#fff3e0', borderRadius: 10, marginTop: 10,
-    padding: 14, borderLeftWidth: 4, borderLeftColor: '#e65100',
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  kmCardLabel: { fontSize: 13, color: '#bf360c', fontWeight: '600' },
-  kmCardValue: { fontSize: 20, fontWeight: '800', color: '#e65100' },
-  sectionHeader: {
-    marginTop: 28, marginBottom: 4,
-    borderBottomWidth: 1, borderBottomColor: '#e0e0e0', paddingBottom: 8,
-  },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 },
-  statsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  statCard: {
-    flex: 1, backgroundColor: '#e8f5e9', borderRadius: 10,
-    padding: 12, alignItems: 'center',
-    borderLeftWidth: 3, borderLeftColor: '#2e7d32',
-  },
-  statValue: { fontSize: 16, fontWeight: '800', color: '#1b5e20' },
-  statLabel: { fontSize: 11, color: '#388e3c', fontWeight: '600', marginTop: 2 },
-  profitCard: {
-    borderRadius: 10, marginTop: 10, padding: 14,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  profitCardGreen: { backgroundColor: '#e8f5e9', borderLeftWidth: 4, borderLeftColor: '#2e7d32' },
-  profitCardRed: { backgroundColor: '#ffebee', borderLeftWidth: 4, borderLeftColor: '#c62828' },
-  profitLabel: { fontSize: 13, color: '#555', fontWeight: '600' },
-  profitValue: { fontSize: 18, fontWeight: '800' },
-  profitPos: { color: '#2e7d32' },
-  profitNeg: { color: '#c62828' },
-  saveBtn: {
-    backgroundColor: '#e65100', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 32,
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 24, paddingBottom: 60 },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: '#e65100', fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
+    subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    notesInput: { minHeight: 72, textAlignVertical: 'top' },
+    kmCard: {
+      backgroundColor: '#fff3e0', borderRadius: 10, marginTop: 10,
+      padding: 14, borderLeftWidth: 4, borderLeftColor: '#e65100',
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    },
+    kmCardLabel: { fontSize: 13, color: '#bf360c', fontWeight: '600' },
+    kmCardValue: { fontSize: 20, fontWeight: '800', color: '#e65100' },
+    sectionHeader: {
+      marginTop: 28, marginBottom: 4,
+      borderBottomWidth: 1, borderBottomColor: c.borderMid, paddingBottom: 8,
+    },
+    sectionTitle: { fontSize: 12, fontWeight: '700', color: c.textFaint, textTransform: 'uppercase', letterSpacing: 1 },
+    statsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+    statCard: {
+      flex: 1, backgroundColor: '#e8f5e9', borderRadius: 10,
+      padding: 12, alignItems: 'center',
+      borderLeftWidth: 3, borderLeftColor: '#2e7d32',
+    },
+    statValue: { fontSize: 16, fontWeight: '800', color: '#1b5e20' },
+    statLabel: { fontSize: 11, color: '#388e3c', fontWeight: '600', marginTop: 2 },
+    profitCard: {
+      borderRadius: 10, marginTop: 10, padding: 14,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    },
+    profitCardGreen: { backgroundColor: '#e8f5e9', borderLeftWidth: 4, borderLeftColor: '#2e7d32' },
+    profitCardRed: { backgroundColor: '#ffebee', borderLeftWidth: 4, borderLeftColor: '#c62828' },
+    profitLabel: { fontSize: 13, color: c.textSub, fontWeight: '600' },
+    profitValue: { fontSize: 18, fontWeight: '800' },
+    profitPos: { color: '#2e7d32' },
+    profitNeg: { color: '#c62828' },
+    saveBtn: {
+      backgroundColor: '#e65100', borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 32,
+    },
+    saveBtnDisabled: { opacity: 0.6 },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}

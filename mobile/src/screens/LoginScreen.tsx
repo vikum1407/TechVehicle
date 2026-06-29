@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
   Platform, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   onOTPSent: (phoneNumber: string) => void
@@ -13,6 +15,8 @@ type Props = {
 export default function LoginScreen({ onOTPSent }: Props) {
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const handleSendOTP = async () => {
     const digits = phone.trim()
@@ -54,6 +58,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
             <TextInput
               style={styles.input}
               placeholder="7X XXX XXXX"
+              placeholderTextColor={colors.textFaint}
               keyboardType="phone-pad"
               maxLength={10}
               value={phone}
@@ -78,33 +83,35 @@ export default function LoginScreen({ onOTPSent }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-  logo: { fontSize: 32, fontWeight: 'bold', color: '#1a73e8', textAlign: 'center' },
-  tagline: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 40 },
-  card: {
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 24, shadowColor: '#000',
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-  },
-  title: { fontSize: 22, fontWeight: '700', color: '#1a1a1a', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  inputRow: { flexDirection: 'row', marginBottom: 20 },
-  prefix: {
-    backgroundColor: '#f0f0f0', borderRadius: 10,
-    paddingHorizontal: 14, justifyContent: 'center', marginRight: 8,
-  },
-  prefixText: { fontSize: 16, fontWeight: '600', color: '#333' },
-  input: {
-    flex: 1, backgroundColor: '#f0f0f0', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 16, color: '#1a1a1a',
-  },
-  button: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingVertical: 16, alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+    logo: { fontSize: 32, fontWeight: 'bold', color: c.primary, textAlign: 'center' },
+    tagline: { fontSize: 14, color: c.textMuted, textAlign: 'center', marginBottom: 40 },
+    card: {
+      backgroundColor: c.surface, borderRadius: 16,
+      padding: 24, shadowColor: '#000',
+      shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    },
+    title: { fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 6 },
+    subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
+    inputRow: { flexDirection: 'row', marginBottom: 20 },
+    prefix: {
+      backgroundColor: c.border, borderRadius: 10,
+      paddingHorizontal: 14, justifyContent: 'center', marginRight: 8,
+    },
+    prefixText: { fontSize: 16, fontWeight: '600', color: c.textBody },
+    input: {
+      flex: 1, backgroundColor: c.border, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 16, color: c.text,
+    },
+    button: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingVertical: 16, alignItems: 'center',
+    },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}

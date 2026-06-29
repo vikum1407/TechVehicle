@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -35,6 +37,8 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   const [fullTank, setFullTank] = useState(true)
   const [station, setStation] = useState('')
   const [loading, setLoading] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const mileageNum = mileage ? parseInt(mileage) : 0
   const isHistorical = mileageNum > 0 && mileageNum < currentMileage
@@ -98,6 +102,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setMileage}
         keyboardType="number-pad"
         placeholder="Current odometer reading"
+        placeholderTextColor={colors.textFaint}
       />
 
       {isHistorical && (
@@ -123,6 +128,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setLitres}
         keyboardType="decimal-pad"
         placeholder="e.g. 35.5"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Total Cost (LKR)</Text>
@@ -132,6 +138,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setCost}
         keyboardType="number-pad"
         placeholder="e.g. 9800"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Tank</Text>
@@ -157,6 +164,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         onChangeText={setDate}
         placeholder="DD/MM/YYYY"
         keyboardType="numbers-and-punctuation"
+        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Fuel Station (optional)</Text>
@@ -165,6 +173,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         value={station}
         onChangeText={setStation}
         placeholder="e.g. Ceylon Petroleum, IOC"
+        placeholderTextColor={colors.textFaint}
       />
 
       <TouchableOpacity
@@ -181,44 +190,46 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 48 },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 20 },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 15, color: '#1a1a1a',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  historicalNote: {
-    backgroundColor: '#fff8e1', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
-    borderLeftWidth: 3, borderLeftColor: '#f9a825',
-  },
-  historicalNoteText: { fontSize: 12, color: '#795548', fontWeight: '600' },
-  insight: {
-    backgroundColor: '#e8f5e9', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
-  },
-  insightText: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
-  toggleRow: { flexDirection: 'row', gap: 12 },
-  toggleBtn: {
-    flex: 1, paddingVertical: 13, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#ddd',
-    backgroundColor: '#fff', alignItems: 'center',
-  },
-  toggleBtnActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  toggleText: { fontSize: 14, color: '#555', fontWeight: '600' },
-  toggleTextActive: { color: '#fff' },
-  button: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center', marginTop: 32,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 24, paddingBottom: 48 },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
+    subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    historicalNote: {
+      backgroundColor: '#fff8e1', borderRadius: 8,
+      paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
+      borderLeftWidth: 3, borderLeftColor: '#f9a825',
+    },
+    historicalNoteText: { fontSize: 12, color: '#795548', fontWeight: '600' },
+    insight: {
+      backgroundColor: '#e8f5e9', borderRadius: 8,
+      paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
+    },
+    insightText: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
+    toggleRow: { flexDirection: 'row', gap: 12 },
+    toggleBtn: {
+      flex: 1, paddingVertical: 13, borderRadius: 10,
+      borderWidth: 1.5, borderColor: c.borderMid,
+      backgroundColor: c.surface, alignItems: 'center',
+    },
+    toggleBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+    toggleText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
+    toggleTextActive: { color: '#fff' },
+    button: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center', marginTop: 32,
+    },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}

@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Tab = 'vehicles' | 'garage'
 
@@ -11,6 +13,9 @@ type Props = {
 }
 
 export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0 }: Props) {
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -44,43 +49,44 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e8e8e8',
-    // Extra bottom padding so the tab bar clears the Android system nav bar
-    paddingBottom: Platform.OS === 'ios' ? 28 : 32,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 10,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  activeBar: {
-    position: 'absolute',
-    top: 0,
-    width: 48,
-    height: 3,
-    backgroundColor: '#1a73e8',
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  iconWrap: { position: 'relative', marginBottom: 3 },
-  icon: { fontSize: 22 },
-  dot: {
-    position: 'absolute', top: -2, right: -4,
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#e53935',
-    borderWidth: 1.5, borderColor: '#fff',
-  },
-  label: { fontSize: 11, fontWeight: '600', color: '#aaa', letterSpacing: 0.2 },
-  labelActive: { color: '#1a73e8' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      backgroundColor: c.surface,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      paddingBottom: Platform.OS === 'ios' ? 28 : 32,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: -2 },
+      elevation: 10,
+    },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      paddingTop: 10,
+      paddingBottom: 4,
+    },
+    activeBar: {
+      position: 'absolute',
+      top: 0,
+      width: 48,
+      height: 3,
+      backgroundColor: c.primary,
+      borderBottomLeftRadius: 3,
+      borderBottomRightRadius: 3,
+    },
+    iconWrap: { position: 'relative', marginBottom: 3 },
+    icon: { fontSize: 22 },
+    dot: {
+      position: 'absolute', top: -2, right: -4,
+      width: 10, height: 10, borderRadius: 5,
+      backgroundColor: c.error,
+      borderWidth: 1.5, borderColor: c.surface,
+    },
+    label: { fontSize: 11, fontWeight: '600', color: c.textFaint, letterSpacing: 0.2 },
+    labelActive: { color: c.primary },
+  })
+}

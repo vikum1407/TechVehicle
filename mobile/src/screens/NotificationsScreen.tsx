@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator,
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type AppNotification = {
   id: string
@@ -61,6 +63,8 @@ function timeAgo(iso: string): string {
 export default function NotificationsScreen({ token, onBack, onNavigate, onMarkAllRead, onSettings }: Props) {
   const [notifs, setNotifs] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => {
     api.getNotifications(token)
@@ -68,11 +72,9 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
       .catch(() => {})
       .finally(() => setLoading(false))
 
-    // Mark all as read after a short delay so user sees the unread highlights first
     const t = setTimeout(() => {
       api.markAllNotifsRead(token)
         .then(() => {
-          // Collect bookingIds from unread message notifications so card dots also clear
           const seenBookingIds = notifs
             .filter(n => !n.read && n.type === 'message' && n.linkTo)
             .map(n => { try { return JSON.parse(n.linkTo!).bookingId } catch { return null } })
@@ -101,7 +103,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#1a73e8" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
       ) : notifs.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>🔔</Text>
@@ -149,51 +151,53 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', paddingTop: 56, paddingBottom: 16,
-    paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  backBtn: { paddingRight: 12 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  settingsBtn: { paddingLeft: 12, width: 44, alignItems: 'flex-end' },
-  settingsIcon: { fontSize: 20 },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
+      paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { paddingRight: 12 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: c.text },
+    settingsBtn: { paddingLeft: 12, width: 44, alignItems: 'flex-end' },
+    settingsIcon: { fontSize: 20 },
 
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyText: { fontSize: 17, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
+    emptyIcon: { fontSize: 48, marginBottom: 16 },
+    emptyText: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 8 },
+    emptySubtext: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20 },
 
-  card: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: '#fff', marginHorizontal: 12, marginVertical: 4,
-    borderRadius: 12, padding: 14,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 }, elevation: 2,
-  },
-  cardUnread: { backgroundColor: '#e8f0fe' },
-  cardUrgent: {
-    backgroundColor: '#fff3e0',
-    borderLeftWidth: 4, borderLeftColor: '#e65100',
-  },
-  cardTitleUrgent: { color: '#c62828' },
-  unreadDotUrgent: { backgroundColor: '#e65100' },
-  cardTransfer: {
-    backgroundColor: '#fffde7',
-    borderLeftWidth: 4, borderLeftColor: '#f9a825',
-  },
-  cardTitleTransfer: { color: '#e65100' },
-  unreadDotTransfer: { backgroundColor: '#f9a825' },
-  cardIcon: { fontSize: 22, marginRight: 12, marginTop: 2 },
-  cardBody: { flex: 1 },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 3 },
-  cardText: { fontSize: 13, color: '#555', lineHeight: 18 },
-  cardTime: { fontSize: 11, color: '#aaa', marginTop: 5 },
-  unreadDot: {
-    width: 9, height: 9, borderRadius: 5,
-    backgroundColor: '#1a73e8', marginTop: 6, marginLeft: 8,
-  },
-})
+    card: {
+      flexDirection: 'row', alignItems: 'flex-start',
+      backgroundColor: c.surface, marginHorizontal: 12, marginVertical: 4,
+      borderRadius: 12, padding: 14,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4,
+      shadowOffset: { width: 0, height: 1 }, elevation: 2,
+    },
+    cardUnread: { backgroundColor: c.primaryTint },
+    cardUrgent: {
+      backgroundColor: '#fff3e0',
+      borderLeftWidth: 4, borderLeftColor: '#e65100',
+    },
+    cardTitleUrgent: { color: '#c62828' },
+    unreadDotUrgent: { backgroundColor: '#e65100' },
+    cardTransfer: {
+      backgroundColor: '#fffde7',
+      borderLeftWidth: 4, borderLeftColor: '#f9a825',
+    },
+    cardTitleTransfer: { color: '#e65100' },
+    unreadDotTransfer: { backgroundColor: '#f9a825' },
+    cardIcon: { fontSize: 22, marginRight: 12, marginTop: 2 },
+    cardBody: { flex: 1 },
+    cardTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 3 },
+    cardText: { fontSize: 13, color: c.textSub, lineHeight: 18 },
+    cardTime: { fontSize: 11, color: c.textFaint, marginTop: 5 },
+    unreadDot: {
+      width: 9, height: 9, borderRadius: 5,
+      backgroundColor: c.primary, marginTop: 6, marginLeft: 8,
+    },
+  })
+}

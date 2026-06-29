@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -84,6 +86,8 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const [cMileage, setCMileage] = useState(String(currentMileage))
   const [cCost, setCCost] = useState('')
   const [cSaving, setCSaving] = useState(false)
+  const colors = useColors()
+  const s = useMemo(() => makeStyles(colors), [colors])
 
   const loadRecords = useCallback(async () => {
     try {
@@ -675,108 +679,110 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
 
-  header: { backgroundColor: '#fff', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e8eaf0' },
-  back: { color: '#1a73e8', fontSize: 16, marginBottom: 8 },
-  title: { fontSize: 22, fontWeight: '800', color: '#1a1a2e' },
-  sub: { fontSize: 13, color: '#888', marginTop: 2 },
+    header: { backgroundColor: c.surface, paddingTop: 52, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: c.border },
+    back: { color: c.primary, fontSize: 16, marginBottom: 8 },
+    title: { fontSize: 22, fontWeight: '800', color: c.text },
+    sub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
 
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e8eaf0' },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#1a73e8' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#888' },
-  tabTextActive: { color: '#1a73e8' },
+    tabBar: { flexDirection: 'row', backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
+    tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabActive: { borderBottomColor: c.primary },
+    tabText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    tabTextActive: { color: c.primary },
 
-  scroll: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 60 },
+    scroll: { flex: 1 },
+    scrollContent: { padding: 20, paddingBottom: 60 },
 
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a2e', marginBottom: 16 },
-  subSectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a73e8', marginTop: 20, marginBottom: 2 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 16 },
+    subSectionLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginTop: 20, marginBottom: 2 },
 
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 14 },
-  req: { color: '#e53935' },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#1a1a2e',
-  },
-  row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 6, marginTop: 14 },
+    req: { color: '#e53935' },
+    input: {
+      backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: c.text,
+    },
+    row: { flexDirection: 'row', gap: 12 },
+    half: { flex: 1 },
 
-  chipRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
-  chip: {
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff',
-  },
-  chipSel: { backgroundColor: '#e8f0fe', borderColor: '#1a73e8' },
-  chipPass: { backgroundColor: '#e6f4ea', borderColor: '#2e7d32' },
-  chipFail: { backgroundColor: '#fce8e6', borderColor: '#c62828' },
-  chipText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  chipTextSel: { color: '#1a1a2e' },
+    chipRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
+    chip: {
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+      borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
+    },
+    chipSel: { backgroundColor: c.primaryTint, borderColor: c.primary },
+    chipPass: { backgroundColor: '#e6f4ea', borderColor: '#2e7d32' },
+    chipFail: { backgroundColor: '#fce8e6', borderColor: '#c62828' },
+    chipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
+    chipTextSel: { color: c.text },
 
-  reminderCard: {
-    backgroundColor: '#e8f0fe', borderRadius: 14, padding: 16,
-    marginTop: 24, borderWidth: 1, borderColor: '#c5d8fd',
-  },
-  reminderTitle: { fontSize: 15, fontWeight: '700', color: '#1a73e8', marginBottom: 4 },
-  reminderSub: { fontSize: 12, color: '#555', marginBottom: 8 },
+    reminderCard: {
+      backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
+      marginTop: 24, borderWidth: 1, borderColor: c.primaryTintText + '44',
+    },
+    reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primary, marginBottom: 4 },
+    reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 8 },
 
-  saveBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginTop: 28,
-  },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    saveBtn: {
+      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 16,
+      alignItems: 'center', marginTop: 28,
+    },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  historyTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginTop: 32, marginBottom: 12 },
-  histCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    marginBottom: 10, borderLeftWidth: 4, elevation: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3,
-  },
-  histRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  histResult: { fontSize: 14, fontWeight: '700' },
-  histLabel: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  histDate: { fontSize: 13, color: '#666' },
-  histMeta: { fontSize: 12, color: '#888' },
-  histReadings: { fontSize: 12, color: '#555', marginTop: 2 },
-  histCost: { fontSize: 12, color: '#1a73e8', fontWeight: '600', marginTop: 4 },
+    historyTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginTop: 32, marginBottom: 12 },
+    histCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14,
+      marginBottom: 10, borderLeftWidth: 4, elevation: 1,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3,
+    },
+    histRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+    histResult: { fontSize: 14, fontWeight: '700' },
+    histLabel: { fontSize: 14, fontWeight: '700', color: c.text },
+    histDate: { fontSize: 13, color: c.textSub },
+    histMeta: { fontSize: 12, color: c.textMuted },
+    histReadings: { fontSize: 12, color: c.textSub, marginTop: 2 },
+    histCost: { fontSize: 12, color: c.primary, fontWeight: '600', marginTop: 4 },
 
-  predCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    marginTop: 24, borderWidth: 1, borderColor: '#e0e0e0',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  predTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 6 },
-  predNote: { fontSize: 12, color: '#666', marginBottom: 14, lineHeight: 18 },
-  predRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  predStat: { alignItems: 'center', flex: 1 },
-  predStatVal: { fontSize: 15, fontWeight: '800', color: '#1a1a2e', textAlign: 'center' },
-  predStatLabel: { fontSize: 11, color: '#888', marginTop: 2, textAlign: 'center' },
+    predCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16,
+      marginTop: 24, borderWidth: 1, borderColor: c.borderMid,
+      elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    },
+    predTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 6 },
+    predNote: { fontSize: 12, color: c.textSub, marginBottom: 14, lineHeight: 18 },
+    predRow: { flexDirection: 'row', justifyContent: 'space-around' },
+    predStat: { alignItems: 'center', flex: 1 },
+    predStatVal: { fontSize: 15, fontWeight: '800', color: c.text, textAlign: 'center' },
+    predStatLabel: { fontSize: 11, color: c.textMuted, marginTop: 2, textAlign: 'center' },
 
-  predHint: {
-    backgroundColor: '#e8f0fe', borderRadius: 12, padding: 16, marginTop: 24,
-    borderWidth: 1, borderColor: '#c5d8fd',
-  },
-  predHintText: { fontSize: 13, color: '#3c4bdc', lineHeight: 20 },
+    predHint: {
+      backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginTop: 24,
+      borderWidth: 1, borderColor: c.primaryTintText + '44',
+    },
+    predHintText: { fontSize: 13, color: c.primaryTintText, lineHeight: 20 },
 
-  emptyNote: { fontSize: 13, color: '#aaa', textAlign: 'center', marginTop: 24 },
+    emptyNote: { fontSize: 13, color: c.textFaint, textAlign: 'center', marginTop: 24 },
 
-  tabDot: {
-    width: 7, height: 7, borderRadius: 4, backgroundColor: '#c62828',
-    position: 'absolute', top: 8, right: 8,
-  },
+    tabDot: {
+      width: 7, height: 7, borderRadius: 4, backgroundColor: '#c62828',
+      position: 'absolute', top: 8, right: 8,
+    },
 
-  chainStatusCard: {
-    borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
-  },
-  chainStatusLabel: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
-  chainStatusKm: { fontSize: 13, color: '#555', marginBottom: 2 },
-  chainStatusDate: { fontSize: 12, color: '#888', marginTop: 4 },
+    chainStatusCard: {
+      borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
+    },
+    chainStatusLabel: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
+    chainStatusKm: { fontSize: 13, color: c.textSub, marginBottom: 2 },
+    chainStatusDate: { fontSize: 12, color: c.textMuted, marginTop: 4 },
 
-  chainTip: {
-    backgroundColor: '#fff8e1', borderRadius: 10, padding: 12,
-    marginBottom: 4, borderLeftWidth: 3, borderLeftColor: '#f9a825',
-  },
-  chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
-})
+    chainTip: {
+      backgroundColor: '#fff8e1', borderRadius: 10, padding: 12,
+      marginBottom: 4, borderLeftWidth: 3, borderLeftColor: '#f9a825',
+    },
+    chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
+  })
+}

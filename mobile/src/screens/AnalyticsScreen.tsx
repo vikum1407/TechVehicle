@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, ScrollView, ActivityIndicator,
   Alert, StyleSheet, TouchableOpacity
@@ -8,6 +8,8 @@ import Svg, {
   Text as SvgText, Defs, LinearGradient, Stop, Rect
 } from 'react-native-svg'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -448,6 +450,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
   const [anomalies, setAnomalies] = useState<Anomaly[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const load = () => {
     setLoading(true)
@@ -468,7 +472,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#1a73e8" /></View>
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
 
   if (loadError) return (
     <View style={styles.center}>
@@ -689,175 +693,170 @@ const cs = StyleSheet.create({
   noData: { fontSize: 12, color: '#bbb', fontStyle: 'italic', textAlign: 'center', paddingVertical: 12 },
 })
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, backgroundColor: '#f5f5f5' },
-  errorIcon: { fontSize: 48, marginBottom: 16 },
-  errorTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 8, textAlign: 'center' },
-  errorSub: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  retryBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingHorizontal: 28, paddingVertical: 12,
-  },
-  retryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 20 },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 24, paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, backgroundColor: c.background },
+    errorIcon: { fontSize: 48, marginBottom: 16 },
+    errorTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8, textAlign: 'center' },
+    errorSub: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+    retryBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 28, paddingVertical: 12,
+    },
+    retryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 20 },
 
-  totalCard: { backgroundColor: '#1a73e8', borderRadius: 16, padding: 20, marginBottom: 16 },
-  totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },
-  totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 14 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  pillText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+    totalCard: { backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 16 },
+    totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },
+    totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 14 },
+    pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    pill: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+    pillText: { fontSize: 11, color: '#fff', fontWeight: '600' },
 
-  statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  statCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  statLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 4 },
-  statValue: { fontSize: 17, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  statSub: { fontSize: 11, color: '#aaa' },
+    statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+    statCard: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    statLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
+    statValue: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 2 },
+    statSub: { fontSize: 11, color: c.textFaint },
 
-  chartCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
-  },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  chartTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  chartSub: { fontSize: 11, color: '#aaa' },
-  chartDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+    chartCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
+    },
+    chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+    chartTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
+    chartSub: { fontSize: 11, color: c.textFaint },
+    chartDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
 
-  section: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
-  sectionBadge: { fontSize: 11, color: '#888', fontWeight: '600' },
+    section: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: c.text },
+    sectionBadge: { fontSize: 11, color: c.textMuted, fontWeight: '600' },
 
-  catRow: { marginBottom: 12 },
-  catLabel: { fontSize: 12, color: '#555', fontWeight: '600', marginBottom: 5 },
-  barTrack: { height: 10, backgroundColor: '#f0f0f0', borderRadius: 5, marginBottom: 3, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 5 },
-  catAmount: { fontSize: 11, color: '#888' },
+    catRow: { marginBottom: 12 },
+    catLabel: { fontSize: 12, color: c.textSub, fontWeight: '600', marginBottom: 5 },
+    barTrack: { height: 10, backgroundColor: c.border, borderRadius: 5, marginBottom: 3, overflow: 'hidden' },
+    barFill: { height: '100%', borderRadius: 5 },
+    catAmount: { fontSize: 11, color: c.textMuted },
 
-  monthlyChart: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 6 },
-  monthCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-  monthAmt: { fontSize: 9, color: '#888', marginBottom: 3 },
-  monthBg: { width: '80%', height: 80, backgroundColor: '#f0f0f0', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  monthFill: { backgroundColor: '#1a73e8', borderRadius: 4, width: '100%' },
-  monthLbl: { fontSize: 9, color: '#888', marginTop: 5, textAlign: 'center' },
+    monthlyChart: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 6 },
+    monthCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+    monthAmt: { fontSize: 9, color: c.textMuted, marginBottom: 3 },
+    monthBg: { width: '80%', height: 80, backgroundColor: c.border, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+    monthFill: { backgroundColor: c.primary, borderRadius: 4, width: '100%' },
+    monthLbl: { fontSize: 9, color: c.textMuted, marginTop: 5, textAlign: 'center' },
 
-  countRow: { flexDirection: 'row', gap: 12 },
-  countCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  countNum: { fontSize: 28, fontWeight: '800', color: '#1a73e8', marginBottom: 4 },
-  countLbl: { fontSize: 11, color: '#888', fontWeight: '600', textAlign: 'center' },
+    countRow: { flexDirection: 'row', gap: 12 },
+    countCard: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16, alignItems: 'center',
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    countNum: { fontSize: 28, fontWeight: '800', color: c.primary, marginBottom: 4 },
+    countLbl: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
-  // Structured analytics divider
-  structuredDivider: { marginTop: 8, marginBottom: 16, alignItems: 'center' },
-  structuredDividerText: { fontSize: 11, color: '#aaa', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+    structuredDivider: { marginTop: 8, marginBottom: 16, alignItems: 'center' },
+    structuredDividerText: { fontSize: 11, color: c.textFaint, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
 
-  // Table rows used in all 4 structured cards
-  tableRow: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f4f4f4',
-  },
-  tableRowFirst: { borderTopWidth: 0 },
-  tableCol1: { width: 90 },
-  tableCol2: { flex: 1 },
-  tableCol3: { width: 80, alignItems: 'flex-end' },
-  tableDate: { fontSize: 12, color: '#333', fontWeight: '600' },
-  tableKm: { fontSize: 10, color: '#aaa', marginTop: 2 },
-  tableDash: { fontSize: 13, color: '#ccc' },
-  tableMeta: { fontSize: 11, color: '#888', marginTop: 3 },
-  tableSubText: { fontSize: 11, color: '#888', marginTop: 2 },
-  tableInterval: { fontSize: 11, color: '#1a73e8', fontWeight: '600', marginTop: 3 },
+    tableRow: {
+      flexDirection: 'row', alignItems: 'flex-start',
+      paddingVertical: 10, borderTopWidth: 1, borderTopColor: c.border,
+    },
+    tableRowFirst: { borderTopWidth: 0 },
+    tableCol1: { width: 90 },
+    tableCol2: { flex: 1 },
+    tableCol3: { width: 80, alignItems: 'flex-end' },
+    tableDate: { fontSize: 12, color: c.textBody, fontWeight: '600' },
+    tableKm: { fontSize: 10, color: c.textFaint, marginTop: 2 },
+    tableDash: { fontSize: 13, color: c.borderStrong },
+    tableMeta: { fontSize: 11, color: c.textMuted, marginTop: 3 },
+    tableSubText: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+    tableInterval: { fontSize: 11, color: c.primary, fontWeight: '600', marginTop: 3 },
 
-  gradeBadge: { backgroundColor: '#e8f0fe', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
-  gradeBadgeText: { fontSize: 12, color: '#1a55a8', fontWeight: '700' },
-  sizeBadge: { backgroundColor: '#e8f5e9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  sizeBadgeText: { fontSize: 11, color: '#2e7d32', fontWeight: '700' },
+    gradeBadge: { backgroundColor: c.primaryTint, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
+    gradeBadgeText: { fontSize: 12, color: c.primaryTintText, fontWeight: '700' },
+    sizeBadge: { backgroundColor: '#e8f5e9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    sizeBadgeText: { fontSize: 11, color: '#2e7d32', fontWeight: '700' },
 
-  // Emission specific
-  emissionVal: { fontSize: 11, color: '#555' },
-  emissionNum: { fontWeight: '700', color: '#333' },
-  resultBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-end' },
-  resultPass: { backgroundColor: '#34a853' },
-  resultFail: { backgroundColor: '#ea4335' },
-  resultNeutral: { backgroundColor: '#f0f0f0' },
-  resultText: { fontSize: 11, fontWeight: '700', color: '#555' },
+    emissionVal: { fontSize: 11, color: c.textSub },
+    emissionNum: { fontWeight: '700', color: c.textBody },
+    resultBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-end' },
+    resultPass: { backgroundColor: '#34a853' },
+    resultFail: { backgroundColor: '#ea4335' },
+    resultNeutral: { backgroundColor: c.border },
+    resultText: { fontSize: 11, fontWeight: '700', color: c.textSub },
 
-  // Knowledge Hub nudge
-  knowledgeNudge: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#e8f0fe', borderRadius: 14, padding: 16,
-    marginTop: 8, marginBottom: 16,
-    borderLeftWidth: 4, borderLeftColor: '#1a73e8',
-  },
-  knowledgeNudgeLeft: { flex: 1 },
-  knowledgeNudgeTitle: { fontSize: 14, fontWeight: '700', color: '#1a55a8', marginBottom: 4 },
-  knowledgeNudgeSub: { fontSize: 12, color: '#3c4f8a', lineHeight: 17 },
-  knowledgeNudgeArrow: { fontSize: 18, color: '#1a73e8', fontWeight: '700' },
+    knowledgeNudge: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
+      marginTop: 8, marginBottom: 16,
+      borderLeftWidth: 4, borderLeftColor: c.primary,
+    },
+    knowledgeNudgeLeft: { flex: 1 },
+    knowledgeNudgeTitle: { fontSize: 14, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
+    knowledgeNudgeSub: { fontSize: 12, color: c.textSub, lineHeight: 17 },
+    knowledgeNudgeArrow: { fontSize: 18, color: c.primary, fontWeight: '700' },
 
-  // Warning banners
-  warnBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: '#fff8e1', borderRadius: 8, padding: 10, marginBottom: 12,
-    borderLeftWidth: 3, borderLeftColor: '#f9a825',
-  },
-  warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
-  warnIcon: { fontSize: 14, marginTop: 1 },
-  warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
+    warnBanner: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+      backgroundColor: '#fff8e1', borderRadius: 8, padding: 10, marginBottom: 12,
+      borderLeftWidth: 3, borderLeftColor: '#f9a825',
+    },
+    warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
+    warnIcon: { fontSize: 14, marginTop: 1 },
+    warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
 
-  // Anomaly section
-  anomalySection: { marginBottom: 16 },
-  anomalySectionTitle: { fontSize: 14, fontWeight: '700', color: '#555', marginBottom: 10 },
-  anomalyCard: {
-    borderRadius: 10, padding: 14, marginBottom: 10,
-    borderLeftWidth: 4,
-  },
-  anomalyCardWarn: { backgroundColor: '#fff8e1', borderLeftColor: '#f9a825' },
-  anomalyCardInfo: { backgroundColor: '#e8f0fe', borderLeftColor: '#1a73e8' },
-  anomalyTitle: { fontSize: 14, fontWeight: '700', marginBottom: 5 },
-  anomalyTitleWarn: { color: '#e65100' },
-  anomalyTitleInfo: { color: '#1a55a8' },
-  anomalyDesc: { fontSize: 13, color: '#555', lineHeight: 19 },
+    anomalySection: { marginBottom: 16 },
+    anomalySectionTitle: { fontSize: 14, fontWeight: '700', color: c.textSub, marginBottom: 10 },
+    anomalyCard: {
+      borderRadius: 10, padding: 14, marginBottom: 10,
+      borderLeftWidth: 4,
+    },
+    anomalyCardWarn: { backgroundColor: '#fff8e1', borderLeftColor: '#f9a825' },
+    anomalyCardInfo: { backgroundColor: c.primaryTint, borderLeftColor: c.primary },
+    anomalyTitle: { fontSize: 14, fontWeight: '700', marginBottom: 5 },
+    anomalyTitleWarn: { color: '#e65100' },
+    anomalyTitleInfo: { color: c.primaryTintText },
+    anomalyDesc: { fontSize: 13, color: c.textSub, lineHeight: 19 },
 
-  // Cost forecast
-  forecastCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  forecastHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    marginBottom: 14,
-  },
-  forecastTitle: { fontSize: 16, fontWeight: '800', color: '#1a1a1a', marginBottom: 2 },
-  forecastSub: { fontSize: 12, color: '#888' },
-  forecastTotal: { alignItems: 'flex-end' },
-  forecastTotalLabel: { fontSize: 11, color: '#888', marginBottom: 2 },
-  forecastTotalValue: { fontSize: 18, fontWeight: '800', color: '#1a73e8' },
-  forecastEmpty: { fontSize: 13, color: '#aaa', textAlign: 'center', paddingVertical: 8 },
-  forecastRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10,
-  },
-  forecastRowBorder: { borderTopWidth: 1, borderTopColor: '#f5f5f5' },
-  forecastDot: { width: 8, height: 8, borderRadius: 4 },
-  forecastRowText: { flex: 1 },
-  forecastItemName: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  forecastItemTime: { fontSize: 12, fontWeight: '600' },
-  forecastCostCol: { alignItems: 'flex-end', minWidth: 80 },
-  forecastCost: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
-  forecastCostNote: { fontSize: 10, color: '#aaa' },
-  forecastCostNoData: { fontSize: 12, color: '#bbb', fontStyle: 'italic' },
-  forecastHint: {
-    fontSize: 11, color: '#aaa', fontStyle: 'italic',
-    textAlign: 'center', marginTop: 10, lineHeight: 16,
-  },
-})
+    forecastCard: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    forecastHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+      marginBottom: 14,
+    },
+    forecastTitle: { fontSize: 16, fontWeight: '800', color: c.text, marginBottom: 2 },
+    forecastSub: { fontSize: 12, color: c.textMuted },
+    forecastTotal: { alignItems: 'flex-end' },
+    forecastTotalLabel: { fontSize: 11, color: c.textMuted, marginBottom: 2 },
+    forecastTotalValue: { fontSize: 18, fontWeight: '800', color: c.primary },
+    forecastEmpty: { fontSize: 13, color: c.textFaint, textAlign: 'center', paddingVertical: 8 },
+    forecastRow: {
+      flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10,
+    },
+    forecastRowBorder: { borderTopWidth: 1, borderTopColor: c.border },
+    forecastDot: { width: 8, height: 8, borderRadius: 4 },
+    forecastRowText: { flex: 1 },
+    forecastItemName: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 2 },
+    forecastItemTime: { fontSize: 12, fontWeight: '600' },
+    forecastCostCol: { alignItems: 'flex-end', minWidth: 80 },
+    forecastCost: { fontSize: 14, fontWeight: '700', color: c.text },
+    forecastCostNote: { fontSize: 10, color: c.textFaint },
+    forecastCostNoData: { fontSize: 12, color: c.textFaint, fontStyle: 'italic' },
+    forecastHint: {
+      fontSize: 11, color: c.textFaint, fontStyle: 'italic',
+      textAlign: 'center', marginTop: 10, lineHeight: 16,
+    },
+  })
+}

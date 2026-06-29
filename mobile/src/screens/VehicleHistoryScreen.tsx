@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Image, Modal, FlatList, Dimensions, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { exportVehiclePdf } from '../utils/pdfExport'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Tab = 'service' | 'expenses' | 'fuel'
 
@@ -90,6 +92,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [quickDraft, setQuickDraft] = useState({ description: '', year: '', mileage: '', cost: '' })
   const [savingQuick, setSavingQuick] = useState(false)
+  const colors = useColors()
+  const s = useMemo(() => makeStyles(colors), [colors])
 
   const handleQuickAdd = async () => {
     if (!quickDraft.description.trim()) { Alert.alert('Required', 'Please describe what was done.'); return }
@@ -468,7 +472,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#1a73e8" style={s.loader} />
+        <ActivityIndicator size="large" color={colors.primary} style={s.loader} />
       ) : (
         <>
           {/* ── Service tab ─────────────────────────────── */}
@@ -479,7 +483,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 <TextInput
                   style={s.searchInput}
                   placeholder="Search (e.g. Oil, Brake, Tyre...)"
-                  placeholderTextColor="#aaa"
+                  placeholderTextColor={colors.textFaint}
                   value={search}
                   onChangeText={setSearch}
                   clearButtonMode="while-editing"
@@ -493,7 +497,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                   disabled={exporting}
                 >
                   {exporting
-                    ? <ActivityIndicator size="small" color="#1a73e8" />
+                    ? <ActivityIndicator size="small" color={colors.primary} />
                     : <Text style={s.exportBtnText}>📄 PDF</Text>
                   }
                 </TouchableOpacity>
@@ -528,7 +532,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                   <TextInput
                     style={s.mileageInput}
                     placeholder="Min km"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={colors.textFaint}
                     value={mileageMin}
                     onChangeText={setMileageMin}
                     keyboardType="number-pad"
@@ -537,7 +541,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                   <TextInput
                     style={s.mileageInput}
                     placeholder="Max km"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={colors.textFaint}
                     value={mileageMax}
                     onChangeText={setMileageMax}
                     keyboardType="number-pad"
@@ -613,7 +617,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
               <TextInput
                 style={s.searchInput}
                 placeholder="Search by description..."
-                placeholderTextColor="#aaa"
+                placeholderTextColor={colors.textFaint}
                 value={expSearch}
                 onChangeText={setExpSearch}
                 clearButtonMode="while-editing"
@@ -709,7 +713,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
               <TextInput
                 style={s.searchInput}
                 placeholder="Search by station name..."
-                placeholderTextColor="#aaa"
+                placeholderTextColor={colors.textFaint}
                 value={fuelSearch}
                 onChangeText={setFuelSearch}
                 clearButtonMode="while-editing"
@@ -821,7 +825,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 value={quickDraft.description}
                 onChangeText={v => setQuickDraft(p => ({ ...p, description: v }))}
                 placeholder="e.g. Full service, Tyre change, Timing belt"
-                placeholderTextColor="#bbb"
+                placeholderTextColor={colors.textFaint}
                 autoFocus
               />
               <Text style={s.editLabel}>Approximate year</Text>
@@ -830,7 +834,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 value={quickDraft.year}
                 onChangeText={v => setQuickDraft(p => ({ ...p, year: v }))}
                 placeholder="e.g. 2022  (leave blank if unsure)"
-                placeholderTextColor="#bbb"
+                placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
                 maxLength={4}
               />
@@ -840,7 +844,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 value={quickDraft.mileage}
                 onChangeText={v => setQuickDraft(p => ({ ...p, mileage: v }))}
                 placeholder="Optional"
-                placeholderTextColor="#bbb"
+                placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
               />
               <Text style={s.editLabel}>Cost (LKR)</Text>
@@ -849,7 +853,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
                 value={quickDraft.cost}
                 onChangeText={v => setQuickDraft(p => ({ ...p, cost: v }))}
                 placeholder="Optional"
-                placeholderTextColor="#bbb"
+                placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
               />
               <Text style={[s.editLabel, { color: '#aaa', fontSize: 12, marginTop: 4 }]}>
@@ -882,19 +886,19 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
-              <TextInput style={s.editInput} value={draftService.date} onChangeText={v => setDraftService(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.date} onChangeText={v => setDraftService(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Services done</Text>
-              <TextInput style={s.editInput} value={draftService.description} onChangeText={v => setDraftService(p => ({ ...p, description: v }))} placeholder="Oil Change, Air Filter" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.description} onChangeText={v => setDraftService(p => ({ ...p, description: v }))} placeholder="Oil Change, Air Filter" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Odometer (km)</Text>
-              <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Parts</Text>
-              <TextInput style={s.editInput} value={draftService.parts} onChangeText={v => setDraftService(p => ({ ...p, parts: v }))} placeholder="e.g. NGK Spark Plug" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.parts} onChangeText={v => setDraftService(p => ({ ...p, parts: v }))} placeholder="e.g. NGK Spark Plug" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Brand</Text>
-              <TextInput style={s.editInput} value={draftService.brand} onChangeText={v => setDraftService(p => ({ ...p, brand: v }))} placeholder="e.g. Bosch" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.brand} onChangeText={v => setDraftService(p => ({ ...p, brand: v }))} placeholder="e.g. Bosch" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Cost (LKR)</Text>
-              <TextInput style={s.editInput} value={draftService.cost} onChangeText={v => setDraftService(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 4500" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftService.cost} onChangeText={v => setDraftService(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 4500" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Notes</Text>
-              <TextInput style={[s.editInput, s.editInputMulti]} value={draftService.notes} onChangeText={v => setDraftService(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor="#bbb" />
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftService.notes} onChangeText={v => setDraftService(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveService} disabled={savingEdit}>
                 {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
               </TouchableOpacity>
@@ -915,17 +919,17 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
-              <TextInput style={s.editInput} value={draftExpense.date} onChangeText={v => setDraftExpense(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftExpense.date} onChangeText={v => setDraftExpense(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Category</Text>
-              <TextInput style={s.editInput} value={draftExpense.category} onChangeText={v => setDraftExpense(p => ({ ...p, category: v }))} placeholder="e.g. Insurance" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftExpense.category} onChangeText={v => setDraftExpense(p => ({ ...p, category: v }))} placeholder="e.g. Insurance" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Amount (LKR)</Text>
-              <TextInput style={s.editInput} value={draftExpense.amount} onChangeText={v => setDraftExpense(p => ({ ...p, amount: v }))} keyboardType="number-pad" placeholder="e.g. 24000" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftExpense.amount} onChangeText={v => setDraftExpense(p => ({ ...p, amount: v }))} keyboardType="number-pad" placeholder="e.g. 24000" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Description</Text>
-              <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder="Optional description" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder="Optional description" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Odometer (km)</Text>
-              <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Notes</Text>
-              <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor="#bbb" />
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveExpense} disabled={savingEdit}>
                 {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
               </TouchableOpacity>
@@ -946,15 +950,15 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
-              <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Odometer (km)</Text>
-              <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Litres</Text>
-              <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Cost (LKR)</Text>
-              <TextInput style={s.editInput} value={draftFuel.cost} onChangeText={v => setDraftFuel(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 8900" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftFuel.cost} onChangeText={v => setDraftFuel(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 8900" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>Station</Text>
-              <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder="e.g. Ceylinco Petrol" placeholderTextColor="#bbb" />
+              <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder="e.g. Ceylinco Petrol" placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveFuel} disabled={savingEdit}>
                 {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
               </TouchableOpacity>
@@ -1026,201 +1030,195 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
 
-  header: {
-    backgroundColor: '#fff', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8eaf0',
-  },
-  backBtn: { marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e' },
-  headerSub: { fontSize: 12, color: '#888', marginTop: 2 },
+    header: {
+      backgroundColor: c.surface, paddingTop: 52, paddingHorizontal: 20, paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    backBtn: { marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: c.text },
+    headerSub: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e8eaf0' },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#1a73e8' },
-  tabText: { fontSize: 12, fontWeight: '600', color: '#aaa' },
-  tabTextActive: { color: '#1a73e8' },
+    tabBar: { flexDirection: 'row', backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabActive: { borderBottomColor: c.primary },
+    tabText: { fontSize: 12, fontWeight: '600', color: c.textFaint },
+    tabTextActive: { color: c.primary },
 
-  loader: { flex: 1, justifyContent: 'center' as const },
+    loader: { flex: 1, justifyContent: 'center' as const },
 
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+    scroll: { flex: 1 },
+    scrollContent: { padding: 16, paddingBottom: 40 },
 
-  // Service tab
-  serviceTopRow: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'center' },
-  searchInput: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#1a1a2e',
-  },
-  addPastBtn: {
-    backgroundColor: '#e6f4ea', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginLeft: 6,
-  },
-  addPastBtnText: { fontSize: 13, color: '#1e7e34', fontWeight: '700' },
-  exportBtn: {
-    backgroundColor: '#e8f0fe', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, marginLeft: 6,
-  },
-  exportBtnDisabled: { opacity: 0.5 },
-  exportBtnText: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
-  filterChips: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
-  filterChip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  filterChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  filterChipText: { fontSize: 12, color: '#666', fontWeight: '600' },
-  filterChipTextActive: { color: '#fff' },
-  filterChipsScroll: { marginBottom: 10 },
-  filterChipsContent: { gap: 8, paddingRight: 16 },
-  catFilterScroll: { marginBottom: 10 },
-  mileageRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginBottom: 10, marginTop: 2,
-  },
-  mileageInput: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#1a1a2e',
-  },
-  mileageSep: { fontSize: 14, color: '#aaa' },
-  mileageClear: { fontSize: 13, color: '#1a73e8', fontWeight: '600', paddingHorizontal: 4 },
-  filterCountRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 8,
-  },
-  filterCount: { fontSize: 12, color: '#aaa' },
-  clearLink: { fontSize: 13, color: '#1a73e8', fontWeight: '600' },
+    serviceTopRow: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'center' },
+    searchInput: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: c.text,
+    },
+    addPastBtn: {
+      backgroundColor: '#e6f4ea', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginLeft: 6,
+    },
+    addPastBtnText: { fontSize: 13, color: '#1e7e34', fontWeight: '700' },
+    exportBtn: {
+      backgroundColor: c.primaryTint, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, marginLeft: 6,
+    },
+    exportBtnDisabled: { opacity: 0.5 },
+    exportBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    filterChips: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+    filterChip: {
+      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+      backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderMid,
+    },
+    filterChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    filterChipText: { fontSize: 12, color: c.textSub, fontWeight: '600' },
+    filterChipTextActive: { color: '#fff' },
+    filterChipsScroll: { marginBottom: 10 },
+    filterChipsContent: { gap: 8, paddingRight: 16 },
+    catFilterScroll: { marginBottom: 10 },
+    mileageRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginBottom: 10, marginTop: 2,
+    },
+    mileageInput: {
+      flex: 1, backgroundColor: c.surface, borderRadius: 8, borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: c.text,
+    },
+    mileageSep: { fontSize: 14, color: c.textFaint },
+    mileageClear: { fontSize: 13, color: c.primary, fontWeight: '600', paddingHorizontal: 4 },
+    filterCountRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      marginBottom: 8,
+    },
+    filterCount: { fontSize: 12, color: c.textFaint },
+    clearLink: { fontSize: 13, color: c.primary, fontWeight: '600' },
 
-  // Card top row with cost + menu
-  cardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  menuBtn: { paddingHorizontal: 4 },
-  menuBtnText: { fontSize: 18, color: '#aaa', fontWeight: '700', lineHeight: 22 },
+    cardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    menuBtn: { paddingHorizontal: 4 },
+    menuBtnText: { fontSize: 18, color: c.textFaint, fontWeight: '700', lineHeight: 22 },
 
-  // Record cards
-  card: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
-  },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  cardDate: { fontSize: 13, color: '#888', fontWeight: '600' },
-  cardCost: { fontSize: 13, color: '#1a73e8', fontWeight: '700' },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  tag: { backgroundColor: '#f0f4ff', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  tagText: { fontSize: 12, color: '#1a3a8f', fontWeight: '600' },
-  tagMore: { backgroundColor: '#eee', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  tagMoreText: { fontSize: 12, color: '#888' },
-  cardMeta: { fontSize: 12, color: '#aaa', marginTop: 4 },
-  cardNotes: { fontSize: 12, color: '#666', fontStyle: 'italic', marginTop: 6 },
-  expandedItem: { fontSize: 14, color: '#333', marginBottom: 4 },
-  expandHint: { fontSize: 11, color: '#bbb', marginTop: 4 },
-  collapseHint: { fontSize: 11, color: '#bbb', marginTop: 8, textAlign: 'right' },
-  photoStrip: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
-  thumb: { width: 72, height: 72, borderRadius: 8, backgroundColor: '#eee' },
-  thumbBadge: {
-    position: 'absolute', bottom: 4, right: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2,
-  },
-  thumbBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    card: {
+      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
+      elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
+    },
+    cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    cardDate: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+    cardCost: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+    tag: { backgroundColor: c.primaryTint, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
+    tagText: { fontSize: 12, color: c.primaryTintText, fontWeight: '600' },
+    tagMore: { backgroundColor: c.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    tagMoreText: { fontSize: 12, color: c.textMuted },
+    cardMeta: { fontSize: 12, color: c.textFaint, marginTop: 4 },
+    cardNotes: { fontSize: 12, color: c.textSub, fontStyle: 'italic', marginTop: 6 },
+    expandedItem: { fontSize: 14, color: c.textBody, marginBottom: 4 },
+    expandHint: { fontSize: 11, color: c.textFaint, marginTop: 4 },
+    collapseHint: { fontSize: 11, color: c.textFaint, marginTop: 8, textAlign: 'right' },
+    photoStrip: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+    thumb: { width: 72, height: 72, borderRadius: 8, backgroundColor: c.border },
+    thumbBadge: {
+      position: 'absolute', bottom: 4, right: 4,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2,
+    },
+    thumbBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
-  // Expense tab
-  totalCard: {
-    backgroundColor: '#1a73e8', borderRadius: 14, padding: 20, marginBottom: 14, alignItems: 'center',
-  },
-  totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 4 },
-  totalAmount: { fontSize: 28, color: '#fff', fontWeight: '800' },
-  totalSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
-  catScroll: { marginBottom: 14 },
-  catScrollContent: { gap: 8, paddingRight: 16 },
-  catChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  catChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  catChipText: { fontSize: 13, color: '#666', fontWeight: '600' },
-  catChipTextActive: { color: '#fff' },
-  expCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
-  },
-  expTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  expCatBadge: { backgroundColor: '#f0f4ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  expCatText: { fontSize: 12, fontWeight: '700', color: '#1a73e8' },
-  expAmount: { fontSize: 16, fontWeight: '800', color: '#1a1a2e' },
-  expMeta: { flexDirection: 'row', gap: 12 },
-  expDate: { fontSize: 12, color: '#888' },
-  expKm: { fontSize: 12, color: '#aaa' },
-  expNotes: { fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' },
+    totalCard: {
+      backgroundColor: c.primary, borderRadius: 14, padding: 20, marginBottom: 14, alignItems: 'center',
+    },
+    totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 4 },
+    totalAmount: { fontSize: 28, color: '#fff', fontWeight: '800' },
+    totalSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+    catScroll: { marginBottom: 14 },
+    catScrollContent: { gap: 8, paddingRight: 16 },
+    catChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderMid,
+    },
+    catChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    catChipText: { fontSize: 13, color: c.textSub, fontWeight: '600' },
+    catChipTextActive: { color: '#fff' },
+    expCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
+      elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    },
+    expTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    expCatBadge: { backgroundColor: c.primaryTint, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    expCatText: { fontSize: 12, fontWeight: '700', color: c.primary },
+    expAmount: { fontSize: 16, fontWeight: '800', color: c.text },
+    expMeta: { flexDirection: 'row', gap: 12 },
+    expDate: { fontSize: 12, color: c.textMuted },
+    expKm: { fontSize: 12, color: c.textFaint },
+    expNotes: { fontSize: 12, color: c.textSub, marginTop: 4, fontStyle: 'italic' },
 
-  // Fuel tab
-  fuelSummary: {
-    flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    marginBottom: 14, justifyContent: 'space-around',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
-  },
-  fuelStat: { alignItems: 'center', flex: 1 },
-  fuelStatVal: { fontSize: 18, fontWeight: '800', color: '#1a73e8' },
-  fuelStatLabel: { fontSize: 11, color: '#888', marginTop: 2 },
-  fuelCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
-  },
-  fuelCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  fuelDate: { fontSize: 13, color: '#666', fontWeight: '600' },
-  fuelCost: { fontSize: 14, fontWeight: '800', color: '#1a1a2e' },
-  fuelCardMeta: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  fuelMeta: { fontSize: 13, color: '#555' },
-  fuelKmL: { fontSize: 12, color: '#aaa' },
-  fuelStation: { fontSize: 12, color: '#aaa', marginTop: 4 },
+    fuelSummary: {
+      flexDirection: 'row', backgroundColor: c.surface, borderRadius: 14, padding: 16,
+      marginBottom: 14, justifyContent: 'space-around',
+      elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
+    },
+    fuelStat: { alignItems: 'center', flex: 1 },
+    fuelStatVal: { fontSize: 18, fontWeight: '800', color: c.primary },
+    fuelStatLabel: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+    fuelCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
+      elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    },
+    fuelCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    fuelDate: { fontSize: 13, color: c.textSub, fontWeight: '600' },
+    fuelCost: { fontSize: 14, fontWeight: '800', color: c.text },
+    fuelCardMeta: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+    fuelMeta: { fontSize: 13, color: c.textSub },
+    fuelKmL: { fontSize: 12, color: c.textFaint },
+    fuelStation: { fontSize: 12, color: c.textFaint, marginTop: 4 },
 
-  // Empty state
-  empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 17, fontWeight: '700', color: '#333', marginBottom: 8, textAlign: 'center' },
-  emptySub: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  emptyBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 10,
-    paddingHorizontal: 20, paddingVertical: 10,
-  },
-  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32 },
+    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyText: { fontSize: 17, fontWeight: '700', color: c.textBody, marginBottom: 8, textAlign: 'center' },
+    emptySub: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    emptyBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 20, paddingVertical: 10,
+    },
+    emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // Edit modals
-  editModalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
-  },
-  editModalCard: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%',
-  },
-  editModalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
-  },
-  editModalTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a2e' },
-  editModalClose: { fontSize: 18, color: '#888', fontWeight: '700' },
-  editLabel: { fontSize: 12, fontWeight: '700', color: '#888', marginBottom: 6, marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  editInput: {
-    backgroundColor: '#f5f7fa', borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: '#1a1a2e',
-  },
-  editInputMulti: { minHeight: 80, textAlignVertical: 'top' },
-  editSaveBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24,
-  },
-  editSaveBtnDisabled: { opacity: 0.6 },
-  editSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    editModalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+    },
+    editModalCard: {
+      backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%',
+    },
+    editModalHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+    },
+    editModalTitle: { fontSize: 17, fontWeight: '800', color: c.text },
+    editModalClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
+    editLabel: { fontSize: 12, fontWeight: '700', color: c.textMuted, marginBottom: 6, marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+    editInput: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: c.text,
+    },
+    editInputMulti: { minHeight: 80, textAlignVertical: 'top' },
+    editSaveBtn: {
+      backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24,
+    },
+    editSaveBtnDisabled: { opacity: 0.6 },
+    editSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
-  // Photo viewer modal
-  photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
-  photoModalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12,
-  },
-  photoModalLabel: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 16 },
-  photoModalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  photoModalCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 20 },
-  photoNavBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  photoNavBtnDisabled: { opacity: 0.3 },
-  photoNavText: { color: '#fff', fontSize: 24, fontWeight: '300' },
-  photoCounter: { color: '#fff', fontSize: 14, fontWeight: '600' },
-})
+    photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
+    photoModalHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12,
+    },
+    photoModalLabel: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 16 },
+    photoModalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    photoModalCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 20 },
+    photoNavBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    photoNavBtnDisabled: { opacity: 0.3 },
+    photoNavText: { color: '#fff', fontSize: 24, fontWeight: '300' },
+    photoCounter: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  })
+}

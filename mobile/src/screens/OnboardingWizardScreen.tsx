@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Vehicle = {
   id: string
@@ -69,6 +71,8 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   const [showAddForm, setShowAddForm] = useState(false)
   const [newRecord, setNewRecord] = useState<QuickRecord>(emptyQR())
   const [saving, setSaving] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const visibleMilestones = vehicle.vehicleType
     ? MILESTONES.filter(m => MILESTONE_FOR[m.id]?.includes(vehicle.vehicleType!))
@@ -286,71 +290,59 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 20, paddingBottom: 48 },
-
-  // Step indicator
-  stepRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 52, marginBottom: 4 },
-  stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#dde4f0' },
-  stepDotActive: { backgroundColor: '#1a73e8' },
-  stepLine: { width: 48, height: 2, backgroundColor: '#dde4f0', marginHorizontal: 6 },
-  stepLineActive: { backgroundColor: '#1a73e8' },
-  stepLabel: { textAlign: 'center', fontSize: 12, color: '#888', marginBottom: 20 },
-
-  // Header
-  header: { marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: '800', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#1a73e8', fontWeight: '600', marginBottom: 10 },
-  intro: { fontSize: 14, color: '#666', lineHeight: 20 },
-
-  // Milestone cards (step 1)
-  card: { backgroundColor: '#fff', borderRadius: 14, marginBottom: 10, borderWidth: 1.5, borderColor: '#e8e8e8', overflow: 'hidden' },
-  cardActive: { borderColor: '#1a73e8', backgroundColor: '#fafcff' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  cardLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12, marginRight: 12 },
-  cardIcon: { fontSize: 24, marginTop: 2 },
-  cardTextWrap: { flex: 1 },
-  cardLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginBottom: 2 },
-  cardQuestion: { fontSize: 13, color: '#666', lineHeight: 18 },
-  toggle: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: '#ccc', backgroundColor: '#f5f5f5', minWidth: 70, alignItems: 'center' },
-  toggleActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-  toggleText: { fontSize: 13, color: '#888', fontWeight: '600' },
-  toggleTextActive: { color: '#fff' },
-  cardFields: { paddingHorizontal: 16, paddingBottom: 16, borderTopWidth: 1, borderTopColor: '#e8f0fe', backgroundColor: '#f0f6ff' },
-  fieldRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  fieldHalf: { flex: 1 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, color: '#1a1a1a', borderWidth: 1, borderColor: '#dde4f0' },
-  fieldHint: { fontSize: 11, color: '#aaa', marginTop: 8 },
-
-  nextBtn: { backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-  // Quick-add records (step 2)
-  quickCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#e0e8ff' },
-  quickCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  quickCardDesc: { fontSize: 15, fontWeight: '700', color: '#1a1a1a', flex: 1 },
-  quickCardRemove: { fontSize: 16, color: '#aaa', paddingLeft: 12 },
-  quickCardMeta: { fontSize: 12, color: '#888' },
-
-  addRecordBtn: { borderWidth: 1.5, borderColor: '#1a73e8', borderStyle: 'dashed', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 16 },
-  addRecordBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '700' },
-
-  addForm: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e0e0e0' },
-  addFormTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a1a', marginBottom: 12 },
-  addFormActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  cancelBtnText: { fontSize: 14, color: '#888', fontWeight: '600' },
-  confirmBtn: { flex: 1, backgroundColor: '#1a73e8', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  confirmBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
-
-  doneBtn: { backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8, marginBottom: 8 },
-  doneBtnDisabled: { opacity: 0.6 },
-  doneBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-  backLink: { alignItems: 'center', paddingVertical: 8 },
-  backLinkText: { fontSize: 14, color: '#888' },
-
-  footer: { textAlign: 'center', fontSize: 12, color: '#aaa', marginTop: 16 },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 20, paddingBottom: 48 },
+    stepRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 52, marginBottom: 4 },
+    stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.borderMid },
+    stepDotActive: { backgroundColor: c.primary },
+    stepLine: { width: 48, height: 2, backgroundColor: c.borderMid, marginHorizontal: 6 },
+    stepLineActive: { backgroundColor: c.primary },
+    stepLabel: { textAlign: 'center', fontSize: 12, color: c.textMuted, marginBottom: 20 },
+    header: { marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', color: c.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: c.primary, fontWeight: '600', marginBottom: 10 },
+    intro: { fontSize: 14, color: c.textSub, lineHeight: 20 },
+    card: { backgroundColor: c.surface, borderRadius: 14, marginBottom: 10, borderWidth: 1.5, borderColor: c.borderMid, overflow: 'hidden' },
+    cardActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+    cardLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12, marginRight: 12 },
+    cardIcon: { fontSize: 24, marginTop: 2 },
+    cardTextWrap: { flex: 1 },
+    cardLabel: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
+    cardQuestion: { fontSize: 13, color: c.textSub, lineHeight: 18 },
+    toggle: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: c.borderStrong, backgroundColor: c.surfaceAlt, minWidth: 70, alignItems: 'center' },
+    toggleActive: { backgroundColor: c.primary, borderColor: c.primary },
+    toggleText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+    toggleTextActive: { color: '#fff' },
+    cardFields: { paddingHorizontal: 16, paddingBottom: 16, borderTopWidth: 1, borderTopColor: c.primaryTint, backgroundColor: c.primaryTint },
+    fieldRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+    fieldHalf: { flex: 1 },
+    fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textSub, marginBottom: 6, marginTop: 12 },
+    input: { backgroundColor: c.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, color: c.text, borderWidth: 1, borderColor: c.borderMid },
+    fieldHint: { fontSize: 11, color: c.textFaint, marginTop: 8 },
+    nextBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+    nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    quickCard: { backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: c.primaryTint },
+    quickCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    quickCardDesc: { fontSize: 15, fontWeight: '700', color: c.text, flex: 1 },
+    quickCardRemove: { fontSize: 16, color: c.textFaint, paddingLeft: 12 },
+    quickCardMeta: { fontSize: 12, color: c.textMuted },
+    addRecordBtn: { borderWidth: 1.5, borderColor: c.primary, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 16 },
+    addRecordBtnText: { fontSize: 15, color: c.primary, fontWeight: '700' },
+    addForm: { backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: c.borderMid },
+    addFormTitle: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 12 },
+    addFormActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+    cancelBtn: { flex: 1, borderWidth: 1, borderColor: c.borderMid, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+    cancelBtnText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
+    confirmBtn: { flex: 1, backgroundColor: c.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+    confirmBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
+    doneBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8, marginBottom: 8 },
+    doneBtnDisabled: { opacity: 0.6 },
+    doneBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    backLink: { alignItems: 'center', paddingVertical: 8 },
+    backLinkText: { fontSize: 14, color: c.textMuted },
+    footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16 },
+  })
+}

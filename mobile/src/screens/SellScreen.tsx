@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Vehicle = {
   id: string
@@ -30,6 +32,8 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   const [analytics, setAnalytics] = useState<any>(null)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [selling, setSelling] = useState(false)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const loadSummary = async () => {
     setLoadingAnalytics(true)
@@ -37,7 +41,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
       const data = await api.getAnalytics(token, vehicle.id)
       setAnalytics(data)
     } catch {
-      // analytics optional — proceed without it
+      // analytics optional
     } finally {
       setLoadingAnalytics(false)
     }
@@ -90,7 +94,6 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
 
       <Text style={styles.title}>Sell / Transfer Vehicle</Text>
 
-      {/* Vehicle banner */}
       <View style={styles.vehicleBanner}>
         <Text style={styles.bannerReg}>{vehicle.registrationNo}</Text>
         <Text style={styles.bannerName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
@@ -110,6 +113,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
             value={buyerPhone}
             onChangeText={setBuyerPhone}
             placeholder="e.g. +94771234567"
+            placeholderTextColor={colors.textFaint}
             keyboardType="phone-pad"
             autoFocus
           />
@@ -130,7 +134,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           </View>
 
           {loadingAnalytics ? (
-            <ActivityIndicator color="#1a73e8" style={{ marginVertical: 20 }} />
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
           ) : analytics && (
             <View style={styles.summaryCard}>
               <Text style={styles.confirmLabel}>What transfers with this vehicle</Text>
@@ -180,61 +184,63 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 20, paddingBottom: 56 },
-  topRow: { marginTop: 48, marginBottom: 8 },
-  backText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginBottom: 16 },
-  vehicleBanner: {
-    backgroundColor: '#1a73e8', borderRadius: 12, padding: 16, marginBottom: 24,
-  },
-  bannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  bannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
-  bannerMeta: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
-  sectionSub: { fontSize: 14, color: '#888', marginBottom: 20, lineHeight: 20 },
-  phoneInput: {
-    backgroundColor: '#fff', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 16,
-    fontSize: 18, color: '#1a1a1a',
-    borderWidth: 1.5, borderColor: '#1a73e8',
-    marginBottom: 20,
-  },
-  continueBtn: {
-    backgroundColor: '#1a73e8', borderRadius: 12,
-    paddingVertical: 16, alignItems: 'center',
-  },
-  continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  confirmCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
-  },
-  confirmLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 6 },
-  confirmPhone: { fontSize: 20, fontWeight: '700', color: '#1a1a1a' },
-  summaryCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
-  },
-  summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f5f5f5',
-  },
-  summaryTotalRow: { marginTop: 4, borderTopWidth: 1, borderTopColor: '#e0e0e0' },
-  summaryItem: { fontSize: 14, color: '#333' },
-  summaryCount: { fontSize: 14, fontWeight: '700', color: '#1a73e8' },
-  summaryTotalLabel: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
-  summaryTotalValue: { fontSize: 14, fontWeight: '700', color: '#1a73e8' },
-  warningBox: {
-    backgroundColor: '#fff3e0', borderRadius: 12, padding: 16,
-    marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#e65100',
-  },
-  warningTitle: { fontSize: 14, fontWeight: '700', color: '#e65100', marginBottom: 8 },
-  warningText: { fontSize: 13, color: '#5d4037', lineHeight: 20 },
-  sellBtn: {
-    backgroundColor: '#c62828', borderRadius: 12,
-    paddingVertical: 18, alignItems: 'center',
-  },
-  sellBtnDisabled: { opacity: 0.6 },
-  sellBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 20, paddingBottom: 56 },
+    topRow: { marginTop: 48, marginBottom: 8 },
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 16 },
+    vehicleBanner: {
+      backgroundColor: c.primary, borderRadius: 12, padding: 16, marginBottom: 24,
+    },
+    bannerReg: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+    bannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
+    bannerMeta: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+    sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
+    sectionSub: { fontSize: 14, color: c.textMuted, marginBottom: 20, lineHeight: 20 },
+    phoneInput: {
+      backgroundColor: c.surface, borderRadius: 12,
+      paddingHorizontal: 16, paddingVertical: 16,
+      fontSize: 18, color: c.text,
+      borderWidth: 1.5, borderColor: c.primary,
+      marginBottom: 20,
+    },
+    continueBtn: {
+      backgroundColor: c.primary, borderRadius: 12,
+      paddingVertical: 16, alignItems: 'center',
+    },
+    continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    confirmCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    },
+    confirmLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 6 },
+    confirmPhone: { fontSize: 20, fontWeight: '700', color: c.text },
+    summaryCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    },
+    summaryRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 10, borderTopWidth: 1, borderTopColor: c.background,
+    },
+    summaryTotalRow: { marginTop: 4, borderTopWidth: 1, borderTopColor: c.borderMid },
+    summaryItem: { fontSize: 14, color: c.textBody },
+    summaryCount: { fontSize: 14, fontWeight: '700', color: c.primary },
+    summaryTotalLabel: { fontSize: 14, fontWeight: '700', color: c.text },
+    summaryTotalValue: { fontSize: 14, fontWeight: '700', color: c.primary },
+    warningBox: {
+      backgroundColor: '#fff3e0', borderRadius: 12, padding: 16,
+      marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#e65100',
+    },
+    warningTitle: { fontSize: 14, fontWeight: '700', color: '#e65100', marginBottom: 8 },
+    warningText: { fontSize: 13, color: '#5d4037', lineHeight: 20 },
+    sellBtn: {
+      backgroundColor: '#c62828', borderRadius: 12,
+      paddingVertical: 18, alignItems: 'center',
+    },
+    sellBtnDisabled: { opacity: 0.6 },
+    sellBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  })
+}

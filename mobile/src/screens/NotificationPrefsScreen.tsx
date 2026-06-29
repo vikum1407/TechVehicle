@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, Switch, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
+import { useColors } from '../theme/ThemeContext'
+import { Colors } from '../theme/colors'
 
 type Props = {
   token: string
@@ -60,6 +62,8 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const colors = useColors()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => {
     api.getNotificationPrefs(token)
@@ -92,7 +96,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
       <Text style={styles.subtitle}>Choose which notifications you want to receive</Text>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1a73e8" />
+        <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
       ) : (
         <View style={styles.card}>
           {PREFS.map((pref, index) => (
@@ -106,13 +110,13 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
               </View>
               <View style={styles.switchWrapper}>
                 {saving === pref.key ? (
-                  <ActivityIndicator size="small" color="#1a73e8" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <Switch
                     value={prefs[pref.key] ?? true}
                     onValueChange={(v) => handleToggle(pref.key, v)}
-                    trackColor={{ false: '#e0e0e0', true: '#90caf9' }}
-                    thumbColor={prefs[pref.key] ? '#1a73e8' : '#f5f5f5'}
+                    trackColor={{ false: colors.borderMid, true: '#90caf9' }}
+                    thumbColor={prefs[pref.key] ? colors.primary : colors.surfaceAlt}
                   />
                 )}
               </View>
@@ -131,29 +135,31 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 24, paddingBottom: 48 },
-  backBtn: { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
-  backBtnText: { fontSize: 15, color: '#1a73e8', fontWeight: '600' },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a', marginTop: 16, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#888', marginBottom: 28 },
-  card: {
-    backgroundColor: '#fff', borderRadius: 14,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 18, gap: 12,
-  },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  rowText: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: '600', color: '#1a1a1a', marginBottom: 3 },
-  rowDesc: { fontSize: 12, color: '#888', lineHeight: 17 },
-  switchWrapper: { width: 52, alignItems: 'center' },
-  noteBox: {
-    backgroundColor: '#e8f0fe', borderRadius: 10, padding: 14, marginTop: 24,
-  },
-  noteText: { fontSize: 12, color: '#1a73e8', lineHeight: 18 },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 24, paddingBottom: 48 },
+    backBtn: { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
+    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    title: { fontSize: 26, fontWeight: '700', color: c.text, marginTop: 16, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: c.textMuted, marginBottom: 28 },
+    card: {
+      backgroundColor: c.surface, borderRadius: 14,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 18, gap: 12,
+    },
+    rowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
+    rowText: { flex: 1 },
+    rowTitle: { fontSize: 15, fontWeight: '600', color: c.text, marginBottom: 3 },
+    rowDesc: { fontSize: 12, color: c.textMuted, lineHeight: 17 },
+    switchWrapper: { width: 52, alignItems: 'center' },
+    noteBox: {
+      backgroundColor: c.primaryTint, borderRadius: 10, padding: 14, marginTop: 24,
+    },
+    noteText: { fontSize: 12, color: c.primaryTintText, lineHeight: 18 },
+  })
+}
