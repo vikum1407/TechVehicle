@@ -23,7 +23,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       orderBy: { date: 'desc' },
     })
 
-    res.json(computePredictions(vehicle, records))
+    res.json(computePredictions(vehicle as any, records))
   } catch (error) {
     console.error('GET /predictions error:', error)
     res.status(500).json({ error: 'Failed to generate predictions' })
@@ -44,7 +44,7 @@ router.post('/notify', async (req: AuthRequest, res) => {
         where: { vehicleId: vehicle.id },
         orderBy: { date: 'desc' },
       })
-      const predictions = computePredictions(vehicle, records)
+      const predictions = computePredictions(vehicle as any, records)
       const overdue  = predictions.filter(p => p.status === 'overdue')
       const dueSoon  = predictions.filter(p => p.status === 'due_soon')
       const vehicleName = `${vehicle.year} ${vehicle.make} ${vehicle.model}`
