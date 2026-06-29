@@ -357,6 +357,28 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
         {activeTab === 'emission' ? (
           <>
+            {emissionHistory.length > 0 && (() => {
+              const last = emissionHistory[0]
+              const sd = last.structuredData?.['Emission Test / Carbon Test'] || {}
+              const pass = sd.result === 'Pass'
+              return (
+                <View style={[s.histCard, { borderLeftColor: pass ? '#2e7d32' : '#c62828', marginBottom: 20 }]}>
+                  <Text style={[s.historyTitle, { marginTop: 0, marginBottom: 8 }]}>Last Emission Test</Text>
+                  <View style={s.histRow}>
+                    <Text style={[s.histResult, { color: pass ? '#2e7d32' : '#c62828' }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
+                    <Text style={s.histDate}>{fmtDate(last.date)}</Text>
+                    {last.mileage != null && <Text style={s.histMeta}>{last.mileage.toLocaleString()} km</Text>}
+                  </View>
+                  {(sd.co || sd.hc || sd.co2 || sd.lambda) && (
+                    <Text style={s.histReadings}>
+                      {[sd.co && `CO: ${sd.co}%`, sd.hc && `HC: ${sd.hc} ppm`, sd.co2 && `CO₂: ${sd.co2}%`, sd.lambda && `λ: ${sd.lambda}`].filter(Boolean).join('  ·  ')}
+                    </Text>
+                  )}
+                  {sd.station && <Text style={s.histMeta}>{sd.station}</Text>}
+                </View>
+              )
+            })()}
+
             <Text style={s.sectionTitle}>Log Emission / Carbon Test</Text>
 
             <Text style={s.label}>Test Result <Text style={s.req}>*</Text></Text>

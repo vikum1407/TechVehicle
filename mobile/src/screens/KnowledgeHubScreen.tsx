@@ -533,20 +533,14 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
 
 // Small helper component to avoid repeating spec item JSX
 function SpecItem({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+  const c = useColors()
   return (
-    <View style={specItemStyles.item}>
-      <Text style={specItemStyles.label}>{label}</Text>
-      <Text style={[specItemStyles.value, highlight && specItemStyles.valueHighlight]}>{value}</Text>
+    <View style={{ width: '48%', backgroundColor: c.surfaceAlt, borderRadius: 8, padding: 10, margin: 2 }}>
+      <Text style={{ fontSize: 10, color: c.textMuted, fontWeight: '600', marginBottom: 3, textTransform: 'uppercase' }}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: highlight ? '#e65100' : c.text }}>{value}</Text>
     </View>
   )
 }
-
-const specItemStyles = StyleSheet.create({
-  item: { width: '48%', backgroundColor: '#f8f9fa', borderRadius: 8, padding: 10, margin: 2 },
-  label: { fontSize: 10, color: '#888', fontWeight: '600', marginBottom: 3, textTransform: 'uppercase' },
-  value: { fontSize: 12, fontWeight: '700', color: '#1a1a1a' },
-  valueHighlight: { color: '#e65100' },
-})
 
 function makeStyles(c: Colors) {
   return StyleSheet.create({
@@ -584,8 +578,8 @@ function makeStyles(c: Colors) {
       flexDirection: 'row', alignItems: 'flex-start', gap: 10,
       borderRadius: 10, padding: 12, marginBottom: 8,
     },
-    insightOk: { backgroundColor: '#e8f5e9' },
-    insightWarn: { backgroundColor: '#fff3e0' },
+    insightOk: { backgroundColor: c.surfaceAlt, borderLeftWidth: 3, borderLeftColor: '#2e7d32' },
+    insightWarn: { backgroundColor: c.surfaceAlt, borderLeftWidth: 3, borderLeftColor: '#e65100' },
     insightInfo: { backgroundColor: c.primaryTint },
     insightIcon: { fontSize: 14, fontWeight: '700', marginTop: 1, width: 16, textAlign: 'center' },
     insightText: { fontSize: 13, color: c.text, flex: 1, lineHeight: 19 },
@@ -614,23 +608,23 @@ function makeStyles(c: Colors) {
     specGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 4, gap: 4 },
 
     noteBox: {
-      marginHorizontal: 16, marginBottom: 6, backgroundColor: '#fff3e0',
-      borderRadius: 8, padding: 10,
+      marginHorizontal: 16, marginBottom: 6, backgroundColor: c.surfaceAlt,
+      borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#f9a825',
     },
     notesBox: {
-      marginHorizontal: 16, marginBottom: 12, backgroundColor: '#fff8e1',
-      borderRadius: 8, padding: 10,
+      marginHorizontal: 16, marginBottom: 12, backgroundColor: c.surfaceAlt,
+      borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#f9a825',
     },
-    noteText: { fontSize: 12, color: '#795548', lineHeight: 17 },
+    noteText: { fontSize: 12, color: c.textSub, lineHeight: 17 },
 
     issuesBox: {
-      margin: 16, marginTop: 8, backgroundColor: '#fff3e0',
-      borderRadius: 10, padding: 14,
+      margin: 16, marginTop: 8, backgroundColor: c.surfaceAlt,
+      borderRadius: 10, padding: 14, borderLeftWidth: 3, borderLeftColor: '#e65100',
     },
     issuesTitle: { fontSize: 13, fontWeight: '700', color: '#e65100', marginBottom: 10 },
     issueRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
     issueDot: { color: '#e65100', fontWeight: '700', marginTop: 1 },
-    issueText: { fontSize: 12, color: '#5d4037', flex: 1, lineHeight: 17 },
+    issueText: { fontSize: 12, color: c.textSub, flex: 1, lineHeight: 17 },
 
     searchBox: {
       backgroundColor: c.surface, paddingHorizontal: 16, paddingVertical: 12,
