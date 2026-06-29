@@ -39,6 +39,8 @@ type StructuredField = StructuredTextField | StructuredChipsField
 const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
   'Oil Change': [
     { type: 'chips', key: 'oilBrand', label: 'Oil Brand', options: ['Castrol', 'Mobil 1', 'Shell', 'Total', 'Motul', 'Valvoline'] },
+    { type: 'chips', key: 'oilGrade', label: 'Oil Grade (viscosity)', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
+    { type: 'chips', key: 'oilType',  label: 'Oil Type', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
   ],
   'Tyre Change': [
     { type: 'chips', key: 'tyreBrand',    label: 'Tyre Brand',         options: ['Michelin', 'Bridgestone', 'Yokohama', 'Apollo', 'CEAT', 'MRF', 'Dunlop'] },
