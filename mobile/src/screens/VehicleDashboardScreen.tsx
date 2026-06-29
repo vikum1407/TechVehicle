@@ -1102,7 +1102,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {submissions.length > 0 && (
           <View style={styles.submissionsSection}>
             <Text style={styles.submissionsSectionTitle}>
-              ⚠️ Pending from Garage ({submissions.length})
+              ⚠️ Pending for Approval ({submissions.length})
             </Text>
             {submissions.map(sub => (
               <View key={sub.id} style={styles.submissionCard}>
@@ -1648,9 +1648,9 @@ function makeStyles(c: Colors) {
       marginBottom: 10, letterSpacing: 0.3,
     },
     submissionCard: {
-      backgroundColor: '#fef9f9', borderRadius: 12, padding: 14,
+      backgroundColor: c.surface, borderRadius: 12, padding: 14,
       marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#c62828',
-      borderWidth: 1, borderColor: '#ffcdd2',
+      borderWidth: 1, borderColor: c.borderMid,
     },
     submissionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' },
     submissionGarage: { fontSize: 14, fontWeight: '700', color: c.text, flex: 1 },
