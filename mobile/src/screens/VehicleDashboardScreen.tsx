@@ -47,6 +47,7 @@ type Props = {
   onAnalytics: () => void
   onVehicleTests: () => void
   onChainService?: () => void
+  onTripLog?: () => void
   onPredictions: () => void
   onKnowledgeHub: () => void
   onMileageUpdated: (newMileage: number) => void
@@ -178,7 +179,7 @@ function expiryLabel(days: number): string {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onChainService, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onChainService, onTripLog, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -630,6 +631,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           {CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
             <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.25)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.5)' }]} onPress={onChainService}>
               <Text style={styles.bookBtnText}>⛓ Chain Service</Text>
+            </TouchableOpacity>
+          )}
+          {vehicle.vehicleType === 'three-wheeler' && (
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(230,81,0,0.25)', borderWidth: 1, borderColor: 'rgba(230,81,0,0.5)' }]} onPress={onTripLog}>
+              <Text style={styles.bookBtnText}>🛺 Daily Trip Log</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>

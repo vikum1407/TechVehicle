@@ -11,6 +11,7 @@ import AddVehicleScreen from './src/screens/AddVehicleScreen'
 import VehicleDashboardScreen from './src/screens/VehicleDashboardScreen'
 import AddServiceRecordScreen from './src/screens/AddServiceRecordScreen'
 import LogFuelScreen from './src/screens/LogFuelScreen'
+import TripLogScreen from './src/screens/TripLogScreen'
 import AddExpenseScreen from './src/screens/AddExpenseScreen'
 import VehicleTestsScreen from './src/screens/VehicleTestsScreen'
 import VehicleHistoryScreen from './src/screens/VehicleHistoryScreen'
@@ -32,7 +33,7 @@ type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
+  | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
   | 'profile' | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
@@ -379,6 +380,7 @@ export default function App() {
           onAnalytics={() => setScreen('analytics')}
           onVehicleTests={() => { setTestsInitialTab('emission'); setScreen('vehicleTests') }}
           onChainService={() => { setTestsInitialTab('chain'); setScreen('vehicleTests') }}
+          onTripLog={() => setScreen('tripLog')}
           onViewHistory={() => setScreen('vehicleHistory')}
           onPredictions={() => setScreen('predictions')}
           onKnowledgeHub={() => setScreen('knowledgeHub')}
@@ -413,6 +415,20 @@ export default function App() {
               }
               setScreen('vehicleDashboard')
             }}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'tripLog' && selectedVehicle && (
+        <TripLogScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          currentMileage={selectedVehicle.mileage}
+          onLogged={(newMileage) => {
+            if (newMileage > (selectedVehicle?.mileage ?? 0)) {
+              setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
+            }
+            setScreen('vehicleDashboard')
+          }}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}
