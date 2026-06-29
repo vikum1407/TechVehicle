@@ -8,14 +8,31 @@ const prisma = new PrismaClient()
 // All vehicle routes require authentication
 router.use(authMiddleware)
 
-// GET /vehicles — get all vehicles for the logged-in user
+// GET /vehicles — get owned vehicles + vehicles shared with this user
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const vehicles = await prisma.vehicle.findMany({
-      where: { ownerPhone: req.phoneNumber },
-      orderBy: { createdAt: 'desc' },
-    })
-    res.json(vehicles)
+    const [ownedVehicles, sharedEntries] = await Promise.all([
+      prisma.vehicle.findMany({
+        where: { ownerPhone: req.phoneNumber },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.vehicleShare.findMany({
+        where: { sharedWithPhone: req.phoneNumber, status: 'active' },
+        include: { vehicle: true },
+      }),
+    ])
+
+    const sharedVehicles = sharedEntries.map(s => ({
+      ...s.vehicle,
+      isShared: true,
+      shareId: s.id,
+      sharedByPhone: s.ownerPhone,
+    }))
+
+    res.json([
+      ...ownedVehicles.map(v => ({ ...v, isShared: false })),
+      ...sharedVehicles,
+    ])
   } catch (error) {
     console.error('GET /vehicles error:', error)
     res.status(500).json({ error: 'Failed to fetch vehicles' })

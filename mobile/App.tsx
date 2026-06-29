@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet, BackHandler, AppState } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
+import { ThemeProvider } from './src/theme/ThemeContext'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
@@ -54,6 +55,8 @@ type Vehicle = {
   purchaseDate?: string | null
   ownerCount?: number | null
   vehicleNotes?: string | null
+  isShared?: boolean
+  sharedByPhone?: string
 }
 
 // Screens that show the bottom tab bar
@@ -281,9 +284,11 @@ export default function App() {
 
   const showTabBar = TAB_SCREENS.includes(screen)
 
+  const scheme = useColorScheme()
+
   return (
-    <>
-      <StatusBar style="auto" />
+    <ThemeProvider>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
 
       {/* ── Auth screens ─────────────────────────────────────────────── */}
       {screen === 'login' && (
@@ -565,7 +570,7 @@ export default function App() {
           onSettings={() => setScreen('notificationPrefs')}
         />
       )}
-    </>
+    </ThemeProvider>
   )
 }
 

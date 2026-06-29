@@ -51,6 +51,7 @@ model Vehicle {
   submissions    ServiceSubmission[]
   transfers      VehicleTransfer[]
   bookings       Booking[]
+  vehicleShares  VehicleShare[]
 }
 
 model ServiceRecord {
@@ -196,6 +197,17 @@ model AppNotification {
   linkTo    String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model VehicleShare {
+  id              String   @id @default(cuid())
+  vehicleId       String
+  ownerPhone      String
+  sharedWithPhone String
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  @@unique([vehicleId, sharedWithPhone])
 }
 
 model ServiceSubmission {

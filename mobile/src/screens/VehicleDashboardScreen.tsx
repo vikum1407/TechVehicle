@@ -30,6 +30,8 @@ type Vehicle = {
   purchaseDate?: string | null
   ownerCount?: number | null
   vehicleNotes?: string | null
+  isShared?: boolean
+  sharedByPhone?: string
 }
 
 const CHAIN_VEHICLE_TYPES = new Set(['motorcycle', 'electric-cycle', 'three-wheeler'])
@@ -215,6 +217,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
+  const [vehicleShares, setVehicleShares] = useState<{ id: string; sharedWithPhone: string; status: string }[]>([])
+  const [shareInput, setShareInput] = useState('')
+  const [sharingAccess, setSharingAccess] = useState(false)
+  const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
@@ -243,6 +249,46 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     } finally {
       setSavingVehicle(false)
     }
+  }
+
+  const handleShareAccess = async () => {
+    const phone = shareInput.trim()
+    if (!phone) return
+    setSharingAccess(true)
+    try {
+      await api.shareVehicleAccess(token, vehicle.id, phone)
+      setShareInput('')
+      await loadRecords()
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSharingAccess(false)
+    }
+  }
+
+  const handleRevokeShare = (shareId: string, phone: string) => {
+    Alert.alert(
+      'Revoke Access',
+      `Remove ${phone}'s access to this vehicle?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Revoke',
+          style: 'destructive',
+          onPress: async () => {
+            setRevokingShareId(shareId)
+            try {
+              await api.revokeVehicleShare(token, shareId)
+              await loadRecords()
+            } catch (e: any) {
+              Alert.alert('Error', e.message)
+            } finally {
+              setRevokingShareId(null)
+            }
+          },
+        },
+      ]
+    )
   }
 
   const pickVehiclePhoto = async () => {
@@ -274,19 +320,22 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     setLoading(true)
     setLoadFailed(false)
     try {
-      const [subs, transfer, analytics, preds, allBookings, progress] = await Promise.all([
+      const [subs, transfer, analytics, preds, allBookings, progress, sentShares] = await Promise.all([
         api.getVehicleSubmissions(token, vehicle.id),
         api.getVehicleTransfer(token, vehicle.id),
         api.getAnalytics(token, vehicle.id).catch(() => null),
         api.getPredictions(token, vehicle.id).catch(() => []),
         api.getMyBookings(token).catch(() => []),
         api.getVehicleProgress(token, vehicle.id).catch(() => null),
+        api.getSentVehicleShares(token).catch(() => []),
       ])
       setVehicleProgress(progress)
       setSubmissions(subs)
       setPendingTransfer(transfer)
       const vehicleBookings = (allBookings as any[]).filter((b: any) => b.vehicleId === vehicle.id)
       setMyBookings(vehicleBookings)
+      const thisVehicleShares = (sentShares as any[]).filter((s: any) => s.vehicleId === vehicle.id)
+      setVehicleShares(thisVehicleShares)
       const urgent = (preds as any[]).filter((p: any) => p.status === 'overdue' || p.status === 'due_soon').slice(0, 3)
       setTopPredictions(urgent)
       if (analytics) {
@@ -593,13 +642,21 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )}
           <View style={styles.vehicleNameRow}>
             <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
-              <Text style={styles.editVehicleBtnText}>Edit</Text>
-            </TouchableOpacity>
+            {vehicle.isShared ? (
+              <View style={[styles.editVehicleBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={styles.editVehicleBtnText}>👁 View only</Text>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+                <Text style={styles.editVehicleBtnText}>Edit</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.vehicleRow}>
             <Text style={styles.vehicleDetail}>{vehicle.fuelType}</Text>
-            {!editingMileage ? (
+            {vehicle.isShared ? (
+              <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
+            ) : !editingMileage ? (
               <TouchableOpacity style={styles.mileageRow} onPress={() => { setMileageInput(''); setEditingMileage(true) }}>
                 <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
                 <Text style={styles.mileageEditHint}>  ✏️ Update</Text>
@@ -624,29 +681,40 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               </View>
             )}
           </View>
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
-              <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
-              <Text style={styles.quickBtnText}>🔧 Add Service</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
-              <Text style={styles.quickBtnText}>💰 Add Expense</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
-              <Text style={styles.quickBtnText}>📊 Insights</Text>
-            </TouchableOpacity>
-          </View>
+          {vehicle.isShared ? (
+            <View style={styles.quickActions}>
+              <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
+                <Text style={styles.quickBtnText}>📊 Insights</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn} onPress={onPredictions}>
+                <Text style={styles.quickBtnText}>💡 Predictions</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.quickActions}>
+              <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
+                <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
+                <Text style={styles.quickBtnText}>🔧 Add Service</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
+                <Text style={styles.quickBtnText}>💰 Add Expense</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
+                <Text style={styles.quickBtnText}>📊 Insights</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <TouchableOpacity style={styles.bookBtn} onPress={onVehicleTests}>
             <Text style={styles.bookBtnText}>🧪 Vehicle Tests</Text>
           </TouchableOpacity>
-          {CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
+          {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
             <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.25)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.5)' }]} onPress={onChainService}>
               <Text style={styles.bookBtnText}>⛓ Chain Service</Text>
             </TouchableOpacity>
           )}
-          {vehicle.vehicleType === 'three-wheeler' && (
+          {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
             <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(230,81,0,0.25)', borderWidth: 1, borderColor: 'rgba(230,81,0,0.5)' }]} onPress={onTripLog}>
               <Text style={styles.bookBtnText}>🛺 Daily Trip Log</Text>
             </TouchableOpacity>
@@ -654,9 +722,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
             <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
-            <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
-          </TouchableOpacity>
+          {!vehicle.isShared && (
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
+              <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Vehicle profile progress card ── */}
@@ -1170,7 +1240,59 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </View>
         )}
 
-        {!pendingTransfer && (
+        {/* Family Sharing section — only shown to the actual owner */}
+        {!vehicle.isShared && <View style={styles.familyShareSection}>
+          <Text style={styles.familyShareTitle}>👥 Family / Shared Access</Text>
+          {vehicleShares.length > 0 && (
+            <View style={styles.familyShareList}>
+              {vehicleShares.map(share => (
+                <View key={share.id} style={styles.familyShareRow}>
+                  <View>
+                    <Text style={styles.familySharePhone}>{share.sharedWithPhone}</Text>
+                    <Text style={[
+                      styles.familyShareStatus,
+                      share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
+                    ]}>
+                      {share.status === 'active' ? 'Active' : 'Pending'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.revokeBtn, revokingShareId === share.id && { opacity: 0.5 }]}
+                    onPress={() => handleRevokeShare(share.id, share.sharedWithPhone)}
+                    disabled={revokingShareId === share.id}
+                  >
+                    {revokingShareId === share.id
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Text style={styles.revokeBtnText}>Revoke</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={styles.familyShareInputRow}>
+            <TextInput
+              style={styles.familyShareInput}
+              value={shareInput}
+              onChangeText={setShareInput}
+              placeholder="Phone number (e.g. +94771234567)"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="phone-pad"
+            />
+            <TouchableOpacity
+              style={[styles.familyShareBtn, (!shareInput.trim() || sharingAccess) && { opacity: 0.5 }]}
+              onPress={handleShareAccess}
+              disabled={!shareInput.trim() || sharingAccess}
+            >
+              {sharingAccess
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.familyShareBtnText}>Share</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>}
+
+        {!vehicle.isShared && !pendingTransfer && (
           <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
             <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
           </TouchableOpacity>
@@ -1630,5 +1752,34 @@ function makeStyles(c: Colors) {
     photoNavBtn: { paddingHorizontal: 16, paddingVertical: 8 },
     photoNavBtnDisabled: { opacity: 0.25 },
     photoNavText: { color: '#fff', fontSize: 36, lineHeight: 38, fontWeight: '300' },
+    familyShareSection: {
+      marginHorizontal: 16, marginBottom: 10,
+      backgroundColor: c.surface, borderRadius: 14, padding: 14,
+      borderWidth: 1, borderColor: c.border,
+    },
+    familyShareTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 10 },
+    familyShareList: { marginBottom: 10 },
+    familyShareRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    familySharePhone: { fontSize: 14, fontWeight: '600', color: c.text },
+    familyShareStatus: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+    revokeBtn: {
+      borderWidth: 1.5, borderColor: '#c62828', borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 5,
+    },
+    revokeBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
+    familyShareInputRow: { flexDirection: 'row', gap: 8 },
+    familyShareInput: {
+      flex: 1, backgroundColor: c.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 10,
+      fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid,
+    },
+    familyShareBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center',
+    },
+    familyShareBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   })
 }

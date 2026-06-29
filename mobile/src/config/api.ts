@@ -888,4 +888,53 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to fetch knowledge')
     return data
   },
+
+  // Vehicle family sharing
+  shareVehicleAccess: async (token: string, vehicleId: string, sharedWithPhone: string) => {
+    const res = await fetch(`${API_URL}/vehicle-shares`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ vehicleId, sharedWithPhone }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to share vehicle')
+    return data
+  },
+
+  getReceivedVehicleShares: async (token: string) => {
+    const res = await fetch(`${API_URL}/vehicle-shares/received`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch shares')
+    return data
+  },
+
+  getSentVehicleShares: async (token: string, vehicleId?: string) => {
+    const url = vehicleId
+      ? `${API_URL}/vehicle-shares/sent?vehicleId=${vehicleId}`
+      : `${API_URL}/vehicle-shares/sent`
+    const res = await fetch(url, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch sent shares')
+    return data
+  },
+
+  acceptVehicleShare: async (token: string, shareId: string) => {
+    const res = await fetch(`${API_URL}/vehicle-shares/${shareId}/accept`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to accept share')
+    return data
+  },
+
+  revokeVehicleShare: async (token: string, shareId: string) => {
+    const res = await fetch(`${API_URL}/vehicle-shares/${shareId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to revoke share')
+    return data
+  },
 }
