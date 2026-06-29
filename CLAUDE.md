@@ -2,16 +2,16 @@
 
 ---
 
-## Current Development State (updated 2026-06-27)
+## Current Development State (updated 2026-06-29)
 
 ### Completed & Working ✅
 - Phone auth (OTP via console in dev, JWT stored in SecureStore)
 - Add vehicle + My Vehicles screen; Add Vehicle has searchable Brand/Model modal picker (40+ SL brands, models filtered by brand, "Other" fallback to free text)
-- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Insights + Log Emission Test button + Book Service button)
+- Vehicle Dashboard (blue card, 2×2 quick action grid: Log Fuel, Add Service, Add Expense, Insights + multiple action buttons below)
 - Add Service Record (tap-to-select categories filtered by vehicle type, per-item brands, compact history cards)
 - Log Fuel (odometer, litres, cost, km/L insight card)
 - Add Expense (tap-to-select categories: Insurance, Revenue Licence, Emission Test, Fine, Parking, Toll, Accessories, Washing, Other)
-- Analytics screen (SVG charts: Mileage Growth, Fuel Efficiency, Cost per Fill-up) + sparkline mini-cards on dashboard
+- Insights screen (SVG charts: Mileage Growth, Fuel Efficiency, Cost per Fill-up, Monthly Spend, Cost/km) + sparkline mini-cards on dashboard
 - Garage registration (verified/unverified badge via BR number)
 - Share flow: owner selects records → searches garage → confirms → shares read-only view
 - Garage incoming shares view: vehicle profile + shared service records
@@ -24,30 +24,60 @@
   - Owner BookingScreen: search garage → date picker (14 days, shows override messages with colour indicators) → time slot selection → confirm with Normal/Urgent note toggle → optional attach service history step (pre-selects latest 3 records, creates ShareSession linked to booking)
   - Slot blocking: each time slot only allows one booking; "Already Booked" label + grey card when taken
   - Garage Bookings tab: booking cards with colour-coded left border (orange=pending, green=confirmed); tap to expand → shows attached shared service records inline; Submit Completed Service button inside booking card
-  - Garage Calendar tab (replaced Shared tab): monthly calendar showing booked/max per day with colour coding (white=empty, orange=partial, red=full); tap any date to see that day's bookings; override messages shown in red
+  - Garage Calendar tab: monthly calendar showing booked/max per day with colour coding; tap any date to see that day's bookings; override messages shown in red
 - Role selection: new users (and existing users without a role) see a role selection screen after login — Vehicle Owner or Garage/Service Center; role stored in SecureStore
-- Service Record Engine — vehicle type filtering (12 types: motorcycle, electric-cycle, car-petrol, car-diesel, suv-petrol, suv-diesel, three-wheeler, van, pickup, electric, truck, heavy); categories filtered per type; Onboarding Wizard milestones filtered per type
-- Push notifications — full coverage: booking created → garage push+bell; booking confirmed → owner push+bell; booking cancelled → garage push+bell; service submitted → owner push+bell; submission accepted → garage push+bell; booking notes → both parties push+bell
-- Structured analytics data capture: Oil Change (brand), Tyre Change (brand/size/count), Emission Test (CO%/HC ppm/CO2%/Lambda/Pass-Fail), AC Gas Refill (refrigerant type/grams) — stored in `structuredData Json?` on ServiceRecord
-- Analytics screen renamed to "Insights"; structured cards: Oil Change History, Tyre History (km-per-set), Emission Test History (with rising-HC and fail warnings), AC Refill (with leak frequency warning)
-- Log Emission Test screen — dedicated quick-action on dashboard; captures test date, Pass/Fail, readings, and next expiry date for renewal reminder
-- Renewal Reminder system — Revenue Licence and Emission Test expiry stored on Vehicle; backend cron job sends push+bell every 3 days from 30 days before expiry until owner updates the date; Revenue Licence expiry captured in Add Expense screen when that category is selected
+- Service Record Engine — vehicle type filtering (12 types); categories filtered per type; Onboarding Wizard milestones filtered per type
+- Push notifications — full coverage across all events (bookings, service submissions, transfers, renewals, mileage reminders, service due predictions)
+- Structured analytics data capture: Oil Change (brand, grade, type), Tyre Change (brand/size/count), Emission Test (CO%/HC ppm/CO2%/Lambda/Pass-Fail), AC Gas Refill (refrigerant type/grams) — stored in `structuredData Json?` on ServiceRecord
+- Insights screen structured cards: Oil Change History, Tyre History (km-per-set), Emission Test History (with rising-HC and fail warnings), AC Refill (with leak frequency warning)
+- Log Emission Test screen — dedicated quick-action on dashboard
+- Renewal Reminder system — Revenue Licence and Emission Test expiry stored on Vehicle; backend cron sends push+bell every 3 days from 30 days before expiry
+- Phase 5 — Prediction Engine (fully built):
+  - Curated service interval database: Toyota (Prius, Corolla, Axio, Aqua, KDH, Fielder, Allion, Premio, Vitz), Honda (Vezel, Fit, City, CB125R, CB Shine), Suzuki (Alto, Wagon R, Swift), Bajaj (RE three-wheeler, Pulsar 150/220), TVS (Apache, King), Hero (Splendor), Yamaha (R15), Nissan (Leaf), plus GENERIC_MOTO for all other motorcycles
+  - Specificity scoring: make-level rules beat generic rules
+  - Prediction card bottom-sheet detail view (tap → last done / due at / remaining / source / "Log it now")
+  - Dashboard shows top 2 overdue/due_soon predictions
+  - Daily cron: service due notifications + setup reminder nudges + mileage reminder nudges
+- Vehicle Tests screen (3 tabs: Emission, Wheel Alignment, Chain Service)
+  - Chain tab: color-coded status card (ok/due/overdue), chain lubrication history, save as service record
+  - Chain prediction rules for all motorcycle types (GENERIC_MOTO fallback covers Honda, Suzuki, etc.)
+  - Chain Service button on dashboard (amber, motorcycle/e-cycle/three-wheeler only)
+- Vehicle Type editing in dashboard Edit modal (all 12 types with icons)
+- Vehicle profile card on dashboard — shows purchaseDate, ownerCount, vehicleNotes (editable via Edit modal)
+- Three-wheeler Daily Trip Log — start/end odometer, fuel, daily earnings with cost-per-km and profit calculation
+- Knowledge Hub (searchable manufacturer spec database):
+  - Toyota: Prius (ZVW30/ZVW50), Corolla (E120/E150/E210), Aqua, KDH HiAce, Axio, Allion (240/260), Premio (240/260), Vitz (NCP10/NCP130), Fielder (E120/E160)
+  - Honda: Vezel (RU1-4), Fit/Jazz (GE/GK), City (GM), CB125R, CB Shine
+  - Suzuki: Alto (HA36), Wagon R, Swift (ZC72)
+  - Bajaj: RE three-wheeler, Pulsar 150/220
+  - TVS: Apache 150, King three-wheeler
+  - Hero: Splendor
+  - Yamaha: R15
+  - Nissan: Leaf (ZE0)
+  - All motorcycles include JASO MA/MA2 oil standard warning
+  - "My Vehicle" tab uses owner's actual records to compare oil grade vs manufacturer spec
+- History screen — full search and filter on all 3 tabs (Service, Expenses, Fuel):
+  - Service: text search + date chips (All/1Y/6M/3M) + category chips + mileage range filter
+  - Expenses: text search + date chips + category chips + total shown
+  - Fuel: text search + date chips + summary stats
+- PDF export — full service + fuel + expense history as styled PDF with cost summary
+- Photo viewer — swipeable full-screen gallery for receipt photos in service records
+- Swipeable gallery in dashboard photo viewer
 - All data persists to Neon (PostgreSQL via Prisma)
 - All committed and pushed to GitHub
 
 ### Database tables in Neon ✅
-`User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`), `ServiceRecord`, `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
+`User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`, `emissionTestExpiry`, `revenueLicenceExpiry`, `lastEmissionReminderSent`, `lastLicenceReminderSent`), `ServiceRecord` (with `structuredData Json?`), `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. Latest schema changes: `emissionTestExpiry DateTime?`, `revenueLicenceExpiry DateTime?`, `lastEmissionReminderSent DateTime?`, `lastLicenceReminderSent DateTime?` on Vehicle model.
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. No schema changes since last session — schema is stable.
 
 ### Next Session — Start Here
-**Continue testing structured data forms and Analytics/Insights screen** — test Emission Test screen (new dedicated button), AC Gas Refill structured form in Add Service, then check the Insights screen shows the structured analytics cards after saving records with data.
-Then: **Receipt photo viewer** — tapping a photo thumbnail in service record history cards should open a full-screen photo viewer.
-Also consider: search / filter on the history timeline (filter by category, date range, or mileage range).
+**Test the new vehicle profile card** — tap Edit on a vehicle, add a purchase date (YYYY-MM-DD format), owner count, and notes, save, confirm the profile card appears on the dashboard.
+**Next feature to build: Service interval personalisation** — let owners override the prediction engine intervals per vehicle (e.g. "I change oil every 3,000 km"). Requires adding `intervalOverrides Json?` to Vehicle model + `prisma db push`, a PATCH endpoint, prediction engine override logic, and a UI in the Predictions detail bottom-sheet.
 
 ### Known Workflow Note
-Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle`. Codespace does `git pull` to get the changes.
+Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git. Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
 
 **IMPORTANT — Start of every Codespace session:** The `.env` file is wiped on Codespace restart. Run this before `npm run dev`:
 ```bash
@@ -63,9 +93,6 @@ R2_PUBLIC_URL=https://your-public-domain.r2.dev
 EOF
 ```
 Replace the R2 values with your actual Cloudflare R2 credentials (found in the Cloudflare dashboard → R2 → your bucket → Settings).
-
-### Known Workflow Note
-Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git (git IS initialised here). Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
 
 ---
 
