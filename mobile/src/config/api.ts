@@ -321,6 +321,16 @@ export const api = {
     return data
   },
 
+  rejectSubmission: async (token: string, submissionId: string) => {
+    const res = await fetch(`${API_URL}/service-submissions/${submissionId}/reject`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to reject submission')
+    return data
+  },
+
   getAvailabilityDates: async (token: string, garageId: string, days?: number) => {
     const q = days ? `?days=${days}` : ''
     const res = await fetch(`${API_URL}/availability/${garageId}/dates${q}`, {

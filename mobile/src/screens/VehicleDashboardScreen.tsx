@@ -193,6 +193,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
+  const [rejecting, setRejecting] = useState<string | null>(null)
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
   const [cancellingTransfer, setCancellingTransfer] = useState(false)
   const [miniAnalytics, setMiniAnalytics] = useState<MiniAnalytics | null>(null)
@@ -363,6 +364,31 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     } finally {
       setAccepting(null)
     }
+  }
+
+  const handleReject = (submissionId: string) => {
+    Alert.alert(
+      'Reject Submission',
+      'This submission will be removed and the submitter will be notified. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            setRejecting(submissionId)
+            try {
+              await api.rejectSubmission(token, submissionId)
+              await loadRecords()
+            } catch (e: any) {
+              Alert.alert('Error', e.message)
+            } finally {
+              setRejecting(null)
+            }
+          },
+        },
+      ]
+    )
   }
 
   const handleCancelTransfer = () => {
@@ -1115,16 +1141,42 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     ))}
                   </View>
                 )}
-                <TouchableOpacity
-                  style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
-                  onPress={() => handleAccept(sub.id)}
-                  disabled={accepting === sub.id}
-                >
-                  {accepting === sub.id
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.acceptBtnText}>✓ Accept — Add to My History</Text>
-                  }
-                </TouchableOpacity>
+                {!sub.garage && (
+                  <View style={styles.submissionActions}>
+                    <TouchableOpacity
+                      style={[styles.rejectBtn, rejecting === sub.id && styles.acceptBtnDisabled]}
+                      onPress={() => handleReject(sub.id)}
+                      disabled={rejecting === sub.id || accepting === sub.id}
+                    >
+                      {rejecting === sub.id
+                        ? <ActivityIndicator color="#c62828" size="small" />
+                        : <Text style={styles.rejectBtnText}>✕ Reject</Text>
+                      }
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.acceptBtn, styles.acceptBtnFlex, accepting === sub.id && styles.acceptBtnDisabled]}
+                      onPress={() => handleAccept(sub.id)}
+                      disabled={accepting === sub.id || rejecting === sub.id}
+                    >
+                      {accepting === sub.id
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={styles.acceptBtnText}>✓ Accept</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {sub.garage && (
+                  <TouchableOpacity
+                    style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
+                    onPress={() => handleAccept(sub.id)}
+                    disabled={accepting === sub.id}
+                  >
+                    {accepting === sub.id
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={styles.acceptBtnText}>✓ Accept — Add to My History</Text>
+                    }
+                  </TouchableOpacity>
+                )}
 
                 {/* Booking notes thread (only if linked to a booking) */}
                 {sub.bookingId && (
@@ -1606,12 +1658,21 @@ function makeStyles(c: Colors) {
     submissionMeta: { fontSize: 12, color: c.textSub, marginTop: 4 },
     submissionCost: { fontSize: 14, fontWeight: '700', color: '#e65100', marginTop: 6 },
     submissionNotes: { fontSize: 12, color: c.textMuted, fontStyle: 'italic', marginTop: 4 },
+    submissionActions: {
+      flexDirection: 'row', gap: 10, marginTop: 14,
+    },
     acceptBtn: {
       backgroundColor: '#2e7d32', borderRadius: 10,
       paddingVertical: 14, alignItems: 'center', marginTop: 14,
     },
+    acceptBtnFlex: { flex: 1, marginTop: 0 },
     acceptBtnDisabled: { opacity: 0.5 },
     acceptBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
+    rejectBtn: {
+      borderWidth: 1.5, borderColor: '#c62828', borderRadius: 10,
+      paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
+    },
+    rejectBtnText: { color: '#c62828', fontSize: 15, fontWeight: '700' },
     messagesToggle: {
       paddingVertical: 10, alignItems: 'center', marginTop: 6,
       borderTopWidth: 1, borderTopColor: '#ffcdd2',

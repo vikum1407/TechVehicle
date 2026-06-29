@@ -263,6 +263,48 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /service-submissions/:id/reject — owner rejects a submission (shared-user submissions only)
+router.post('/:id/reject', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const submission = await prisma.serviceSubmission.findFirst({
+      where: { id, ownerPhone: req.phoneNumber!, status: 'pending' },
+      include: { garage: true },
+    })
+    if (!submission) { res.status(404).json({ error: 'Submission not found' }); return }
+
+    await prisma.serviceSubmission.update({ where: { id }, data: { status: 'rejected' } })
+
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: submission.vehicleId } })
+    const vReg = vehicle?.registrationNo ?? 'Vehicle'
+    const notifyPhone = submission.submittedByPhone
+    if (notifyPhone) {
+      const submitterUser = await prisma.user.findUnique({ where: { phoneNumber: notifyPhone } })
+      const prefs = parsePrefs(submitterUser?.notificationPrefs)
+      if (prefs.submission) {
+        await sendPush(
+          submitterUser?.pushToken,
+          'Submission Not Added',
+          `${vReg} — owner did not add your submission to their history`,
+          { screen: 'vehicles' }
+        )
+      }
+      await createNotification(
+        prisma, notifyPhone,
+        'submission_accepted',
+        vReg,
+        `Owner did not add your ${submission.description} submission to their history`,
+        { screen: 'vehicles' }
+      )
+    }
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('POST /service-submissions/:id/reject error:', error)
+    res.status(500).json({ error: 'Failed to reject submission' })
+  }
+})
+
 // GET /service-submissions/garage — garage sees their own past submissions
 router.get('/garage', async (req: AuthRequest, res) => {
   try {
