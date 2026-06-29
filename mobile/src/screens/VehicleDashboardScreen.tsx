@@ -1669,8 +1669,8 @@ function makeStyles(c: Colors) {
     acceptBtnDisabled: { opacity: 0.5 },
     acceptBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
     rejectBtn: {
-      borderWidth: 1.5, borderColor: '#c62828', borderRadius: 10,
-      paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
+      flex: 1, borderWidth: 1.5, borderColor: '#c62828', borderRadius: 10,
+      paddingVertical: 14, alignItems: 'center',
     },
     rejectBtnText: { color: '#c62828', fontSize: 15, fontWeight: '700' },
     messagesToggle: {
