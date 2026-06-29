@@ -11,10 +11,13 @@ type Props = {
   vehicleId: string
   vehicleName: string
   currentMileage: number
+  vehicleType?: string | null
   onBack: () => void
 }
 
-type Tab = 'emission' | 'alignment'
+type Tab = 'emission' | 'alignment' | 'chain'
+
+const CHAIN_TYPES = new Set(['motorcycle', 'electric-cycle', 'three-wheeler'])
 
 type ServiceRecord = {
   id: string
@@ -48,7 +51,8 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, onBack }: Props) {
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, onBack }: Props) {
+  const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
   const [activeTab, setActiveTab] = useState<Tab>('emission')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
@@ -73,6 +77,13 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const [aCost, setACost] = useState('')
   const [aSaving, setASaving] = useState(false)
 
+  // Chain form
+  const [cServiceType, setCServiceType] = useState<'Lubrication' | 'Tension Check' | 'Chain & Sprocket' | ''>('')
+  const [cDate, setCDate] = useState(todayDMY())
+  const [cMileage, setCMileage] = useState(String(currentMileage))
+  const [cCost, setCCost] = useState('')
+  const [cSaving, setCSaving] = useState(false)
+
   const loadRecords = useCallback(async () => {
     try {
       setLoadingRecords(true)
@@ -94,6 +105,29 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const alignmentHistory = records
     .filter(r => r.description.toLowerCase().includes('wheel alignment'))
     .slice(0, 5)
+
+  const chainHistory = records
+    .filter(r =>
+      r.description.toLowerCase().includes('chain lubrication') ||
+      r.description.toLowerCase().includes('chain & sprocket') ||
+      r.description.toLowerCase().includes('chain tension')
+    )
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 8)
+
+  const chainStatus = (() => {
+    const lastLube = records.find(r => r.description.toLowerCase().includes('chain lubrication'))
+    const lastReplace = records.find(r => r.description.toLowerCase().includes('chain & sprocket'))
+    const kmSinceLube = lastLube?.mileage != null ? currentMileage - lastLube.mileage : null
+    const kmSinceReplace = lastReplace?.mileage != null ? currentMileage - lastReplace.mileage : null
+    let lubeStatus: 'ok' | 'due' | 'overdue' | 'unknown' = 'unknown'
+    if (kmSinceLube !== null) {
+      if (kmSinceLube < 400) lubeStatus = 'ok'
+      else if (kmSinceLube < 600) lubeStatus = 'due'
+      else lubeStatus = 'overdue'
+    }
+    return { lastLube, lastReplace, kmSinceLube, kmSinceReplace, lubeStatus }
+  })()
 
   // Tyre life prediction from alignment frequency since last tyre change
   const tyrePrediction = (() => {
@@ -235,6 +269,46 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     await doSave()
   }
 
+  const saveChain = async () => {
+    if (!cServiceType) { Alert.alert('Required', 'Please select a service type'); return }
+    const isoDate = parseDMY(cDate)
+    if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    const mileageNum = cMileage ? parseInt(cMileage) : null
+    const doSave = async () => {
+      setCSaving(true)
+      try {
+        const descMap: Record<string, string> = {
+          'Lubrication': 'Chain Lubrication',
+          'Tension Check': 'Chain Tension Check',
+          'Chain & Sprocket': 'Chain & Sprocket',
+        }
+        await api.addServiceRecord(token, vehicleId, {
+          date: isoDate,
+          description: descMap[cServiceType],
+          mileage: mileageNum ?? undefined,
+          cost: cCost ? parseFloat(cCost) : undefined,
+          structuredData: { 'Chain Service': { serviceType: cServiceType } },
+        })
+        Alert.alert('Saved', `${descMap[cServiceType]} recorded.`)
+        setCServiceType(''); setCDate(todayDMY()); setCMileage(String(currentMileage)); setCCost('')
+        loadRecords()
+      } catch (e: any) {
+        Alert.alert('Error', e.message)
+      } finally {
+        setCSaving(false)
+      }
+    }
+    if (mileageNum !== null && mileageNum > currentMileage + 500) {
+      Alert.alert(
+        'Check mileage',
+        `${mileageNum.toLocaleString()} km is higher than current recorded mileage. Correct?`,
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes, save', onPress: doSave }]
+      )
+      return
+    }
+    await doSave()
+  }
+
   return (
     <View style={s.container}>
       <View style={s.header}>
@@ -251,15 +325,27 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           onPress={() => setActiveTab('emission')}
           activeOpacity={0.7}
         >
-          <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 Carbon Emission</Text>
+          <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 Emission</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.tab, activeTab === 'alignment' && s.tabActive]}
           onPress={() => setActiveTab('alignment')}
           activeOpacity={0.7}
         >
-          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 Wheel Alignment</Text>
+          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 Alignment</Text>
         </TouchableOpacity>
+        {showChainTab && (
+          <TouchableOpacity
+            style={[s.tab, activeTab === 'chain' && s.tabActive]}
+            onPress={() => setActiveTab('chain')}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>⛓ Chain</Text>
+            {chainStatus.lubeStatus === 'overdue' && (
+              <View style={s.tabDot} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
@@ -481,7 +567,108 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               <Text style={s.emptyNote}>No alignment records yet. Log your first one above.</Text>
             )}
           </>
-        )}
+        ) : activeTab === 'chain' ? (
+          <>
+            <Text style={s.sectionTitle}>Chain Maintenance</Text>
+
+            {/* Chain status card */}
+            {(() => {
+              const { lubeStatus, kmSinceLube, kmSinceReplace, lastLube, lastReplace } = chainStatus
+              const statusColor = lubeStatus === 'ok' ? '#2e7d32' : lubeStatus === 'due' ? '#e65100' : lubeStatus === 'overdue' ? '#c62828' : '#888'
+              const statusBg = lubeStatus === 'ok' ? '#e8f5e9' : lubeStatus === 'due' ? '#fff3e0' : lubeStatus === 'overdue' ? '#fdecea' : '#f5f5f5'
+              const statusLabel = lubeStatus === 'ok' ? '✓ Lubrication OK' : lubeStatus === 'due' ? '⚠ Lubrication Due Soon' : lubeStatus === 'overdue' ? '⚠ Lubrication OVERDUE' : 'No lubrication recorded'
+              return (
+                <View style={[s.chainStatusCard, { backgroundColor: statusBg, borderColor: statusColor }]}>
+                  <Text style={[s.chainStatusLabel, { color: statusColor }]}>{statusLabel}</Text>
+                  {kmSinceLube !== null && (
+                    <Text style={s.chainStatusKm}>{kmSinceLube.toLocaleString()} km since last lube · Recommended every 500 km</Text>
+                  )}
+                  {kmSinceLube === null && (
+                    <Text style={s.chainStatusKm}>Log your first chain lubrication to start tracking.</Text>
+                  )}
+                  {kmSinceReplace !== null && (
+                    <Text style={s.chainStatusKm}>Chain & sprocket: {kmSinceReplace.toLocaleString()} km since last replacement</Text>
+                  )}
+                  {lastLube && (
+                    <Text style={s.chainStatusDate}>Last lube: {fmtDate(lastLube.date)}{lastLube.mileage != null ? ` at ${lastLube.mileage.toLocaleString()} km` : ''}</Text>
+                  )}
+                  {lastReplace && (
+                    <Text style={s.chainStatusDate}>Last chain & sprocket: {fmtDate(lastReplace.date)}{lastReplace.mileage != null ? ` at ${lastReplace.mileage.toLocaleString()} km` : ''}</Text>
+                  )}
+                </View>
+              )
+            })()}
+
+            <Text style={s.label}>Service Type <Text style={s.req}>*</Text></Text>
+            <View style={s.chipRow}>
+              {(['Lubrication', 'Tension Check', 'Chain & Sprocket'] as const).map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[s.chip, cServiceType === opt && s.chipSel]}
+                  onPress={() => setCServiceType(cServiceType === opt ? '' : opt)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.chipText, cServiceType === opt && s.chipTextSel]}>{opt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {cServiceType === 'Lubrication' && (
+              <View style={s.chainTip}>
+                <Text style={s.chainTipText}>Recommended every 500 km or after riding in rain. Clean the chain first, then apply lubricant to the inner side while rotating the wheel.</Text>
+              </View>
+            )}
+            {cServiceType === 'Chain & Sprocket' && (
+              <View style={s.chainTip}>
+                <Text style={s.chainTipText}>Typical replacement interval: 20,000–30,000 km. Always replace chain and sprockets together — a new chain on worn sprockets wears out quickly.</Text>
+              </View>
+            )}
+
+            <View style={s.row}>
+              <View style={s.half}>
+                <Text style={s.label}>Date</Text>
+                <TextInput
+                  style={s.input} value={cDate} onChangeText={setCDate}
+                  placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
+                />
+              </View>
+              <View style={s.half}>
+                <Text style={s.label}>Mileage (km)</Text>
+                <TextInput
+                  style={s.input} value={cMileage} onChangeText={setCMileage}
+                  placeholder="e.g. 18000" keyboardType="number-pad"
+                />
+              </View>
+            </View>
+
+            <Text style={s.label}>Cost (LKR, optional)</Text>
+            <TextInput style={s.input} value={cCost} onChangeText={setCCost} placeholder="e.g. 500" keyboardType="number-pad" />
+
+            <TouchableOpacity style={s.saveBtn} onPress={saveChain} disabled={cSaving} activeOpacity={0.8}>
+              {cSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Chain Record</Text>}
+            </TouchableOpacity>
+
+            {chainHistory.length > 0 && (
+              <>
+                <Text style={s.historyTitle}>Chain Service History</Text>
+                {chainHistory.map(r => (
+                  <View key={r.id} style={[s.histCard, { borderLeftColor: '#ff6f00' }]}>
+                    <View style={s.histRow}>
+                      <Text style={s.histLabel}>{r.description}</Text>
+                      <Text style={s.histDate}>{fmtDate(r.date)}</Text>
+                      {r.mileage != null && <Text style={s.histMeta}>{r.mileage.toLocaleString()} km</Text>}
+                    </View>
+                    {r.cost != null && <Text style={s.histCost}>LKR {r.cost.toLocaleString()}</Text>}
+                  </View>
+                ))}
+              </>
+            )}
+
+            {!loadingRecords && chainHistory.length === 0 && (
+              <Text style={s.emptyNote}>No chain records yet. Log your first service above.</Text>
+            )}
+          </>
+        ) : null}
       </ScrollView>
     </View>
   )
@@ -573,4 +760,22 @@ const s = StyleSheet.create({
   predHintText: { fontSize: 13, color: '#3c4bdc', lineHeight: 20 },
 
   emptyNote: { fontSize: 13, color: '#aaa', textAlign: 'center', marginTop: 24 },
+
+  tabDot: {
+    width: 7, height: 7, borderRadius: 4, backgroundColor: '#c62828',
+    position: 'absolute', top: 8, right: 8,
+  },
+
+  chainStatusCard: {
+    borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
+  },
+  chainStatusLabel: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
+  chainStatusKm: { fontSize: 13, color: '#555', marginBottom: 2 },
+  chainStatusDate: { fontSize: 12, color: '#888', marginTop: 4 },
+
+  chainTip: {
+    backgroundColor: '#fff8e1', borderRadius: 10, padding: 12,
+    marginBottom: 4, borderLeftWidth: 3, borderLeftColor: '#f9a825',
+  },
+  chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
 })

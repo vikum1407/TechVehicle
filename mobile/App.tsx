@@ -444,6 +444,7 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           currentMileage={selectedVehicle.mileage}
+          vehicleType={selectedVehicle.vehicleType}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}
