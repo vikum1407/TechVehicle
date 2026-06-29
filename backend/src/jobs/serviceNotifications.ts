@@ -31,7 +31,7 @@ async function checkSetupReminders() {
         where: { vehicleId: vehicle.id },
         orderBy: { date: 'desc' },
       })
-      const predictions = computePredictions(vehicle, records)
+      const predictions = computePredictions(vehicle as any, records)
       const noDataCount = predictions.filter(p => p.status === 'no_data').length
 
       // Only nudge if there are 3+ unconfigured predictions
@@ -90,7 +90,7 @@ async function checkServicesDue() {
         orderBy: { date: 'desc' },
       })
 
-      const predictions = computePredictions(vehicle, records)
+      const predictions = computePredictions(vehicle as any, records)
       const overdue  = predictions.filter(p => p.status === 'overdue')
       const dueSoon  = predictions.filter(p => p.status === 'due_soon')
 
