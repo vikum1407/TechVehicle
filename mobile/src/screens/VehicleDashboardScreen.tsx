@@ -8,6 +8,7 @@ import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
+import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 
 type Vehicle = {
   id: string
@@ -200,7 +201,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
-  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType })
+  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -219,6 +220,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         model: draftVehicle.model.trim(),
         year: Number(draftVehicle.year),
         fuelType: draftVehicle.fuelType,
+        vehicleType: draftVehicle.vehicleType || undefined,
       })
       setEditVehicleModal(false)
       onVehicleUpdated?.(updated)
@@ -577,7 +579,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )}
           <View style={styles.vehicleNameRow}>
             <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+            <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
               <Text style={styles.editVehicleBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -1119,6 +1121,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editVehicleLabel}>Make</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor="#bbb" />
             <Text style={styles.editVehicleLabel}>Model</Text>
@@ -1133,9 +1136,23 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={styles.editVehicleLabel}>Vehicle Type</Text>
+            <View style={styles.vehicleTypeGrid}>
+              {VEHICLE_TYPE_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.vehicleTypeChip, draftVehicle.vehicleType === opt.value && styles.vehicleTypeChipActive]}
+                  onPress={() => setDraftVehicle(p => ({ ...p, vehicleType: opt.value }))}
+                >
+                  <Text style={styles.vehicleTypeChipIcon}>{opt.icon}</Text>
+                  <Text style={[styles.vehicleTypeChipText, draftVehicle.vehicleType === opt.value && styles.vehicleTypeChipTextActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
               {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>Save Changes</Text>}
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1478,7 +1495,7 @@ const styles = StyleSheet.create({
   progressHint: { fontSize: 12, color: '#666', marginTop: 3, paddingLeft: 4 },
 
   editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  editVehicleCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  editVehicleCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%' },
   editVehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   editVehicleTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a2e' },
   editVehicleClose: { fontSize: 18, color: '#888', fontWeight: '700' },
@@ -1489,6 +1506,12 @@ const styles = StyleSheet.create({
   fuelTypeChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
   fuelTypeChipText: { fontSize: 13, color: '#666', fontWeight: '600' },
   fuelTypeChipTextActive: { color: '#fff' },
+  vehicleTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  vehicleTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 20, backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0' },
+  vehicleTypeChipActive: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+  vehicleTypeChipIcon: { fontSize: 14 },
+  vehicleTypeChipText: { fontSize: 12, color: '#666', fontWeight: '600' },
+  vehicleTypeChipTextActive: { color: '#fff' },
   editVehicleSaveBtn: { backgroundColor: '#1a73e8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
   editVehicleSaveBtnDisabled: { opacity: 0.6 },
   editVehicleSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
