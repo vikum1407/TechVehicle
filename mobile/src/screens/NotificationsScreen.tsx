@@ -40,6 +40,7 @@ const TYPE_ICON: Record<string, string> = {
   transfer_accepted: '🏆',
   licence_reminder: '🚨',
   emission_reminder: '🚨',
+  insurance_reminder: '🛡️',
 }
 
 const URGENT_TYPES = new Set(['licence_reminder', 'emission_reminder'])

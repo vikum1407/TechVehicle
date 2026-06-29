@@ -27,6 +27,11 @@ const PREFS = [
     description: 'Alerts when Revenue Licence or Emission Test expiry is approaching',
   },
   {
+    key: 'insurance_reminder',
+    title: 'Insurance Reminders',
+    description: 'Alerts when vehicle insurance expiry is approaching',
+  },
+  {
     key: 'booking',
     title: 'Booking Notifications',
     description: 'Notify when a booking is confirmed, updated, or you receive a message',
@@ -48,6 +53,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
     service_due: true,
     mileage_reminder: true,
     renewal: true,
+    insurance_reminder: true,
     booking: true,
     transfer: true,
     submission: true,

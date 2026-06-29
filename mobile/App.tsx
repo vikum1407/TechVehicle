@@ -48,6 +48,9 @@ type Vehicle = {
   photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
+  insuranceExpiry?: string | null
+  insuranceCompany?: string | null
+  insurancePolicyNo?: string | null
   purchaseDate?: string | null
   ownerCount?: number | null
   vehicleNotes?: string | null

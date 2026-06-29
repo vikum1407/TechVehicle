@@ -34,8 +34,12 @@ model Vehicle {
   photoUrl                  String?
   emissionTestExpiry        DateTime?
   revenueLicenceExpiry      DateTime?
+  insuranceExpiry           DateTime?
+  insuranceCompany          String?
+  insurancePolicyNo         String?
   lastEmissionReminderSent  DateTime?
   lastLicenceReminderSent   DateTime?
+  lastInsuranceReminderSent DateTime?
   intervalOverrides         Json?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt

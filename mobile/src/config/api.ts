@@ -499,6 +499,15 @@ export const api = {
     return data
   },
 
+  getAnomalies: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/anomalies`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch anomalies')
+    return data as { id: string; title: string; description: string; severity: 'warning' | 'info' }[]
+  },
+
   getCostForecast: async (token: string, vehicleId: string) => {
     const res = await fetch(`${API_URL}/predictions/${vehicleId}/cost-forecast`, {
       headers: authHeaders(token),
@@ -810,7 +819,7 @@ export const api = {
   updateVehicleExpiry: async (
     token: string,
     vehicleId: string,
-    payload: { emissionTestExpiry?: string | null; revenueLicenceExpiry?: string | null }
+    payload: { emissionTestExpiry?: string | null; revenueLicenceExpiry?: string | null; insuranceExpiry?: string | null; insuranceCompany?: string | null; insurancePolicyNo?: string | null }
   ) => {
     const res = await fetch(`${API_URL}/vehicles/${vehicleId}/expiry`, {
       method: 'PATCH',

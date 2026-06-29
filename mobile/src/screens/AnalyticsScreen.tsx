@@ -68,6 +68,13 @@ type Forecast = {
   periodDays: number
 }
 
+type Anomaly = {
+  id: string
+  title: string
+  description: string
+  severity: 'warning' | 'info'
+}
+
 const COLORS = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
@@ -438,6 +445,7 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
 export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeHub }: Props) {
   const [data, setData] = useState<Analytics | null>(null)
   const [forecast, setForecast] = useState<Forecast | null>(null)
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
@@ -447,10 +455,12 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
     Promise.all([
       api.getAnalytics(token, vehicleId),
       api.getCostForecast(token, vehicleId).catch(() => null),
+      api.getAnomalies(token, vehicleId).catch(() => []),
     ])
-      .then(([analytics, fore]) => {
+      .then(([analytics, fore, anom]) => {
         setData(analytics)
         setForecast(fore)
+        setAnomalies(anom ?? [])
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
@@ -523,6 +533,24 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
           <Text style={styles.statSub}>average efficiency</Text>
         </View>
       </View>
+
+      {/* Anomaly warnings */}
+      {anomalies.length > 0 && (
+        <View style={styles.anomalySection}>
+          <Text style={styles.anomalySectionTitle}>⚠ Service History Alerts</Text>
+          {anomalies.map(a => (
+            <View
+              key={a.id}
+              style={[styles.anomalyCard, a.severity === 'warning' ? styles.anomalyCardWarn : styles.anomalyCardInfo]}
+            >
+              <Text style={[styles.anomalyTitle, a.severity === 'warning' ? styles.anomalyTitleWarn : styles.anomalyTitleInfo]}>
+                {a.severity === 'warning' ? '⚠️ ' : 'ℹ️ '}{a.title}
+              </Text>
+              <Text style={styles.anomalyDesc}>{a.description}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Cost forecast */}
       {forecast && forecast.items.length > 0 && (
@@ -786,6 +814,20 @@ const styles = StyleSheet.create({
   warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
   warnIcon: { fontSize: 14, marginTop: 1 },
   warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
+
+  // Anomaly section
+  anomalySection: { marginBottom: 16 },
+  anomalySectionTitle: { fontSize: 14, fontWeight: '700', color: '#555', marginBottom: 10 },
+  anomalyCard: {
+    borderRadius: 10, padding: 14, marginBottom: 10,
+    borderLeftWidth: 4,
+  },
+  anomalyCardWarn: { backgroundColor: '#fff8e1', borderLeftColor: '#f9a825' },
+  anomalyCardInfo: { backgroundColor: '#e8f0fe', borderLeftColor: '#1a73e8' },
+  anomalyTitle: { fontSize: 14, fontWeight: '700', marginBottom: 5 },
+  anomalyTitleWarn: { color: '#e65100' },
+  anomalyTitleInfo: { color: '#1a55a8' },
+  anomalyDesc: { fontSize: 13, color: '#555', lineHeight: 19 },
 
   // Cost forecast
   forecastCard: {

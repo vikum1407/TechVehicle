@@ -66,17 +66,17 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 })
 
-// PATCH /vehicles/:id/expiry — update emission test or revenue licence expiry dates
+// PATCH /vehicles/:id/expiry — update emission test, revenue licence, or insurance expiry dates
 router.patch('/:id/expiry', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
-  const { emissionTestExpiry, revenueLicenceExpiry } = req.body
+  const { emissionTestExpiry, revenueLicenceExpiry, insuranceExpiry, insuranceCompany, insurancePolicyNo } = req.body
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id, ownerPhone: req.phoneNumber! },
     })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
 
-    const data: Record<string, Date | null> = {}
+    const data: Record<string, any> = {}
     if (emissionTestExpiry !== undefined) {
       data.emissionTestExpiry = emissionTestExpiry ? new Date(emissionTestExpiry) : null
       data.lastEmissionReminderSent = null
@@ -85,6 +85,12 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
       data.revenueLicenceExpiry = revenueLicenceExpiry ? new Date(revenueLicenceExpiry) : null
       data.lastLicenceReminderSent = null
     }
+    if (insuranceExpiry !== undefined) {
+      data.insuranceExpiry = insuranceExpiry ? new Date(insuranceExpiry) : null
+      data.lastInsuranceReminderSent = null
+    }
+    if (insuranceCompany !== undefined) data.insuranceCompany = insuranceCompany?.trim() || null
+    if (insurancePolicyNo !== undefined) data.insurancePolicyNo = insurancePolicyNo?.trim() || null
 
     const updated = await prisma.vehicle.update({ where: { id }, data })
     res.json(updated)
@@ -240,6 +246,103 @@ router.patch('/:id/mileage', async (req: AuthRequest, res) => {
     res.json(updated)
   } catch (error) {
     res.status(500).json({ error: 'Failed to update mileage' })
+  }
+})
+
+// GET /vehicles/:id/anomalies — scan service history for unusual patterns
+router.get('/:id/anomalies', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const records = await prisma.serviceRecord.findMany({
+      where: { vehicleId: id },
+      orderBy: { date: 'desc' },
+    })
+
+    type Anomaly = { id: string; title: string; description: string; severity: 'warning' | 'info' }
+    const anomalies: Anomaly[] = []
+
+    const now = Date.now()
+    const MS_12M = 365 * 24 * 60 * 60 * 1000
+    const MS_18M = 548 * 24 * 60 * 60 * 1000
+    const MS_24M = 730 * 24 * 60 * 60 * 1000
+
+    // ── AC Gas Refill frequency ────────────────────────────────────────────────
+    const acRefills = records.filter(r =>
+      r.description.toLowerCase().includes('ac gas') ||
+      r.description.toLowerCase().includes('refrigerant')
+    )
+    const acRefills18m = acRefills.filter(r => now - new Date(r.date).getTime() < MS_18M)
+    if (acRefills18m.length >= 3) {
+      anomalies.push({
+        id: 'ac_leak',
+        title: 'Possible AC refrigerant leak',
+        description: `AC gas refilled ${acRefills18m.length} times in the last 18 months. Frequent refills suggest a seal or compressor leak. Ask your garage to do a pressure test.`,
+        severity: 'warning',
+      })
+    }
+
+    // ── Battery replacement frequency ──────────────────────────────────────────
+    const batteryChanges = records.filter(r => r.description.toLowerCase().includes('battery'))
+    const batteryChanges24m = batteryChanges.filter(r => now - new Date(r.date).getTime() < MS_24M)
+    if (batteryChanges24m.length >= 2) {
+      anomalies.push({
+        id: 'battery_freq',
+        title: 'Battery replaced frequently',
+        description: `Battery replaced ${batteryChanges24m.length} times in 24 months. This may indicate an underlying electrical issue such as a faulty alternator or parasitic drain.`,
+        severity: 'warning',
+      })
+    }
+
+    // ── Oil change interval too short ──────────────────────────────────────────
+    const oilChanges = records
+      .filter(r => r.description.toLowerCase().includes('oil change') && r.mileage != null)
+      .sort((a, b) => (b.mileage ?? 0) - (a.mileage ?? 0))
+    if (oilChanges.length >= 3) {
+      const intervals: number[] = []
+      for (let i = 0; i < oilChanges.length - 1; i++) {
+        const diff = (oilChanges[i].mileage ?? 0) - (oilChanges[i + 1].mileage ?? 0)
+        if (diff > 0) intervals.push(diff)
+      }
+      if (intervals.length >= 2) {
+        const avg = intervals.reduce((s, n) => s + n, 0) / intervals.length
+        if (avg < 2000) {
+          anomalies.push({
+            id: 'oil_too_frequent',
+            title: 'Oil changed very frequently',
+            description: `Average oil change interval is ${Math.round(avg).toLocaleString()} km — much shorter than typical recommendations (5,000–10,000 km). Unless manufacturer-specified, this may be unnecessary expense.`,
+            severity: 'info',
+          })
+        }
+      }
+    }
+
+    // ── Any category repeated unusually often in 6 months ─────────────────────
+    const MS_6M = 183 * 24 * 60 * 60 * 1000
+    const recent6m = records.filter(r => now - new Date(r.date).getTime() < MS_6M)
+    const categoryCount: Record<string, number> = {}
+    for (const r of recent6m) {
+      const key = r.description.toLowerCase().split(' ').slice(0, 3).join(' ')
+      categoryCount[key] = (categoryCount[key] ?? 0) + 1
+    }
+    for (const [key, count] of Object.entries(categoryCount)) {
+      if (count >= 4) {
+        anomalies.push({
+          id: `freq_${key.replace(/\s/g, '_')}`,
+          title: `"${key}" done ${count}× in 6 months`,
+          description: `This service type has been logged ${count} times in the last 6 months, which is unusually frequent. Review whether all entries are correct or if a recurring fault is being re-repaired.`,
+          severity: 'warning',
+        })
+        break // cap at one of these
+      }
+    }
+
+    res.json(anomalies)
+  } catch (error) {
+    console.error('GET /vehicles/anomalies error:', error)
+    res.status(500).json({ error: 'Failed to analyse service history' })
   }
 })
 

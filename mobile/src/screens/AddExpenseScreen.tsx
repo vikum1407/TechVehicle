@@ -58,6 +58,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   const [mileage, setMileage] = useState('')
   const [notes, setNotes] = useState('')
   const [renewalExpiry, setRenewalExpiry] = useState('')
+  const [insuranceCompany, setInsuranceCompany] = useState('')
+  const [insurancePolicyNo, setInsurancePolicyNo] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
@@ -97,6 +99,13 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
 
       if (renewalExpiryISO && category === 'Revenue Licence') {
         await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: renewalExpiryISO })
+      }
+      if (renewalExpiryISO && category === 'Insurance') {
+        await api.updateVehicleExpiry(token, vehicleId, {
+          insuranceExpiry: renewalExpiryISO,
+          insuranceCompany: insuranceCompany.trim() || null,
+          insurancePolicyNo: insurancePolicyNo.trim() || null,
+        })
       }
 
       onExpenseAdded()
@@ -197,6 +206,36 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
             onChangeText={setRenewalExpiry}
             placeholder="e.g. 06/2026"
             keyboardType="numbers-and-punctuation"
+          />
+        </View>
+      )}
+
+      {/* Insurance details — shown for Insurance */}
+      {category === 'Insurance' && (
+        <View style={styles.reminderCard}>
+          <Text style={styles.reminderTitle}>Insurance Details</Text>
+          <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+          <Text style={styles.label}>Policy Expiry Date (MM/YYYY)</Text>
+          <TextInput
+            style={styles.input}
+            value={renewalExpiry}
+            onChangeText={setRenewalExpiry}
+            placeholder="e.g. 12/2026"
+            keyboardType="numbers-and-punctuation"
+          />
+          <Text style={styles.label}>Insurance Company (optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={insuranceCompany}
+            onChangeText={setInsuranceCompany}
+            placeholder="e.g. Union Assurance, AIA, Ceylinco"
+          />
+          <Text style={styles.label}>Policy Number (optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={insurancePolicyNo}
+            onChangeText={setInsurancePolicyNo}
+            placeholder="e.g. UA-2024-0012345"
           />
         </View>
       )}

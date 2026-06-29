@@ -22,6 +22,9 @@ type Vehicle = {
   photoUrl?: string | null
   emissionTestExpiry?: string | null
   revenueLicenceExpiry?: string | null
+  insuranceExpiry?: string | null
+  insuranceCompany?: string | null
+  insurancePolicyNo?: string | null
   purchaseDate?: string | null
   ownerCount?: number | null
   vehicleNotes?: string | null
@@ -701,9 +704,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
         {/* Renewal expiry banners */}
         {(() => {
-          const emission = getExpiryAlert(vehicle.emissionTestExpiry)
-          const licence  = getExpiryAlert(vehicle.revenueLicenceExpiry)
-          if (!emission && !licence) return null
+          const emission  = getExpiryAlert(vehicle.emissionTestExpiry)
+          const licence   = getExpiryAlert(vehicle.revenueLicenceExpiry)
+          const insurance = getExpiryAlert(vehicle.insuranceExpiry)
+          if (!emission && !licence && !insurance) return null
           const urgencyColor = (u: string) => u === 'expired' || u === 'critical' ? '#c62828' : '#e65100'
           const urgencyBg    = (u: string) => u === 'expired' || u === 'critical' ? '#ffebee' : '#fff3e0'
           return (
@@ -746,6 +750,27 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     </Text>
                   </View>
                   <Text style={[styles.renewalArrow, { color: urgencyColor(licence.urgency) }]}>›</Text>
+                </TouchableOpacity>
+              )}
+              {insurance && (
+                <TouchableOpacity
+                  style={[styles.renewalCard, { borderLeftColor: urgencyColor(insurance.urgency), backgroundColor: urgencyBg(insurance.urgency) }]}
+                  onPress={onAddExpense}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.renewalLeft}>
+                    <Text style={[styles.renewalTitle, { color: urgencyColor(insurance.urgency) }]}>
+                      {insurance.urgency === 'expired' ? '🚨' : '⚠️'} Insurance
+                      {vehicle.insuranceCompany ? ` — ${vehicle.insuranceCompany}` : ''}
+                    </Text>
+                    <Text style={[styles.renewalDays, { color: urgencyColor(insurance.urgency) }]}>
+                      {expiryLabel(insurance.daysLeft)}
+                    </Text>
+                    <Text style={styles.renewalDate}>
+                      {new Date(vehicle.insuranceExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  <Text style={[styles.renewalArrow, { color: urgencyColor(insurance.urgency) }]}>›</Text>
                 </TouchableOpacity>
               )}
             </View>

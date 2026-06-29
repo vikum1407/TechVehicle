@@ -123,7 +123,7 @@ router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
-    const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
+    const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
     if (!user?.notificationPrefs) { res.json(defaults); return }
     try {
       res.json({ ...defaults, ...JSON.parse(user.notificationPrefs) })
@@ -137,11 +137,12 @@ router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
 
 // PUT /auth/notification-prefs — update notification preferences
 router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
-  const { service_due, mileage_reminder, renewal, booking, transfer, submission } = req.body
+  const { service_due, mileage_reminder, renewal, insurance_reminder, booking, transfer, submission } = req.body
   const prefs: Record<string, boolean> = {}
   if (service_due !== undefined) prefs.service_due = Boolean(service_due)
   if (mileage_reminder !== undefined) prefs.mileage_reminder = Boolean(mileage_reminder)
   if (renewal !== undefined) prefs.renewal = Boolean(renewal)
+  if (insurance_reminder !== undefined) prefs.insurance_reminder = Boolean(insurance_reminder)
   if (booking !== undefined) prefs.booking = Boolean(booking)
   if (transfer !== undefined) prefs.transfer = Boolean(transfer)
   if (submission !== undefined) prefs.submission = Boolean(submission)

@@ -12,7 +12,7 @@ function daysUntil(date: Date): number {
 }
 
 function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, booking: true, transfer: true, submission: true }
+  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
   if (!raw) return defaults
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
@@ -26,6 +26,7 @@ async function checkRenewals() {
       OR: [
         { emissionTestExpiry: { not: null, lte: in30Days } },
         { revenueLicenceExpiry: { not: null, lte: in30Days } },
+        { insuranceExpiry: { not: null, lte: in30Days } },
       ],
     },
     include: { owner: true },
@@ -33,11 +34,12 @@ async function checkRenewals() {
 
   for (const vehicle of vehicles) {
     const { owner } = vehicle
-    if (!parsePrefs(owner.notificationPrefs).renewal) continue
+    const ownerPrefs = parsePrefs(owner.notificationPrefs)
+    if (!ownerPrefs.renewal && !ownerPrefs.insurance_reminder) continue
     const label = `${vehicle.make} ${vehicle.model} (${vehicle.registrationNo})`
 
     // ── Emission Test reminder ─────────────────────────────────────────
-    if (vehicle.emissionTestExpiry && vehicle.emissionTestExpiry > now) {
+    if (ownerPrefs.renewal && vehicle.emissionTestExpiry && vehicle.emissionTestExpiry > now) {
       const lastSent = vehicle.lastEmissionReminderSent
       const needsSend = !lastSent || (now.getTime() - lastSent.getTime()) >= DAYS_3
       if (needsSend) {
@@ -57,7 +59,7 @@ async function checkRenewals() {
     }
 
     // ── Revenue Licence reminder ───────────────────────────────────────
-    if (vehicle.revenueLicenceExpiry && vehicle.revenueLicenceExpiry > now) {
+    if (ownerPrefs.renewal && vehicle.revenueLicenceExpiry && vehicle.revenueLicenceExpiry > now) {
       const lastSent = vehicle.lastLicenceReminderSent
       const needsSend = !lastSent || (now.getTime() - lastSent.getTime()) >= DAYS_3
       if (needsSend) {
@@ -72,6 +74,26 @@ async function checkRenewals() {
         await prisma.vehicle.update({
           where: { id: vehicle.id },
           data: { lastLicenceReminderSent: now },
+        })
+      }
+    }
+
+    // ── Insurance reminder ────────────────────────────────────────────
+    if (ownerPrefs.insurance_reminder && vehicle.insuranceExpiry && vehicle.insuranceExpiry > now) {
+      const lastSent = (vehicle as any).lastInsuranceReminderSent as Date | null
+      const needsSend = !lastSent || (now.getTime() - lastSent.getTime()) >= DAYS_3
+      if (needsSend) {
+        const days = daysUntil(vehicle.insuranceExpiry)
+        const title = days <= 7
+          ? `Insurance due in ${days} day${days === 1 ? '' : 's'}!`
+          : `Insurance due in ${days} days`
+        const body = `${label} — renew your vehicle insurance before it expires.`
+
+        await sendPush(owner.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, owner.phoneNumber, 'insurance_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await prisma.vehicle.update({
+          where: { id: vehicle.id },
+          data: { lastInsuranceReminderSent: now },
         })
       }
     }
