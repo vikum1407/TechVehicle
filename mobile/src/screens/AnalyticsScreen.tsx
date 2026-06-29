@@ -99,6 +99,7 @@ function fmtDate(iso: string) {
 // ── Mileage line chart ─────────────────────────────────────────────────────────
 
 function MileageChart({ data }: { data: { mileage: number; label: string }[] }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   if (data.length < 2) return <Text style={cs.noData}>Log more fuel fill-ups to see mileage growth</Text>
   const W = 320, H = 150, pL = 44, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
@@ -136,6 +137,7 @@ function MileageChart({ data }: { data: { mileage: number; label: string }[] }) 
 // ── Fuel efficiency line chart ─────────────────────────────────────────────────
 
 function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   if (data.length < 2) return <Text style={cs.noData}>Log at least 3 fill-ups with litres to see efficiency trend</Text>
   const W = 320, H = 140, pL = 34, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
@@ -174,6 +176,7 @@ function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }
 // ── Fuel cost bar chart ────────────────────────────────────────────────────────
 
 function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   if (data.length === 0) return <Text style={cs.noData}>Log fill-ups with cost to see spending per fill-up</Text>
   const W = 320, H = 120, pL = 40, pR = 10, pT = 10, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
@@ -207,6 +210,7 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
 // ── Structured analytics cards ─────────────────────────────────────────────────
 
 function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -240,6 +244,7 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
 }
 
 function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -277,6 +282,7 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
 }
 
 function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics']> }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -326,6 +332,7 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
 }
 
 function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -375,6 +382,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 function CostForecastCard({ forecast }: { forecast: Forecast }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
   const hasAnyEstimate = forecast.items.some(i => i.estimatedCost !== null)
 
