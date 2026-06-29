@@ -179,13 +179,13 @@ function makeStyles(c: Colors) {
     },
     cardUnread: { backgroundColor: c.primaryTint },
     cardUrgent: {
-      backgroundColor: '#fff3e0',
+      backgroundColor: c.surfaceAlt,
       borderLeftWidth: 4, borderLeftColor: '#e65100',
     },
     cardTitleUrgent: { color: '#c62828' },
     unreadDotUrgent: { backgroundColor: '#e65100' },
     cardTransfer: {
-      backgroundColor: '#fffde7',
+      backgroundColor: c.surfaceAlt,
       borderLeftWidth: 4, borderLeftColor: '#f9a825',
     },
     cardTitleTransfer: { color: '#e65100' },
