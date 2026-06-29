@@ -211,7 +211,7 @@ model VehicleShare {
 }
 
 model ServiceSubmission {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   shareSessionId   String?
   bookingId        String?
   vehicleId        String
@@ -219,6 +219,7 @@ model ServiceSubmission {
   submittedByPhone String?
   ownerPhone       String
   description      String
+  serviceDate      DateTime?
   parts            String?
   brand            String?
   mileage          Int?
@@ -226,8 +227,8 @@ model ServiceSubmission {
   notes            String?
   structuredData   Json?
   photos           String[]
-  status           String   @default("pending")
-  createdAt        DateTime @default(now())
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now())
   vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage           Garage?  @relation(fields: [garageId], references: [id], onDelete: Cascade)
 }

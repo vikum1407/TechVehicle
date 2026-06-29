@@ -155,7 +155,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
     if (search.trim() && !r.description.toLowerCase().includes(search.toLowerCase())) return false
     if (catFilter !== 'All') {
       const cats = r.description.split(',').map(c => c.trim())
-      if (!cats.some(c => c.toLowerCase() === catFilter.toLowerCase())) return false
+      const catLower = catFilter.toLowerCase()
+      if (!cats.some(c => c.toLowerCase() === catLower || c.toLowerCase().includes(catLower) || catLower.includes(c.toLowerCase()))) return false
     }
     if (dateFilter !== 'all') {
       const months = dateFilter === '1y' ? 12 : dateFilter === '6m' ? 6 : 3

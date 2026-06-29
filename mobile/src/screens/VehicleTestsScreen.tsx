@@ -206,7 +206,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               ...(eStation ? { station: eStation } : {}),
             },
           }
-          await api.submitSharedTest(token, vehicleId, 'Emission Test / Carbon Test', mileageNum ?? undefined, eCost ? parseFloat(eCost) : undefined, structuredData)
+          await api.submitSharedTest(token, vehicleId, 'Emission Test / Carbon Test', isoDate, mileageNum ?? undefined, eCost ? parseFloat(eCost) : undefined, structuredData)
           Alert.alert('Submitted', 'Emission test submitted to the owner for approval.')
         } else {
           await api.logEmissionTest(token, vehicleId, {
@@ -261,7 +261,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           ? { 'Wheel Alignment': { axle: aAxle } }
           : undefined
         if (isShared) {
-          await api.submitSharedTest(token, vehicleId, 'Wheel Alignment', mileageNum ?? undefined, aCost ? parseFloat(aCost) : undefined, structuredData ?? {})
+          await api.submitSharedTest(token, vehicleId, 'Wheel Alignment', isoDate, mileageNum ?? undefined, aCost ? parseFloat(aCost) : undefined, structuredData ?? {})
           Alert.alert('Submitted', 'Wheel alignment submitted to the owner for approval.')
         } else {
           await api.addServiceRecord(token, vehicleId, {

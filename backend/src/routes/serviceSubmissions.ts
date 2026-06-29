@@ -96,7 +96,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
 // POST /service-submissions/shared — shared user submits an emission test or alignment for owner approval
 router.post('/shared', async (req: AuthRequest, res) => {
-  const { vehicleId, description, mileage, cost, notes, structuredData } = req.body
+  const { vehicleId, description, date, mileage, cost, notes, structuredData } = req.body
   if (!vehicleId || !description?.trim()) {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
@@ -116,6 +116,7 @@ router.post('/shared', async (req: AuthRequest, res) => {
         submittedByPhone: req.phoneNumber!,
         ownerPhone,
         description: description.trim(),
+        serviceDate: date ? new Date(date) : null,
         mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
         notes: notes?.trim() || null,
@@ -193,7 +194,7 @@ router.post('/:id/accept', async (req: AuthRequest, res) => {
     const record = await prisma.serviceRecord.create({
       data: {
         vehicleId: submission.vehicleId,
-        date: submission.createdAt,
+        date: (submission as any).serviceDate ?? submission.createdAt,
         description: submission.description,
         mileage: serviceMileage,
         parts: submission.parts,
