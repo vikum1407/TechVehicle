@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { canReadVehicle } from '../utils/vehicleAccess'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -18,10 +19,10 @@ function extractBrand(description: string, item: string): string | null {
 router.get('/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
   try {
-    const vehicle = await prisma.vehicle.findFirst({
-      where: { id: vehicleId, ownerPhone: req.phoneNumber! },
-    })
-    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    if (!await canReadVehicle(prisma, vehicleId, req.phoneNumber!)) {
+      res.status(404).json({ error: 'Vehicle not found' }); return
+    }
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId } })
 
     const [serviceRecords, fuelLogs, expenses] = await Promise.all([
       prisma.serviceRecord.findMany({ where: { vehicleId }, orderBy: { date: 'asc' } }),

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { computePredictions, urgencyScore } from '../utils/predictionEngine'
 import { sendPush } from '../utils/push'
+import { canReadVehicle } from '../utils/vehicleAccess'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -13,10 +14,10 @@ router.use(authMiddleware)
 router.get('/:vehicleId', async (req: AuthRequest, res) => {
   const { vehicleId } = req.params as { vehicleId: string }
   try {
-    const vehicle = await prisma.vehicle.findFirst({
-      where: { id: vehicleId, ownerPhone: req.phoneNumber! },
-    })
-    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    if (!await canReadVehicle(prisma, vehicleId, req.phoneNumber!)) {
+      res.status(404).json({ error: 'Vehicle not found' }); return
+    }
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId } })
 
     const records = await prisma.serviceRecord.findMany({
       where: { vehicleId },
@@ -79,10 +80,10 @@ router.post('/notify', async (req: AuthRequest, res) => {
 router.get('/:vehicleId/cost-forecast', async (req: AuthRequest, res) => {
   const { vehicleId } = req.params as { vehicleId: string }
   try {
-    const vehicle = await prisma.vehicle.findFirst({
-      where: { id: vehicleId, ownerPhone: req.phoneNumber! },
-    })
-    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    if (!await canReadVehicle(prisma, vehicleId, req.phoneNumber!)) {
+      res.status(404).json({ error: 'Vehicle not found' }); return
+    }
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId } })
 
     const records = await prisma.serviceRecord.findMany({
       where: { vehicleId },
