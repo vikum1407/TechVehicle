@@ -103,7 +103,7 @@ router.get('/:vehicleId/cost-forecast', async (req: AuthRequest, res) => {
       if (days > 0) avgKmPerDay = (newest.mileage - oldest.mileage) / days
     }
 
-    const predictions = computePredictions(vehicle, records)
+    const predictions = computePredictions(vehicle as any, records)
 
     const FORECAST_DAYS = 90
     const forecastItems = predictions
