@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator,
-  TextInput, Alert,
+  TextInput, Alert, Modal, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
@@ -92,6 +92,7 @@ type Props = {
   currentMileage: number
   initialTab?: Tab
   onBack: () => void
+  onLogNow?: (serviceName: string) => void
 }
 
 const STATUS_CONFIG = {
@@ -111,12 +112,13 @@ function kmStr(km: number) {
 
 type SetupEntry = { date: string; mileage: string; brand: string; extras: Record<string, string> }
 
-export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack }: Props) {
+export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', onBack, onLogNow }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [setupEntries, setSetupEntries] = useState<Record<string, SetupEntry>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null)
 
   // Allow parent to switch tab via prop change (e.g. from notification)
   useEffect(() => { setActiveTab(initialTab) }, [initialTab])
@@ -230,18 +232,20 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     }
 
     return (
-      <View key={p.id} style={[styles.card, { borderLeftColor: cfg.color, backgroundColor: cfg.bg }]}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardName}>{p.name}</Text>
-          <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
-            <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
+      <TouchableOpacity key={p.id} activeOpacity={0.75} onPress={() => setSelectedPrediction(p)}>
+        <View style={[styles.card, { borderLeftColor: cfg.color, backgroundColor: cfg.bg }]}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardName}>{p.name}</Text>
+            <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
+              <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
+            </View>
           </View>
+          {distanceLine !== '' && <Text style={[styles.distanceLine, { color: cfg.color }]}>{distanceLine}</Text>}
+          {timeLine      !== '' && <Text style={styles.timeLine}>{timeLine}</Text>}
+          {lastLine      !== '' && <Text style={styles.lastLine}>{lastLine}</Text>}
+          <Text style={styles.source}>{p.source}</Text>
         </View>
-        {distanceLine !== '' && <Text style={[styles.distanceLine, { color: cfg.color }]}>{distanceLine}</Text>}
-        {timeLine      !== '' && <Text style={styles.timeLine}>{timeLine}</Text>}
-        {lastLine      !== '' && <Text style={styles.lastLine}>{lastLine}</Text>}
-        <Text style={styles.source}>{p.source}</Text>
-      </View>
+      </TouchableOpacity>
     )
   }
 
@@ -471,6 +475,79 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       ) : (
         activeTab === 'services' ? servicesContent : setupContent
       )}
+
+      {/* Prediction detail bottom-sheet */}
+      {selectedPrediction && (() => {
+        const p = selectedPrediction
+        const cfg = STATUS_CONFIG[p.status]
+        return (
+          <Modal transparent animationType="slide" onRequestClose={() => setSelectedPrediction(null)}>
+            <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedPrediction(null)} />
+            <View style={styles.detailSheet}>
+              <View style={styles.detailHandle} />
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailName}>{p.name}</Text>
+                <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
+                  <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailRowLabel}>Last done</Text>
+                <Text style={styles.detailRowValue}>
+                  {p.lastDoneDate
+                    ? `${formatDate(p.lastDoneDate)}${p.lastDoneKm ? ` · ${kmStr(p.lastDoneKm)}` : ''}`
+                    : 'No record yet'}
+                </Text>
+              </View>
+
+              {(p.dueAtKm !== null || p.dueAtDate !== null) && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailRowLabel}>Due at</Text>
+                  <Text style={styles.detailRowValue}>
+                    {[
+                      p.dueAtKm   ? kmStr(p.dueAtKm)       : null,
+                      p.dueAtDate ? formatDate(p.dueAtDate) : null,
+                    ].filter(Boolean).join(' or ')}
+                  </Text>
+                </View>
+              )}
+
+              {(p.remainingKm !== null || p.remainingDays !== null) && (
+                <View style={[styles.detailRemaining, { borderColor: cfg.color }]}>
+                  {p.remainingKm !== null && (
+                    <Text style={[styles.detailRemainingMain, { color: cfg.color }]}>
+                      {p.remainingKm < 0
+                        ? `Overdue by ${kmStr(Math.abs(p.remainingKm))}`
+                        : `${kmStr(p.remainingKm)} remaining`}
+                    </Text>
+                  )}
+                  {p.remainingDays !== null && (
+                    <Text style={styles.detailRemainingSecondary}>
+                      {p.remainingDays < 0
+                        ? `${Math.abs(p.remainingDays)} days overdue`
+                        : p.remainingDays === 0 ? 'Due today'
+                        : `${p.remainingDays} days remaining`}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              <Text style={styles.detailSource}>{p.source}</Text>
+
+              <TouchableOpacity
+                style={styles.detailLogBtn}
+                onPress={() => {
+                  setSelectedPrediction(null)
+                  onLogNow?.(p.name)
+                }}
+              >
+                <Text style={styles.detailLogBtnText}>Log it now →</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        )
+      })()}
     </View>
   )
 }
@@ -600,4 +677,51 @@ const styles = StyleSheet.create({
   brandChipSelected: { borderColor: '#1a73e8', backgroundColor: '#e8f0fe' },
   brandChipText: { fontSize: 13, color: '#555', fontWeight: '500' },
   brandChipTextSelected: { color: '#1a73e8', fontWeight: '700' },
+
+  // Detail bottom-sheet
+  modalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  detailSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  detailHandle: {
+    width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2,
+    alignSelf: 'center', marginBottom: 18,
+  },
+  detailHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 16,
+  },
+  detailName: {
+    fontSize: 18, fontWeight: '800', color: '#1a1a1a',
+    flex: 1, marginRight: 10,
+  },
+  detailRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+  },
+  detailRowLabel: { fontSize: 13, color: '#888', fontWeight: '600' },
+  detailRowValue: {
+    fontSize: 13, color: '#1a1a1a', fontWeight: '600',
+    flex: 1, textAlign: 'right', marginLeft: 16,
+  },
+  detailRemaining: {
+    borderWidth: 1.5, borderRadius: 10, padding: 12,
+    marginTop: 14, marginBottom: 4, alignItems: 'center',
+  },
+  detailRemainingMain: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  detailRemainingSecondary: { fontSize: 13, color: '#666' },
+  detailSource: {
+    fontSize: 11, color: '#aaa', fontStyle: 'italic',
+    textAlign: 'center', marginTop: 10, marginBottom: 18,
+  },
+  detailLogBtn: {
+    backgroundColor: '#1a73e8', borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  detailLogBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 })

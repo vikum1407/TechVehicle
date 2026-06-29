@@ -470,6 +470,7 @@ export default function App() {
           currentMileage={selectedVehicle.mileage}
           initialTab={predictionsInitialTab}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
+          onLogNow={() => { setPredictionsInitialTab('services'); setScreen('addServiceRecord') }}
         />
       )}
       {screen === 'knowledgeHub' && selectedVehicle && (
