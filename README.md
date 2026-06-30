@@ -64,6 +64,15 @@ Last updated: 2026-06-30
 
 ## Remaining Tasks
 
+### UI Polish — Found During Testing (2026-06-30)
+
+| Issue | Screen | Details |
+|---|---|---|
+| **Insurance tab layout** | Vehicle Tests → Insurance tab | Pinned policy card UI needs polish |
+| **Revenue Licence tab layout** | Vehicle Tests → Rev. Licence tab | Pinned RL card UI needs polish |
+| **Dashboard renewal banners overlapping** | Vehicle Dashboard | Insurance and Revenue Licence alert banners overlap slightly — spacing/margin fix needed |
+| **Cost Forecast — no way to add cost to "Other Due Services"** | Cost Forecast Screen | Items in "Other Due Services (no cost data yet)" section are display-only; need a tap-to-log shortcut or "Add cost" action so owners can fill in cost estimates |
+
 ### Lower Priority / Future
 
 | Task | Description |
