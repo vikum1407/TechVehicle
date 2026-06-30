@@ -73,7 +73,7 @@ Last updated: 2026-06-30
 | **OBD-II Bluetooth** | Premium tier — ELM327 adapter for automatic mileage capture |
 | **Vehicle Marketplace** | Phase 6 — list vehicles for sale with verified history attached |
 | **AI natural language Q&A** | "When did I last change my brake pads?" answered from history |
-| **Garage discovery / map** | Search garages by location, not just by name |
+| **Garage discovery / map** | Two-path location system: (1) garage searches for their existing Google Maps listing via Places Autocomplete → auto-fills address + coordinates + links `place_id`; (2) garage drops a pin on the map if not yet on Google Maps → stored as lat/lng, discoverable in TechVehicle immediately without waiting for Google Business Profile verification. Owner discovery screen: map view with garage pins centered on GPS location + list below. Schema adds `googlePlaceId`, `latitude`, `longitude`, `address`, `area`, `district` to Garage. APIs needed: Places Autocomplete, Place Details, Maps SDK (react-native-maps). Google gives $200/month free credit — stays free at startup scale. Requires Google Cloud account with billing card added (but no actual charge within free tier). |
 
 ---
 
