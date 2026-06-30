@@ -27,6 +27,7 @@ import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import NotificationsScreen from './src/screens/NotificationsScreen'
 import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen'
 import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
+import CostForecastScreen from './src/screens/CostForecastScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
@@ -34,7 +35,7 @@ type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
-  | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub'
+  | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
   | 'profile' | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
@@ -77,7 +78,7 @@ export default function App() {
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
-  const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain'>('emission')
+  const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -200,6 +201,7 @@ export default function App() {
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
       onboardingWizard: 'vehicles',
+      costForecast: 'vehicleDashboard',
       profile: 'vehicles',
       notificationPrefs: 'vehicles',
       notifications: 'vehicles',
@@ -402,6 +404,7 @@ export default function App() {
           onShare={() => setScreen('share')}
           onSell={() => setScreen('sell')}
           onBookService={() => setScreen('booking')}
+          onCostForecast={() => setScreen('costForecast')}
         />
       )}
       {screen === 'addServiceRecord' && selectedVehicle && (
@@ -475,6 +478,10 @@ export default function App() {
           vehicleType={selectedVehicle.vehicleType}
           initialTab={testsInitialTab}
           isShared={selectedVehicle.isShared}
+          insuranceExpiry={selectedVehicle.insuranceExpiry}
+          insuranceCompany={selectedVehicle.insuranceCompany}
+          insurancePolicyNo={selectedVehicle.insurancePolicyNo}
+          revenueLicenceExpiry={selectedVehicle.revenueLicenceExpiry}
           onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
         />
       )}
@@ -509,6 +516,14 @@ export default function App() {
         <KnowledgeHubScreen
           token={token}
           vehicle={selectedVehicle}
+          onBack={() => setScreen('vehicleDashboard')}
+        />
+      )}
+      {screen === 'costForecast' && selectedVehicle && (
+        <CostForecastScreen
+          token={token}
+          vehicleId={selectedVehicle.id}
+          vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}

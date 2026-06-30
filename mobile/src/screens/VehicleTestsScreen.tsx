@@ -16,10 +16,23 @@ type Props = {
   vehicleType?: string | null
   initialTab?: Tab
   isShared?: boolean
+  insuranceExpiry?: string | null
+  insuranceCompany?: string | null
+  insurancePolicyNo?: string | null
+  revenueLicenceExpiry?: string | null
   onBack: () => void
 }
 
-type Tab = 'emission' | 'alignment' | 'chain'
+type Tab = 'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'
+
+type Expense = {
+  id: string
+  date: string
+  category: string
+  amount: number
+  description: string | null
+  mileage: number | null
+}
 
 const CHAIN_TYPES = new Set(['motorcycle', 'electric-cycle', 'three-wheeler'])
 
@@ -55,10 +68,11 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, onBack }: Props) {
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, revenueLicenceExpiry, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'emission')
   const [records, setRecords] = useState<ServiceRecord[]>([])
+  const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
 
   // Emission form
@@ -93,8 +107,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const loadRecords = useCallback(async () => {
     try {
       setLoadingRecords(true)
-      const data = await api.getServiceRecords(token, vehicleId)
+      const [data, expData] = await Promise.all([
+        api.getServiceRecords(token, vehicleId),
+        api.getExpenses(token, vehicleId).catch(() => []),
+      ])
       setRecords(Array.isArray(data) ? data : [])
+      setExpenses(Array.isArray(expData) ? expData : [])
     } catch {
       // history just won't show
     } finally {
@@ -120,6 +138,25 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 8)
+
+  const insuranceHistory = expenses
+    .filter(e => e.category === 'Insurance')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
+
+  const licenceHistory = expenses
+    .filter(e => e.category === 'Revenue Licence')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
+
+  function getDocStatus(dateStr: string | null | undefined): { label: string; color: string; bg: string } {
+    if (!dateStr) return { label: 'Expiry not set', color: '#888', bg: '#f5f5f5' }
+    const days = Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
+    if (days < 0)   return { label: `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`, color: '#c62828', bg: '#ffebee' }
+    if (days <= 7)  return { label: `Expires in ${days} day${days !== 1 ? 's' : ''} — Critical!`, color: '#c62828', bg: '#ffebee' }
+    if (days <= 30) return { label: `Expires in ${days} days`, color: '#e65100', bg: '#fff3e0' }
+    return { label: `Valid — expires in ${days} days`, color: '#2e7d32', bg: '#e8f5e9' }
+  }
 
   const chainStatus = (() => {
     const lastLube = records.find(r => r.description.toLowerCase().includes('chain lubrication'))
@@ -343,34 +380,26 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         <Text style={s.sub}>{vehicleName}</Text>
       </View>
 
-      <View style={s.tabBar}>
-        <TouchableOpacity
-          style={[s.tab, activeTab === 'emission' && s.tabActive]}
-          onPress={() => setActiveTab('emission')}
-          activeOpacity={0.7}
-        >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabBarContent}>
+        <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
           <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 Emission</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.tab, activeTab === 'alignment' && s.tabActive]}
-          onPress={() => setActiveTab('alignment')}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={[s.tab, activeTab === 'alignment' && s.tabActive]} onPress={() => setActiveTab('alignment')} activeOpacity={0.7}>
           <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 Alignment</Text>
         </TouchableOpacity>
         {showChainTab && (
-          <TouchableOpacity
-            style={[s.tab, activeTab === 'chain' && s.tabActive]}
-            onPress={() => setActiveTab('chain')}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={[s.tab, activeTab === 'chain' && s.tabActive]} onPress={() => setActiveTab('chain')} activeOpacity={0.7}>
             <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>⛓ Chain</Text>
-            {chainStatus.lubeStatus === 'overdue' && (
-              <View style={s.tabDot} />
-            )}
+            {chainStatus.lubeStatus === 'overdue' && <View style={s.tabDot} />}
           </TouchableOpacity>
         )}
-      </View>
+        <TouchableOpacity style={[s.tab, activeTab === 'insurance' && s.tabActive]} onPress={() => setActiveTab('insurance')} activeOpacity={0.7}>
+          <Text style={[s.tabText, activeTab === 'insurance' && s.tabTextActive]}>🛡️ Insurance</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.tab, activeTab === 'licence' && s.tabActive]} onPress={() => setActiveTab('licence')} activeOpacity={0.7}>
+          <Text style={[s.tabText, activeTab === 'licence' && s.tabTextActive]}>📋 Rev. Licence</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
 
@@ -735,6 +764,95 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               <Text style={s.emptyNote}>No chain records yet. Log your first service above.</Text>
             )}
           </>
+        ) : activeTab === 'insurance' ? (
+          <>
+            {/* Pinned current policy card */}
+            {(() => {
+              const status = getDocStatus(insuranceExpiry)
+              return (
+                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderColor: status.color }]}>
+                  <View style={[s.histRow, { marginBottom: 6 }]}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: status.color }}>📌 Current Policy</Text>
+                  </View>
+                  {insuranceCompany ? (
+                    <Text style={[s.docStatusMain, { color: status.color }]}>{insuranceCompany}</Text>
+                  ) : null}
+                  {insurancePolicyNo ? (
+                    <Text style={s.docStatusMeta}>Policy No: {insurancePolicyNo}</Text>
+                  ) : null}
+                  <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
+                  {insuranceExpiry ? (
+                    <Text style={s.docStatusDate}>
+                      Expiry: {new Date(insuranceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  ) : null}
+                  {!insuranceExpiry && !insuranceCompany && (
+                    <Text style={s.docStatusMeta}>No insurance details saved yet. Tap Edit on the vehicle card to add them.</Text>
+                  )}
+                </View>
+              )
+            })()}
+
+            {insuranceHistory.length > 0 && (
+              <>
+                <Text style={s.historyTitle}>Insurance History</Text>
+                {insuranceHistory.map(e => (
+                  <View key={e.id} style={[s.histCard, { borderLeftColor: '#1a73e8' }]}>
+                    <View style={s.histRow}>
+                      <Text style={s.histLabel}>{e.description || 'Insurance'}</Text>
+                      <Text style={s.histDate}>{fmtDate(e.date)}</Text>
+                    </View>
+                    {e.mileage != null && <Text style={s.histMeta}>{e.mileage.toLocaleString()} km</Text>}
+                    <Text style={s.histCost}>LKR {e.amount.toLocaleString()}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            {!loadingRecords && insuranceHistory.length === 0 && (
+              <Text style={s.emptyNote}>No insurance expense records yet. Log insurance payments via Add Expense.</Text>
+            )}
+          </>
+        ) : activeTab === 'licence' ? (
+          <>
+            {/* Pinned current RL card */}
+            {(() => {
+              const status = getDocStatus(revenueLicenceExpiry)
+              return (
+                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderColor: status.color }]}>
+                  <View style={[s.histRow, { marginBottom: 6 }]}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: status.color }}>📌 Current Revenue Licence</Text>
+                  </View>
+                  <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
+                  {revenueLicenceExpiry ? (
+                    <Text style={s.docStatusDate}>
+                      Expiry: {new Date(revenueLicenceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  ) : (
+                    <Text style={s.docStatusMeta}>No expiry date saved. Tap Edit on the vehicle card to set it.</Text>
+                  )}
+                </View>
+              )
+            })()}
+
+            {licenceHistory.length > 0 && (
+              <>
+                <Text style={s.historyTitle}>Revenue Licence History</Text>
+                {licenceHistory.map(e => (
+                  <View key={e.id} style={[s.histCard, { borderLeftColor: '#7b1fa2' }]}>
+                    <View style={s.histRow}>
+                      <Text style={s.histLabel}>{e.description || 'Revenue Licence'}</Text>
+                      <Text style={s.histDate}>{fmtDate(e.date)}</Text>
+                    </View>
+                    {e.mileage != null && <Text style={s.histMeta}>{e.mileage.toLocaleString()} km</Text>}
+                    <Text style={s.histCost}>LKR {e.amount.toLocaleString()}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            {!loadingRecords && licenceHistory.length === 0 && (
+              <Text style={s.emptyNote}>No revenue licence records yet. Log licence payments via Add Expense.</Text>
+            )}
+          </>
         ) : null}
       </ScrollView>
     </View>
@@ -750,8 +868,9 @@ function makeStyles(c: Colors) {
     title: { fontSize: 22, fontWeight: '800', color: c.text },
     sub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
 
-    tabBar: { flexDirection: 'row', backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
-    tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabBar: { backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border, maxHeight: 50 },
+    tabBarContent: { flexDirection: 'row' },
+    tab: { paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: c.primary },
     tabText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
     tabTextActive: { color: c.primary },
@@ -846,5 +965,13 @@ function makeStyles(c: Colors) {
       marginBottom: 4, borderLeftWidth: 3, borderLeftColor: '#f9a825',
     },
     chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
+
+    docStatusCard: {
+      borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
+    },
+    docStatusMain: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
+    docStatusLabel: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+    docStatusDate: { fontSize: 13, color: '#555', marginTop: 2 },
+    docStatusMeta: { fontSize: 13, color: '#666', marginTop: 4, lineHeight: 18 },
   })
 }

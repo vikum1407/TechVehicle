@@ -65,6 +65,7 @@ type Props = {
   onSell: () => void
   onBookService: () => void
   onViewHistory: () => void
+  onCostForecast?: () => void
   onMessageCountChange?: (count: number) => void
   bookingSeenCounts?: Record<string, number>
   onBookingSeen?: (bookingId: string, count: number) => void
@@ -191,7 +192,7 @@ function expiryLabel(days: number): string {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onChainService, onTripLog, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
+export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, onBack, onVehicleUpdated, onAddRecord, onLogFuel, onAddExpense, onAnalytics, onVehicleTests, onChainService, onTripLog, onPredictions, onKnowledgeHub, onMileageUpdated, onShare, onSell, onBookService, onViewHistory, onCostForecast, onMessageCountChange, bookingSeenCounts = {}, onBookingSeen, focusBookingId, onFocusHandled, onNotifSeen, notifUnread, onNotifications }: Props) {
   const [loading, setLoading] = useState(true)
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -215,7 +216,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
-  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '' })
+  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -249,9 +250,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null,
         insuranceCompany: draftVehicle.insuranceCompany.trim() || null,
         insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null,
+        emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null,
+        revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null,
       })
       setEditVehicleModal(false)
-      onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null })
+      onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null, emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null, revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null })
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not save vehicle details')
     } finally {
@@ -681,7 +684,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleBtnText}>👁 View only</Text>
               </View>
             ) : (
-              <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+              <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
                 <Text style={styles.editVehicleBtnText}>Edit</Text>
               </TouchableOpacity>
             )}
@@ -756,6 +759,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
             <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>
           </TouchableOpacity>
+          {!vehicle.isShared && onCostForecast && (
+            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onCostForecast}>
+              <Text style={styles.bookBtnText}>💰 Cost Forecast</Text>
+            </TouchableOpacity>
+          )}
           {!vehicle.isShared && (
             <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
               <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
@@ -1427,6 +1435,24 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               onChangeText={v => setDraftVehicle(p => ({ ...p, vehicleNotes: v }))}
               multiline
               placeholder="e.g. imported from Japan 2021, AC recently serviced..."
+              placeholderTextColor={colors.textFaint}
+            />
+            <View style={styles.editSectionDivider} />
+            <Text style={styles.editSectionTitle}>📅 Renewal Dates</Text>
+            <Text style={styles.editVehicleLabel}>Emission Test Expiry (YYYY-MM-DD)</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.emissionTestExpiry}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, emissionTestExpiry: v }))}
+              placeholder="e.g. 2026-06-30  (optional)"
+              placeholderTextColor={colors.textFaint}
+            />
+            <Text style={styles.editVehicleLabel}>Revenue Licence Expiry (YYYY-MM-DD)</Text>
+            <TextInput
+              style={styles.editVehicleInput}
+              value={draftVehicle.revenueLicenceExpiry}
+              onChangeText={v => setDraftVehicle(p => ({ ...p, revenueLicenceExpiry: v }))}
+              placeholder="e.g. 2026-12-31  (optional)"
               placeholderTextColor={colors.textFaint}
             />
             <View style={styles.editSectionDivider} />
