@@ -64,16 +64,14 @@ Last updated: 2026-06-30
 
 ## Remaining Tasks
 
-### UI Polish — Found During Testing (2026-06-30)
+### UI Polish — Fixed (2026-06-30) ✅
 
-| Issue | Screen | Details |
-|---|---|---|
-| **Insurance tab layout** | Vehicle Tests → Insurance tab | Pinned policy card UI needs polish |
-| **Revenue Licence tab layout** | Vehicle Tests → Rev. Licence tab | Pinned RL card UI needs polish |
-| **Dashboard renewal banners overlapping** | Vehicle Dashboard | Insurance and Revenue Licence alert banners overlap slightly — spacing/margin fix needed |
-| **Cost Forecast — no way to add cost to "Other Due Services"** | Cost Forecast Screen | Items in "Other Due Services (no cost data yet)" section are display-only; need a tap-to-log shortcut or "Add cost" action so owners can fill in cost estimates |
-| **Onboarding Wizard — button state after data entry** | Onboarding Wizard Step 1 | After user fills in fields and taps blue "Yes ✓", it collapses back to "+Add" — should show a green "Yes ✓" when data has been entered so user can clearly see which milestones are logged vs empty |
-| **Onboarding Wizard — keyboard covers lower fields** | Onboarding Wizard Step 1 & Step 2 | On Android, keyboard covers lower input fields (Battery/Brake Pads in Step 1; Cost field in Step 2) when typing — needs KeyboardAvoidingView or auto-scroll to focused field on both steps |
+All 6 UI issues found during testing were fixed and pushed in commit `9081ea2`:
+- Insurance/RL tabs: left-border card style, consistent with other pinned cards
+- Dashboard renewal banners: explicit `marginBottom` per card for reliable Android spacing
+- Cost Forecast "Other Due Services": added "+ Log Service" button → navigates to Add Service Record
+- Onboarding Wizard Step 1 & 2: `KeyboardAvoidingView` wrapping so keyboard no longer hides fields
+- Onboarding Wizard Step 1: button turns **green** when data is entered, stays **blue** when just expanded with no data
 
 ### Lower Priority / Future
 
