@@ -6,7 +6,7 @@ Intelligent vehicle maintenance tracking, expense management, service history sh
 
 ## Development Progress
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 ### Completed ✅
 
@@ -50,32 +50,19 @@ Last updated: 2026-06-29
 - Garage Calendar tab — booked/max per day view, tap date to see bookings
 
 **Specialist Screens**
-- Vehicle Tests Screen — Emission tab, Wheel Alignment tab, Chain Service tab (each: pinned status card + history list)
+- Vehicle Tests Screen — Emission tab, Wheel Alignment tab, Chain Service tab, Insurance tab, Revenue Licence tab (each: pinned status card + history list)
 - Log Emission Test — dedicated quick-action button on dashboard
 - Three-Wheeler Daily Trip Log — start/end odometer, fuel, earnings, cost-per-km and profit
 - Vehicle Profile Card — purchase date, owner count, vehicle notes (editable)
 - Role Selection — Vehicle Owner or Garage/Service Center on first login
+- Cost Forecast Screen — upcoming 12-month estimated spend, grouped by services with/without cost data
+- Onboarding Wizard — 2-step wizard (vehicle-type-filtered milestones → quick-add past records) shown after first vehicle add
+- Vehicle Profile Completion Score — progress bar on dashboard nudging users to fill in history gaps
+- Mileage Reminder Push — daily cron nudges users if no fuel log or service in 7 days
 
 ---
 
 ## Remaining Tasks
-
-### High Priority — Next to Build
-
-| Task | Description |
-|---|---|
-| **Insurance tab in VehicleTestsScreen** | 4th tab: pinned current policy card (company, policy no, expiry, status colour) + Insurance expense history below |
-| **Revenue Licence tab in VehicleTestsScreen** | Same pattern — pinned current RL expiry card + expense history. Completes the legal documents set |
-| **Emission Test expiry edit in modal** | Currently set only via Log Emission Test screen — should also be editable in Edit Vehicle modal for consistency |
-
-### Medium Priority
-
-| Task | Description |
-|---|---|
-| **Onboarding Wizard** | Step-by-step wizard for new users: vehicle setup → major milestones (last oil, timing belt, brake pads) → lands on dashboard |
-| **Vehicle profile completion score** | Backend `/progress` endpoint already built. Show the score bar on dashboard to nudge users to fill in gaps |
-| **Mileage reminder push** | Weekly nudge if no fuel log in 7 days — backend job skeleton exists, needs wiring |
-| **Cost Forecast screen** | Backend `/predictions/:id/cost-forecast` already built. Mobile screen showing upcoming 12-month estimated spend |
 
 ### Lower Priority / Future
 
