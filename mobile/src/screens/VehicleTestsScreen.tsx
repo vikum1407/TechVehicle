@@ -769,11 +769,10 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             {/* Pinned current policy card */}
             {(() => {
               const status = getDocStatus(insuranceExpiry)
+              const hasDetails = insuranceExpiry || insuranceCompany
               return (
-                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderColor: status.color }]}>
-                  <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: status.color }}>📌 Current Policy</Text>
-                  </View>
+                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
+                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 Current Policy</Text>
                   {insuranceCompany ? (
                     <Text style={[s.docStatusMain, { color: status.color }]}>{insuranceCompany}</Text>
                   ) : null}
@@ -786,9 +785,10 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                       Expiry: {new Date(insuranceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </Text>
                   ) : null}
-                  {!insuranceExpiry && !insuranceCompany && (
-                    <Text style={s.docStatusMeta}>No insurance details saved yet. Tap Edit on the vehicle card to add them.</Text>
+                  {!hasDetails && (
+                    <Text style={s.docStatusMeta}>No insurance details saved. Tap Edit on the vehicle card to add them.</Text>
                   )}
+                  <Text style={s.docStatusHint}>Tap Edit on the vehicle card to update</Text>
                 </View>
               )
             })()}
@@ -818,10 +818,8 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             {(() => {
               const status = getDocStatus(revenueLicenceExpiry)
               return (
-                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderColor: status.color }]}>
-                  <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: status.color }}>📌 Current Revenue Licence</Text>
-                  </View>
+                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
+                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 Current Revenue Licence</Text>
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
                   {revenueLicenceExpiry ? (
                     <Text style={s.docStatusDate}>
@@ -830,6 +828,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                   ) : (
                     <Text style={s.docStatusMeta}>No expiry date saved. Tap Edit on the vehicle card to set it.</Text>
                   )}
+                  <Text style={s.docStatusHint}>Tap Edit on the vehicle card to update</Text>
                 </View>
               )
             })()}
@@ -967,11 +966,15 @@ function makeStyles(c: Colors) {
     chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
 
     docStatusCard: {
-      borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
+      borderRadius: 12, padding: 16, marginBottom: 20,
+      borderLeftWidth: 4, elevation: 2,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
     },
+    docStatusPin: { fontSize: 11, fontWeight: '700', marginBottom: 6 },
     docStatusMain: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
     docStatusLabel: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
     docStatusDate: { fontSize: 13, color: '#555', marginTop: 2 },
     docStatusMeta: { fontSize: 13, color: '#666', marginTop: 4, lineHeight: 18 },
+    docStatusHint: { fontSize: 11, color: '#999', marginTop: 10 },
   })
 }

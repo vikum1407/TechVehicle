@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -138,6 +138,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
       {/* Step indicator */}
@@ -161,6 +162,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
       {/* ── Step 1: Milestones ── */}
       {step === 1 && visibleMilestones.map(m => {
         const s = milestones[m.id]
+        const hasData = s.added && (s.year.trim() || s.mileage.trim())
         return (
           <View key={m.id} style={[styles.card, s.added && styles.cardActive]}>
             <TouchableOpacity style={styles.cardHeader} onPress={() => toggleMilestone(m.id)} activeOpacity={0.7}>
@@ -171,7 +173,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                   <Text style={styles.cardQuestion}>{m.question}</Text>
                 </View>
               </View>
-              <View style={[styles.toggle, s.added && styles.toggleActive]}>
+              <View style={[styles.toggle, s.added && styles.toggleActive, hasData && styles.toggleDone]}>
                 <Text style={[styles.toggleText, s.added && styles.toggleTextActive]}>{s.added ? 'Yes ✓' : '+ Add'}</Text>
               </View>
             </TouchableOpacity>
@@ -287,6 +289,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
 
       <Text style={styles.footer}>You can always add more history from the vehicle dashboard at any time.</Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -314,6 +317,7 @@ function makeStyles(c: Colors) {
     cardQuestion: { fontSize: 13, color: c.textSub, lineHeight: 18 },
     toggle: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: c.borderStrong, backgroundColor: c.surfaceAlt, minWidth: 70, alignItems: 'center' },
     toggleActive: { backgroundColor: c.primary, borderColor: c.primary },
+    toggleDone: { backgroundColor: '#2e7d32', borderColor: '#2e7d32' },
     toggleText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
     toggleTextActive: { color: '#fff' },
     cardFields: { paddingHorizontal: 16, paddingBottom: 16, borderTopWidth: 1, borderTopColor: c.primaryTint, backgroundColor: c.primaryTint },

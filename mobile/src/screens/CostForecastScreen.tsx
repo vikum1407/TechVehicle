@@ -21,6 +21,7 @@ type Props = {
   vehicleId: string
   vehicleName: string
   onBack: () => void
+  onAddService?: () => void
 }
 
 function statusColor(status: string): string {
@@ -57,7 +58,7 @@ function remainingText(item: ForecastItem): string {
   return parts.join('  ·  ')
 }
 
-export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack }: Props) {
+export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onAddService }: Props) {
   const [items, setItems] = useState<ForecastItem[]>([])
   const [total, setTotal] = useState(0)
   const [periodDays, setPeriodDays] = useState(365)
@@ -162,7 +163,14 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   {remainingText(item) ? (
                     <Text style={styles.itemRemaining}>{remainingText(item)}</Text>
                   ) : null}
-                  <Text style={styles.itemBased}>Log the cost when you next service this to improve the forecast.</Text>
+                  <View style={styles.itemNoCostRow}>
+                    <Text style={styles.itemBased}>Log a service cost to improve forecast accuracy.</Text>
+                    {onAddService && (
+                      <TouchableOpacity onPress={onAddService} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={styles.itemLogLink}>+ Log Service</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               ))}
             </>
@@ -218,7 +226,9 @@ function makeStyles(c: Colors) {
     itemBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8 },
     itemCostLabel: { fontSize: 12, color: '#666' },
     itemCost: { fontSize: 17, fontWeight: '800' },
-    itemBased: { fontSize: 11, color: '#888', marginTop: 4 },
+    itemBased: { fontSize: 11, color: '#888', marginTop: 4, flex: 1 },
+    itemNoCostRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 8 },
+    itemLogLink: { fontSize: 12, color: c.primary, fontWeight: '700' },
     footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16, lineHeight: 18 },
   })
 }

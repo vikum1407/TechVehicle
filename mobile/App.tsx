@@ -525,6 +525,7 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
+          onAddService={() => setScreen('addServiceRecord')}
         />
       )}
       {screen === 'addExpense' && selectedVehicle && (

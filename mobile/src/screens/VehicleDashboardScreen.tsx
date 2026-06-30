@@ -1654,11 +1654,11 @@ function makeStyles(c: Colors) {
     predictionBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
     predictionBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-    renewalSection: { marginHorizontal: 16, marginBottom: 10, gap: 8 },
+    renewalSection: { marginHorizontal: 16, marginBottom: 10 },
     renewalCard: {
       borderRadius: 10, padding: 14, flexDirection: 'row',
-      alignItems: 'center', borderLeftWidth: 4,
-      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+      alignItems: 'center', borderLeftWidth: 4, marginBottom: 10,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
     },
     renewalLeft: { flex: 1 },
     renewalTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
