@@ -73,7 +73,7 @@ Last updated: 2026-06-30
 | **Dashboard renewal banners overlapping** | Vehicle Dashboard | Insurance and Revenue Licence alert banners overlap slightly — spacing/margin fix needed |
 | **Cost Forecast — no way to add cost to "Other Due Services"** | Cost Forecast Screen | Items in "Other Due Services (no cost data yet)" section are display-only; need a tap-to-log shortcut or "Add cost" action so owners can fill in cost estimates |
 | **Onboarding Wizard — button state after data entry** | Onboarding Wizard Step 1 | After user fills in fields and taps blue "Yes ✓", it collapses back to "+Add" — should show a green "Yes ✓" when data has been entered so user can clearly see which milestones are logged vs empty |
-| **Onboarding Wizard — keyboard covers lower fields** | Onboarding Wizard Step 1 | On Android, keyboard covers Battery and Brake Pads input fields when typing — needs KeyboardAvoidingView or auto-scroll to focused field |
+| **Onboarding Wizard — keyboard covers lower fields** | Onboarding Wizard Step 1 & Step 2 | On Android, keyboard covers lower input fields (Battery/Brake Pads in Step 1; Cost field in Step 2) when typing — needs KeyboardAvoidingView or auto-scroll to focused field on both steps |
 
 ### Lower Priority / Future
 
