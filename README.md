@@ -86,6 +86,19 @@ All 6 UI issues found during testing were fixed and pushed in commit `9081ea2`:
 
 ---
 
+## SMB Marketplace — In Development (Parallel Track, started 2026-07-04)
+
+A separate, parallel effort alongside V1 launch prep — not a launch blocker. Full discussion and decisions are recorded in `ROADMAP.md` under "Revised Plan (2026-07-04) — Phase 8 + Phase 12 Merged Into One Parallel Track." Summary:
+
+- **Why now, in parallel:** the pre-launch UI upgrade on `main` is blocked pending Vikum's app name/brand color decision. Marketplace work is new build, not restyling, so it isn't blocked by that and can proceed while the brand decision is pending.
+- **Unified scope:** TechVehicle's planned "Vehicle Buying Marketplace" (old Phase 8) and the general SMB marketplace / "ShopSL" (old Phase 12) are being built as **one shared multi-tenant engine**, not two separate efforts — vehicle listings are just "category = vehicles" on the same backend that also powers a standalone SMB app for any small/medium business.
+- **Architecture:** a brand new, separate GitHub repo + backend + database from day one (Node.js + Express + Prisma + Neon, same stack as TechVehicle) — never embedded in the TechVehicle codebase. TechVehicle gets a thin-client tab that calls this backend's API; a separate standalone Expo app (the eventual ShopSL product) calls the same backend for the full SMB experience. Login shared by phone number across both apps.
+- **Confirmed v1 feature scope:** shop owner sets up company name + logo, then lists products (name, description, price, image). Buyer side has cart, checkout, and order management. Delivery/courier integration and the online payment gateway (3rd-party, e.g. PayHere) are explicitly deferred — v1 checkout is Cash on Delivery only, and orders are handed off to the shop owner to arrange delivery manually.
+- **Inspiration:** modeled loosely on Co-op's "Peckish" app (UK) — a white-label platform giving small independent shops their own storefront on a shared backend.
+- **Status:** `feature/vehicle-marketplace` branch created off `main` in this repo (not yet pushed); new standalone marketplace repo not yet created — pending a name decision. No code written yet.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |

@@ -293,6 +293,51 @@ It will be built as a **completely separate, standalone product** from day one.
 
 ---
 
+## Revised Plan (2026-07-04) — Phase 8 + Phase 12 Merged Into One Parallel Track
+
+**This section supersedes the sequencing in Phases 8 and 12 above.** Full discussion happened 2026-07-04, summarized here so nothing is lost.
+
+### Why this changed
+- Vikum wants to start this work now, in parallel with V1 launch prep, rather than waiting until after Phases 6–11 as originally sequenced.
+- Reason: the pre-launch UI upgrade (see README.md "Remaining Tasks") is blocked on Vikum finalizing the app name/brand color, so `main` is idle for new UI work right now. Marketplace work is mostly new build, not restyling, so it isn't blocked by that decision and can proceed on a separate track.
+- V1 will launch **without** the marketplace — this is confirmed parallel work, not a launch blocker.
+- Bigger realization during discussion: **Phase 8 (Vehicle Buying Marketplace) and Phase 12 (Auto Parts / ShopSL) should not be built as two separate efforts.** They are the same underlying multi-tenant shop/listing engine — TechVehicle's vehicle marketplace is just "category = vehicles" on the same backend that also powers the standalone SMB app. Building one unified engine now, instead of a vehicle-only version followed later by a real rewrite for Phase 12, avoids duplicate work.
+
+### Architecture decision — separate repo from day one
+Phase 12's original architecture rule (separate repo, separate DB, never embedded in TechVehicle) is being applied **now**, immediately, rather than deferred:
+- A new, separate GitHub repo will host the marketplace backend (Node.js + Express + Prisma, same stack as TechVehicle) and its own Neon database — `Shop`, `Product`, `Cart`, `Order` tables, nothing vehicle-specific.
+- A new, separate Expo mobile project will eventually be the standalone SMB-facing app itself (the ShopSL product).
+- Inside the **TechVehicle** repo, the branch `feature/vehicle-marketplace` (branched off `main` at commit `a44adb4`, 2026-07-04) stops being where marketplace logic lives, and instead becomes a **thin client**: one new tab/screen that calls the separate marketplace backend's API (e.g. `GET /products?category=vehicles`), rendered with TechVehicle's own UI/theme. No marketplace backend code is duplicated inside the TechVehicle codebase.
+- The standalone app calls the same backend, un-filtered (or filtered by whatever category a business sells in), with its own white-label branding/app.json — same data, same tables, two frontends.
+- **Shared login by phone number** — a TechVehicle user's phone number should work in the marketplace/standalone app without a separate signup, either by the marketplace backend verifying TechVehicle-issued JWTs, or keying marketplace accounts by phone number so the same login is recognized across apps.
+- Repo name and final consumer-facing product name are **not yet decided** — a placeholder repo name (e.g. `techvehicle-marketplace-backend`) can be used until Vikum picks a real one.
+
+### Confirmed MVP feature scope (Vikum's own words)
+Shop owner side — intentionally very simple, few steps:
+- Company name + logo upload
+- Product listing: product name, description, price, and a product image per item
+
+Buyer side — Vikum initially said no cart/checkout/order management, then explicitly reversed and confirmed **yes, build all three**:
+- Cart
+- Checkout
+- Order management (so the shop owner can see and manage incoming orders)
+
+Explicitly deferred to a future phase (not part of this build):
+- **Delivery/courier integration** — v1 orders just need to reach the shop owner, who arranges delivery or pickup outside the app; courier service integration is future work.
+- **Online payment gateway** — v1 checkout is **Cash on Delivery only**, the app just records the order. A real payment gateway (third-party, e.g. PayHere for Sri Lanka) will be integrated in a later phase once Vikum has picked a provider.
+
+### Reference inspiration (researched 2026-07-04)
+Vikum asked to look at real-world retail apps as models:
+- **ICA (Sweden)** and **Coop (Switzerland)** — both single-retailer grocery apps (shopping lists, loyalty points, weekly personalized offers, store locator). Not multi-tenant, so less relevant structurally.
+- **Coop's "Peckish" (UK)** — the closest real match. A white-label platform giving small independent shops their own online storefront (their own pricing/branding) on a shared backend/order-management system, with delivery handled via partners (Uber Direct, Just Eat). This is essentially what ShopSL (Phase 12) already described, and Vikum confirmed this is the right model to follow.
+
+### Status as of 2026-07-04
+- `feature/vehicle-marketplace` branch exists in the TechVehicle repo, not yet pushed to origin.
+- New standalone marketplace repo/backend/DB **not yet created** — pending a name decision from Vikum.
+- No code written yet for this feature — this section is a discussion record only, to resume from next session.
+
+---
+
 ### ShopSL — Second Product (Extraction from Phase 12)
 
 After Phase 12 launches inside TechVehicle:
