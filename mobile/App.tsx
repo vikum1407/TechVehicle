@@ -344,7 +344,7 @@ export default function App() {
           </View>
           <BottomTabBar
             activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
-            onTabPress={(tab) => setScreen(tab)}
+            onTabPress={(tab) => { setScreen(tab); loadNotifCount(token) }}
             vehiclesBadge={vehiclesBadge}
             garageBadge={garageBadge}
           />

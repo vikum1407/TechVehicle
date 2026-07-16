@@ -292,7 +292,7 @@ router.post('/:id/reject', async (req: AuthRequest, res) => {
       }
       await createNotification(
         prisma, notifyPhone,
-        'submission_accepted',
+        'submission_rejected',
         vReg,
         `Owner did not add your ${submission.description} submission to their history`,
         { screen: 'vehicles' }
