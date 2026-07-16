@@ -6,7 +6,7 @@ Intelligent vehicle maintenance tracking, expense management, service history sh
 
 ## Development Progress
 
-Last updated: 2026-06-30
+Last updated: 2026-07-16
 
 ### Completed ✅
 
@@ -86,11 +86,20 @@ All 6 UI issues found during testing were fixed and pushed in commit `9081ea2`:
 
 ---
 
-## SMB Marketplace — In Development (Parallel Track, started 2026-07-04)
+## UI Upgrade — Phases A–D (started 2026-07-04)
 
-A separate, parallel effort alongside V1 launch prep — not a launch blocker. Full discussion and decisions are recorded in `ROADMAP.md` under "Revised Plan (2026-07-04) — Phase 8 + Phase 12 Merged Into One Parallel Track." Summary:
+Pre-launch visual polish pass, prioritized over the paused SMB Marketplace work (see below) since it's the last thing blocking V1 release. Brand decided 2026-07-04: **navy `#1d3a5f` + amber `#e3a008` accent**, replacing the placeholder Google Blue used everywhere. Workflow per phase: build on a temporary `ui-phase-x` branch → push → test live in Codespace/Expo Go → merge to `main` → delete the branch. Design mockups reviewed as HTML artifacts before implementation on the bigger phases (B, C).
 
-- **Why now, in parallel:** the pre-launch UI upgrade on `main` is blocked pending Vikum's app name/brand color decision. Marketplace work is new build, not restyling, so it isn't blocked by that and can proceed while the brand decision is pending.
+- **Phase A — Brand & Typography — DONE, merged to `main`.** Navy+amber applied app-wide via `theme/colors.ts` (new `accent`/`accentTint` tokens added); new `theme/typography.ts` scale defined (heading/subhead/body/caption/numeric); ~25 hardcoded blue hex literals fixed across screens, charts, PDF export, and `app.json` (splash/icon/notification colors — those need a native rebuild to actually show); 3 `fontWeight: 'bold'` → `'700'` normalized.
+- **Phase B — Dashboard Redesign — DONE, merged to `main`.** Vehicle card trimmed to photo/name/mileage + the 4 core quick actions (Log Fuel highlighted in amber, since frequent mileage logging is what the whole Prediction Engine depends on); secondary actions (Vehicle Tests, Know Your Vehicle, Cost Forecast, Book Service, Chain Service, Daily Trip Log) moved into a "•••" bottom-sheet menu next to the notification bell — modeled on a hamburger-menu idea but using "•••" instead since these are vehicle-scoped, not app-wide, actions. Family/Shared Access and Sell/Transfer Vehicle also moved into that same menu (rare or one-time actions, not routine dashboard content). Vehicle Profile progress-% card and owners/reg-no stats card merged into one. Mileage/Fuel Economy sparklines moved higher up the scroll (were buried below Predictions/Appointments). Mileage "Update" link now has a pulsing amber border so it reads clearly as tappable.
+- **Phase C — Navigation Polish — DONE, merged to `main`.** All ~20 screens' independently-styled headers (two competing families: bare-link-plus-big-title vs. boxed-header-with-drift) unified into one shared `components/ScreenHeader.tsx`. Fixed real bugs found along the way: TripLogScreen's hardcoded orange back button, missing bold weight on 2 screens' back links. Root-tab screens (My Vehicles, Garage) and auth/entry screens keep their own headers by design (no back button needed). Confirmed the phone's hardware/gesture back button was already centrally handled via `App.tsx`'s `BackHandler` map.
+- **Phase D — Forms Polish — pushed to `ui-phase-d` branch, awaiting test before merge.** New shared `components/FormField.tsx` (labeled input), `Button.tsx` (primary/secondary/destructive with built-in loading state), `Chip.tsx` (solid-fill tap-to-select) — 12 forms migrated onto them (Add Service, Add Expense, Add Vehicle, Log Fuel, Trip Log, Log Emission Test, Notification Prefs, Booking, Share, Sell, Vehicle Tests, Garage). Standardized on solid-fill selected chips and plain sentence-case field labels (previously two competing styles existed across the app). Fixed real bugs: TripLogScreen's orange Save button, GarageScreen's green Submit buttons, 2 screens' Save buttons showing no dimming when disabled/loading, SellScreen's outlier phone input (colored border, oversized font, no visible label), and numerous hardcoded hex colors that didn't match any actual theme token.
+
+---
+
+## SMB Marketplace — Planned, Currently Paused (discussed 2026-07-04)
+
+Priority was reconfirmed 2026-07-04: finish V1 (including the UI Upgrade above) **before** starting marketplace work — this is no longer a parallel track, it's next in line once Phase D above is tested and merged. Full discussion and decisions are recorded in `ROADMAP.md` under "Revised Plan (2026-07-04) — Phase 8 + Phase 12 Merged Into One Parallel Track." Summary of the plan for when it resumes:
 - **Unified scope:** TechVehicle's planned "Vehicle Buying Marketplace" (old Phase 8) and the general SMB marketplace / "ShopSL" (old Phase 12) are being built as **one shared multi-tenant engine**, not two separate efforts — vehicle listings are just "category = vehicles" on the same backend that also powers a standalone SMB app for any small/medium business.
 - **Architecture:** a brand new, separate GitHub repo + backend + database from day one (Node.js + Express + Prisma + Neon, same stack as TechVehicle) — never embedded in the TechVehicle codebase. TechVehicle gets a thin-client tab that calls this backend's API; a separate standalone Expo app (the eventual ShopSL product) calls the same backend for the full SMB experience. Login shared by phone number across both apps.
 - **Confirmed v1 feature scope:** shop owner sets up company name + logo, then lists products (name, description, price, image). Buyer side has cart, checkout, and order management. Delivery/courier integration and the online payment gateway (3rd-party, e.g. PayHere) are explicitly deferred — v1 checkout is Cash on Delivery only, and orders are handed off to the shop owner to arrange delivery manually.
