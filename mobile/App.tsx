@@ -191,6 +191,7 @@ export default function App() {
       vehicleDashboard: 'vehicles',
       addServiceRecord: 'vehicleDashboard',
       logFuel: 'vehicleDashboard',
+      tripLog: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
       vehicleTests: 'vehicleDashboard',
       vehicleHistory: 'vehicleDashboard',
