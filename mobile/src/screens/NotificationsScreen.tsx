@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type AppNotification = {
   id: string
@@ -92,15 +93,15 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
-        <TouchableOpacity onPress={onSettings} style={styles.settingsBtn}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Notifications"
+        onBack={onBack}
+        rightElement={
+          <TouchableOpacity onPress={onSettings} style={styles.settingsBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
@@ -154,15 +155,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    header: {
-      flexDirection: 'row', alignItems: 'center',
-      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
-      paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { paddingRight: 12 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: c.text },
-    settingsBtn: { paddingLeft: 12, width: 44, alignItems: 'flex-end' },
+    settingsBtn: { padding: 4 },
     settingsIcon: { fontSize: 20 },
 
     empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },

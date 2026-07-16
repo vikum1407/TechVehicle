@@ -8,6 +8,7 @@ import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type ExtraFieldConfig = {
   key: string
@@ -471,12 +472,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Upcoming Services</Text>
-      </View>
+      <ScreenHeader title="Upcoming Services" onBack={onBack} />
 
       <View style={styles.mileageBanner}>
         <Text style={styles.mileageLabel}>Current mileage</Text>
@@ -693,15 +689,6 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-
-    header: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12,
-      backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { marginRight: 12 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: c.text },
 
     mileageBanner: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

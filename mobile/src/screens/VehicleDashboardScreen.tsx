@@ -11,6 +11,7 @@ import { api } from '../config/api'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Vehicle = {
   id: string
@@ -639,23 +640,23 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.regNo}>{vehicle.registrationNo}</Text>
-        <View style={styles.headerRightIcons}>
-          {onNotifications && (
-            <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
-              <Text style={styles.bellIcon}>🔔</Text>
-              {notifUnread && <View style={styles.bellDot} />}
+      <ScreenHeader
+        title={vehicle.registrationNo}
+        onBack={onBack}
+        rightElement={
+          <View style={styles.headerRightIcons}>
+            {onNotifications && (
+              <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
+                <Text style={styles.bellIcon}>🔔</Text>
+                {notifUnread && <View style={styles.bellDot} />}
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setMoreActionsSheet(true)} style={styles.moreBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.moreIcon}>•••</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => setMoreActionsSheet(true)} style={styles.moreBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.moreIcon}>•••</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          </View>
+        }
+      />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecords} />}
@@ -1565,14 +1566,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { paddingBottom: 40 },
-    header: {
-      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
-      paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center',
-      borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { marginRight: 16 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    regNo: { fontSize: 18, fontWeight: '700', color: c.text, flex: 1 },
     headerRightIcons: { flexDirection: 'row', alignItems: 'center' },
     bellBtn: { marginLeft: 12, padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },

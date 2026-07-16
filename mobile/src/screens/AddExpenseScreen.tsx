@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -121,14 +122,9 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Add Expense</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Add Expense" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>Track all vehicle-related costs</Text>
 
       <Text style={styles.label}>Category *</Text>
@@ -254,7 +250,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
           : <Text style={styles.buttonText}>Save Expense</Text>
         }
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -262,9 +259,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 48 },
-    topRow: { marginTop: 48, marginBottom: 8 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 10, marginTop: 20 },
     categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

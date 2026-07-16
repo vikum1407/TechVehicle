@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type VehicleSpec = {
   id: string
@@ -432,12 +433,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Knowledge Hub</Text>
-      </View>
+      <ScreenHeader title="Knowledge Hub" onBack={onBack} />
 
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -545,14 +541,6 @@ function SpecItem({ label, value, highlight = false }: { label: string; value: s
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    header: {
-      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
-      paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center',
-      borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { marginRight: 16 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: c.text },
 
     tabBar: {
       flexDirection: 'row', backgroundColor: c.surface,

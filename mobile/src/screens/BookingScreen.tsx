@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Vehicle = {
   id: string
@@ -193,12 +194,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   if (step === 'search') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book Service</Text>
-        </View>
+        <ScreenHeader title="Book Service" onBack={onBack} />
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.vehicleBanner}>
             <Text style={styles.vehicleBannerReg}>{vehicle.registrationNo}</Text>
@@ -263,12 +259,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   if (step === 'dates') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('search')} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pick a Date</Text>
-        </View>
+        <ScreenHeader title="Pick a Date" onBack={() => setStep('search')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
@@ -360,12 +351,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   if (step === 'slots') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setStep('dates')} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pick a Time Slot</Text>
-        </View>
+        <ScreenHeader title="Pick a Time Slot" onBack={() => setStep('dates')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
@@ -417,15 +403,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   // ── Step 4: Confirm ────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => setStep(timeSlots.length > 0 ? 'slots' : 'dates')}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirm Booking</Text>
-      </View>
+      <ScreenHeader
+        title="Confirm Booking"
+        onBack={() => setStep(timeSlots.length > 0 ? 'slots' : 'dates')}
+      />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {selectedDate?.message && (
@@ -630,14 +611,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    header: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingTop: 52, paddingHorizontal: 16, paddingBottom: 14,
-      backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { marginRight: 12 },
-    backText: { fontSize: 16, color: c.primary, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: c.text },
     content: { padding: 16, paddingBottom: 40 },
 
     vehicleBanner: {

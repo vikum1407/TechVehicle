@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Vehicle = {
   id: string
@@ -85,15 +86,9 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={step === 'confirm' ? () => setStep('enterPhone') : onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Sell / Transfer Vehicle</Text>
-
+    <View style={styles.container}>
+      <ScreenHeader title="Sell / Transfer Vehicle" onBack={step === 'confirm' ? () => setStep('enterPhone') : onBack} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.vehicleBanner}>
         <Text style={styles.bannerReg}>{vehicle.registrationNo}</Text>
         <Text style={styles.bannerName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
@@ -180,7 +175,8 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           </TouchableOpacity>
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -188,9 +184,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 20, paddingBottom: 56 },
-    topRow: { marginTop: 48, marginBottom: 8 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 16 },
     vehicleBanner: {
       backgroundColor: c.primary, borderRadius: 12, padding: 16, marginBottom: 24,
     },

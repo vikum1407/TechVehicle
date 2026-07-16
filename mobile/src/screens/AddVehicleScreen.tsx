@@ -10,6 +10,7 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { BRANDS_LIST, BRAND_MODELS } from '../constants/vehicleData'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -228,11 +229,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
     : (model || '')
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-        <Text style={styles.backBtnText}>← Back</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Add Vehicle</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Add Vehicle" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>Fields marked * are required</Text>
 
       {/* Registration */}
@@ -433,7 +432,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         onSelect={handleModelSelect}
         onClose={() => setShowModelPicker(false)}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -441,9 +441,6 @@ function makeMainStyles(c: Colors) {
   return StyleSheet.create({
     container:   { flex: 1, backgroundColor: c.background },
     content:     { padding: 24, paddingBottom: 48 },
-    backBtn:     { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
-    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title:       { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4, marginTop: 16 },
     subtitle:    { fontSize: 13, color: c.textMuted, marginBottom: 28 },
     label:       { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 16 },
     sectionLabel:{ fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },

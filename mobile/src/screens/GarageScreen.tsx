@@ -8,6 +8,7 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
   getServiceCategories, todayDMY, parseDMY,
@@ -613,14 +614,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     const itemsNeedingBrand = selectedItems.filter(i => !NO_BRAND_ITEMS.has(i.name))
 
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.formTopRow}>
-          <TouchableOpacity onPress={() => setSubmittingShare(null)}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.formTitle}>Submit Completed Service</Text>
+      <View style={styles.container}>
+        <ScreenHeader title="Submit Completed Service" onBack={() => setSubmittingShare(null)} />
+        <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
 
         {/* Which vehicle */}
         <View style={styles.vehicleBanner}>
@@ -795,7 +791,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             : <Text style={styles.submitServiceBtnText}>Submit to Owner</Text>
           }
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </View>
     )
   }
 
@@ -808,13 +805,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       { color: '#2e7d32', label: 'Green' },
     ]
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.formTopRow}>
-          <TouchableOpacity onPress={() => setEditingOverride(null)}>
-            <Text style={styles.backText}>← Back to Calendar</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.formTitle}>Set Day Override</Text>
+      <View style={styles.container}>
+        <ScreenHeader title="Set Day Override" onBack={() => setEditingOverride(null)} />
+        <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
         <View style={styles.overrideDateBanner}>
           <Text style={styles.overrideDateText}>{editingOverride.displayDate}</Text>
         </View>
@@ -894,7 +887,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <Text style={styles.removeOverrideBtnText}>Remove Override (use default)</Text>
           </TouchableOpacity>
         )}
-      </ScrollView>
+        </ScrollView>
+      </View>
     )
   }
 
@@ -1858,7 +1852,6 @@ function makeStyles(c: Colors) {
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
     formContent: { padding: 20, paddingBottom: 56 },
-    formTopRow: { marginTop: 48, marginBottom: 8 },
     formTitle: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 12 },
     formSubtitle: { fontSize: 14, color: c.textMuted, marginBottom: 16 },
     formSubtitleSmall: { fontSize: 14, color: c.textMuted, marginBottom: 20, lineHeight: 20 },
@@ -1938,7 +1931,6 @@ function makeStyles(c: Colors) {
       backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
       paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
     },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600', marginBottom: 6 },
     headerTitle: { fontSize: 20, fontWeight: '800', color: c.text },
     bellBtn: { padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },

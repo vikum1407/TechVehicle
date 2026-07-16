@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type ForecastItem = {
   name: string
@@ -89,15 +90,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.back}>← Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Cost Forecast</Text>
-          <Text style={styles.sub}>{vehicleName}</Text>
-        </View>
-      </View>
+      <ScreenHeader title="Cost Forecast" subtitle={vehicleName} onBack={onBack} />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} size="large" />
@@ -188,16 +181,6 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    header: {
-      backgroundColor: c.surface, paddingTop: 52, paddingHorizontal: 20,
-      paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: c.border,
-      flexDirection: 'row', alignItems: 'flex-end', gap: 16,
-    },
-    backBtn: { paddingBottom: 2 },
-    back: { color: c.primary, fontSize: 15, fontWeight: '600' },
-    headerText: { flex: 1 },
-    title: { fontSize: 22, fontWeight: '800', color: c.text },
-    sub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
     scrollContent: { padding: 16, paddingBottom: 48 },
     totalCard: {
       backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 20,

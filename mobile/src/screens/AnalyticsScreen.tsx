@@ -10,6 +10,7 @@ import Svg, {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -512,14 +513,9 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
   const maxMonthly = Math.max(...data.monthlySpend.map(m => m.amount), 1)
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Analytics</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Analytics" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
 
       {/* Total spend */}
       <View style={styles.totalCard}>
@@ -691,7 +687,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
           <Text style={styles.knowledgeNudgeArrow}>→</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -714,9 +711,7 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 28, paddingVertical: 12,
     },
     retryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-    topRow: { marginTop: 48, marginBottom: 8 },
     backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 20 },
 
     totalCard: { backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 16 },
     totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },

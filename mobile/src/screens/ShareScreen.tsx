@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -121,16 +122,16 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => {
+      <ScreenHeader
+        title="Share Records"
+        onBack={() => {
           if (step === 'selectServiceType') onBack()
           else if (step === 'selectRecords') setStep('selectServiceType')
           else if (step === 'selectGarage') setStep('selectRecords')
           else if (step === 'confirm') setStep('selectGarage')
-        }}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Share Records</Text>
+        }}
+      />
+      <View style={styles.stepIndicatorWrap}>
         <View style={styles.stepIndicator}>
           <View style={[styles.stepDot, step !== 'selectServiceType' && styles.stepDotDone]} />
           <View style={[styles.stepLine, ['selectGarage', 'confirm'].includes(step) && styles.stepLineDone]} />
@@ -332,12 +333,10 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
-    header: {
-      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
-      paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
+    stepIndicatorWrap: {
+      backgroundColor: c.surface, paddingHorizontal: 20, paddingBottom: 16,
+      borderBottomWidth: 1, borderBottomColor: c.border,
     },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600', marginBottom: 10 },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 12 },
     stepIndicator: { flexDirection: 'row', alignItems: 'center' },
     stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary },
     stepDotDone: { backgroundColor: '#34a853' },

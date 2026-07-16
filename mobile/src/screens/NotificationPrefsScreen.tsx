@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -87,12 +88,9 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-        <Text style={styles.backBtnText}>← Back</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.title}>Notification Settings</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Notification Settings" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>Choose which notifications you want to receive</Text>
 
       {loading ? (
@@ -131,7 +129,8 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
           In Expo Go, notifications appear only while the app is open.
         </Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -139,9 +138,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 48 },
-    backBtn: { marginTop: 8, marginBottom: 4, alignSelf: 'flex-start' },
-    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginTop: 16, marginBottom: 4 },
     subtitle: { fontSize: 13, color: c.textMuted, marginBottom: 28 },
     card: {
       backgroundColor: c.surface, borderRadius: 14,

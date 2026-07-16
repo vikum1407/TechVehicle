@@ -12,6 +12,7 @@ import {
 } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -257,14 +258,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const itemsWithStructured = selectedItems.filter(i => STRUCTURED_ITEMS[i.name])
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Add Service Record</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Add Service Record" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>
         Tap everything that was done <Text style={styles.requiredStar}>*</Text>
       </Text>
@@ -497,7 +493,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
           : <Text style={styles.buttonText}>Save Record</Text>
         }
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -505,9 +502,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 20, paddingBottom: 56 },
-    topRow: { marginTop: 48, marginBottom: 8 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 16 },
     catLabel: { fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

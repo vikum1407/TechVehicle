@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -70,13 +71,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <ScreenHeader title="Profile" onBack={onBack} />
 
       <View style={styles.avatarSection}>
         <View style={styles.avatar}>
@@ -160,16 +155,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { paddingBottom: 48 },
-
-    header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: c.surface, paddingHorizontal: 16,
-      paddingTop: 56, paddingBottom: 14,
-      borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { width: 60 },
-    backBtnText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
 
     avatarSection: { alignItems: 'center', paddingVertical: 28, backgroundColor: c.surface, marginBottom: 8 },
     avatar: {

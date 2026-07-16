@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -372,13 +373,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={s.back}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={s.title}>Vehicle Tests</Text>
-        <Text style={s.sub}>{vehicleName}</Text>
-      </View>
+      <ScreenHeader title="Vehicle Tests" subtitle={vehicleName} onBack={onBack} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabBarContent}>
         <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
@@ -861,11 +856,6 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-
-    header: { backgroundColor: c.surface, paddingTop: 52, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: c.border },
-    back: { color: c.primary, fontSize: 16, marginBottom: 8 },
-    title: { fontSize: 22, fontWeight: '800', color: c.text },
-    sub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
 
     tabBar: { backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border, maxHeight: 50 },
     tabBarContent: { flexDirection: 'row' },

@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -85,14 +86,9 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Log Fuel Fill-up</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Log Fuel Fill-up" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>Last recorded: {currentMileage.toLocaleString()} km</Text>
 
       <Text style={styles.label}>Odometer Reading (km) *</Text>
@@ -186,7 +182,8 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
           : <Text style={styles.buttonText}>Save Fill-up</Text>
         }
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -194,9 +191,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 48 },
-    topRow: { marginTop: 48, marginBottom: 8 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    title: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 4 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
     input: {

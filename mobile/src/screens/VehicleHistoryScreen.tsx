@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { exportVehiclePdf } from '../utils/pdfExport'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Tab = 'service' | 'expenses' | 'fuel'
 
@@ -445,14 +446,11 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 
   return (
     <View style={s.container}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={onBack} style={s.backBtn}>
-          <Text style={s.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-        <Text style={s.headerSub}>{vehicle.registrationNo} · History</Text>
-      </View>
+      <ScreenHeader
+        title={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+        subtitle={`${vehicle.registrationNo} · History`}
+        onBack={onBack}
+      />
 
       {/* Tab bar */}
       <View style={s.tabBar}>
@@ -1034,15 +1032,6 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-
-    header: {
-      backgroundColor: c.surface, paddingTop: 52, paddingHorizontal: 20, paddingBottom: 14,
-      borderBottomWidth: 1, borderBottomColor: c.border,
-    },
-    backBtn: { marginBottom: 8 },
-    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: c.text },
-    headerSub: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 
     tabBar: { flexDirection: 'row', backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },

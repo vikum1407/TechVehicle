@@ -6,6 +6,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import ScreenHeader from '../components/ScreenHeader'
 
 type Props = {
   token: string
@@ -117,15 +118,9 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-    <ScrollView style={s.container} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-      <View style={s.topRow}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={s.back}>← Back</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={s.title}>Log Emission Test</Text>
-      <Text style={s.sub}>Carbon / emission test results and renewal date</Text>
+    <View style={s.container}>
+    <ScreenHeader title="Log Emission Test" subtitle="Carbon / emission test results and renewal date" onBack={onBack} />
+    <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
 
       <Text style={s.label}>Test Result <Text style={s.req}>*</Text></Text>
       <View style={s.chipRow}>
@@ -200,6 +195,7 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Emission Test</Text>}
       </TouchableOpacity>
     </ScrollView>
+    </View>
     </KeyboardAvoidingView>
   )
 }
@@ -208,10 +204,6 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 20, paddingBottom: 48 },
-    topRow: { marginBottom: 8 },
-    back: { color: c.primary, fontSize: 16 },
-    title: { fontSize: 22, fontWeight: '800', color: c.text, marginBottom: 4 },
-    sub: { fontSize: 13, color: c.textMuted, marginBottom: 20 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 6, marginTop: 14 },
     req: { color: c.error },
     sectionLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginTop: 20, marginBottom: 2 },
