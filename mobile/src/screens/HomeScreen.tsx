@@ -33,7 +33,7 @@ function makeStyles(c: Colors) {
       alignItems: 'center', justifyContent: 'center',
       paddingHorizontal: 24,
     },
-    logo: { fontSize: 32, fontWeight: 'bold', color: c.primary, marginBottom: 24 },
+    logo: { fontSize: 32, fontWeight: '700', color: c.primary, marginBottom: 24 },
     welcome: { fontSize: 26, fontWeight: '700', color: c.text, marginBottom: 8 },
     phone: { fontSize: 18, color: c.primary, fontWeight: '600', marginBottom: 8 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 48 },

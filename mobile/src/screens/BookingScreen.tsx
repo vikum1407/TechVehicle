@@ -338,7 +338,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           {!datesLoading && (
             <View style={styles.legend}>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#1a73e8' }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
                 <Text style={styles.legendText}>Available</Text>
               </View>
               <View style={styles.legendItem}>

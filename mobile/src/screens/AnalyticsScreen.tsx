@@ -77,7 +77,7 @@ type Anomaly = {
   severity: 'warning' | 'info'
 }
 
-const COLORS = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
+const COLORS = ['#1d3a5f', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ function MileageChart({ data }: { data: { mileage: number; label: string }[] }) 
   const step = labelStep(data.length)
   const show = (i: number) => i === 0 || i % step === 0 || i === data.length - 1
   const fmtKm = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
-  const color = '#1a73e8'
+  const color = colors.primary
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <Defs>
@@ -187,7 +187,7 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
   const bh = (v: number) => Math.max(4, (v / maxV) * plotH)
   const step = labelStep(data.length)
   const show = (i: number) => i === 0 || i % step === 0 || i === data.length - 1
-  const color = '#1a73e8'
+  const color = colors.primary
   const fmtTop = maxV >= 1000 ? `${(maxV / 1000).toFixed(0)}k` : `${Math.round(maxV)}`
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
@@ -377,7 +377,7 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
 const STATUS_COLOR: Record<string, string> = {
   overdue: '#e53935',
   due_soon: '#f57c00',
-  ok: '#1a73e8',
+  ok: '#1d3a5f',
   no_data: '#9e9e9e',
 }
 
@@ -577,7 +577,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
               <Text style={styles.chartTitle}>Mileage Growth</Text>
               <Text style={styles.chartSub}>Odometer over time (km)</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: '#1a73e8' }]} />
+            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
           <MileageChart data={data.mileageTrend} />
         </View>
@@ -605,7 +605,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
               <Text style={styles.chartTitle}>Cost per Fill-up</Text>
               <Text style={styles.chartSub}>LKR spent each time you refuelled</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: '#1a73e8' }]} />
+            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
           <FuelCostChart data={data.fuelCostTrend} />
         </View>

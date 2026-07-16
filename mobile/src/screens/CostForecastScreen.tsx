@@ -27,14 +27,14 @@ type Props = {
 function statusColor(status: string): string {
   if (status === 'overdue')   return '#c62828'
   if (status === 'due_soon')  return '#e65100'
-  if (status === 'upcoming')  return '#1a73e8'
+  if (status === 'upcoming')  return '#1d3a5f'
   return '#888'
 }
 
 function statusBg(status: string): string {
   if (status === 'overdue')   return '#ffebee'
   if (status === 'due_soon')  return '#fff3e0'
-  if (status === 'upcoming')  return '#e8f0fe'
+  if (status === 'upcoming')  return '#e7edf3'
   return '#f5f5f5'
 }
 

@@ -92,7 +92,7 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-    logo: { fontSize: 32, fontWeight: 'bold', color: c.primary, textAlign: 'center' },
+    logo: { fontSize: 32, fontWeight: '700', color: c.primary, textAlign: 'center' },
     tagline: { fontSize: 14, color: c.textMuted, textAlign: 'center', marginBottom: 40 },
     card: {
       backgroundColor: c.surface, borderRadius: 16,

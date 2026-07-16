@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a73e8"
+      "backgroundColor": "#1d3a5f"
     },
     "ios": {
       "supportsTablet": false,
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1a73e8"
+        "backgroundColor": "#1d3a5f"
       },
       "package": "com.techvehicle.app",
       "permissions": [
@@ -33,7 +33,7 @@
     },
     "notification": {
       "icon": "./assets/notification-icon.png",
-      "color": "#1a73e8",
+      "color": "#1d3a5f",
       "iosDisplayInForeground": true
     },
     "plugins": [

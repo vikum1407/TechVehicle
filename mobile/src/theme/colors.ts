@@ -12,11 +12,15 @@ export const lightColors = {
   border: '#eeeeee',
   borderMid: '#dddddd',
   borderStrong: '#cccccc',
-  // blue tint surfaces (used for info cards, unread highlight, etc.)
-  primaryTint: '#e8f0fe',
-  primaryTintText: '#1a73e8',
-  // fixed accent — same in both modes
-  primary: '#1a73e8',
+  // navy tint surfaces (used for info cards, unread highlight, etc.)
+  primaryTint: '#e7edf3',
+  primaryTintText: '#1d3a5f',
+  // brand primary — navy
+  primary: '#1d3a5f',
+  // brand accent — amber (verified badges, due-soon chips, highlights)
+  accent: '#e3a008',
+  accentTint: '#fbf0d9',
+  accentTintText: '#8a6300',
   success: '#43a047',
   error: '#e53935',
   warning: '#f9a825',
@@ -35,9 +39,14 @@ export const darkColors: Colors = {
   border: '#2c2c2e',
   borderMid: '#3a3a3c',
   borderStrong: '#48484a',
-  primaryTint: '#1a3a6b',
-  primaryTintText: '#6ba7f5',
-  primary: '#1a73e8',
+  primaryTint: '#1e3348',
+  primaryTintText: '#6e9bc7',
+  // brand primary — lifted navy for contrast against dark backgrounds
+  primary: '#4a729e',
+  // brand accent — brighter amber for dark backgrounds
+  accent: '#f0b429',
+  accentTint: '#3a2e10',
+  accentTintText: '#f0b429',
   success: '#43a047',
   error: '#e53935',
   warning: '#f9a825',

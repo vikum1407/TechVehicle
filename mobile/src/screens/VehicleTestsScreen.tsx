@@ -540,7 +540,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const last = alignmentHistory[0]
               const sd = last.structuredData?.['Wheel Alignment'] || {}
               return (
-                <View style={[s.histCard, { borderLeftColor: '#1a73e8', marginBottom: 20 }]}>
+                <View style={[s.histCard, { borderLeftColor: colors.primary, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
                   </View>
@@ -645,7 +645,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                 {alignmentHistory.slice(1).map(r => {
                   const sd = r.structuredData?.['Wheel Alignment'] || {}
                   return (
-                    <View key={r.id} style={[s.histCard, { borderLeftColor: '#1a73e8' }]}>
+                    <View key={r.id} style={[s.histCard, { borderLeftColor: colors.primary }]}>
                       <View style={s.histRow}>
                         <Text style={s.histLabel}>Wheel Alignment</Text>
                         <Text style={s.histDate}>{fmtDate(r.date)}</Text>
@@ -797,7 +797,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               <>
                 <Text style={s.historyTitle}>Insurance History</Text>
                 {insuranceHistory.map(e => (
-                  <View key={e.id} style={[s.histCard, { borderLeftColor: '#1a73e8' }]}>
+                  <View key={e.id} style={[s.histCard, { borderLeftColor: colors.primary }]}>
                     <View style={s.histRow}>
                       <Text style={s.histLabel}>{e.description || 'Insurance'}</Text>
                       <Text style={s.histDate}>{fmtDate(e.date)}</Text>

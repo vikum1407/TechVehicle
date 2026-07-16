@@ -280,7 +280,7 @@ export default function App() {
   if (screen === 'loading') {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#1a73e8" />
+        <ActivityIndicator size="large" color="#1d3a5f" />
       </View>
     )
   }

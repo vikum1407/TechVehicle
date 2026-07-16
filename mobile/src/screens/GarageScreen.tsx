@@ -1580,7 +1580,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       onPress={() => setSelectedCalDate(isSelected ? null : dateStr)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.calDayNum, isSelected && { color: '#1a73e8' }]}>{day}</Text>
+                      <Text style={[styles.calDayNum, isSelected && { color: colors.primary }]}>{day}</Text>
                       {count > 0 && (
                         <Text style={[
                           styles.calBookingCount,

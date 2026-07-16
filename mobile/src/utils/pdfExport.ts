@@ -69,7 +69,7 @@ function buildHtml(
     ? '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">No service records</td></tr>'
     : records.map(r => {
         const services = r.description.split(',').map(s => s.trim()).filter(Boolean)
-        const tagHtml  = services.map(s => `<span style="display:inline-block;background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:2px 8px;margin:2px 2px 2px 0;font-size:11px;">${s}</span>`).join('')
+        const tagHtml  = services.map(s => `<span style="display:inline-block;background:#e7edf3;color:#1d3a5f;border-radius:4px;padding:2px 8px;margin:2px 2px 2px 0;font-size:11px;">${s}</span>`).join('')
         const partLine = [r.parts && `<b>Parts:</b> ${r.parts}`, r.brand && `<b>Brand:</b> ${r.brand}`].filter(Boolean).join(' &nbsp;·&nbsp; ')
         const noteLine = r.notes ? `<div style="color:#888;font-size:11px;margin-top:4px;font-style:italic;">${r.notes}</div>` : ''
         return `
@@ -81,7 +81,7 @@ function buildHtml(
             ${noteLine}
           </td>
           <td style="text-align:right;white-space:nowrap;color:#555;font-size:12px;">${r.mileage != null ? r.mileage.toLocaleString() + ' km' : '—'}</td>
-          <td style="text-align:right;white-space:nowrap;font-weight:600;color:#1a73e8;font-size:12px;">${lkr(r.cost)}</td>
+          <td style="text-align:right;white-space:nowrap;font-weight:600;color:#1d3a5f;font-size:12px;">${lkr(r.cost)}</td>
         </tr>`
       }).join('')
 
@@ -123,21 +123,21 @@ function buildHtml(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 24px; }
-    .brand { color: #1a73e8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-    .vehicle-header { background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%); color: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+    .brand { color: #1d3a5f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .vehicle-header { background: linear-gradient(135deg, #1d3a5f 0%, #14293f 100%); color: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
     .vehicle-header h1 { font-size: 28px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; }
     .vehicle-header .sub { font-size: 14px; opacity: 0.85; margin-bottom: 4px; }
     .vehicle-header .mileage { font-size: 20px; font-weight: 700; margin-top: 10px; }
     .vehicle-header .gen-date { font-size: 11px; opacity: 0.65; margin-top: 6px; }
     .section { margin-bottom: 28px; }
-    .section h2 { font-size: 14px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e8f0fe; padding-bottom: 6px; margin-bottom: 12px; }
+    .section h2 { font-size: 14px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e7edf3; padding-bottom: 6px; margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; font-size: 11px; font-weight: 700; color: #888; padding: 8px 10px; background: #f9f9f9; border-bottom: 1px solid #e8e8e8; text-transform: uppercase; letter-spacing: 0.4px; }
     td { padding: 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
     tr:last-child td { border-bottom: none; }
     .totals { background: #f9f9f9; border-radius: 10px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
     .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-    .total-row.grand { font-size: 16px; font-weight: 800; color: #1a73e8; border-top: 2px solid #e0e0e0; padding-top: 10px; margin-top: 4px; }
+    .total-row.grand { font-size: 16px; font-weight: 800; color: #1d3a5f; border-top: 2px solid #e0e0e0; padding-top: 10px; margin-top: 4px; }
     .footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 32px; padding-top: 12px; border-top: 1px solid #eee; }
   </style>
 </head>

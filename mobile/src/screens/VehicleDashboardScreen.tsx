@@ -1263,7 +1263,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <View style={styles.sparkRow}>
             <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
               <Text style={styles.sparkTitle}>Mileage</Text>
-              <Sparkline data={mileageValues} color="#1a73e8" gradId="dashMileage" />
+              <Sparkline data={mileageValues} color={colors.primary} gradId="dashMileage" />
               <Text style={styles.sparkValue}>
                 {vehicle.mileage.toLocaleString()}
                 <Text style={styles.sparkUnit}> km</Text>
