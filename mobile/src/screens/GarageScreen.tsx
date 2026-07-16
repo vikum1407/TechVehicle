@@ -9,6 +9,8 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
   getServiceCategories, todayDMY, parseDMY,
@@ -694,9 +696,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <View style={styles.row}>
           <View style={styles.half}>
-            <Text style={styles.catLabel}>Service Date</Text>
-            <TextInput
-              style={styles.fInput}
+            <FormField
+              label="Service Date"
               value={subDate}
               onChangeText={setSubDate}
               placeholder="DD/MM/YYYY"
@@ -704,9 +705,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             />
           </View>
           <View style={styles.half}>
-            <Text style={styles.catLabel}>Mileage (km) <Text style={styles.requiredStar}>*</Text></Text>
-            <TextInput
-              style={styles.fInput}
+            <FormField
+              label="Mileage (km)"
+              required
               value={subMileage}
               onChangeText={setSubMileage}
               placeholder="e.g. 45000"
@@ -715,18 +716,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         </View>
 
-        <Text style={styles.catLabel}>Total Cost (LKR) <Text style={styles.requiredStar}>*</Text></Text>
-        <TextInput
-          style={styles.fInput}
+        <FormField
+          label="Total Cost (LKR)"
+          required
           value={subCost}
           onChangeText={setSubCost}
           placeholder="e.g. 8500"
           keyboardType="number-pad"
         />
 
-        <Text style={styles.catLabel}>Notes for Owner (optional)</Text>
-        <TextInput
-          style={[styles.fInput, styles.multiline]}
+        <FormField
+          label="Notes for Owner (optional)"
+          style={styles.multiline}
           value={subNotes}
           onChangeText={setSubNotes}
           placeholder="Any observations, recommendations, or notes..."
@@ -734,7 +735,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           numberOfLines={3}
         />
 
-        <Text style={styles.catLabel}>Photos (optional, max 5)</Text>
+        <Text style={styles.fieldLabel}>Photos (optional, max 5)</Text>
         <View style={styles.photoRow}>
           {subPhotos.map((url) => (
             <View key={url} style={styles.photoThumb}>
@@ -781,16 +782,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.submitServiceBtn, submitting && styles.submitServiceBtnDisabled]}
-          onPress={handleSubmitService}
-          disabled={submitting}
-        >
-          {submitting
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.submitServiceBtnText}>Submit to Owner</Text>
-          }
-        </TouchableOpacity>
+        <Button title="Submit to Owner" onPress={handleSubmitService} loading={submitting} />
         </ScrollView>
       </View>
     )
@@ -812,7 +804,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           <Text style={styles.overrideDateText}>{editingOverride.displayDate}</Text>
         </View>
 
-        <Text style={styles.catLabel}>Day Status</Text>
+        <Text style={styles.fieldLabel}>Day Status</Text>
         <View style={styles.statusRow}>
           {(['open', 'closed', 'holiday'] as const).map(s => (
             <TouchableOpacity
@@ -828,21 +820,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </View>
 
         {ovStatus === 'open' && (
-          <>
-            <Text style={styles.catLabel}>Max Vehicles This Day (optional)</Text>
-            <TextInput
-              style={styles.fInput}
-              value={ovMaxSlots}
-              onChangeText={setOvMaxSlots}
-              placeholder={`Leave blank to use default (${schedMaxPerDay})`}
-              keyboardType="number-pad"
-            />
-          </>
+          <FormField
+            label="Max Vehicles This Day (optional)"
+            value={ovMaxSlots}
+            onChangeText={setOvMaxSlots}
+            placeholder={`Leave blank to use default (${schedMaxPerDay})`}
+            keyboardType="number-pad"
+          />
         )}
 
-        <Text style={styles.catLabel}>Notice Message (optional)</Text>
-        <TextInput
-          style={[styles.fInput, styles.multiline]}
+        <FormField
+          label="Notice Message (optional)"
+          style={styles.multiline}
           value={ovMessage}
           onChangeText={setOvMessage}
           placeholder="e.g. Half day only — closing at 1pm for Vesak"
@@ -852,7 +841,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         {ovMessage.length > 0 && (
           <>
-            <Text style={styles.catLabel}>Message Colour</Text>
+            <Text style={styles.fieldLabel}>Message Colour</Text>
             <View style={styles.colorRow}>
               {colorOptions.map(opt => (
                 <TouchableOpacity
@@ -867,25 +856,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </>
         )}
 
-        <TouchableOpacity
-          style={[styles.submitServiceBtn, savingOverride && styles.submitServiceBtnDisabled]}
-          onPress={handleSaveOverride}
-          disabled={savingOverride}
-        >
-          {savingOverride
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.submitServiceBtnText}>Save Override</Text>
-          }
-        </TouchableOpacity>
+        <Button title="Save Override" onPress={handleSaveOverride} loading={savingOverride} />
 
         {editingOverride.existing && (
-          <TouchableOpacity
-            style={[styles.removeOverrideBtn, savingOverride && styles.submitServiceBtnDisabled]}
-            onPress={handleRemoveOverride}
-            disabled={savingOverride}
-          >
-            <Text style={styles.removeOverrideBtnText}>Remove Override (use default)</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 12 }}>
+            <Button
+              title="Remove Override (use default)"
+              onPress={handleRemoveOverride}
+              disabled={savingOverride}
+              variant="destructive"
+            />
+          </View>
         )}
         </ScrollView>
       </View>
@@ -1862,6 +1843,7 @@ function makeStyles(c: Colors) {
     vehicleBannerName: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 },
     vehicleBannerMileage: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
     catLabel: { fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+    fieldLabel: { fontSize: 13, fontWeight: '600', color: c.textSub, marginTop: 18, marginBottom: 8 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
       flexDirection: 'row', alignItems: 'center',
@@ -1886,7 +1868,7 @@ function makeStyles(c: Colors) {
       borderRadius: 18, borderWidth: 1.5,
       borderColor: c.borderMid, backgroundColor: c.surfaceAlt,
     },
-    brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
+    brandChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
     brandChipText: { fontSize: 12, color: c.textSub },
     brandChipTextSelected: { color: '#fff', fontWeight: '600' },
     fInput: {
@@ -1901,13 +1883,7 @@ function makeStyles(c: Colors) {
     summary: { backgroundColor: '#e6f4ea', borderRadius: 12, padding: 16, marginTop: 20 },
     summaryLabel: { fontSize: 13, fontWeight: '700', color: '#2e7d32', marginBottom: 8 },
     summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
-    submitServiceBtn: {
-      backgroundColor: '#2e7d32', borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 24,
-    },
-    submitServiceBtnDisabled: { opacity: 0.6 },
-    submitServiceBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    requiredStar: { color: '#e53935', fontWeight: '700' },
+    requiredStar: { color: c.error, fontWeight: '700' },
     photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
     photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
     thumbImg: { width: 80, height: 80 },
@@ -2021,7 +1997,7 @@ function makeStyles(c: Colors) {
     submitArea: { marginTop: 16, borderTopWidth: 1, borderTopColor: c.borderMid, paddingTop: 14 },
     submittedBadge: { backgroundColor: '#e6f4ea', borderRadius: 8, padding: 12, alignItems: 'center' },
     submittedText: { fontSize: 14, color: '#2e7d32', fontWeight: '700' },
-    openSubmitBtn: { backgroundColor: '#2e7d32', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+    openSubmitBtn: { backgroundColor: c.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
     openSubmitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
     bookingCard: {
@@ -2060,9 +2036,9 @@ function makeStyles(c: Colors) {
       flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
     },
-    statusBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    statusBtnActive: { borderColor: c.primary, backgroundColor: c.primary },
     statusBtnText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-    statusBtnTextActive: { color: c.text },
+    statusBtnTextActive: { color: '#fff', fontWeight: '700' },
     colorRow: { flexDirection: 'row', gap: 14, marginTop: 8, marginBottom: 4 },
     colorBtn: {
       width: 40, height: 40, borderRadius: 20,

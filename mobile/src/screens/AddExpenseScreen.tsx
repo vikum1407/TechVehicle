@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, Alert
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -144,18 +146,17 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         ))}
       </View>
 
-      <Text style={styles.label}>Amount (LKR) *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Amount (LKR)"
+        required
         value={amount}
         onChangeText={setAmount}
         keyboardType="number-pad"
         placeholder="e.g. 45000"
       />
 
-      <Text style={styles.label}>Description (optional)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Description (optional)"
         value={description}
         onChangeText={setDescription}
         placeholder="e.g. Annual insurance renewal — Union Assurance"
@@ -163,9 +164,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
 
       <View style={styles.row}>
         <View style={styles.half}>
-          <Text style={styles.label}>Date</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Date"
             value={date}
             onChangeText={setDate}
             placeholder="DD/MM/YYYY"
@@ -173,9 +173,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
           />
         </View>
         <View style={styles.half}>
-          <Text style={styles.label}>Mileage (km)</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Mileage (km)"
             value={mileage}
             onChangeText={setMileage}
             keyboardType="number-pad"
@@ -184,9 +183,9 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         </View>
       </View>
 
-      <Text style={styles.label}>Notes (optional)</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
+      <FormField
+        label="Notes (optional)"
+        style={styles.multiline}
         value={notes}
         onChangeText={setNotes}
         placeholder="Any additional notes..."
@@ -199,9 +198,8 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         <View style={styles.reminderCard}>
           <Text style={styles.reminderTitle}>Set Renewal Reminder</Text>
           <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
-          <Text style={styles.label}>Next Renewal Date (MM/YYYY)</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Next Renewal Date (MM/YYYY)"
             value={renewalExpiry}
             onChangeText={setRenewalExpiry}
             placeholder="e.g. 06/2026"
@@ -215,24 +213,21 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         <View style={styles.reminderCard}>
           <Text style={styles.reminderTitle}>Insurance Details</Text>
           <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
-          <Text style={styles.label}>Policy Expiry Date (MM/YYYY)</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Policy Expiry Date (MM/YYYY)"
             value={renewalExpiry}
             onChangeText={setRenewalExpiry}
             placeholder="e.g. 12/2026"
             keyboardType="numbers-and-punctuation"
           />
-          <Text style={styles.label}>Insurance Company (optional)</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Insurance Company (optional)"
             value={insuranceCompany}
             onChangeText={setInsuranceCompany}
             placeholder="e.g. Union Assurance, AIA, Ceylinco"
           />
-          <Text style={styles.label}>Policy Number (optional)</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Policy Number (optional)"
             value={insurancePolicyNo}
             onChangeText={setInsurancePolicyNo}
             placeholder="e.g. UA-2024-0012345"
@@ -240,16 +235,7 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         </View>
       )}
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Save Expense</Text>
-        }
-      </TouchableOpacity>
+      <Button title="Save Expense" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
   )
@@ -271,12 +257,6 @@ function makeStyles(c: Colors) {
     categoryIcon: { fontSize: 24, marginBottom: 6 },
     categoryLabel: { fontSize: 11, color: c.textSub, fontWeight: '600', textAlign: 'center' },
     categoryLabelSelected: { color: '#fff' },
-    input: {
-      backgroundColor: c.surface, borderRadius: 10,
-      paddingHorizontal: 14, paddingVertical: 14,
-      fontSize: 15, color: c.text,
-      borderWidth: 1, borderColor: c.borderMid,
-    },
     multiline: { height: 80, textAlignVertical: 'top' },
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
@@ -286,11 +266,5 @@ function makeStyles(c: Colors) {
     },
     reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
     reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 4 },
-    button: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 32,
-    },
-    buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   })
 }

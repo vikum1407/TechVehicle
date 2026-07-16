@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert,
+  View, Text, StyleSheet,
+  ScrollView, Alert,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -96,34 +98,29 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>Log today's run — odometer, fuel & earnings</Text>
 
-      <Text style={styles.label}>Date</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Date"
         value={date}
         onChangeText={setDate}
         placeholder="DD/MM/YYYY"
         keyboardType="numbers-and-punctuation"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <Text style={styles.label}>Start Odometer (km)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Start Odometer (km)"
         value={startKm}
         onChangeText={setStartKm}
         keyboardType="number-pad"
         placeholder="e.g. 142000"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <Text style={styles.label}>End Odometer (km) *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="End Odometer (km)"
+        required
         value={endKm}
         onChangeText={setEndKm}
         keyboardType="number-pad"
         placeholder="e.g. 142180"
-        placeholderTextColor={colors.textFaint}
       />
 
       {kmDriven !== null && (
@@ -137,24 +134,20 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         <Text style={styles.sectionTitle}>Fuel (optional)</Text>
       </View>
 
-      <Text style={styles.label}>Litres filled</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Litres filled"
         value={litres}
         onChangeText={setLitres}
         keyboardType="decimal-pad"
         placeholder="e.g. 3.5"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <Text style={styles.label}>Fuel Cost (LKR)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Fuel Cost (LKR)"
         value={fuelCost}
         onChangeText={setFuelCost}
         keyboardType="number-pad"
         placeholder="e.g. 840"
-        placeholderTextColor={colors.textFaint}
       />
 
       {(costPerKm || kmPerLitre) && (
@@ -178,14 +171,12 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         <Text style={styles.sectionTitle}>Earnings (optional)</Text>
       </View>
 
-      <Text style={styles.label}>Today's earnings (LKR)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Today's earnings (LKR)"
         value={earnings}
         onChangeText={setEarnings}
         keyboardType="number-pad"
         placeholder="e.g. 4500"
-        placeholderTextColor={colors.textFaint}
       />
 
       {profit !== null && (
@@ -197,26 +188,18 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         </View>
       )}
 
-      <Text style={styles.label}>Notes (optional)</Text>
-      <TextInput
-        style={[styles.input, styles.notesInput]}
+      <FormField
+        label="Notes (optional)"
         value={notes}
         onChangeText={setNotes}
         multiline
         placeholder="e.g. route, extra runs, repairs..."
-        placeholderTextColor={colors.textFaint}
+        style={styles.notesInput}
       />
 
-      <TouchableOpacity
-        style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
-        onPress={handleSave}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.saveBtnText}>Save Trip Log</Text>
-        }
-      </TouchableOpacity>
+      <View style={{ marginTop: 32 }}>
+        <Button title="Save Trip Log" onPress={handleSave} loading={loading} />
+      </View>
       </ScrollView>
     </View>
   )
@@ -227,13 +210,6 @@ function makeStyles(c: Colors) {
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 60 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
-    label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
-    input: {
-      backgroundColor: c.surface, borderRadius: 10,
-      paddingHorizontal: 14, paddingVertical: 14,
-      fontSize: 15, color: c.text,
-      borderWidth: 1, borderColor: c.borderMid,
-    },
     notesInput: { minHeight: 72, textAlignVertical: 'top' },
     kmCard: {
       backgroundColor: '#fff3e0', borderRadius: 10, marginTop: 10,
@@ -265,11 +241,5 @@ function makeStyles(c: Colors) {
     profitValue: { fontSize: 18, fontWeight: '800' },
     profitPos: { color: '#2e7d32' },
     profitNeg: { color: '#c62828' },
-    saveBtn: {
-      backgroundColor: '#e65100', borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 32,
-    },
-    saveBtnDisabled: { opacity: 0.6 },
-    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   })
 }

@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import Button from '../components/Button'
 
 type Vehicle = {
   id: string
@@ -276,7 +277,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                 const todayStr = new Date().toISOString().split('T')[0]
                 return dates.map(slot => {
                 const hasMsg = !!slot.message
-                const msgColor = slot.messageColor || '#FF9800'
+                const msgColor = slot.messageColor || colors.orange
                 const isToday = slot.date === todayStr
                 return (
                   <TouchableOpacity
@@ -333,11 +334,11 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                 <Text style={styles.legendText}>Available</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#e53935' }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.error }]} />
                 <Text style={styles.legendText}>Full / Closed</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#FF9800' }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.orange }]} />
                 <Text style={styles.legendText}>Special notice</Text>
               </View>
             </View>
@@ -361,8 +362,8 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           </View>
 
           {selectedDate?.message && (
-            <View style={[styles.msgBanner, { borderLeftColor: selectedDate.messageColor || '#FF9800' }]}>
-              <Text style={[styles.msgBannerText, { color: selectedDate.messageColor || '#FF9800' }]}>
+            <View style={[styles.msgBanner, { borderLeftColor: selectedDate.messageColor || colors.orange }]}>
+              <Text style={[styles.msgBannerText, { color: selectedDate.messageColor || colors.orange }]}>
                 {selectedDate.message}
               </Text>
             </View>
@@ -390,7 +391,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                 )}
               </View>
               {slot.available
-                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: '#E65100' }]}>Select →</Text>
+                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: colors.orange }]}>Select →</Text>
                 : <Text style={styles.slotFullText}>Already Booked</Text>
               }
             </TouchableOpacity>
@@ -410,8 +411,8 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {selectedDate?.message && (
-          <View style={[styles.msgBanner, { borderLeftColor: selectedDate.messageColor || '#FF9800' }]}>
-            <Text style={[styles.msgBannerText, { color: selectedDate.messageColor || '#FF9800' }]}>
+          <View style={[styles.msgBanner, { borderLeftColor: selectedDate.messageColor || colors.orange }]}>
+            <Text style={[styles.msgBannerText, { color: selectedDate.messageColor || colors.orange }]}>
               {selectedDate.message}
             </Text>
           </View>
@@ -494,13 +495,13 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               <Text style={[styles.shareToggleTitle, shareEnabled && styles.shareToggleTitleOn]}>
                 Attach recent service records
               </Text>
-              <Text style={styles.shareToggleDesc}>
+              <Text style={[styles.shareToggleDesc, shareEnabled && styles.shareToggleDescOn]}>
                 Let the garage see your vehicle's service history
               </Text>
             </View>
           </View>
           <View style={[styles.togglePill, shareEnabled && styles.togglePillOn]}>
-            <Text style={styles.togglePillText}>{shareEnabled ? 'ON' : 'OFF'}</Text>
+            <Text style={[styles.togglePillText, shareEnabled && styles.togglePillTextOn]}>{shareEnabled ? 'ON' : 'OFF'}</Text>
           </View>
         </TouchableOpacity>
 
@@ -530,18 +531,18 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                         {selected && <Text style={styles.recordCheckMark}>✓</Text>}
                       </View>
                       <View style={styles.recordInfo}>
-                        <Text style={styles.recordDate}>
+                        <Text style={[styles.recordDate, selected && styles.recordDateOn]}>
                           {new Date(record.date).toLocaleDateString('en-GB', {
                             day: 'numeric', month: 'short', year: 'numeric'
                           })}
                         </Text>
-                        <Text style={styles.recordDesc} numberOfLines={1}>{record.description}</Text>
+                        <Text style={[styles.recordDesc, selected && styles.recordDescOn]} numberOfLines={1}>{record.description}</Text>
                         {record.mileage != null && (
-                          <Text style={styles.recordMileage}>{record.mileage.toLocaleString()} km</Text>
+                          <Text style={[styles.recordMileage, selected && styles.recordMileageOn]}>{record.mileage.toLocaleString()} km</Text>
                         )}
                       </View>
                       {record.cost != null && (
-                        <Text style={styles.recordCost}>LKR {record.cost.toLocaleString()}</Text>
+                        <Text style={[styles.recordCost, selected && styles.recordCostOn]}>LKR {record.cost.toLocaleString()}</Text>
                       )}
                     </TouchableOpacity>
                   )
@@ -589,16 +590,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           numberOfLines={3}
         />
 
-        <TouchableOpacity
-          style={[styles.confirmBtn, booking && styles.btnDisabled]}
-          onPress={handleConfirmBooking}
-          disabled={booking}
-        >
-          {booking
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.confirmBtnText}>Confirm Booking</Text>
-          }
-        </TouchableOpacity>
+        <View style={styles.confirmBtnWrap}>
+          <Button title="Confirm Booking" onPress={handleConfirmBooking} loading={booking} />
+        </View>
 
         <Text style={styles.confirmNote}>
           Your request will be sent to the garage. They'll confirm or suggest an alternative.
@@ -665,7 +659,7 @@ function makeStyles(c: Colors) {
     },
     selectedGarageName: { fontSize: 16, fontWeight: '700', color: c.text },
     selectedDateLabel: { fontSize: 14, color: c.primary, fontWeight: '600' },
-    verifiedLabel: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
+    verifiedLabel: { fontSize: 13, color: c.success, fontWeight: '600' },
 
     dateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
     dateCell: {
@@ -681,10 +675,10 @@ function makeStyles(c: Colors) {
     dateDayNum: { fontSize: 20, fontWeight: '800', color: c.textSub, marginBottom: 2 },
     dateDayNumAvailable: { color: c.primary },
     dateMonth: { fontSize: 11, color: c.textMuted, marginBottom: 3 },
-    dateSlotsAvail: { fontSize: 10, fontWeight: '700', color: '#34a853', marginTop: 2 },
+    dateSlotsAvail: { fontSize: 10, fontWeight: '700', color: c.success, marginTop: 2 },
     dateClosedText: { fontSize: 10, color: c.textFaint, fontWeight: '600', marginTop: 2 },
     dateHolidayText: { fontSize: 10, color: '#e91e63', fontWeight: '700', marginTop: 2 },
-    dateFullText: { fontSize: 10, color: '#e53935', fontWeight: '700', marginTop: 2 },
+    dateFullText: { fontSize: 10, color: c.error, fontWeight: '700', marginTop: 2 },
     msgDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
     dateCellToday: { borderColor: '#FFC107', borderWidth: 2 },
     todayCircleWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
@@ -711,14 +705,14 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.primary,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
-    slotCardPartial: { borderColor: '#FF9800', backgroundColor: '#fff8f0' },
+    slotCardPartial: { borderColor: c.orange, backgroundColor: '#fff8f0' },
     slotCardUnavailable: { borderColor: c.borderMid, backgroundColor: c.surfaceAlt },
     slotLabel: { fontSize: 16, fontWeight: '700', color: c.text },
     slotLabelDim: { color: c.textFaint },
     slotBooked: { fontSize: 12, color: c.textFaint, marginTop: 3 },
-    slotBookedWarning: { fontSize: 12, color: '#E65100', fontWeight: '700', marginTop: 3 },
+    slotBookedWarning: { fontSize: 12, color: c.orange, fontWeight: '700', marginTop: 3 },
     slotSelectArrow: { fontSize: 14, color: c.primary, fontWeight: '700' },
-    slotFullText: { fontSize: 13, color: '#e53935', fontWeight: '600' },
+    slotFullText: { fontSize: 13, color: c.error, fontWeight: '600' },
 
     summaryCard: {
       backgroundColor: c.surface, borderRadius: 16, padding: 20, marginBottom: 24,
@@ -737,19 +731,21 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.borderMid,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
-    shareToggleCardOn: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    shareToggleCardOn: { borderColor: c.primary, backgroundColor: c.primary },
     shareToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     shareToggleIcon: { fontSize: 24 },
     shareToggleText: { flex: 1 },
     shareToggleTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
-    shareToggleTitleOn: { color: c.primary },
+    shareToggleTitleOn: { color: '#fff' },
     shareToggleDesc: { fontSize: 12, color: c.textMuted, lineHeight: 17 },
+    shareToggleDescOn: { color: 'rgba(255,255,255,0.8)' },
     togglePill: {
       backgroundColor: c.borderMid, borderRadius: 20,
       paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8,
     },
-    togglePillOn: { backgroundColor: c.primary },
+    togglePillOn: { backgroundColor: '#fff' },
     togglePillText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+    togglePillTextOn: { color: c.primary },
 
     noRecordsBox: {
       backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 16,
@@ -765,28 +761,32 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.borderMid,
       shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
     },
-    recordCardOn: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    recordCardOn: { borderColor: c.primary, backgroundColor: c.primary },
     recordCheck: {
       width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.borderStrong,
       alignItems: 'center', justifyContent: 'center', marginRight: 12,
     },
-    recordCheckOn: { backgroundColor: c.primary, borderColor: c.primary },
+    recordCheckOn: { backgroundColor: c.primary, borderColor: '#fff' },
     recordCheckMark: { color: '#fff', fontSize: 12, fontWeight: '800' },
     recordInfo: { flex: 1 },
     recordDate: { fontSize: 12, color: c.textMuted, marginBottom: 2 },
+    recordDateOn: { color: 'rgba(255,255,255,0.8)' },
     recordDesc: { fontSize: 14, fontWeight: '600', color: c.text, marginBottom: 2 },
+    recordDescOn: { color: '#fff' },
     recordMileage: { fontSize: 12, color: c.textSub },
+    recordMileageOn: { color: 'rgba(255,255,255,0.75)' },
     recordCost: { fontSize: 13, fontWeight: '700', color: c.primary, marginLeft: 8 },
+    recordCostOn: { color: '#fff' },
 
     noteTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
     noteTypeBtn: {
       flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
     },
-    noteTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
-    noteTypeBtnUrgent: { borderColor: '#e53935', backgroundColor: '#fff5f5' },
+    noteTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primary },
+    noteTypeBtnUrgent: { borderColor: c.error, backgroundColor: c.error },
     noteTypeBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
-    noteTypeBtnTextActive: { color: c.text },
+    noteTypeBtnTextActive: { color: '#fff', fontWeight: '700' },
 
     notesInput: {
       backgroundColor: c.surface, borderRadius: 10,
@@ -795,13 +795,9 @@ function makeStyles(c: Colors) {
       fontSize: 15, color: c.text,
       height: 90, textAlignVertical: 'top', marginBottom: 20,
     },
-    notesInputUrgent: { borderColor: '#e53935', borderWidth: 2 },
+    notesInputUrgent: { borderColor: c.error, borderWidth: 2 },
 
-    confirmBtn: {
-      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 16,
-      alignItems: 'center', marginBottom: 12,
-    },
-    confirmBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+    confirmBtnWrap: { marginBottom: 12 },
     confirmNote: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
 
     serviceTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
@@ -809,9 +805,9 @@ function makeStyles(c: Colors) {
       flex: 1, backgroundColor: c.surface, borderRadius: 10, padding: 12,
       alignItems: 'center', borderWidth: 1.5, borderColor: c.borderMid,
     },
-    serviceTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    serviceTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primary },
     serviceTypeIcon: { fontSize: 20, marginBottom: 4 },
     serviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: c.textMuted, textAlign: 'center' },
-    serviceTypeBtnTextActive: { color: c.primary },
+    serviceTypeBtnTextActive: { color: '#fff', fontWeight: '700' },
   })
 }

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert,
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, Alert,
 } from 'react-native'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -151,12 +153,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     .slice(0, 10)
 
   function getDocStatus(dateStr: string | null | undefined): { label: string; color: string; bg: string } {
-    if (!dateStr) return { label: 'Expiry not set', color: '#888', bg: '#f5f5f5' }
+    if (!dateStr) return { label: 'Expiry not set', color: colors.textMuted, bg: '#f5f5f5' }
     const days = Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
-    if (days < 0)   return { label: `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`, color: '#c62828', bg: '#ffebee' }
-    if (days <= 7)  return { label: `Expires in ${days} day${days !== 1 ? 's' : ''} — Critical!`, color: '#c62828', bg: '#ffebee' }
-    if (days <= 30) return { label: `Expires in ${days} days`, color: '#e65100', bg: '#fff3e0' }
-    return { label: `Valid — expires in ${days} days`, color: '#2e7d32', bg: '#e8f5e9' }
+    if (days < 0)   return { label: `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`, color: colors.error, bg: '#ffebee' }
+    if (days <= 7)  return { label: `Expires in ${days} day${days !== 1 ? 's' : ''} — Critical!`, color: colors.error, bg: '#ffebee' }
+    if (days <= 30) return { label: `Expires in ${days} days`, color: colors.warning, bg: '#fff3e0' }
+    return { label: `Valid — expires in ${days} days`, color: colors.success, bg: '#e8f5e9' }
   }
 
   const chainStatus = (() => {
@@ -405,12 +407,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const sd = last.structuredData?.['Emission Test / Carbon Test'] || {}
               const pass = sd.result === 'Pass'
               return (
-                <View style={[s.histCard, { borderLeftColor: pass ? '#2e7d32' : '#c62828', marginBottom: 20 }]}>
+                <View style={[s.histCard, { borderLeftColor: pass ? colors.success : colors.error, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
                   </View>
                   <View style={s.histRow}>
-                    <Text style={[s.histResult, { color: pass ? '#2e7d32' : '#c62828' }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
+                    <Text style={[s.histResult, { color: pass ? colors.success : colors.error }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
                     <Text style={s.histDate}>{fmtDate(last.date)}</Text>
                     {last.mileage != null && <Text style={s.histMeta}>{last.mileage.toLocaleString()} km</Text>}
                   </View>
@@ -444,16 +446,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <Text style={s.label}>Test Date</Text>
-                <TextInput
-                  style={s.input} value={eDate} onChangeText={setEDate}
+                <FormField
+                  label="Test Date" value={eDate} onChangeText={setEDate}
                   placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
                 />
               </View>
               <View style={s.half}>
-                <Text style={s.label}>Mileage (km)</Text>
-                <TextInput
-                  style={s.input} value={eMileage} onChangeText={setEMileage}
+                <FormField
+                  label="Mileage (km)" value={eMileage} onChangeText={setEMileage}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
@@ -462,44 +462,37 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             <Text style={s.subSectionLabel}>Readings from test certificate (optional)</Text>
             <View style={s.row}>
               <View style={s.half}>
-                <Text style={s.label}>CO %</Text>
-                <TextInput style={s.input} value={eCo} onChangeText={setECo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
+                <FormField label="CO %" value={eCo} onChangeText={setECo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
               </View>
               <View style={s.half}>
-                <Text style={s.label}>HC ppm</Text>
-                <TextInput style={s.input} value={eHc} onChangeText={setEHc} placeholder="e.g. 120" keyboardType="number-pad" />
+                <FormField label="HC ppm" value={eHc} onChangeText={setEHc} placeholder="e.g. 120" keyboardType="number-pad" />
               </View>
             </View>
             <View style={s.row}>
               <View style={s.half}>
-                <Text style={s.label}>CO₂ %</Text>
-                <TextInput style={s.input} value={eCo2} onChangeText={setECo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
+                <FormField label="CO₂ %" value={eCo2} onChangeText={setECo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
               </View>
               <View style={s.half}>
-                <Text style={s.label}>Lambda</Text>
-                <TextInput style={s.input} value={eLambda} onChangeText={setELambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
+                <FormField label="Lambda" value={eLambda} onChangeText={setELambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
               </View>
             </View>
 
-            <Text style={s.label}>Testing Station (optional)</Text>
-            <TextInput style={s.input} value={eStation} onChangeText={setEStation} placeholder="e.g. Werahera Testing Station" />
+            <FormField label="Testing Station (optional)" value={eStation} onChangeText={setEStation} placeholder="e.g. Werahera Testing Station" />
 
-            <Text style={s.label}>Cost (LKR, optional)</Text>
-            <TextInput style={s.input} value={eCost} onChangeText={setECost} placeholder="e.g. 2500" keyboardType="number-pad" />
+            <FormField label="Cost (LKR, optional)" value={eCost} onChangeText={setECost} placeholder="e.g. 2500" keyboardType="number-pad" />
 
             <View style={s.reminderCard}>
               <Text style={s.reminderTitle}>Set Renewal Reminder</Text>
               <Text style={s.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
-              <Text style={s.label}>Next Expiry Date (MM/YYYY)</Text>
-              <TextInput
-                style={s.input} value={eNextExpiry} onChangeText={setENextExpiry}
+              <FormField
+                label="Next Expiry Date (MM/YYYY)" value={eNextExpiry} onChangeText={setENextExpiry}
                 placeholder="e.g. 06/2027" keyboardType="numbers-and-punctuation"
               />
             </View>
 
-            <TouchableOpacity style={s.saveBtn} onPress={saveEmissionTest} disabled={eSaving} activeOpacity={0.8}>
-              {eSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>{isShared ? 'Submit for Approval' : 'Save Emission Test'}</Text>}
-            </TouchableOpacity>
+            <View style={s.saveBtnWrap}>
+              <Button title={isShared ? 'Submit for Approval' : 'Save Emission Test'} onPress={saveEmissionTest} loading={eSaving} />
+            </View>
 
             {emissionHistory.length > 1 && (
               <>
@@ -508,9 +501,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                   const sd = r.structuredData?.['Emission Test / Carbon Test'] || {}
                   const pass = sd.result === 'Pass'
                   return (
-                    <View key={r.id} style={[s.histCard, { borderLeftColor: pass ? '#2e7d32' : '#c62828' }]}>
+                    <View key={r.id} style={[s.histCard, { borderLeftColor: pass ? colors.success : colors.error }]}>
                       <View style={s.histRow}>
-                        <Text style={[s.histResult, { color: pass ? '#2e7d32' : '#c62828' }]}>
+                        <Text style={[s.histResult, { color: pass ? colors.success : colors.error }]}>
                           {pass ? '✓ Pass' : '✗ Fail'}
                         </Text>
                         <Text style={s.histDate}>{fmtDate(r.date)}</Text>
@@ -554,16 +547,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <Text style={s.label}>Date</Text>
-                <TextInput
-                  style={s.input} value={aDate} onChangeText={setADate}
+                <FormField
+                  label="Date" value={aDate} onChangeText={setADate}
                   placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
                 />
               </View>
               <View style={s.half}>
-                <Text style={s.label}>Mileage (km)</Text>
-                <TextInput
-                  style={s.input} value={aMileage} onChangeText={setAMileage}
+                <FormField
+                  label="Mileage (km)" value={aMileage} onChangeText={setAMileage}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
@@ -583,12 +574,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               ))}
             </View>
 
-            <Text style={s.label}>Cost (LKR, optional)</Text>
-            <TextInput style={s.input} value={aCost} onChangeText={setACost} placeholder="e.g. 1500" keyboardType="number-pad" />
+            <FormField label="Cost (LKR, optional)" value={aCost} onChangeText={setACost} placeholder="e.g. 1500" keyboardType="number-pad" />
 
-            <TouchableOpacity style={s.saveBtn} onPress={saveAlignment} disabled={aSaving} activeOpacity={0.8}>
-              {aSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>{isShared ? 'Submit for Approval' : 'Save Alignment Record'}</Text>}
-            </TouchableOpacity>
+            <View style={s.saveBtnWrap}>
+              <Button title={isShared ? 'Submit for Approval' : 'Save Alignment Record'} onPress={saveAlignment} loading={aSaving} />
+            </View>
 
             {tyrePrediction ? (
               <View style={s.predCard}>
@@ -614,7 +604,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                     <View style={s.predStat}>
                       <Text style={[
                         s.predStatVal,
-                        tyrePrediction.remainingKm < 0 ? { color: '#c62828' } : tyrePrediction.remainingKm <= 3000 ? { color: '#e65100' } : {},
+                        tyrePrediction.remainingKm < 0 ? { color: colors.error } : tyrePrediction.remainingKm <= 3000 ? { color: colors.warning } : {},
                       ]}>
                         {tyrePrediction.remainingKm < 0
                           ? `${Math.abs(tyrePrediction.remainingKm).toLocaleString()} km overdue`
@@ -665,7 +655,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             {/* Chain status card */}
             {(() => {
               const { lubeStatus, kmSinceLube, kmSinceReplace, lastLube, lastReplace } = chainStatus
-              const statusColor = lubeStatus === 'ok' ? '#2e7d32' : lubeStatus === 'due' ? '#e65100' : lubeStatus === 'overdue' ? '#c62828' : '#888'
+              const statusColor = lubeStatus === 'ok' ? colors.success : lubeStatus === 'due' ? colors.warning : lubeStatus === 'overdue' ? colors.error : colors.textMuted
               const statusBg = lubeStatus === 'ok' ? '#e8f5e9' : lubeStatus === 'due' ? '#fff3e0' : lubeStatus === 'overdue' ? '#fdecea' : '#f5f5f5'
               const statusLabel = lubeStatus === 'ok' ? '✓ Lubrication OK' : lubeStatus === 'due' ? '⚠ Lubrication Due Soon' : lubeStatus === 'overdue' ? '⚠ Lubrication OVERDUE' : 'No lubrication recorded'
               return (
@@ -717,33 +707,30 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <Text style={s.label}>Date</Text>
-                <TextInput
-                  style={s.input} value={cDate} onChangeText={setCDate}
+                <FormField
+                  label="Date" value={cDate} onChangeText={setCDate}
                   placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
                 />
               </View>
               <View style={s.half}>
-                <Text style={s.label}>Mileage (km)</Text>
-                <TextInput
-                  style={s.input} value={cMileage} onChangeText={setCMileage}
+                <FormField
+                  label="Mileage (km)" value={cMileage} onChangeText={setCMileage}
                   placeholder="e.g. 18000" keyboardType="number-pad"
                 />
               </View>
             </View>
 
-            <Text style={s.label}>Cost (LKR, optional)</Text>
-            <TextInput style={s.input} value={cCost} onChangeText={setCCost} placeholder="e.g. 500" keyboardType="number-pad" />
+            <FormField label="Cost (LKR, optional)" value={cCost} onChangeText={setCCost} placeholder="e.g. 500" keyboardType="number-pad" />
 
-            <TouchableOpacity style={s.saveBtn} onPress={saveChain} disabled={cSaving} activeOpacity={0.8}>
-              {cSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Chain Record</Text>}
-            </TouchableOpacity>
+            <View style={s.saveBtnWrap}>
+              <Button title="Save Chain Record" onPress={saveChain} loading={cSaving} />
+            </View>
 
             {chainHistory.length > 0 && (
               <>
                 <Text style={s.historyTitle}>Chain Service History</Text>
                 {chainHistory.map(r => (
-                  <View key={r.id} style={[s.histCard, { borderLeftColor: '#ff6f00' }]}>
+                  <View key={r.id} style={[s.histCard, { borderLeftColor: colors.orange }]}>
                     <View style={s.histRow}>
                       <Text style={s.histLabel}>{r.description}</Text>
                       <Text style={s.histDate}>{fmtDate(r.date)}</Text>
@@ -871,11 +858,7 @@ function makeStyles(c: Colors) {
     subSectionLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginTop: 20, marginBottom: 2 },
 
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 6, marginTop: 14 },
-    req: { color: '#e53935' },
-    input: {
-      backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
-      paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: c.text,
-    },
+    req: { color: c.error },
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
 
@@ -884,11 +867,11 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
     },
-    chipSel: { backgroundColor: c.primaryTint, borderColor: c.primary },
-    chipPass: { backgroundColor: c.surfaceAlt, borderColor: '#2e7d32', borderWidth: 2 },
-    chipFail: { backgroundColor: c.surfaceAlt, borderColor: '#c62828', borderWidth: 2 },
+    chipSel: { backgroundColor: c.primary, borderColor: c.primary },
+    chipPass: { backgroundColor: c.success, borderColor: c.success },
+    chipFail: { backgroundColor: c.error, borderColor: c.error },
     chipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
-    chipTextSel: { color: c.text },
+    chipTextSel: { color: '#fff', fontWeight: '700' },
 
     reminderCard: {
       backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
@@ -897,11 +880,7 @@ function makeStyles(c: Colors) {
     reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primary, marginBottom: 4 },
     reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 8 },
 
-    saveBtn: {
-      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 16,
-      alignItems: 'center', marginTop: 28,
-    },
-    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    saveBtnWrap: { marginTop: 28 },
 
     historyTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginTop: 32, marginBottom: 12 },
     histCard: {
@@ -938,7 +917,7 @@ function makeStyles(c: Colors) {
     emptyNote: { fontSize: 13, color: c.textFaint, textAlign: 'center', marginTop: 24 },
 
     tabDot: {
-      width: 7, height: 7, borderRadius: 4, backgroundColor: '#c62828',
+      width: 7, height: 7, borderRadius: 4, backgroundColor: c.error,
       position: 'absolute', top: 8, right: 8,
     },
 
@@ -951,7 +930,7 @@ function makeStyles(c: Colors) {
 
     chainTip: {
       backgroundColor: '#fff8e1', borderRadius: 10, padding: 12,
-      marginBottom: 4, borderLeftWidth: 3, borderLeftColor: '#f9a825',
+      marginBottom: 4, borderLeftWidth: 3, borderLeftColor: c.warning,
     },
     chainTipText: { fontSize: 12, color: '#5d4037', lineHeight: 18 },
 
@@ -963,8 +942,8 @@ function makeStyles(c: Colors) {
     docStatusPin: { fontSize: 11, fontWeight: '700', marginBottom: 6 },
     docStatusMain: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
     docStatusLabel: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-    docStatusDate: { fontSize: 13, color: '#555', marginTop: 2 },
-    docStatusMeta: { fontSize: 13, color: '#666', marginTop: 4, lineHeight: 18 },
-    docStatusHint: { fontSize: 11, color: '#999', marginTop: 10 },
+    docStatusDate: { fontSize: 13, color: c.textSub, marginTop: 2 },
+    docStatusMeta: { fontSize: 13, color: c.textMuted, marginTop: 4, lineHeight: 18 },
+    docStatusHint: { fontSize: 11, color: c.textFaint, marginTop: 10 },
   })
 }

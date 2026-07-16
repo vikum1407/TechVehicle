@@ -13,6 +13,8 @@ import {
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -294,9 +296,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         </View>
       ))}
 
-      <Text style={styles.catLabel}>Other (not listed above)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Other (not listed above)"
         value={otherText}
         onChangeText={setOtherText}
         placeholder="Type anything else that was done..."
@@ -399,9 +400,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       {/* ── Date / Mileage / Cost ─────────────────────────── */}
       <View style={styles.row}>
         <View style={styles.half}>
-          <Text style={styles.catLabel}>Date</Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Date"
             value={date}
             onChangeText={setDate}
             placeholder="DD/MM/YYYY"
@@ -409,9 +409,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
           />
         </View>
         <View style={styles.half}>
-          <Text style={styles.catLabel}>Mileage (km) <Text style={styles.requiredStar}>*</Text></Text>
-          <TextInput
-            style={styles.input}
+          <FormField
+            label="Mileage (km)"
+            required
             value={mileage}
             onChangeText={setMileage}
             placeholder="e.g. 45000"
@@ -420,9 +420,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         </View>
       </View>
 
-      <Text style={styles.catLabel}>Total Cost (LKR) <Text style={styles.requiredStar}>*</Text></Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Total Cost (LKR)"
+        required
         value={cost}
         onChangeText={setCost}
         placeholder="e.g. 4500"
@@ -462,9 +462,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         )}
       </View>
 
-      <Text style={styles.catLabel}>Notes (optional)</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
+      <FormField
+        label="Notes (optional)"
+        style={styles.multiline}
         value={notes}
         onChangeText={setNotes}
         placeholder="Any additional notes..."
@@ -483,16 +483,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         </View>
       )}
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Save Record</Text>
-        }
-      </TouchableOpacity>
+      <Button title="Save Record" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
   )
@@ -508,7 +499,7 @@ function makeStyles(c: Colors) {
     chip: {
       flexDirection: 'row', alignItems: 'center',
       paddingHorizontal: 14, paddingVertical: 10,
-      borderRadius: 22, borderWidth: 1.5,
+      borderRadius: 20, borderWidth: 1.5,
       borderColor: c.borderMid, backgroundColor: c.surface,
     },
     chipSelected: { backgroundColor: c.primary, borderColor: c.primary },
@@ -530,7 +521,7 @@ function makeStyles(c: Colors) {
       borderRadius: 18, borderWidth: 1.5,
       borderColor: c.borderMid, backgroundColor: c.surfaceAlt,
     },
-    brandChipSelected: { backgroundColor: '#34a853', borderColor: '#34a853' },
+    brandChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
     brandChipText: { fontSize: 12, color: c.textSub },
     brandChipTextSelected: { color: '#fff', fontWeight: '600' },
     structuredSection: {
@@ -564,14 +555,8 @@ function makeStyles(c: Colors) {
     summary: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginTop: 20 },
     summaryLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 8 },
     summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
-    button: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 24,
-    },
-    buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    requiredStar: { color: '#e53935', fontWeight: '700' },
-    fieldError: { color: '#e53935', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
+    requiredStar: { color: c.error, fontWeight: '700' },
+    fieldError: { color: c.error, fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: -4 },
     photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
     photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
     thumbImg: { width: 80, height: 80 },

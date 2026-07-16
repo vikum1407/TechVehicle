@@ -113,7 +113,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
                   <Switch
                     value={prefs[pref.key] ?? true}
                     onValueChange={(v) => handleToggle(pref.key, v)}
-                    trackColor={{ false: colors.borderMid, true: '#90caf9' }}
+                    trackColor={{ false: colors.borderMid, true: colors.primaryTint }}
                     thumbColor={prefs[pref.key] ? colors.primary : colors.surfaceAlt}
                   />
                 )}

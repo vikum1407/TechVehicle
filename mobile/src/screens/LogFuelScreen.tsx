@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, Alert
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -91,14 +93,13 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>Last recorded: {currentMileage.toLocaleString()} km</Text>
 
-      <Text style={styles.label}>Odometer Reading (km) *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Odometer Reading (km)"
+        required
         value={mileage}
         onChangeText={setMileage}
         keyboardType="number-pad"
         placeholder="Current odometer reading"
-        placeholderTextColor={colors.textFaint}
       />
 
       {isHistorical && (
@@ -117,24 +118,20 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         </View>
       )}
 
-      <Text style={styles.label}>Litres filled</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Litres filled"
         value={litres}
         onChangeText={setLitres}
         keyboardType="decimal-pad"
         placeholder="e.g. 35.5"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <Text style={styles.label}>Total Cost (LKR)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Total Cost (LKR)"
         value={cost}
         onChangeText={setCost}
         keyboardType="number-pad"
         placeholder="e.g. 9800"
-        placeholderTextColor={colors.textFaint}
       />
 
       <Text style={styles.label}>Tank</Text>
@@ -153,35 +150,22 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>Date</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Date"
         value={date}
         onChangeText={setDate}
         placeholder="DD/MM/YYYY"
         keyboardType="numbers-and-punctuation"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <Text style={styles.label}>Fuel Station (optional)</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Fuel Station (optional)"
         value={station}
         onChangeText={setStation}
         placeholder="e.g. Ceylon Petroleum, IOC"
-        placeholderTextColor={colors.textFaint}
       />
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Save Fill-up</Text>
-        }
-      </TouchableOpacity>
+      <Button title="Save Fill-up" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
   )
@@ -193,12 +177,6 @@ function makeStyles(c: Colors) {
     content: { padding: 24, paddingBottom: 48 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
-    input: {
-      backgroundColor: c.surface, borderRadius: 10,
-      paddingHorizontal: 14, paddingVertical: 14,
-      fontSize: 15, color: c.text,
-      borderWidth: 1, borderColor: c.borderMid,
-    },
     historicalNote: {
       backgroundColor: '#fff8e1', borderRadius: 8,
       paddingHorizontal: 14, paddingVertical: 10, marginTop: 8,
@@ -218,12 +196,6 @@ function makeStyles(c: Colors) {
     },
     toggleBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
     toggleText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
-    toggleTextActive: { color: '#fff' },
-    button: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 32,
-    },
-    buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    toggleTextActive: { color: '#fff', fontWeight: '700' },
   })
 }

@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import Button from '../components/Button'
 
 type Props = {
   token: string
@@ -159,18 +160,14 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
                 <Text style={[styles.serviceTypeLabel, serviceType === opt.key && styles.serviceTypeLabelSelected]}>
                   {opt.label}
                 </Text>
-                <Text style={styles.serviceTypeDesc}>{opt.desc}</Text>
+                <Text style={[styles.serviceTypeDesc, serviceType === opt.key && styles.serviceTypeDescSelected]}>{opt.desc}</Text>
               </View>
               {serviceType === opt.key && <Text style={styles.serviceTypeCheck}>✓</Text>}
             </TouchableOpacity>
           ))}
-          <TouchableOpacity
-            style={[styles.nextBtn, !serviceType && styles.nextBtnDisabled]}
-            onPress={() => serviceType && setStep('selectRecords')}
-            disabled={!serviceType}
-          >
-            <Text style={styles.nextBtnText}>Next — Select Records</Text>
-          </TouchableOpacity>
+          <View style={styles.nextBtnWrap}>
+            <Button title="Next — Select Records" onPress={() => setStep('selectRecords')} disabled={!serviceType} />
+          </View>
         </ScrollView>
       )}
 
@@ -197,9 +194,9 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
                     <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                       {isSelected && <Text style={styles.checkmark}>✓</Text>}
                     </View>
-                    <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
+                    <Text style={[styles.recordDate, isSelected && styles.recordDateSelected]}>{formatDate(record.date)}</Text>
                     {record.cost != null && (
-                      <Text style={styles.recordCost}>LKR {record.cost.toLocaleString()}</Text>
+                      <Text style={[styles.recordCost, isSelected && styles.recordCostSelected]}>LKR {record.cost.toLocaleString()}</Text>
                     )}
                   </View>
                   <View style={styles.tagRow}>
@@ -215,22 +212,18 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
                     )}
                   </View>
                   {record.mileage && (
-                    <Text style={styles.recordMileage}>{record.mileage.toLocaleString()} km</Text>
+                    <Text style={[styles.recordMileage, isSelected && styles.recordMileageSelected]}>{record.mileage.toLocaleString()} km</Text>
                   )}
                 </TouchableOpacity>
               )
             })}
           </ScrollView>
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.nextBtn, selectedIds.size === 0 && styles.nextBtnDisabled]}
+            <Button
+              title={`Next — ${selectedIds.size} Record${selectedIds.size !== 1 ? 's' : ''} Selected`}
               onPress={() => setStep('selectGarage')}
               disabled={selectedIds.size === 0}
-            >
-              <Text style={styles.nextBtnText}>
-                Next — {selectedIds.size} Record{selectedIds.size !== 1 ? 's' : ''} Selected
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </>
       )}
@@ -258,10 +251,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
               onPress={() => setSelectedGarage(g)}
             >
               <View style={styles.garageRow}>
-                <Text style={styles.garageName}>{g.name}</Text>
+                <Text style={[styles.garageName, selectedGarage?.id === g.id && styles.garageNameSelected]}>{g.name}</Text>
                 {g.verified && <Text style={styles.verifiedBadge}>✅</Text>}
               </View>
-              {g.address && <Text style={styles.garageAddress}>{g.address}</Text>}
+              {g.address && (
+                <Text style={[styles.garageAddress, selectedGarage?.id === g.id && styles.garageAddressSelected]}>{g.address}</Text>
+              )}
             </TouchableOpacity>
           ))}
 
@@ -270,9 +265,9 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
           )}
 
           {selectedGarage && (
-            <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('confirm')}>
-              <Text style={styles.nextBtnText}>Next — Share with {selectedGarage.name}</Text>
-            </TouchableOpacity>
+            <View style={styles.nextBtnWrap}>
+              <Button title={`Next — Share with ${selectedGarage.name}`} onPress={() => setStep('confirm')} />
+            </View>
           )}
         </ScrollView>
       )}
@@ -313,16 +308,9 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.shareBtn, sending && styles.nextBtnDisabled]}
-            onPress={handleShare}
-            disabled={sending}
-          >
-            {sending
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.shareBtnText}>Share Records</Text>
-            }
-          </TouchableOpacity>
+          <View style={styles.shareBtnWrap}>
+            <Button title="Share Records" onPress={handleShare} loading={sending} />
+          </View>
         </ScrollView>
       )}
     </View>
@@ -339,10 +327,10 @@ function makeStyles(c: Colors) {
     },
     stepIndicator: { flexDirection: 'row', alignItems: 'center' },
     stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary },
-    stepDotDone: { backgroundColor: '#34a853' },
+    stepDotDone: { backgroundColor: c.success },
     stepDotActive: { backgroundColor: c.primary },
     stepLine: { flex: 1, height: 2, backgroundColor: c.borderMid, marginHorizontal: 4 },
-    stepLineDone: { backgroundColor: '#34a853' },
+    stepLineDone: { backgroundColor: c.success },
     stepHeader: { padding: 20, paddingBottom: 8 },
     stepTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 4 },
     stepSub: { fontSize: 13, color: c.textMuted },
@@ -354,29 +342,27 @@ function makeStyles(c: Colors) {
       borderWidth: 2, borderColor: 'transparent',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
-    recordCardSelected: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    recordCardSelected: { borderColor: c.primary, backgroundColor: c.primary },
     recordTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
     checkbox: {
       width: 22, height: 22, borderRadius: 6, borderWidth: 2,
       borderColor: c.borderStrong, justifyContent: 'center', alignItems: 'center',
     },
-    checkboxSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    checkboxSelected: { backgroundColor: c.primary, borderColor: '#fff' },
     checkmark: { color: '#fff', fontSize: 13, fontWeight: '700' },
     recordDate: { flex: 1, fontSize: 13, color: c.textSub, fontWeight: '600' },
+    recordDateSelected: { color: '#fff' },
     recordCost: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    recordCostSelected: { color: '#fff' },
     tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 },
     tag: { backgroundColor: c.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     tagText: { fontSize: 12, color: c.textBody },
     tagMore: { backgroundColor: c.primaryTint, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     tagMoreText: { fontSize: 12, color: c.primaryTintText, fontWeight: '600' },
     recordMileage: { fontSize: 11, color: c.textFaint },
+    recordMileageSelected: { color: 'rgba(255,255,255,0.75)' },
     footer: { padding: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
-    nextBtn: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 16, alignItems: 'center', marginTop: 16,
-    },
-    nextBtnDisabled: { opacity: 0.4 },
-    nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    nextBtnWrap: { marginTop: 16 },
     searchInput: {
       backgroundColor: c.surface, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 14,
@@ -388,11 +374,13 @@ function makeStyles(c: Colors) {
       borderWidth: 2, borderColor: 'transparent',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
-    garageCardSelected: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    garageCardSelected: { borderColor: c.primary, backgroundColor: c.primary },
     garageRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
     garageName: { fontSize: 15, fontWeight: '700', color: c.text, flex: 1 },
+    garageNameSelected: { color: '#fff' },
     verifiedBadge: { fontSize: 16 },
     garageAddress: { fontSize: 13, color: c.textMuted },
+    garageAddressSelected: { color: 'rgba(255,255,255,0.8)' },
     noResults: { color: c.textMuted, textAlign: 'center', marginTop: 24 },
     confirmCard: {
       backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 12,
@@ -400,7 +388,7 @@ function makeStyles(c: Colors) {
     },
     confirmLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 6 },
     confirmGarage: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 4 },
-    verifiedText: { fontSize: 13, color: '#34a853', fontWeight: '600', marginBottom: 4 },
+    verifiedText: { fontSize: 13, color: c.success, fontWeight: '600', marginBottom: 4 },
     confirmAddress: { fontSize: 13, color: c.textMuted },
     confirmRecord: {
       paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.border,
@@ -411,22 +399,19 @@ function makeStyles(c: Colors) {
       backgroundColor: '#fff8e1', borderRadius: 10, padding: 14, marginBottom: 8,
     },
     warningText: { fontSize: 13, color: '#795548', lineHeight: 19 },
-    shareBtn: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 18, alignItems: 'center', marginTop: 8,
-    },
-    shareBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    shareBtnWrap: { marginTop: 8 },
     serviceTypeCard: {
       backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 10,
       flexDirection: 'row', alignItems: 'center', gap: 12,
       borderWidth: 2, borderColor: 'transparent',
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
-    serviceTypeCardSelected: { borderColor: c.primary, backgroundColor: c.primaryTint },
+    serviceTypeCardSelected: { borderColor: c.primary, backgroundColor: c.primary },
     serviceTypeIcon: { fontSize: 26 },
     serviceTypeLabel: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
-    serviceTypeLabelSelected: { color: c.primary },
+    serviceTypeLabelSelected: { color: '#fff' },
     serviceTypeDesc: { fontSize: 12, color: c.textMuted },
-    serviceTypeCheck: { fontSize: 18, color: c.primary, fontWeight: '700' },
+    serviceTypeDescSelected: { color: 'rgba(255,255,255,0.8)' },
+    serviceTypeCheck: { fontSize: 18, color: '#fff', fontWeight: '700' },
   })
 }

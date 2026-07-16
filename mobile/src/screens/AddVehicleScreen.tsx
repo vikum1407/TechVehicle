@@ -11,6 +11,9 @@ import { api } from '../config/api'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { BRANDS_LIST, BRAND_MODELS } from '../constants/vehicleData'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
+import Chip from '../components/Chip'
 
 type Props = {
   token: string
@@ -235,9 +238,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <Text style={styles.subtitle}>Fields marked * are required</Text>
 
       {/* Registration */}
-      <Text style={styles.label}>Registration Number *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Registration Number"
+        required
         placeholder="e.g. WP CAB-1234"
         value={registrationNo}
         onChangeText={setRegistrationNo}
@@ -299,9 +302,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       )}
 
       {/* Year */}
-      <Text style={styles.label}>Year *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Year"
+        required
         placeholder={`e.g. ${CURRENT_YEAR - 5}`}
         keyboardType="number-pad"
         maxLength={4}
@@ -313,13 +316,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <Text style={styles.label}>Fuel Type *</Text>
       <View style={styles.chipRow}>
         {FUEL_TYPES.map(f => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.chip, fuelType === f && styles.chipSelected]}
-            onPress={() => setFuelType(f)}
-          >
-            <Text style={[styles.chipText, fuelType === f && styles.chipTextSelected]}>{f}</Text>
-          </TouchableOpacity>
+          <Chip key={f} label={f} selected={fuelType === f} onPress={() => setFuelType(f)} />
         ))}
       </View>
 
@@ -327,22 +324,19 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <Text style={styles.label}>Vehicle Type *</Text>
       <View style={styles.chipRow}>
         {VEHICLE_TYPE_OPTIONS.map(opt => (
-          <TouchableOpacity
+          <Chip
             key={opt.value}
-            style={[styles.chip, vehicleType === opt.value && styles.chipSelected]}
+            label={`${opt.icon} ${opt.label}`}
+            selected={vehicleType === opt.value}
             onPress={() => setVehicleType(opt.value)}
-          >
-            <Text style={[styles.chipText, vehicleType === opt.value && styles.chipTextSelected]}>
-              {opt.icon} {opt.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
       {/* Mileage */}
-      <Text style={styles.label}>Current Mileage (km) *</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Current Mileage (km)"
+        required
         placeholder="e.g. 45000"
         keyboardType="number-pad"
         value={mileage}
@@ -352,9 +346,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <View style={styles.divider} />
       <Text style={styles.sectionLabel}>Optional Details</Text>
 
-      <Text style={styles.label}>Purchase Date</Text>
-      <TextInput
-        style={styles.input}
+      <FormField
+        label="Purchase Date"
         placeholder="DD/MM/YYYY"
         value={purchaseDate}
         onChangeText={setPurchaseDate}
@@ -364,19 +357,13 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <Text style={styles.label}>Owner History</Text>
       <View style={styles.chipRow}>
         {OWNER_COUNT_OPTIONS.map(o => (
-          <TouchableOpacity
-            key={o.value}
-            style={[styles.chip, ownerCount === o.value && styles.chipSelected]}
-            onPress={() => setOwnerCount(o.value)}
-          >
-            <Text style={[styles.chipText, ownerCount === o.value && styles.chipTextSelected]}>{o.label}</Text>
-          </TouchableOpacity>
+          <Chip key={o.value} label={o.label} selected={ownerCount === o.value} onPress={() => setOwnerCount(o.value)} />
         ))}
       </View>
 
-      <Text style={styles.label}>Notes about this vehicle</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
+      <FormField
+        label="Notes about this vehicle"
+        style={styles.textArea}
         placeholder="Any notes about condition, modifications, known issues..."
         value={vehicleNotes}
         onChangeText={setVehicleNotes}
@@ -404,16 +391,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Save Vehicle</Text>
-        }
-      </TouchableOpacity>
+      <Button title="Save Vehicle" onPress={handleSubmit} loading={loading} />
 
       {/* Pickers */}
       <PickerModal
@@ -466,14 +444,6 @@ function makeMainStyles(c: Colors) {
     removePhotoText: { fontSize: 12, color: c.error },
     divider:     { height: 1, backgroundColor: c.border, marginTop: 28, marginBottom: 8 },
     chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: {
-      paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 20, borderWidth: 1.5,
-      borderColor: c.borderMid, backgroundColor: c.surface,
-    },
-    chipSelected:     { backgroundColor: c.primary, borderColor: c.primary },
-    chipText:         { fontSize: 13, color: c.textSub },
-    chipTextSelected: { color: '#fff', fontWeight: '600' },
     selectorRow: {
       backgroundColor: c.surface, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 16,
@@ -485,12 +455,6 @@ function makeMainStyles(c: Colors) {
     selectorText:{ fontSize: 15, color: c.text, flex: 1 },
     placeholder: { color: c.textFaint },
     chevron:     { fontSize: 20, color: c.textFaint, marginLeft: 8 },
-    button: {
-      backgroundColor: c.primary, borderRadius: 10,
-      paddingVertical: 16, alignItems: 'center', marginTop: 32,
-    },
-    buttonDisabled: { opacity: 0.6 },
-    buttonText:     { color: '#fff', fontSize: 16, fontWeight: '700' },
   })
 }
 

@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import FormField from '../components/FormField'
+import Button from '../components/Button'
 
 type Vehicle = {
   id: string
@@ -97,25 +99,21 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
 
       {step === 'enterPhone' && (
         <>
-          <Text style={styles.sectionTitle}>Buyer's Mobile Number</Text>
           <Text style={styles.sectionSub}>
             Enter the mobile number the buyer uses for their TechVehicle account.
             They will receive a transfer request to accept.
           </Text>
 
-          <TextInput
-            style={styles.phoneInput}
+          <FormField
+            label="Buyer's Mobile Number"
             value={buyerPhone}
             onChangeText={setBuyerPhone}
             placeholder="e.g. +94771234567"
-            placeholderTextColor={colors.textFaint}
             keyboardType="phone-pad"
             autoFocus
           />
 
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
-            <Text style={styles.continueBtnText}>Continue →</Text>
-          </TouchableOpacity>
+          <Button title="Continue →" onPress={handleContinue} />
         </>
       )}
 
@@ -192,18 +190,6 @@ function makeStyles(c: Colors) {
     bannerMeta: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
     sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
     sectionSub: { fontSize: 14, color: c.textMuted, marginBottom: 20, lineHeight: 20 },
-    phoneInput: {
-      backgroundColor: c.surface, borderRadius: 12,
-      paddingHorizontal: 16, paddingVertical: 16,
-      fontSize: 18, color: c.text,
-      borderWidth: 1.5, borderColor: c.primary,
-      marginBottom: 20,
-    },
-    continueBtn: {
-      backgroundColor: c.primary, borderRadius: 12,
-      paddingVertical: 16, alignItems: 'center',
-    },
-    continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     confirmCard: {
       backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 12,
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
@@ -230,7 +216,7 @@ function makeStyles(c: Colors) {
     warningTitle: { fontSize: 14, fontWeight: '700', color: '#e65100', marginBottom: 8 },
     warningText: { fontSize: 13, color: '#5d4037', lineHeight: 20 },
     sellBtn: {
-      backgroundColor: '#c62828', borderRadius: 12,
+      backgroundColor: c.error, borderRadius: 12,
       paddingVertical: 18, alignItems: 'center',
     },
     sellBtnDisabled: { opacity: 0.6 },
