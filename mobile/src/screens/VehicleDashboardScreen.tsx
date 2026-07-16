@@ -218,6 +218,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
   const [moreActionsSheet, setMoreActionsSheet] = useState(false)
+  const [familyShareModal, setFamilyShareModal] = useState(false)
   const updatePulse = useRef(new Animated.Value(0)).current
   useEffect(() => {
     const loop = Animated.loop(
@@ -1309,64 +1310,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </View>
         )}
 
-        {/* Family Sharing section — only shown to the actual owner */}
-        {!vehicle.isShared && <View style={styles.familyShareSection}>
-          <Text style={styles.familyShareTitle}>👥 Family / Shared Access</Text>
-          {vehicleShares.length > 0 && (
-            <View style={styles.familyShareList}>
-              {vehicleShares.map(share => (
-                <View key={share.id} style={styles.familyShareRow}>
-                  <View>
-                    <Text style={styles.familySharePhone}>{share.sharedWithPhone}</Text>
-                    <Text style={[
-                      styles.familyShareStatus,
-                      share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
-                    ]}>
-                      {share.status === 'active' ? 'Active' : 'Pending'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.revokeBtn, revokingShareId === share.id && { opacity: 0.5 }]}
-                    onPress={() => handleRevokeShare(share.id, share.sharedWithPhone)}
-                    disabled={revokingShareId === share.id}
-                  >
-                    {revokingShareId === share.id
-                      ? <ActivityIndicator size="small" color={colors.primary} />
-                      : <Text style={styles.revokeBtnText}>Revoke</Text>
-                    }
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-          <View style={styles.familyShareInputRow}>
-            <TextInput
-              style={styles.familyShareInput}
-              value={shareInput}
-              onChangeText={setShareInput}
-              placeholder="Phone number (e.g. +94771234567)"
-              placeholderTextColor={colors.textFaint}
-              keyboardType="phone-pad"
-            />
-            <TouchableOpacity
-              style={[styles.familyShareBtn, (!shareInput.trim() || sharingAccess) && { opacity: 0.5 }]}
-              onPress={handleShareAccess}
-              disabled={!shareInput.trim() || sharingAccess}
-            >
-              {sharingAccess
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.familyShareBtnText}>Share</Text>
-              }
-            </TouchableOpacity>
-          </View>
-        </View>}
-
-        {!vehicle.isShared && !pendingTransfer && (
-          <TouchableOpacity style={styles.sellBtn} onPress={onSell}>
-            <Text style={styles.sellBtnText}>🔄 Sell / Transfer Vehicle</Text>
-          </TouchableOpacity>
-        )}
-
         <TouchableOpacity style={styles.historyBtn} onPress={onViewHistory} activeOpacity={0.8}>
           <Text style={styles.historyBtnText}>📋 Full History & Expenses</Text>
           <Text style={styles.historyBtnArrow}>›</Text>
@@ -1531,6 +1474,78 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.moreSheetItemText}>Daily Trip Log</Text>
               </TouchableOpacity>
             )}
+            {!vehicle.isShared && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); setFamilyShareModal(true) }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
+                <Text style={styles.moreSheetItemText}>Family / Shared Access</Text>
+              </TouchableOpacity>
+            )}
+            {!vehicle.isShared && !pendingTransfer && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onSell() }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🔄</Text></View>
+                <Text style={styles.moreSheetItemText}>Sell / Transfer Vehicle</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={familyShareModal} transparent animationType="slide" onRequestClose={() => setFamilyShareModal(false)}>
+        <View style={styles.moreSheetOverlay}>
+          <View style={styles.moreSheetCard}>
+            <View style={styles.moreSheetHeaderRow}>
+              <Text style={styles.moreSheetTitle}>Family / Shared Access</Text>
+              <TouchableOpacity onPress={() => setFamilyShareModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.moreSheetClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {vehicleShares.length > 0 && (
+              <View style={styles.familyShareList}>
+                {vehicleShares.map(share => (
+                  <View key={share.id} style={styles.familyShareRow}>
+                    <View>
+                      <Text style={styles.familySharePhone}>{share.sharedWithPhone}</Text>
+                      <Text style={[
+                        styles.familyShareStatus,
+                        share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
+                      ]}>
+                        {share.status === 'active' ? 'Active' : 'Pending'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.revokeBtn, revokingShareId === share.id && { opacity: 0.5 }]}
+                      onPress={() => handleRevokeShare(share.id, share.sharedWithPhone)}
+                      disabled={revokingShareId === share.id}
+                    >
+                      {revokingShareId === share.id
+                        ? <ActivityIndicator size="small" color={colors.primary} />
+                        : <Text style={styles.revokeBtnText}>Revoke</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+            <View style={styles.familyShareInputRow}>
+              <TextInput
+                style={styles.familyShareInput}
+                value={shareInput}
+                onChangeText={setShareInput}
+                placeholder="Phone number (e.g. +94771234567)"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="phone-pad"
+              />
+              <TouchableOpacity
+                style={[styles.familyShareBtn, (!shareInput.trim() || sharingAccess) && { opacity: 0.5 }]}
+                onPress={handleShareAccess}
+                disabled={!shareInput.trim() || sharingAccess}
+              >
+                {sharingAccess
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.familyShareBtnText}>Share</Text>
+                }
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1724,12 +1739,6 @@ function makeStyles(c: Colors) {
     },
     cancelTransferBtnDisabled: { opacity: 0.5 },
     cancelTransferBtnText: { fontSize: 12, color: '#c62828', fontWeight: '700' },
-    sellBtn: {
-      marginHorizontal: 16, marginBottom: 10,
-      borderWidth: 1.5, borderColor: '#c62828', borderRadius: 10,
-      paddingVertical: 12, alignItems: 'center', backgroundColor: c.surface,
-    },
-    sellBtnText: { fontSize: 14, color: '#c62828', fontWeight: '700' },
     predCard: {
       backgroundColor: c.surface, marginHorizontal: 16, marginBottom: 10,
       borderRadius: 12, padding: 14,
@@ -1926,12 +1935,6 @@ function makeStyles(c: Colors) {
     photoNavBtn: { paddingHorizontal: 16, paddingVertical: 8 },
     photoNavBtnDisabled: { opacity: 0.25 },
     photoNavText: { color: '#fff', fontSize: 36, lineHeight: 38, fontWeight: '300' },
-    familyShareSection: {
-      marginHorizontal: 16, marginBottom: 10,
-      backgroundColor: c.surface, borderRadius: 14, padding: 14,
-      borderWidth: 1, borderColor: c.border,
-    },
-    familyShareTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 10 },
     familyShareList: { marginBottom: 10 },
     familyShareRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
