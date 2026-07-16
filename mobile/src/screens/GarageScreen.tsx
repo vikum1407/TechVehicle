@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image
+  ScrollView, ActivityIndicator, Alert, Image, Modal
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
