@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, StyleSheet,
-  ScrollView, Alert,
+  ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -92,7 +92,10 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
     }
   }
 
+  const endKmError = endKm && endNum < startNum ? 'End odometer cannot be less than start odometer' : undefined
+
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="🛺 Daily Trip Log" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -117,6 +120,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       <FormField
         label="End Odometer (km)"
         required
+        error={endKmError}
         value={endKm}
         onChangeText={setEndKm}
         keyboardType="number-pad"
@@ -202,6 +206,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       </View>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

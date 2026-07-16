@@ -1912,7 +1912,7 @@ function makeStyles(c: Colors) {
     vehicleTypeChipText: { fontSize: 12, color: c.textSub, fontWeight: '600' },
     vehicleTypeChipTextActive: { color: '#fff' },
     profileCard: {
-      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 12,
+      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 12, marginBottom: 10,
       padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
     },
     profileDivider: { height: 1, backgroundColor: c.border, marginVertical: 12 },
