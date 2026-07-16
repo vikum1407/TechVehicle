@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
-  Image, ImageBackground, Modal, FlatList, Dimensions,
+  Image, ImageBackground, Modal, FlatList, Dimensions, Animated,
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import * as ImagePicker from 'expo-image-picker'
@@ -218,6 +218,21 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
   const [moreActionsSheet, setMoreActionsSheet] = useState(false)
+  const updatePulse = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(updatePulse, { toValue: 1, duration: 900, useNativeDriver: false }),
+        Animated.timing(updatePulse, { toValue: 0, duration: 900, useNativeDriver: false }),
+      ])
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [])
+  const mileageUpdateBorderColor = updatePulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(227,160,8,0.25)', 'rgba(227,160,8,1)'],
+  })
   const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
@@ -703,7 +718,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             ) : !editingMileage ? (
               <TouchableOpacity style={styles.mileageRow} onPress={() => { setMileageInput(''); setEditingMileage(true) }}>
                 <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
-                <Text style={styles.mileageEditHint}>  ✏️ Update</Text>
+                <Animated.View style={[styles.mileageUpdatePill, { borderColor: mileageUpdateBorderColor }]}>
+                  <Text style={styles.mileageEditHint}>✏️ Update</Text>
+                </Animated.View>
               </TouchableOpacity>
             ) : (
               <View style={styles.mileageEditRow}>
@@ -751,6 +768,37 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             </View>
           )}
         </View>
+
+        {/* Sparkline mini-charts */}
+        {showSparklines && (
+          <View style={styles.sparkRow}>
+            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+              <Text style={styles.sparkTitle}>Mileage</Text>
+              <Sparkline data={mileageValues} color={colors.primary} gradId="dashMileage" />
+              <Text style={styles.sparkValue}>
+                {vehicle.mileage.toLocaleString()}
+                <Text style={styles.sparkUnit}> km</Text>
+              </Text>
+              <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
+                {mileageTrend.arrow} {mileageTrend.label}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
+              <Text style={styles.sparkTitle}>Fuel Economy</Text>
+              <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
+              <Text style={styles.sparkValue}>
+                {miniAnalytics?.avgFuelEfficiency != null
+                  ? miniAnalytics.avgFuelEfficiency.toFixed(1)
+                  : '—'}
+                <Text style={styles.sparkUnit}> km/L</Text>
+              </Text>
+              <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
+                {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── Vehicle profile card (progress + stats merged) ── */}
         {((vehicleProgress && vehicleProgress.score < 100) || vehicle.purchaseDate || vehicle.ownerCount != null || vehicle.vehicleNotes) && (
@@ -1242,37 +1290,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           </View>
         )}
 
-        {/* Sparkline mini-charts */}
-        {showSparklines && (
-          <View style={styles.sparkRow}>
-            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-              <Text style={styles.sparkTitle}>Mileage</Text>
-              <Sparkline data={mileageValues} color={colors.primary} gradId="dashMileage" />
-              <Text style={styles.sparkValue}>
-                {vehicle.mileage.toLocaleString()}
-                <Text style={styles.sparkUnit}> km</Text>
-              </Text>
-              <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
-                {mileageTrend.arrow} {mileageTrend.label}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-              <Text style={styles.sparkTitle}>Fuel Economy</Text>
-              <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
-              <Text style={styles.sparkValue}>
-                {miniAnalytics?.avgFuelEfficiency != null
-                  ? miniAnalytics.avgFuelEfficiency.toFixed(1)
-                  : '—'}
-                <Text style={styles.sparkUnit}> km/L</Text>
-              </Text>
-              <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
-                {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {pendingTransfer && (
           <View style={styles.transferBanner}>
             <View style={styles.transferBannerLeft}>
@@ -1600,7 +1617,11 @@ function makeStyles(c: Colors) {
     vehicleRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'center', paddingHorizontal: 20 },
     vehicleDetail: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
     mileageRow: { flexDirection: 'row', alignItems: 'center' },
-    mileageEditHint: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+    mileageUpdatePill: {
+      marginLeft: 8, paddingHorizontal: 10, paddingVertical: 3,
+      borderRadius: 20, borderWidth: 1.5,
+    },
+    mileageEditHint: { fontSize: 12, color: '#fff', fontWeight: '600' },
     mileageEditRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
     mileageInput: {
       flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6,
