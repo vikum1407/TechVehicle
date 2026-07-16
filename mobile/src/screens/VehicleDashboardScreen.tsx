@@ -1617,9 +1617,12 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 10, paddingVertical: 5,
     },
     mileageCancelBtnText: { color: 'rgba(255,255,255,0.8)', fontWeight: '700', fontSize: 14 },
-    quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    quickActions: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+      paddingHorizontal: 20, paddingBottom: 20,
+    },
     quickBtn: {
-      width: '47%', backgroundColor: 'rgba(255,255,255,0.2)',
+      flexBasis: '47%', flexGrow: 1, backgroundColor: 'rgba(255,255,255,0.2)',
       borderRadius: 8, paddingVertical: 10, alignItems: 'center',
     },
     quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
