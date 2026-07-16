@@ -216,6 +216,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [uploadingVehiclePhoto, setUploadingVehiclePhoto] = useState(false)
   const [vehicleProgress, setVehicleProgress] = useState<{ score: number; items: { id: string; label: string; done: boolean; hint: string }[] } | null>(null)
   const [editVehicleModal, setEditVehicleModal] = useState(false)
+  const [moreActionsSheet, setMoreActionsSheet] = useState(false)
   const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' })
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
@@ -643,12 +644,17 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.regNo}>{vehicle.registrationNo}</Text>
-        {onNotifications && (
-          <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
-            <Text style={styles.bellIcon}>🔔</Text>
-            {notifUnread && <View style={styles.bellDot} />}
+        <View style={styles.headerRightIcons}>
+          {onNotifications && (
+            <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
+              <Text style={styles.bellIcon}>🔔</Text>
+              {notifUnread && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setMoreActionsSheet(true)} style={styles.moreBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.moreIcon}>•••</Text>
           </TouchableOpacity>
-        )}
+        </View>
       </View>
 
       <ScrollView
@@ -729,8 +735,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             </View>
           ) : (
             <View style={styles.quickActions}>
-              <TouchableOpacity style={styles.quickBtn} onPress={onLogFuel}>
-                <Text style={styles.quickBtnText}>⛽ Log Fuel</Text>
+              <TouchableOpacity style={[styles.quickBtn, styles.quickBtnEmphasis]} onPress={onLogFuel}>
+                <Text style={[styles.quickBtnText, styles.quickBtnTextEmphasis]}>⛽ Log Fuel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
                 <Text style={styles.quickBtnText}>🔧 Add Service</Text>
@@ -743,75 +749,52 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               </TouchableOpacity>
             </View>
           )}
-          <TouchableOpacity style={styles.bookBtn} onPress={onVehicleTests}>
-            <Text style={styles.bookBtnText}>🧪 Vehicle Tests</Text>
-          </TouchableOpacity>
-          {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,140,0,0.45)', borderWidth: 1, borderColor: 'rgba(255,160,0,0.8)' }]} onPress={onChainService}>
-              <Text style={styles.bookBtnText}>⛓ Chain Service</Text>
-            </TouchableOpacity>
-          )}
-          {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(230,81,0,0.45)', borderWidth: 1, borderColor: 'rgba(230,81,0,0.8)' }]} onPress={onTripLog}>
-              <Text style={styles.bookBtnText}>🛺 Daily Trip Log</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onKnowledgeHub}>
-            <Text style={styles.bookBtnText}>🧠 Know Your Vehicle</Text>
-          </TouchableOpacity>
-          {!vehicle.isShared && onCostForecast && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onCostForecast}>
-              <Text style={styles.bookBtnText}>💰 Cost Forecast</Text>
-            </TouchableOpacity>
-          )}
-          {!vehicle.isShared && (
-            <TouchableOpacity style={[styles.bookBtn, { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onBookService}>
-              <Text style={styles.bookBtnText}>📅 Book Service Appointment</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
-        {/* ── Vehicle profile progress card ── */}
-        {vehicleProgress && vehicleProgress.score < 100 && (
-          <View style={styles.progressCard}>
-            <View style={styles.progressCardHeader}>
-              <Text style={styles.progressCardTitle}>Vehicle Profile</Text>
-              <Text style={styles.progressCardPct}>{vehicleProgress.score}% complete</Text>
-            </View>
-            <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: `${vehicleProgress.score}%` as any }]} />
-            </View>
-            {vehicleProgress.items.filter(i => !i.done).slice(0, 2).map(item => (
-              <Text key={item.id} style={styles.progressHint}>· {item.hint}</Text>
-            ))}
-          </View>
-        )}
-
-        {/* ── Vehicle profile info card ── */}
-        {(vehicle.purchaseDate || vehicle.ownerCount != null || vehicle.vehicleNotes) && (
+        {/* ── Vehicle profile card (progress + stats merged) ── */}
+        {((vehicleProgress && vehicleProgress.score < 100) || vehicle.purchaseDate || vehicle.ownerCount != null || vehicle.vehicleNotes) && (
           <View style={styles.profileCard}>
-            <View style={styles.profileCardRow}>
-              {vehicle.purchaseDate && (
-                <View style={styles.profileStat}>
-                  <Text style={styles.profileStatLabel}>Purchased</Text>
-                  <Text style={styles.profileStatValue}>
-                    {new Date(vehicle.purchaseDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
-                  </Text>
+            {vehicleProgress && vehicleProgress.score < 100 && (
+              <>
+                <View style={styles.progressCardHeader}>
+                  <Text style={styles.progressCardTitle}>Vehicle Profile</Text>
+                  <Text style={styles.progressCardPct}>{vehicleProgress.score}% complete</Text>
                 </View>
-              )}
-              {vehicle.ownerCount != null && (
-                <View style={styles.profileStat}>
-                  <Text style={styles.profileStatLabel}>Owners</Text>
-                  <Text style={styles.profileStatValue}>{vehicle.ownerCount}</Text>
+                <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarFill, { width: `${vehicleProgress.score}%` as any }]} />
                 </View>
-              )}
-              {vehicle.registrationNo && (
-                <View style={styles.profileStat}>
-                  <Text style={styles.profileStatLabel}>Reg No</Text>
-                  <Text style={styles.profileStatValue} numberOfLines={1}>{vehicle.registrationNo}</Text>
-                </View>
-              )}
-            </View>
+                {vehicleProgress.items.filter(i => !i.done).slice(0, 2).map(item => (
+                  <Text key={item.id} style={styles.progressHint}>· {item.hint}</Text>
+                ))}
+              </>
+            )}
+            {vehicleProgress && vehicleProgress.score < 100 && (vehicle.purchaseDate || vehicle.ownerCount != null) && (
+              <View style={styles.profileDivider} />
+            )}
+            {(vehicle.purchaseDate || vehicle.ownerCount != null || vehicle.registrationNo) && (
+              <View style={styles.profileCardRow}>
+                {vehicle.purchaseDate && (
+                  <View style={styles.profileStat}>
+                    <Text style={styles.profileStatLabel}>Purchased</Text>
+                    <Text style={styles.profileStatValue}>
+                      {new Date(vehicle.purchaseDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                    </Text>
+                  </View>
+                )}
+                {vehicle.ownerCount != null && (
+                  <View style={styles.profileStat}>
+                    <Text style={styles.profileStatLabel}>Owners</Text>
+                    <Text style={styles.profileStatValue}>{vehicle.ownerCount}</Text>
+                  </View>
+                )}
+                {vehicle.registrationNo && (
+                  <View style={styles.profileStat}>
+                    <Text style={styles.profileStatLabel}>Reg No</Text>
+                    <Text style={styles.profileStatValue} numberOfLines={1}>{vehicle.registrationNo}</Text>
+                  </View>
+                )}
+              </View>
+            )}
             {vehicle.vehicleNotes ? (
               <Text style={styles.profileNotes}>{vehicle.vehicleNotes}</Text>
             ) : null}
@@ -1489,6 +1472,51 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         </View>
       </Modal>
 
+      <Modal visible={moreActionsSheet} transparent animationType="slide" onRequestClose={() => setMoreActionsSheet(false)}>
+        <View style={styles.moreSheetOverlay}>
+          <View style={styles.moreSheetCard}>
+            <View style={styles.moreSheetHeaderRow}>
+              <Text style={styles.moreSheetTitle}>More for this vehicle</Text>
+              <TouchableOpacity onPress={() => setMoreActionsSheet(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.moreSheetClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onVehicleTests() }}>
+              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧪</Text></View>
+              <Text style={styles.moreSheetItemText}>Vehicle Tests</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onKnowledgeHub() }}>
+              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧠</Text></View>
+              <Text style={styles.moreSheetItemText}>Know Your Vehicle</Text>
+            </TouchableOpacity>
+            {!vehicle.isShared && onCostForecast && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onCostForecast() }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
+                <Text style={styles.moreSheetItemText}>Cost Forecast</Text>
+              </TouchableOpacity>
+            )}
+            {!vehicle.isShared && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onBookService() }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📅</Text></View>
+                <Text style={styles.moreSheetItemText}>Book Service Appointment</Text>
+              </TouchableOpacity>
+            )}
+            {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onChainService() }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>⛓</Text></View>
+                <Text style={styles.moreSheetItemText}>Chain Service</Text>
+              </TouchableOpacity>
+            )}
+            {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onTripLog() }}>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🛺</Text></View>
+                <Text style={styles.moreSheetItemText}>Daily Trip Log</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos, label } = photoViewer
@@ -1545,9 +1573,12 @@ function makeStyles(c: Colors) {
     backBtn: { marginRight: 16 },
     backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
     regNo: { fontSize: 18, fontWeight: '700', color: c.text, flex: 1 },
+    headerRightIcons: { flexDirection: 'row', alignItems: 'center' },
     bellBtn: { marginLeft: 12, padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },
     bellDot: { position: 'absolute', top: 2, right: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: '#e53935', borderWidth: 1.5, borderColor: c.surface },
+    moreBtn: { marginLeft: 12, padding: 4 },
+    moreIcon: { fontSize: 18, fontWeight: '800', color: c.primary, letterSpacing: 1 },
     errorBanner: {
       backgroundColor: '#fbe9e7', marginHorizontal: 16, marginBottom: 8,
       borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: '#e53935',
@@ -1599,12 +1630,8 @@ function makeStyles(c: Colors) {
       borderRadius: 8, paddingVertical: 10, alignItems: 'center',
     },
     quickBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-    bookBtn: {
-      marginTop: 10, backgroundColor: 'rgba(255,255,255,0.15)',
-      borderRadius: 8, paddingVertical: 10, alignItems: 'center',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
-    },
-    bookBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    quickBtnEmphasis: { backgroundColor: c.accent },
+    quickBtnTextEmphasis: { color: '#14293F', fontWeight: '700' },
 
     sparkRow: {
       flexDirection: 'row', gap: 10,
@@ -1823,16 +1850,22 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 5, paddingVertical: 2,
     },
     thumbCountText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-    progressCard: {
-      backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
-      elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
-    },
     progressCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     progressCardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
     progressCardPct: { fontSize: 14, fontWeight: '800', color: c.primary },
     progressBarTrack: { height: 6, backgroundColor: c.border, borderRadius: 3, marginBottom: 10 },
     progressBarFill: { height: 6, backgroundColor: c.primary, borderRadius: 3 },
     progressHint: { fontSize: 12, color: c.textSub, marginTop: 3, paddingLeft: 4 },
+
+    moreSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+    moreSheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    moreSheetTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    moreSheetClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
+    moreSheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.border },
+    moreSheetIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.primaryTint, alignItems: 'center', justifyContent: 'center' },
+    moreSheetIconText: { fontSize: 15 },
+    moreSheetItemText: { fontSize: 14, fontWeight: '600', color: c.text },
 
     editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     editVehicleCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%' },
@@ -1856,6 +1889,7 @@ function makeStyles(c: Colors) {
       backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 12,
       padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
     },
+    profileDivider: { height: 1, backgroundColor: c.border, marginVertical: 12 },
     profileCardRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
     profileStat: { alignItems: 'center', flex: 1 },
     profileStatLabel: { fontSize: 10, color: c.textFaint, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
