@@ -7,6 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
+
+const VEHICLE_TYPE_ICON: Record<string, string> = Object.fromEntries(
+  VEHICLE_TYPE_OPTIONS.map(opt => [opt.value, opt.icon])
+)
 
 type Vehicle = {
   id: string
@@ -232,7 +237,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} />
         ) : (
           <View style={styles.cardPhotoPlaceholder}>
-            <Text style={styles.cardPhotoIcon}>🚗</Text>
+            <Text style={styles.cardPhotoIcon}>{VEHICLE_TYPE_ICON[item.vehicleType ?? ''] ?? '🚗'}</Text>
           </View>
         )}
         <View style={styles.cardContent}>
