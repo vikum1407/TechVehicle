@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert,
+  ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
@@ -374,6 +374,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={s.container}>
       <ScreenHeader title="Vehicle Tests" subtitle={vehicleName} onBack={onBack} />
 
@@ -837,6 +838,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         ) : null}
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

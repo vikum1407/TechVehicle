@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -122,6 +122,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader
         title="Share Records"
@@ -314,6 +315,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
         </ScrollView>
       )}
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

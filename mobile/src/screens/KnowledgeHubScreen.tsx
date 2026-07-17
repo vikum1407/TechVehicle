@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, TextInput, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -432,6 +433,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
   const warnCount = insights.filter(i => i.status === 'warn').length
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Knowledge Hub" onBack={onBack} />
 
@@ -524,6 +526,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
         </View>
       )}
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
   Image, ImageBackground, Modal, FlatList, Dimensions, Animated,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import * as ImagePicker from 'expo-image-picker'
@@ -1321,6 +1322,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
       {/* ── Edit vehicle modal ─── */}
       <Modal visible={editVehicleModal} transparent animationType="slide" onRequestClose={() => setEditVehicleModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.editVehicleOverlay}>
           <View style={styles.editVehicleCard}>
             <View style={styles.editVehicleHeaderRow}>
@@ -1433,6 +1435,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={moreActionsSheet} transparent animationType="slide" onRequestClose={() => setMoreActionsSheet(false)}>
@@ -1493,6 +1496,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       </Modal>
 
       <Modal visible={familyShareModal} transparent animationType="slide" onRequestClose={() => setFamilyShareModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.moreSheetOverlay}>
           <View style={styles.moreSheetCard}>
             <View style={styles.moreSheetHeaderRow}>
@@ -1550,6 +1554,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>

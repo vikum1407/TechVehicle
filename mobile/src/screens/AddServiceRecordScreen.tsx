@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image
+  ScrollView, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -260,6 +260,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const itemsWithStructured = selectedItems.filter(i => STRUCTURED_ITEMS[i.name])
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Add Service Record" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -486,6 +487,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       <Button title="Save Record" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert, ScrollView, Modal, Image
+  FlatList, ActivityIndicator, Alert, ScrollView, Modal, Image,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 
 const VEHICLE_TYPE_ICON: Record<string, string> = Object.fromEntries(
@@ -263,6 +264,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   )
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
@@ -530,6 +532,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
         </View>
       </Modal>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

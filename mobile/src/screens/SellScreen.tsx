@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -88,6 +88,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Sell / Transfer Vehicle" onBack={step === 'confirm' ? () => setStep('enterPhone') : onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -175,6 +176,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
       )}
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

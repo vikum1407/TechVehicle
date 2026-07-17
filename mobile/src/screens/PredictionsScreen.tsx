@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator,
-  TextInput, Alert, Modal, Platform,
+  TextInput, Alert, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native'
 import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
@@ -471,6 +471,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   )
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Upcoming Services" onBack={onBack} />
 
@@ -599,6 +600,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               visible={showOverrideModal}
               onRequestClose={() => setShowOverrideModal(false)}
             >
+              <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
               <TouchableOpacity
                 style={styles.modalBackdrop}
                 activeOpacity={1}
@@ -678,11 +680,13 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   </TouchableOpacity>
                 )}
               </View>
+              </KeyboardAvoidingView>
             </Modal>
           </Modal>
         )
       })()}
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

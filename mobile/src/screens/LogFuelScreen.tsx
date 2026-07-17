@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert
+  ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -88,6 +88,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Log Fuel Fill-up" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
@@ -168,6 +169,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       <Button title="Save Fill-up" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

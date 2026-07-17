@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image, Modal
+  ScrollView, ActivityIndicator, Alert, Image, Modal,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import Button from '../components/Button'
@@ -618,6 +619,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     const itemsNeedingBrand = selectedItems.filter(i => !NO_BRAND_ITEMS.has(i.name))
 
     return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
         <ScreenHeader title="Submit Completed Service" onBack={() => setSubmittingShare(null)} />
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
@@ -787,6 +789,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         <Button title="Submit to Owner" onPress={handleSubmitService} loading={submitting} />
         </ScrollView>
       </View>
+      </KeyboardAvoidingView>
     )
   }
 
@@ -799,6 +802,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       { color: '#2e7d32', label: 'Green' },
     ]
     return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
         <ScreenHeader title="Set Day Override" onBack={() => setEditingOverride(null)} />
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
@@ -872,6 +876,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         )}
         </ScrollView>
       </View>
+      </KeyboardAvoidingView>
     )
   }
 
@@ -879,6 +884,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const showForm = !garage || editing
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
@@ -1826,6 +1832,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         )
       })()}
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

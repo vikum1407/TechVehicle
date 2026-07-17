@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Modal, FlatList, Image,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -138,7 +139,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const [showModelPicker, setShowModelPicker] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeMainStyles(colors), [colors])
-  const ms = useMemo(() => makeModalStyles(colors), [colors])
+  const ms = useMemo(() => makeModalStyles(colors, 0), [colors])
 
   const brandIsOther = brand === OTHER
   const modelItems   = brand && !brandIsOther ? [...(BRAND_MODELS[brand] ?? []), OTHER] : []
@@ -234,6 +235,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
     : (model || '')
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Add Vehicle" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -414,6 +416,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       />
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 

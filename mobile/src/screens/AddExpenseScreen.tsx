@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert
+  ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -124,6 +124,7 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title="Add Expense" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
@@ -238,6 +239,7 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
       <Button title="Save Expense" onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 
