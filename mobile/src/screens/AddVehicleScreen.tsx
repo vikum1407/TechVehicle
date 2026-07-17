@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -52,7 +53,8 @@ type PickerModalProps = {
 function PickerModal({ visible, title, items, selected, onSelect, onClose }: PickerModalProps) {
   const [search, setSearch] = useState('')
   const colors = useColors()
-  const m = useMemo(() => makeModalStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const m = useMemo(() => makeModalStyles(colors, insets.top), [colors, insets.top])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -458,13 +460,13 @@ function makeMainStyles(c: Colors) {
   })
 }
 
-function makeModalStyles(c: Colors) {
+function makeModalStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container:  { flex: 1, backgroundColor: c.surface },
     header: {
       flexDirection: 'row', alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
+      paddingHorizontal: 20, paddingTop: topInset + 12, paddingBottom: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     title:    { fontSize: 18, fontWeight: '700', color: c.text },

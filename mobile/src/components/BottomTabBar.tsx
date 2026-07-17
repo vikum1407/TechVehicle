@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 
@@ -14,7 +15,8 @@ type Props = {
 
 export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0 }: Props) {
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
 
   return (
     <View style={styles.container}>
@@ -49,14 +51,14 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: {
       flexDirection: 'row',
       backgroundColor: c.surface,
       borderTopWidth: 1,
       borderTopColor: c.border,
-      paddingBottom: Platform.OS === 'ios' ? 28 : 32,
+      paddingBottom: bottomInset + 12,
       shadowColor: '#000',
       shadowOpacity: 0.08,
       shadowRadius: 8,

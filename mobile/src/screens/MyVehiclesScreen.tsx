@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert, ScrollView, Modal, Image
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -106,7 +107,8 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const [acceptingShare, setAcceptingShare] = useState<string | null>(null)
   const [decliningShare, setDecliningShare] = useState<string | null>(null)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<string | null>(null)
   const [previewTransfer, setPreviewTransfer] = useState<IncomingTransfer | null>(null)
@@ -526,13 +528,13 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     header: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       backgroundColor: c.surface, paddingHorizontal: 20,
-      paddingTop: 56, paddingBottom: 16,
+      paddingTop: topInset + 12, paddingBottom: 16,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     logo: { fontSize: 20, fontWeight: '700', color: c.primary },
@@ -616,7 +618,7 @@ function makeStyles(c: Colors) {
     modalContainer: { flex: 1, backgroundColor: c.background },
     modalHeader: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
+      backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: topInset + 12, paddingBottom: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     modalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 60 },

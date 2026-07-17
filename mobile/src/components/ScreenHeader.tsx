@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 
@@ -12,7 +13,8 @@ type Props = {
 
 export default function ScreenHeader({ title, subtitle, onBack, rightElement }: Props) {
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   return (
     <View style={styles.header}>
@@ -28,12 +30,12 @@ export default function ScreenHeader({ title, subtitle, onBack, rightElement }: 
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     header: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
-      paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
+      paddingTop: topInset + 12, paddingBottom: 16, paddingHorizontal: 20,
     },
     backBtn: { marginRight: 14 },
     backText: { fontSize: 15, color: c.primary, fontWeight: '600' },

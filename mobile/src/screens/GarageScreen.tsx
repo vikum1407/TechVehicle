@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image, Modal
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -181,7 +182,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [submitting, setSubmitting] = useState(false)
 
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   useEffect(() => {
     api.getGarage(token)
@@ -1827,7 +1829,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -1904,7 +1906,7 @@ function makeStyles(c: Colors) {
 
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: c.surface, paddingTop: 56, paddingBottom: 16,
+      backgroundColor: c.surface, paddingTop: topInset + 12, paddingBottom: 16,
       paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
     },
     headerTitle: { fontSize: 20, fontWeight: '800', color: c.text },
@@ -2132,7 +2134,7 @@ function makeStyles(c: Colors) {
     counterModalContainer: { flex: 1, backgroundColor: c.background },
     counterModalHeader: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: 56, paddingBottom: 14,
+      backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: topInset + 12, paddingBottom: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     counterModalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 60 },

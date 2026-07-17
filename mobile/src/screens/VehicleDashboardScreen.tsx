@@ -11,6 +11,7 @@ import { api } from '../config/api'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 
 type Vehicle = {
@@ -244,7 +245,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [sharingAccess, setSharingAccess] = useState(false)
   const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
 
   const handleSaveVehicle = async () => {
@@ -1594,7 +1596,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { paddingBottom: 40 },
@@ -1927,7 +1929,7 @@ function makeStyles(c: Colors) {
     editSectionDivider: { height: 1, backgroundColor: c.border, marginVertical: 20 },
     editSectionTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 12 },
     photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
-    photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
+    photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: topInset + 8, paddingHorizontal: 20, paddingBottom: 12 },
     photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },
     photoModalCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
     photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 18 },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as SecureStore from 'expo-secure-store'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
@@ -289,6 +290,7 @@ export default function App() {
   const showTabBar = TAB_SCREENS.includes(screen)
 
   return (
+    <SafeAreaProvider>
     <ThemeProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
 
@@ -589,6 +591,7 @@ export default function App() {
         />
       )}
     </ThemeProvider>
+    </SafeAreaProvider>
   )
 }
 

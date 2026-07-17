@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { exportVehiclePdf } from '../utils/pdfExport'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 
 type Tab = 'service' | 'expenses' | 'fuel'
@@ -94,7 +95,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   const [quickDraft, setQuickDraft] = useState({ description: '', year: '', mileage: '', cost: '' })
   const [savingQuick, setSavingQuick] = useState(false)
   const colors = useColors()
-  const s = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const s = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const handleQuickAdd = async () => {
     if (!quickDraft.description.trim()) { Alert.alert('Required', 'Please describe what was done.'); return }
@@ -1029,7 +1031,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
 
@@ -1200,7 +1202,7 @@ function makeStyles(c: Colors) {
     photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
     photoModalHeader: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12,
+      paddingTop: topInset + 8, paddingHorizontal: 20, paddingBottom: 12,
     },
     photoModalLabel: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 16 },
     photoModalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
