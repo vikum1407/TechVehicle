@@ -1812,7 +1812,7 @@ function makeStyles(c: Colors, topInset: number) {
     messageInput: {
       flex: 1, backgroundColor: c.surface, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 9,
-      fontSize: 13, borderWidth: 1, borderColor: c.borderMid,
+      fontSize: 13, borderWidth: 1, borderColor: c.borderMid, color: c.text,
     },
     messageSendBtn: {
       backgroundColor: c.primary, borderRadius: 8, paddingHorizontal: 14,

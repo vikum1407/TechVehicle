@@ -309,6 +309,7 @@ export default function App() {
         <RoleSelectScreen
           token={token}
           onSelected={handleRoleSelected}
+          onCancel={handleLogout}
         />
       )}
 

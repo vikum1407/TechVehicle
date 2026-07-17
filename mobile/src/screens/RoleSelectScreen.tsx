@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, ScrollView,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -10,13 +11,15 @@ import { Colors } from '../theme/colors'
 type Props = {
   token: string
   onSelected: (userType: 'owner' | 'garage') => void
+  onCancel: () => void
 }
 
-export default function RoleSelectScreen({ token, onSelected }: Props) {
+export default function RoleSelectScreen({ token, onSelected, onCancel }: Props) {
   const [selected, setSelected] = useState<'owner' | 'garage' | null>(null)
   const [saving, setSaving] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const handleContinue = async () => {
     if (!selected) return
@@ -31,7 +34,11 @@ export default function RoleSelectScreen({ token, onSelected }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <TouchableOpacity onPress={onCancel} style={styles.cancelLink} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Text style={styles.cancelLinkText}>← Use a different number</Text>
+      </TouchableOpacity>
+
       <View style={styles.top}>
         <Text style={styles.appName}>TechVehicle</Text>
         <Text style={styles.title}>How will you use the app?</Text>
@@ -94,18 +101,19 @@ export default function RoleSelectScreen({ token, onSelected }: Props) {
       <Text style={styles.note}>
         You can access all features after setup. This setting can be changed in your profile.
       </Text>
-    </View>
+    </ScrollView>
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
-    container: {
-      flex: 1, backgroundColor: c.surface,
-      paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40,
-      justifyContent: 'space-between',
+    container: { flex: 1, backgroundColor: c.surface },
+    content: {
+      paddingHorizontal: 24, paddingTop: topInset + 20, paddingBottom: 40,
     },
-    top: { marginBottom: 8 },
+    cancelLink: { marginBottom: 20 },
+    cancelLinkText: { fontSize: 14, color: c.primary, fontWeight: '600' },
+    top: { marginBottom: 32 },
     appName: {
       fontSize: 14, fontWeight: '700', color: c.primary,
       letterSpacing: 1, textTransform: 'uppercase', marginBottom: 20,
@@ -113,7 +121,7 @@ function makeStyles(c: Colors) {
     title: { fontSize: 28, fontWeight: '800', color: c.text, marginBottom: 10, lineHeight: 34 },
     subtitle: { fontSize: 15, color: c.textMuted, lineHeight: 22 },
 
-    cards: { gap: 16, flex: 1, justifyContent: 'center' },
+    cards: { gap: 16, marginBottom: 24 },
     card: {
       borderWidth: 2, borderColor: c.borderMid, borderRadius: 18,
       padding: 24, backgroundColor: c.surface,

@@ -1259,7 +1259,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       styles.bookingBadge,
                       isPending ? styles.bookingBadgePending : isCounter ? styles.bookingBadgeCounter : styles.bookingBadgeConfirmed,
                     ]}>
-                      <Text style={styles.bookingBadgeText}>
+                      <Text style={[
+                        styles.bookingBadgeText,
+                        isPending ? styles.bookingBadgeTextPending : isCounter ? styles.bookingBadgeTextCounter : styles.bookingBadgeTextConfirmed,
+                      ]}>
                         {isPending ? 'Pending' : isCounter ? '🔄 Counter Sent' : 'Confirmed'}
                       </Text>
                     </View>
@@ -1640,7 +1643,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                           styles.bookingBadge,
                           b.status === 'pending' ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
                         ]}>
-                          <Text style={styles.bookingBadgeText}>{b.status}</Text>
+                          <Text style={[styles.bookingBadgeText, b.status === 'pending' ? styles.bookingBadgeTextPending : styles.bookingBadgeTextConfirmed]}>{b.status}</Text>
                         </View>
                       </View>
                       {b.slotLabel && <Text style={styles.calDaySlot}>⏰ {b.slotLabel}</Text>}
@@ -2021,6 +2024,9 @@ function makeStyles(c: Colors, topInset: number) {
     bookingBadgeConfirmed: { backgroundColor: '#e6f4ea' },
     bookingBadgeCounter: { backgroundColor: '#e3f2fd' },
     bookingBadgeText: { fontSize: 12, fontWeight: '700', color: c.textSub },
+    bookingBadgeTextPending: { color: '#8a6300' },
+    bookingBadgeTextConfirmed: { color: '#2e7d32' },
+    bookingBadgeTextCounter: { color: '#1565c0' },
     bookingMeta: { gap: 3, marginBottom: 10 },
     bookingDate: { fontSize: 14, fontWeight: '600', color: c.textBody },
     bookingOwner: { fontSize: 13, color: c.textMuted },
@@ -2191,7 +2197,7 @@ function makeStyles(c: Colors, topInset: number) {
     noteInput: {
       flex: 1, backgroundColor: c.surface, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 9,
-      fontSize: 13, borderWidth: 1, borderColor: c.borderMid,
+      fontSize: 13, borderWidth: 1, borderColor: c.borderMid, color: c.text,
     },
     noteSendBtn: {
       backgroundColor: c.primary, borderRadius: 8, paddingHorizontal: 14,
