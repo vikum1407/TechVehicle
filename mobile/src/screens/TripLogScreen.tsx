@@ -201,7 +201,13 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         style={styles.notesInput}
       />
 
-      <View style={{ marginTop: 32 }}>
+      <View style={styles.saveNote}>
+        <Text style={styles.saveNoteText}>
+          ℹ️ This saves as a fuel log entry — find it later under Full History → Fuel. Earnings and profit shown above are for today's reference only and aren't saved.
+        </Text>
+      </View>
+
+      <View style={{ marginTop: 16 }}>
         <Button title="Save Trip Log" onPress={handleSave} loading={loading} />
       </View>
       </ScrollView>
@@ -216,6 +222,10 @@ function makeStyles(c: Colors) {
     content: { padding: 24, paddingBottom: 60 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     notesInput: { minHeight: 72, textAlignVertical: 'top' },
+    saveNote: {
+      backgroundColor: c.primaryTint, borderRadius: 10, padding: 12, marginTop: 20,
+    },
+    saveNoteText: { fontSize: 12, color: c.primaryTintText, lineHeight: 17 },
     kmCard: {
       backgroundColor: '#fff3e0', borderRadius: 10, marginTop: 10,
       padding: 14, borderLeftWidth: 4, borderLeftColor: '#e65100',
