@@ -1894,7 +1894,7 @@ function makeStyles(c: Colors, topInset: number) {
     half: { flex: 1 },
     summary: { backgroundColor: '#e6f4ea', borderRadius: 12, padding: 16, marginTop: 20 },
     summaryLabel: { fontSize: 13, fontWeight: '700', color: '#2e7d32', marginBottom: 8 },
-    summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
+    summaryLine: { fontSize: 13, color: '#1b4332', marginBottom: 4, lineHeight: 20 },
     requiredStar: { color: c.error, fontWeight: '700' },
     photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
     photoThumb: { width: 80, height: 80, borderRadius: 10, overflow: 'hidden', position: 'relative' },
