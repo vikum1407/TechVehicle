@@ -658,6 +658,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const showSparklines = mileageValues.length >= 2 || effValues.length >= 2
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader
         title={vehicle.registrationNo}
@@ -1598,6 +1599,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         })()}
       </Modal>
     </View>
+    </KeyboardAvoidingView>
   )
 }
 
