@@ -104,6 +104,25 @@ Pre-launch visual polish pass, prioritized over the paused SMB Marketplace work 
 
 ---
 
+## iOS Device Testing (2026-07-17) — for future test automation
+
+First-ever real iOS device testing, done after all 4 UI Upgrade phases above were merged to `main` (prior testing had been Android-only). Device: iPhone 6s, iOS ~15, tested live via Expo Go. All fixes below are on branch **`ios-safe-area-fix`**, to be merged to `main` once this checklist fully passes.
+
+**Test method:** Codespace backend (`npm run dev`) + Metro bundler (`npx expo start --clear`) with `EXPO_PACKAGER_PROXY_URL` set to the Codespace's forwarded port URL. On iOS, typing the URL directly into Expo Go did not reliably connect — the working method was scanning the Metro QR code with the iPhone's native **Camera** app, then tapping the resulting notification to open in Expo Go.
+
+**Areas covered, all confirmed passing after fixes:**
+- **Safe-area / notch handling** — every screen header, the bottom tab bar, the full-screen photo viewer modal, and the Add Vehicle brand/model picker modal all sit correctly below the notch/status bar and above the home indicator. Fixed by adding `react-native-safe-area-context` (`useSafeAreaInsets`) app-wide, replacing hardcoded header padding.
+- **Keyboard covering input fields** — ~14 screens needed `KeyboardAvoidingView` added (Add Service, Add Expense, Add Vehicle, Log Fuel, Trip Log, Booking (all 4 steps), Garage forms, Vehicle Tests, Knowledge Hub, My Vehicles search, Vehicle Dashboard modals, Sell/Transfer, Share flow, Predictions). Trip Log also gained inline red validation (End Odometer < Start Odometer) instead of only catching it on Save, plus a fix for the physical/gesture back button not working on that screen.
+- **Vehicle Dashboard — "My Appointments" message box hidden behind keyboard** (found 2026-07-18, after the rest of the checklist had already passed): the dashboard's main scrollable body was the one screen still missing `KeyboardAvoidingView` — appointment cards (and their message threads) can appear anywhere in that scroll, not just near the top, so the reply input was covered whenever the keyboard opened. Fixed by wrapping the full dashboard body the same way as every other screen.
+- **Role Select screen (new-user flow)** — "← Use a different number" link added (previously a dead end: no way back to the phone-login screen even after a server restart, since the JWT persists in SecureStore); fixed card-overlap when a role card grows taller to show "✓ Selected".
+- **Dark mode contrast** — fixed invisible dark-on-dark typed text in the Garage booking chat/message thread, and unreadable booking status badges (Pending/Confirmed/Counter Sent) on the garage side. **Known deferred item:** the same "light pastel background + theme-shifting text" contrast bug is confirmed to also exist in ~11 other files (Analytics, Booking, Cost Forecast, Log Fuel, Predictions, Sell, Share, Trip Log, Vehicle Dashboard, Vehicle History, Vehicle Tests) — flagged for a dedicated dark-mode audit later, not fixed piecemeal this round.
+- **Placeholder letter-spacing bug (iOS-only)** — old-iOS quirk where unset `letterSpacing` renders placeholder text on `TextInput`s with visible gaps between letters. Root-caused and fixed via explicit `letterSpacing: 0`, first on the shared `FormField` component, then individually on every raw (non-`FormField`) `TextInput` confirmed still affected: My Vehicles search, Knowledge Hub search, Booking search/notes, Predictions setup/override fields, Garage's note/summary/brand fields.
+- **Incidental bugs also found and fixed during this pass:** Garage's "Suggest Slot" counter-offer dialog crash (missing `Modal` import); bell notification unread count not refreshing on in-app tab switches (only refreshed on login/app-foreground — exposed by the dual-role garage-servicing-own-vehicle scenario); a rejected service submission mislabeling its notification type as "accepted."
+
+**Open question not yet resolved:** the iPhone 6s is a 2015 device capped at iOS 15 — worth deciding how much further old-iOS-specific effort (e.g. the letter-spacing quirk) is warranted once real user device-age data exists, versus treating this device as a lower-priority compatibility floor.
+
+---
+
 ## SMB Marketplace — Planned, Currently Paused (discussed 2026-07-04)
 
 Priority was reconfirmed 2026-07-04: finish V1 (including the UI Upgrade above) **before** starting marketplace work — this is no longer a parallel track, it's next in line once Phase D above is tested and merged. Full discussion and decisions are recorded in `ROADMAP.md` under "Revised Plan (2026-07-04) — Phase 8 + Phase 12 Merged Into One Parallel Track." Summary of the plan for when it resumes:
