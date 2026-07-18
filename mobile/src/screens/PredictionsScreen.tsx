@@ -783,7 +783,7 @@ function makeStyles(c: Colors) {
     setupInput: {
       borderWidth: 1, borderColor: c.borderMid, borderRadius: 8,
       paddingHorizontal: 10, paddingVertical: 8,
-      fontSize: 14, color: c.text, backgroundColor: c.surfaceAlt,
+      fontSize: 14, color: c.text, backgroundColor: c.surfaceAlt, letterSpacing: 0,
     },
 
     setupSaveBtn: {
@@ -881,7 +881,7 @@ function makeStyles(c: Colors) {
     overrideInput: {
       borderWidth: 1, borderColor: c.borderMid, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 10,
-      fontSize: 15, color: c.text, marginBottom: 14,
+      fontSize: 15, color: c.text, marginBottom: 14, letterSpacing: 0,
     },
     overrideSaveBtn: {
       backgroundColor: c.primary, borderRadius: 10,

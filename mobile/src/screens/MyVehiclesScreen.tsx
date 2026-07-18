@@ -564,7 +564,7 @@ function makeStyles(c: Colors, topInset: number) {
     logoutBtnText: { fontSize: 13, color: c.error, fontWeight: '700' },
     searchInput: {
       backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-      fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid,
+      fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid, letterSpacing: 0,
       marginBottom: 12,
     },
     loader: { flex: 1 },

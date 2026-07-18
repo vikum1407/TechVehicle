@@ -632,7 +632,7 @@ function makeStyles(c: Colors) {
       flex: 1, backgroundColor: c.surface, borderRadius: 10,
       borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 12,
-      fontSize: 15, color: c.text,
+      fontSize: 15, color: c.text, letterSpacing: 0,
     },
     searchBtn: {
       backgroundColor: c.primary, borderRadius: 10,
@@ -800,7 +800,7 @@ function makeStyles(c: Colors) {
       backgroundColor: c.surface, borderRadius: 10,
       borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 12,
-      fontSize: 15, color: c.text,
+      fontSize: 15, color: c.text, letterSpacing: 0,
       height: 90, textAlignVertical: 'top', marginBottom: 20,
     },
     notesInputUrgent: { borderColor: c.error, borderWidth: 2 },

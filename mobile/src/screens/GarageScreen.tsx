@@ -1886,7 +1886,7 @@ function makeStyles(c: Colors, topInset: number) {
     fInput: {
       backgroundColor: c.surface, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 13,
-      fontSize: 15, color: c.text,
+      fontSize: 15, color: c.text, letterSpacing: 0,
       borderWidth: 1, borderColor: c.borderMid,
     },
     multiline: { height: 90, textAlignVertical: 'top' },
@@ -2197,7 +2197,7 @@ function makeStyles(c: Colors, topInset: number) {
     noteInput: {
       flex: 1, backgroundColor: c.surface, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 9,
-      fontSize: 13, borderWidth: 1, borderColor: c.borderMid, color: c.text,
+      fontSize: 13, borderWidth: 1, borderColor: c.borderMid, color: c.text, letterSpacing: 0,
     },
     noteSendBtn: {
       backgroundColor: c.primary, borderRadius: 8, paddingHorizontal: 14,

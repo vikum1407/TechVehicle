@@ -350,7 +350,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
       <View style={styles.specGrid}>
         <SpecItem label="Grade" value={s.oilGrade} highlight />
         <SpecItem label="Type" value={s.oilType} />
-        {s.oilCapacityL && <SpecItem label="Capacity" value={`${s.oilCapacityL}L`} />}
+        {!!s.oilCapacityL && <SpecItem label="Capacity" value={`${s.oilCapacityL}L`} />}
         <SpecItem label="Change Interval" value={`Every ${s.oilChangeKm.toLocaleString()} km`} />
       </View>
       {s.oilNote && (
@@ -369,11 +369,11 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
             : s.timingType === 'chain' ? 'Chain ✓' : 'Gear-driven ✓'}
           highlight={s.timingType === 'belt'}
         />
-        {s.fuelEconomyKmL && <SpecItem label="Fuel Economy" value={`~${s.fuelEconomyKmL} km/L`} />}
+        {!!s.fuelEconomyKmL && <SpecItem label="Fuel Economy" value={`~${s.fuelEconomyKmL} km/L`} />}
       </View>
 
       {/* ── Service Intervals ── */}
-      {(s.coolantType || s.transmissionFluidType || s.sparkPlugType || s.brakeFluidType || s.airFilterIntervalKm) && (
+      {!!(s.coolantType || s.transmissionFluidType || s.sparkPlugType || s.brakeFluidType || s.airFilterIntervalKm) && (
         <>
           <Text style={styles.specSectionLabel}>Service Intervals</Text>
           <View style={styles.specGrid}>
@@ -401,7 +401,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
                 value={`${s.brakeFluidType}${s.brakeFluidIntervalDays ? ` / ${Math.round(s.brakeFluidIntervalDays / 365)} yrs` : ''}`}
               />
             )}
-            {s.airFilterIntervalKm && (
+            {!!s.airFilterIntervalKm && (
               <SpecItem label="Air Filter" value={`Every ${s.airFilterIntervalKm.toLocaleString()} km`} />
             )}
           </View>
@@ -623,7 +623,7 @@ function makeStyles(c: Colors) {
     },
     searchInput: {
       backgroundColor: c.surfaceAlt, borderRadius: 10, paddingHorizontal: 14,
-      paddingVertical: 10, fontSize: 14, color: c.text,
+      paddingVertical: 10, fontSize: 14, color: c.text, letterSpacing: 0,
     },
     noResultsText: { textAlign: 'center', color: c.textFaint, fontSize: 14, marginTop: 40 },
   })
