@@ -159,3 +159,17 @@ EXPO_PACKAGER_PROXY_URL=https://<codespace-url>-8081.app.github.dev npx expo sta
 ```
 
 See `CLAUDE.md` for full environment setup, database credentials, and session workflow.
+
+---
+
+## Continuous Testing Deployment (planned 2026-07-19) — $0/month
+
+The Codespace/Metro-tunnel workflow above is for **active development**. It doesn't work for ongoing testing since it requires the Codespace to be running. This section is the $0-cost plan to let testers use the app anywhere, anytime, without a laptop.
+
+**Two independent pieces:**
+1. **Backend → Render free web service.** Always reachable at a stable URL (sleeps after 15 min idle, ~30–50s cold start on the first request after that — acceptable for a testing phase, not production). Blueprint at `backend/render.yaml` (rootDir `backend`, build `npm install && npm run build`, start `npm start`, health check `/health`). Secrets (`JWT_SECRET`, `DATABASE_URL`, R2 keys) are entered directly in the Render dashboard, not committed. Database stays on Neon (no change) — same instance the Codespace already uses.
+   - *Known limitation:* the daily cron jobs (renewal reminders, service-due predictions, mileage nudges, booking reminders — see `backend/src/jobs/`) run in-process and only fire while the service is awake. On the free tier they may get skipped if the app is asleep at the scheduled time. Fine for testing; would need an external ping/cron (e.g. a free UptimeRobot check hitting `/health`) or a paid always-on tier before real launch.
+   - *(A `backend/railway.json` existed from an earlier, since-abandoned attempt to use Railway — removed 2026-07-19 since Railway no longer has a free tier.)*
+2. **Mobile → EAS Update, opened in Expo Go.** Instead of Codespace's Metro bundler + tunnel URL, publish the JS bundle to Expo's free EAS Update CDN (`eas update --branch preview`) and open it via the persistent project link/QR from `expo.dev` — testers scan it once in Expo Go and get the current published version any time, no dev server needed. Requires adding the `expo-updates` package (not yet installed) and running `eas init` once to get a real EAS project ID (`app.json`'s `extra.eas.projectId` is still the placeholder `YOUR_EAS_PROJECT_ID`). Every time mobile code changes, one `eas update` command re-publishes; testers just reopen the same link.
+
+**Status:** config scaffolding done (`backend/render.yaml` added, `mobile/eas.json`'s stale Railway placeholder URLs replaced with a Render placeholder). Not yet deployed — remaining steps need a Render account + dashboard setup, an `eas init`/`eas update` run, and installing `expo-updates`, all done from the Codespace/browser.
