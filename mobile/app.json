@@ -47,11 +47,6 @@
           "cameraPermission": "TechVehicle needs camera access to photograph receipts."
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
-    }
+    ]
   }
 }
