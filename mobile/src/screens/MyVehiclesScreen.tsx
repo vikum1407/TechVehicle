@@ -100,13 +100,12 @@ type Props = {
   onAddVehicle: () => void
   onSelectVehicle: (vehicle: Vehicle) => void
   onVehiclesLoaded: (vehicles: Vehicle[]) => void
-  onLogout: () => void
   onSettings: () => void
   notifUnread?: boolean
   onNotifPress?: () => void
 }
 
-export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onLogout, onSettings, notifUnread, onNotifPress }: Props) {
+export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVehicle, onSelectVehicle, onVehiclesLoaded, onSettings, notifUnread, onNotifPress }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [incomingTransfers, setIncomingTransfers] = useState<IncomingTransfer[]>([])
   const [pendingShares, setPendingShares] = useState<VehicleShareInvite[]>([])
@@ -280,9 +279,6 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           )}
           <TouchableOpacity style={styles.settingsBtn} onPress={onSettings}>
             <Text style={styles.settingsBtnText}>⚙️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutBtnText}>Log out</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -557,11 +553,6 @@ function makeStyles(c: Colors, topInset: number) {
     },
     settingsBtn: { padding: 4 },
     settingsBtnText: { fontSize: 22 },
-    logoutBtn: {
-      borderWidth: 1.5, borderColor: c.error, borderRadius: 8,
-      paddingHorizontal: 12, paddingVertical: 5,
-    },
-    logoutBtnText: { fontSize: 13, color: c.error, fontWeight: '700' },
     searchInput: {
       backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
       fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid, letterSpacing: 0,

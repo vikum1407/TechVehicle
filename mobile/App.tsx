@@ -325,7 +325,6 @@ export default function App() {
                 onAddVehicle={() => setScreen('addVehicle')}
                 onSelectVehicle={handleSelectVehicle}
                 onVehiclesLoaded={setVehicles}
-                onLogout={handleLogout}
                 onSettings={() => setScreen('profile')}
                 notifUnread={notifUnreadCount > 0}
                 onNotifPress={() => setScreen('notifications')}
