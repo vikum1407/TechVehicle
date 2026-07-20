@@ -16,9 +16,10 @@ type Props = {
   userType: 'owner' | 'garage'
   onBack: () => void
   onSettings: () => void
+  onLogout: () => void
 }
 
-export default function ProfileScreen({ token, phoneNumber, userType, onBack, onSettings }: Props) {
+export default function ProfileScreen({ token, phoneNumber, userType, onBack, onSettings, onLogout }: Props) {
   const [stats, setStats] = useState<{ vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number } | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -59,6 +60,13 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   }
 
   const initials = phoneNumber.slice(-4)
+
+  const confirmLogout = () => {
+    Alert.alert('Log out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Log out', style: 'destructive', onPress: onLogout },
+    ])
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -101,6 +109,10 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <Text style={styles.settingsRowIcon}>⚙️</Text>
         <Text style={styles.settingsRowLabel}>Settings</Text>
         <Text style={styles.settingsRowChevron}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
+        <Text style={styles.logoutBtnText}>Log out</Text>
       </TouchableOpacity>
     </ScrollView>
   )
@@ -172,5 +184,12 @@ function makeStyles(c: Colors) {
     settingsRowIcon: { fontSize: 18 },
     settingsRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
     settingsRowChevron: { fontSize: 18, color: c.textMuted },
+
+    logoutBtn: {
+      marginHorizontal: 16, marginTop: 12, borderRadius: 12,
+      borderWidth: 1.5, borderColor: c.error,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    logoutBtnText: { fontSize: 15, color: c.error, fontWeight: '700' },
   })
 }

@@ -549,13 +549,13 @@ export default function App() {
           userType={userType || 'owner'}
           onBack={() => setScreen('vehicles')}
           onSettings={() => setScreen('settings')}
+          onLogout={handleLogout}
         />
       )}
       {screen === 'settings' && (
         <SettingsScreen
           onBack={() => setScreen('profile')}
           onNotificationPrefs={() => { setNotifPrefsReturnTo('settings'); setScreen('notificationPrefs') }}
-          onLogout={handleLogout}
         />
       )}
       {screen === 'notificationPrefs' && (
