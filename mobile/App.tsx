@@ -30,6 +30,7 @@ import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen'
 import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
 import CostForecastScreen from './src/screens/CostForecastScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
+import SettingsScreen from './src/screens/SettingsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 
 type Screen =
@@ -37,7 +38,7 @@ type Screen =
   | 'vehicles' | 'garage'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
-  | 'profile' | 'notificationPrefs' | 'notifications'
+  | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
 
 type Vehicle = {
   id: string
@@ -78,6 +79,7 @@ export default function App() {
   const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
+  const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const scheme = useColorScheme()
@@ -205,7 +207,8 @@ export default function App() {
       onboardingWizard: 'vehicles',
       costForecast: 'vehicleDashboard',
       profile: 'vehicles',
-      notificationPrefs: 'vehicles',
+      settings: 'profile',
+      notificationPrefs: notifPrefsReturnTo,
       notifications: 'vehicles',
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -217,7 +220,7 @@ export default function App() {
       return false
     })
     return () => handler.remove()
-  }, [screen])
+  }, [screen, notifPrefsReturnTo])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -545,13 +548,20 @@ export default function App() {
           phoneNumber={phoneNumber}
           userType={userType || 'owner'}
           onBack={() => setScreen('vehicles')}
+          onSettings={() => setScreen('settings')}
+        />
+      )}
+      {screen === 'settings' && (
+        <SettingsScreen
+          onBack={() => setScreen('profile')}
+          onNotificationPrefs={() => { setNotifPrefsReturnTo('settings'); setScreen('notificationPrefs') }}
           onLogout={handleLogout}
         />
       )}
       {screen === 'notificationPrefs' && (
         <NotificationPrefsScreen
           token={token}
-          onBack={() => setScreen('notifications')}
+          onBack={() => setScreen(notifPrefsReturnTo)}
         />
       )}
       {screen === 'notifications' && (
@@ -587,7 +597,7 @@ export default function App() {
               })
             }
           }}
-          onSettings={() => setScreen('notificationPrefs')}
+          onSettings={() => { setNotifPrefsReturnTo('notifications'); setScreen('notificationPrefs') }}
         />
       )}
     </ThemeProvider>

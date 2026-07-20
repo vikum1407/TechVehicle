@@ -120,6 +120,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const [previewRecords, setPreviewRecords] = useState<TransferRecords | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null)
 
   const loadAll = async () => {
     setLoading(true)
@@ -178,6 +179,10 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   }
 
   useEffect(() => { loadAll() }, [])
+
+  useEffect(() => {
+    api.getAccountStats(token).then(data => setProfilePhotoUrl(data.profilePhotoUrl)).catch(() => {})
+  }, [])
 
   const handleViewHistory = async (transfer: IncomingTransfer) => {
     setPreviewTransfer(transfer)
@@ -277,8 +282,12 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               {notifUnread && <View style={styles.bellDot} />}
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.settingsBtn} onPress={onSettings}>
-            <Text style={styles.settingsBtnText}>⚙️</Text>
+          <TouchableOpacity style={styles.avatarBtn} onPress={onSettings}>
+            {profilePhotoUrl ? (
+              <Image source={{ uri: profilePhotoUrl }} style={styles.avatarBtnImage} />
+            ) : (
+              <Text style={styles.avatarBtnText}>{phoneNumber.slice(-4)}</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -551,8 +560,13 @@ function makeStyles(c: Colors, topInset: number) {
       width: 10, height: 10, borderRadius: 5,
       backgroundColor: c.error, borderWidth: 1.5, borderColor: c.surface,
     },
-    settingsBtn: { padding: 4 },
-    settingsBtnText: { fontSize: 22 },
+    avatarBtn: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    avatarBtnImage: { width: 34, height: 34 },
+    avatarBtnText: { fontSize: 10, fontWeight: '800', color: '#fff' },
     searchInput: {
       backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
       fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid, letterSpacing: 0,

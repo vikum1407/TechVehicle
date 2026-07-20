@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  View, Text, Switch, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
@@ -15,24 +15,12 @@ type Props = {
   phoneNumber: string
   userType: 'owner' | 'garage'
   onBack: () => void
-  onLogout: () => void
+  onSettings: () => void
 }
 
-const PREFS = [
-  { key: 'service_due', title: 'Service Due Alerts', desc: 'Notify when a service is due or overdue based on mileage' },
-  { key: 'booking',     title: 'Booking Notifications', desc: 'Confirmed, updated, or new messages on a booking' },
-  { key: 'transfer',    title: 'Transfer Notifications', desc: 'Vehicle transfer initiated or completed' },
-  { key: 'submission',  title: 'Service Submissions', desc: 'Garage submits a completed service record' },
-]
-
-export default function ProfileScreen({ token, phoneNumber, userType, onBack, onLogout }: Props) {
+export default function ProfileScreen({ token, phoneNumber, userType, onBack, onSettings }: Props) {
   const [stats, setStats] = useState<{ vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number } | null>(null)
-  const [prefs, setPrefs] = useState<Record<string, boolean>>({
-    service_due: true, booking: true, transfer: true, submission: true,
-  })
   const [loadingStats, setLoadingStats] = useState(true)
-  const [loadingPrefs, setLoadingPrefs] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const colors = useColors()
@@ -43,11 +31,6 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       .then(data => { setStats(data); setPhotoUrl(data.profilePhotoUrl) })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
-
-    api.getNotificationPrefs(token)
-      .then(setPrefs)
-      .catch(() => {})
-      .finally(() => setLoadingPrefs(false))
   }, [])
 
   const pickPhoto = async () => {
@@ -73,27 +56,6 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
     } finally {
       setUploadingPhoto(false)
     }
-  }
-
-  const handleToggle = async (key: string, value: boolean) => {
-    const updated = { ...prefs, [key]: value }
-    setPrefs(updated)
-    setSaving(key)
-    try {
-      await api.saveNotificationPrefs(token, updated)
-    } catch (e: any) {
-      setPrefs(prefs)
-      Alert.alert('Error', e.message)
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  const confirmLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: onLogout },
-    ])
   }
 
   const initials = phoneNumber.slice(-4)
@@ -135,45 +97,11 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Notification Preferences</Text>
-      {loadingPrefs ? (
-        <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
-      ) : (
-        <View style={styles.card}>
-          {PREFS.map((pref, i) => (
-            <View key={pref.key} style={[styles.prefRow, i < PREFS.length - 1 && styles.prefRowBorder]}>
-              <View style={styles.prefText}>
-                <Text style={styles.prefTitle}>{pref.title}</Text>
-                <Text style={styles.prefDesc}>{pref.desc}</Text>
-              </View>
-              <View style={styles.switchWrapper}>
-                {saving === pref.key ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Switch
-                    value={prefs[pref.key] ?? true}
-                    onValueChange={(v) => handleToggle(pref.key, v)}
-                    trackColor={{ false: colors.borderMid, true: '#90caf9' }}
-                    thumbColor={prefs[pref.key] ? colors.primary : colors.surfaceAlt}
-                  />
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.noteBox}>
-        <Text style={styles.noteText}>
-          Push notifications require an EAS build. In Expo Go, notifications show only while the app is open.
-        </Text>
-      </View>
-
-      <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
-        <Text style={styles.logoutBtnText}>Log out</Text>
+      <TouchableOpacity style={styles.settingsRow} onPress={onSettings} activeOpacity={0.7}>
+        <Text style={styles.settingsRowIcon}>⚙️</Text>
+        <Text style={styles.settingsRowLabel}>Settings</Text>
+        <Text style={styles.settingsRowChevron}>›</Text>
       </TouchableOpacity>
-
-      <Text style={styles.version}>TechVehicle · v1.0.0</Text>
     </ScrollView>
   )
 }
@@ -235,30 +163,14 @@ function makeStyles(c: Colors) {
     statValue: { fontSize: 24, fontWeight: '800', color: c.text, marginBottom: 2 },
     statLabel: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
-    card: {
-      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16,
+    settingsRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 24,
+      paddingHorizontal: 16, paddingVertical: 16,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-      overflow: 'hidden',
     },
-    prefRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
-    prefRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
-    prefText: { flex: 1 },
-    prefTitle: { fontSize: 15, fontWeight: '600', color: c.text, marginBottom: 3 },
-    prefDesc: { fontSize: 12, color: c.textMuted, lineHeight: 17 },
-    switchWrapper: { width: 52, alignItems: 'center' },
-
-    noteBox: {
-      backgroundColor: c.primaryTint, borderRadius: 10, margin: 16, marginTop: 12, padding: 14,
-    },
-    noteText: { fontSize: 12, color: c.primaryTintText, lineHeight: 18 },
-
-    logoutBtn: {
-      marginHorizontal: 16, marginTop: 8, borderRadius: 12,
-      borderWidth: 1.5, borderColor: c.error,
-      paddingVertical: 15, alignItems: 'center',
-    },
-    logoutBtnText: { fontSize: 15, color: c.error, fontWeight: '700' },
-
-    version: { textAlign: 'center', fontSize: 11, color: c.textFaint, marginTop: 20 },
+    settingsRowIcon: { fontSize: 18 },
+    settingsRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
+    settingsRowChevron: { fontSize: 18, color: c.textMuted },
   })
 }
