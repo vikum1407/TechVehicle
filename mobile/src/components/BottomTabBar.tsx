@@ -11,9 +11,10 @@ type Props = {
   onTabPress: (tab: Tab) => void
   vehiclesBadge?: number
   garageBadge?: number
+  showGarageTab?: boolean
 }
 
-export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0 }: Props) {
+export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0, showGarageTab = true }: Props) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
@@ -34,19 +35,21 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.tab}
-        onPress={() => onTabPress('garage')}
-        activeOpacity={0.8}
-      >
-        {activeTab === 'garage' && <View style={styles.activeBar} />}
-        <View style={styles.iconWrap}>
-          <Text style={styles.icon}>🏭</Text>
-        </View>
-        <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
-          Garage
-        </Text>
-      </TouchableOpacity>
+      {showGarageTab && (
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => onTabPress('garage')}
+          activeOpacity={0.8}
+        >
+          {activeTab === 'garage' && <View style={styles.activeBar} />}
+          <View style={styles.iconWrap}>
+            <Text style={styles.icon}>🏭</Text>
+          </View>
+          <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
+            Garage
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   )
 }

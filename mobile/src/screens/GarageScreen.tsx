@@ -28,6 +28,7 @@ type Props = {
   notifUnread?: boolean
   onNotifPress?: () => void
   onNotifSeen?: (newCount: number) => void
+  onRegistered?: () => void
 }
 
 type Garage = {
@@ -109,7 +110,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -431,6 +432,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.registerGarage(token, { name, address, brNumber })
       setGarage(data)
       setEditing(false)
+      onRegistered?.()
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {

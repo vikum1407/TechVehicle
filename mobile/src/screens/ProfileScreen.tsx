@@ -16,14 +16,16 @@ type Props = {
   userType: 'owner' | 'garage'
   onBack: () => void
   onSettings: () => void
+  onOpenGarage: () => void
   onLogout: () => void
 }
 
-export default function ProfileScreen({ token, phoneNumber, userType, onBack, onSettings, onLogout }: Props) {
+export default function ProfileScreen({ token, phoneNumber, userType, onBack, onSettings, onOpenGarage, onLogout }: Props) {
   const [stats, setStats] = useState<{ vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number } | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [garageName, setGarageName] = useState<string | null>(null)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
@@ -32,6 +34,10 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       .then(data => { setStats(data); setPhotoUrl(data.profilePhotoUrl) })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
+
+    api.getGarage(token)
+      .then(g => setGarageName(g.name))
+      .catch(() => setGarageName(null))
   }, [])
 
   const pickPhoto = async () => {
@@ -105,6 +111,20 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </View>
       ) : null}
 
+      {garageName ? (
+        <TouchableOpacity style={[styles.settingsRow, styles.garageRowLive]} onPress={onOpenGarage} activeOpacity={0.7}>
+          <Text style={styles.settingsRowIcon}>🏭</Text>
+          <Text style={styles.settingsRowLabel}>{garageName}</Text>
+          <Text style={styles.garageLiveBadge}>✓ Live</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={[styles.settingsRow, styles.garageRowNew]} onPress={onOpenGarage} activeOpacity={0.7}>
+          <Text style={styles.settingsRowIcon}>🏭</Text>
+          <Text style={styles.settingsRowLabel}>Register a Garage / Service Center</Text>
+          <Text style={styles.garageNewBadge}>New</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity style={styles.settingsRow} onPress={onSettings} activeOpacity={0.7}>
         <Text style={styles.settingsRowIcon}>⚙️</Text>
         <Text style={styles.settingsRowLabel}>Settings</Text>
@@ -177,13 +197,21 @@ function makeStyles(c: Colors) {
 
     settingsRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 24,
+      backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 12,
       paddingHorizontal: 16, paddingVertical: 16,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
     settingsRowIcon: { fontSize: 18 },
     settingsRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
     settingsRowChevron: { fontSize: 18, color: c.textMuted },
+
+    garageRowNew: { marginTop: 24, borderWidth: 1, borderColor: c.accent },
+    garageRowLive: { marginTop: 24, borderWidth: 1, borderColor: c.primaryTintText + '55' },
+    garageNewBadge: {
+      fontSize: 10, fontWeight: '800', color: '#3a2900', backgroundColor: c.accent,
+      paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
+    },
+    garageLiveBadge: { fontSize: 12, fontWeight: '700', color: c.primary },
 
     logoutBtn: {
       marginHorizontal: 16, marginTop: 12, borderRadius: 12,

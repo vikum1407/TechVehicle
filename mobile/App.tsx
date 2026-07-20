@@ -80,6 +80,7 @@ export default function App() {
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
+  const [hasGarage, setHasGarage] = useState(false)
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const scheme = useColorScheme()
@@ -186,6 +187,11 @@ export default function App() {
       }
     })
   }, [])
+
+  useEffect(() => {
+    if (!token) return
+    api.getGarage(token).then(() => setHasGarage(true)).catch(() => setHasGarage(false))
+  }, [token])
 
   useEffect(() => {
     const backMap: Partial<Record<Screen, Screen>> = {
@@ -344,6 +350,7 @@ export default function App() {
                 notifUnread={notifUnreadCount > 0}
                 onNotifPress={() => setScreen('notifications')}
                 onNotifSeen={setNotifUnreadCount}
+                onRegistered={() => setHasGarage(true)}
               />
             )}
           </View>
@@ -352,6 +359,7 @@ export default function App() {
             onTabPress={(tab) => { setScreen(tab); loadNotifCount(token) }}
             vehiclesBadge={vehiclesBadge}
             garageBadge={garageBadge}
+            showGarageTab={hasGarage || screen === 'garage'}
           />
         </View>
       )}
@@ -549,6 +557,7 @@ export default function App() {
           userType={userType || 'owner'}
           onBack={() => setScreen('vehicles')}
           onSettings={() => setScreen('settings')}
+          onOpenGarage={() => setScreen('garage')}
           onLogout={handleLogout}
         />
       )}
