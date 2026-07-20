@@ -29,6 +29,7 @@ type Props = {
   onNotifPress?: () => void
   onNotifSeen?: (newCount: number) => void
   onRegistered?: () => void
+  onBack?: () => void
 }
 
 type Garage = {
@@ -110,7 +111,7 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered, onBack }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -889,7 +890,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
+        <View style={styles.headerLeft}>
+          {!garage && onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.backText}>← Back</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
+        </View>
         {onNotifPress && (
           <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
             <Text style={styles.bellIcon}>🔔</Text>
@@ -1921,7 +1929,10 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, paddingTop: topInset + 12, paddingBottom: 16,
       paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
     },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     headerTitle: { fontSize: 20, fontWeight: '800', color: c.text },
+    backBtn: {},
+    backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
     bellBtn: { padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },
     bellDot: {

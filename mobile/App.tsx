@@ -81,6 +81,7 @@ export default function App() {
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
   const [hasGarage, setHasGarage] = useState(false)
+  const [garageEntryFrom, setGarageEntryFrom] = useState<'tab' | 'profile'>('tab')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const scheme = useColorScheme()
@@ -216,6 +217,7 @@ export default function App() {
       settings: 'profile',
       notificationPrefs: notifPrefsReturnTo,
       notifications: 'vehicles',
+      ...(garageEntryFrom === 'profile' && !hasGarage ? { garage: 'profile' as Screen } : {}),
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       const parent = backMap[screen]
@@ -226,7 +228,7 @@ export default function App() {
       return false
     })
     return () => handler.remove()
-  }, [screen, notifPrefsReturnTo])
+  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -351,12 +353,13 @@ export default function App() {
                 onNotifPress={() => setScreen('notifications')}
                 onNotifSeen={setNotifUnreadCount}
                 onRegistered={() => setHasGarage(true)}
+                onBack={garageEntryFrom === 'profile' ? () => setScreen('profile') : undefined}
               />
             )}
           </View>
           <BottomTabBar
             activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
-            onTabPress={(tab) => { setScreen(tab); loadNotifCount(token) }}
+            onTabPress={(tab) => { setGarageEntryFrom('tab'); setScreen(tab); loadNotifCount(token) }}
             vehiclesBadge={vehiclesBadge}
             garageBadge={garageBadge}
             showGarageTab={hasGarage || screen === 'garage'}
@@ -557,7 +560,7 @@ export default function App() {
           userType={userType || 'owner'}
           onBack={() => setScreen('vehicles')}
           onSettings={() => setScreen('settings')}
-          onOpenGarage={() => setScreen('garage')}
+          onOpenGarage={() => { setGarageEntryFrom('profile'); setScreen('garage') }}
           onLogout={handleLogout}
         />
       )}
