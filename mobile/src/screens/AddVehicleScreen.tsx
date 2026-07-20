@@ -74,6 +74,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={m.container}>
         <View style={m.header}>
           <Text style={m.title}>{title}</Text>
@@ -114,6 +115,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
           }
         />
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }
@@ -448,7 +450,7 @@ function makeMainStyles(c: Colors) {
     removePhoto: { alignSelf: 'flex-end', marginBottom: 16 },
     removePhotoText: { fontSize: 12, color: c.error },
     divider:     { height: 1, backgroundColor: c.border, marginTop: 28, marginBottom: 8 },
-    chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chipRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
     selectorRow: {
       backgroundColor: c.surface, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 16,

@@ -249,7 +249,7 @@ function makeStyles(c: Colors) {
     content: { padding: 24, paddingBottom: 48 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 10, marginTop: 20 },
-    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
     categoryCard: {
       width: '30%', backgroundColor: c.surface, borderRadius: 12,
       padding: 14, alignItems: 'center',
@@ -264,7 +264,7 @@ function makeStyles(c: Colors) {
     half: { flex: 1 },
     reminderCard: {
       backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
-      marginTop: 20, borderWidth: 1, borderColor: c.primaryTintText + '44',
+      marginTop: 20, marginBottom: 20, borderWidth: 1, borderColor: c.primaryTintText + '44',
     },
     reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
     reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 4 },

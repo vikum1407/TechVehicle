@@ -538,7 +538,9 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Fuel Economy</Text>
           <Text style={styles.statValue}>{data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + ' km/L' : '—'}</Text>
-          <Text style={styles.statSub}>average efficiency</Text>
+          <Text style={styles.statSub}>
+            {data.avgFuelEfficiency != null ? 'average efficiency' : 'log 3+ fill-ups to see this'}
+          </Text>
         </View>
       </View>
 

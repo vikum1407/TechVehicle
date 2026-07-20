@@ -1068,7 +1068,7 @@ function makeStyles(c: Colors, topInset: number) {
     filterChipActive: { backgroundColor: c.primary, borderColor: c.primary },
     filterChipText: { fontSize: 12, color: c.textSub, fontWeight: '600' },
     filterChipTextActive: { color: '#fff' },
-    filterChipsScroll: { marginBottom: 10 },
+    filterChipsScroll: { marginTop: 12, marginBottom: 10 },
     filterChipsContent: { gap: 8, paddingRight: 16 },
     catFilterScroll: { marginBottom: 10 },
     mileageRow: {
