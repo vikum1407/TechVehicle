@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, Switch, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator, Alert, Image,
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -31,12 +33,14 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   useEffect(() => {
     api.getAccountStats(token)
-      .then(setStats)
+      .then(data => { setStats(data); setPhotoUrl(data.profilePhotoUrl) })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
 
@@ -45,6 +49,31 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       .catch(() => {})
       .finally(() => setLoadingPrefs(false))
   }, [])
+
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    if (result.canceled || !result.assets[0]) return
+    setUploadingPhoto(true)
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 400 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      )
+      const url = await api.uploadPhoto(token, compressed.uri)
+      await api.updateProfilePhoto(token, url)
+      setPhotoUrl(url)
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
 
   const handleToggle = async (key: string, value: boolean) => {
     const updated = { ...prefs, [key]: value }
@@ -74,9 +103,18 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       <ScreenHeader title="Profile" onBack={onBack} />
 
       <View style={styles.avatarSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        <TouchableOpacity style={styles.avatar} onPress={pickPhoto} activeOpacity={0.8} disabled={uploadingPhoto}>
+          {uploadingPhoto ? (
+            <ActivityIndicator color="#fff" />
+          ) : photoUrl ? (
+            <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
+          <View style={styles.avatarEditBadge}>
+            <Text style={styles.avatarEditBadgeText}>✎</Text>
+          </View>
+        </TouchableOpacity>
         <Text style={styles.phone}>{phoneNumber}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleBadgeText}>
@@ -160,9 +198,17 @@ function makeStyles(c: Colors) {
     avatar: {
       width: 72, height: 72, borderRadius: 36,
       backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center',
-      marginBottom: 12,
+      marginBottom: 12, position: 'relative',
     },
+    avatarImage: { width: 72, height: 72, borderRadius: 36 },
     avatarText: { fontSize: 22, fontWeight: '800', color: '#fff' },
+    avatarEditBadge: {
+      position: 'absolute', right: -2, bottom: -2,
+      width: 24, height: 24, borderRadius: 12,
+      backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: c.surface,
+    },
+    avatarEditBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
     phone: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
     roleBadge: {
       backgroundColor: c.primaryTint, borderRadius: 20,

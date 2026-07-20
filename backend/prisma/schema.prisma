@@ -13,6 +13,7 @@ model User {
   userType          String?
   pushToken         String?
   notificationPrefs String?
+  profilePhotoUrl   String?
   createdAt         DateTime  @default(now())
   vehicles          Vehicle[]
   garage            Garage?

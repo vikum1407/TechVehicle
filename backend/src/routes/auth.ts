@@ -161,15 +161,30 @@ router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
 router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const phone = req.phoneNumber!
-    const [vehicleCount, serviceCount, fuelCount, expenseCount] = await Promise.all([
+    const [vehicleCount, serviceCount, fuelCount, expenseCount, user] = await Promise.all([
       prisma.vehicle.count({ where: { ownerPhone: phone } }),
       prisma.serviceRecord.count({ where: { vehicle: { ownerPhone: phone } } }),
       prisma.fuelLog.count({ where: { vehicle: { ownerPhone: phone } } }),
       prisma.expense.count({ where: { vehicle: { ownerPhone: phone } } }),
+      prisma.user.findUnique({ where: { phoneNumber: phone } }),
     ])
-    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount })
+    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null })
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stats' })
+  }
+})
+
+// PATCH /auth/profile-photo — update the user's profile photo
+router.patch('/profile-photo', authMiddleware, async (req: AuthRequest, res) => {
+  const { photoUrl } = req.body
+  try {
+    await prisma.user.update({
+      where: { phoneNumber: req.phoneNumber! },
+      data: { profilePhotoUrl: photoUrl || null },
+    })
+    res.json({ ok: true, profilePhotoUrl: photoUrl || null })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update profile photo' })
   }
 })
 

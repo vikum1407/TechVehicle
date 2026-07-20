@@ -597,7 +597,18 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to fetch stats')
-    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number }
+    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number; profilePhotoUrl: string | null }
+  },
+
+  updateProfilePhoto: async (token: string, photoUrl: string | null) => {
+    const res = await fetch(`${API_URL}/auth/profile-photo`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ photoUrl }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update profile photo')
+    return data
   },
 
   getNotificationPrefs: async (token: string) => {
