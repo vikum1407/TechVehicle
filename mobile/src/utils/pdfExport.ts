@@ -123,8 +123,9 @@ function buildHtml(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 24px; }
-    .brand { color: #1d3a5f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-    .vehicle-header { background: linear-gradient(135deg, #1d3a5f 0%, #14293f 100%); color: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 6px; color: #1d3a5f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .brand .dot { width: 6px; height: 6px; border-radius: 3px; background: #e3a008; display: inline-block; }
+    .vehicle-header { background: linear-gradient(135deg, #1d3a5f 0%, #14293f 100%); color: #fff; border-radius: 12px; padding: 20px 24px 16px; margin-bottom: 24px; border-bottom: 4px solid #e3a008; }
     .vehicle-header h1 { font-size: 28px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; }
     .vehicle-header .sub { font-size: 14px; opacity: 0.85; margin-bottom: 4px; }
     .vehicle-header .mileage { font-size: 20px; font-weight: 700; margin-top: 10px; }
@@ -137,12 +138,12 @@ function buildHtml(
     tr:last-child td { border-bottom: none; }
     .totals { background: #f9f9f9; border-radius: 10px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
     .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-    .total-row.grand { font-size: 16px; font-weight: 800; color: #1d3a5f; border-top: 2px solid #e0e0e0; padding-top: 10px; margin-top: 4px; }
+    .total-row.grand { font-size: 16px; font-weight: 800; color: #8a6300; border-top: 2px solid #e3a008; padding-top: 10px; margin-top: 4px; }
     .footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 32px; padding-top: 12px; border-top: 1px solid #eee; }
   </style>
 </head>
 <body>
-  <div class="brand">TechVehicle — Vehicle History Report</div>
+  <div class="brand"><span class="dot"></span>TechVehicle — Vehicle History Report</div>
 
   <div class="vehicle-header">
     <h1>${vehicle.registrationNo}</h1>
