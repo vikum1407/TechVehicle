@@ -197,7 +197,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 // POST /bookings/:id/counter — garage proposes a different date/slot
 router.post('/:id/counter', async (req: AuthRequest, res) => {
   const id = req.params.id as string
-  const { counterDate, counterSlot } = req.body
+  const { counterDate, counterSlot, note } = req.body
   if (!counterDate) { res.status(400).json({ error: 'counterDate is required' }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
@@ -214,10 +214,16 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
       data: { status: 'counter_suggested', counterDate: new Date(counterDate), counterSlot: counterSlot || null },
     })
 
-    const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
-    const prefs = parsePrefs(owner?.notificationPrefs)
     const dateStr = new Date(counterDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
     const slotPart = counterSlot ? ` · ${counterSlot}` : ''
+    let noteMessage = `Garage suggested a new slot: ${dateStr}${slotPart}.`
+    if (note?.trim()) noteMessage += ` ${note.trim()}`
+    await prisma.bookingNote.create({
+      data: { bookingId: id, senderPhone: req.phoneNumber!, message: noteMessage },
+    })
+
+    const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+    const prefs = parsePrefs(owner?.notificationPrefs)
     const title = `${garage.name} suggests a different slot`
     const body  = `${booking.vehicle.registrationNo} — ${dateStr}${slotPart}`
     if (prefs.booking) {

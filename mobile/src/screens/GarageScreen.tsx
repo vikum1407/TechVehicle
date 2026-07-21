@@ -128,6 +128,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [counterModal, setCounterModal] = useState<{ bookingId: string } | null>(null)
   const [counterDate, setCounterDate] = useState('')
   const [counterSlot, setCounterSlot] = useState('')
+  const [counterNote, setCounterNote] = useState('')
   const [submittingCounter, setSubmittingCounter] = useState(false)
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null)
@@ -242,11 +243,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (!counterModal || !counterDate) return
     setSubmittingCounter(true)
     try {
-      await api.counterBooking(token, counterModal.bookingId, counterDate, counterSlot || null)
+      await api.counterBooking(token, counterModal.bookingId, counterDate, counterSlot || null, counterNote.trim() || undefined)
       setBookings(prev => prev.map(b => b.id === counterModal.bookingId ? { ...b, status: 'counter_suggested' } : b))
       setCounterModal(null)
       setCounterDate('')
       setCounterSlot('')
+      setCounterNote('')
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {
@@ -1314,7 +1316,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.counterSuggestBtn}
-                      onPress={(e) => { e.stopPropagation?.(); setCounterDate(''); setCounterSlot(''); setCounterModal({ bookingId: booking.id }) }}
+                      onPress={(e) => { e.stopPropagation?.(); setCounterDate(''); setCounterSlot(''); setCounterNote(''); setCounterModal({ bookingId: booking.id }) }}
                     >
                       <Text style={styles.counterSuggestBtnText}>🔄 Suggest Slot</Text>
                     </TouchableOpacity>
@@ -1781,6 +1783,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         const slots = schedSlots.length > 0 ? schedSlots : ['Morning', 'Afternoon']
         return (
           <Modal visible animationType="slide" transparent={false} onRequestClose={() => setCounterModal(null)}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.counterModalContainer}>
               <View style={styles.counterModalHeader}>
                 <TouchableOpacity onPress={() => setCounterModal(null)}>
@@ -1829,6 +1832,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   ))}
                 </View>
 
+                <View style={styles.counterNoteWrap}>
+                  <FormField
+                    label="Add a note for the owner (optional)"
+                    value={counterNote}
+                    onChangeText={setCounterNote}
+                    placeholder="e.g. Sorry, we're fully booked that slot — this time works better for us"
+                    multiline
+                    numberOfLines={2}
+                    style={styles.counterNoteInput}
+                  />
+                </View>
+
                 <TouchableOpacity
                   style={[styles.counterSubmitBtn, (!counterDate || submittingCounter) && styles.counterSubmitBtnDisabled]}
                   onPress={handleCounterSubmit}
@@ -1841,6 +1856,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </TouchableOpacity>
               </ScrollView>
             </View>
+            </KeyboardAvoidingView>
           </Modal>
         )
       })()}
@@ -2186,6 +2202,8 @@ function makeStyles(c: Colors, topInset: number) {
     counterSlotChipActive: { backgroundColor: c.primary, borderColor: c.primary },
     counterSlotChipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
     counterSlotChipTextActive: { color: '#fff' },
+    counterNoteWrap: { marginTop: 20 },
+    counterNoteInput: { minHeight: 70, textAlignVertical: 'top' },
     counterSubmitBtn: {
       backgroundColor: c.primary, borderRadius: 12, paddingVertical: 16,
       alignItems: 'center', marginTop: 28,

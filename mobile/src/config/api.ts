@@ -469,11 +469,11 @@ export const api = {
     return data
   },
 
-  counterBooking: async (token: string, bookingId: string, counterDate: string, counterSlot: string | null) => {
+  counterBooking: async (token: string, bookingId: string, counterDate: string, counterSlot: string | null, note?: string) => {
     const res = await fetch(`${API_URL}/bookings/${bookingId}/counter`, {
       method: 'POST',
       headers: authHeaders(token),
-      body: JSON.stringify({ counterDate, counterSlot }),
+      body: JSON.stringify({ counterDate, counterSlot, note }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to suggest slot')
