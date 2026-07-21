@@ -47,6 +47,18 @@
           "cameraPermission": "TechVehicle needs camera access to photograph receipts."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "52491a26-210a-49c1-a92a-beb220b9ad52"
+      }
+    },
+    "owner": "vikum1407",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/52491a26-210a-49c1-a92a-beb220b9ad52"
+    }
   }
 }
