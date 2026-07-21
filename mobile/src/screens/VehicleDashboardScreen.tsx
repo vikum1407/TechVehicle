@@ -1538,7 +1538,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 style={styles.familyShareInput}
                 value={shareInput}
                 onChangeText={setShareInput}
-                placeholder="Phone number (e.g. +94771234567)"
+                placeholder="With country code, e.g. +94771234567"
                 placeholderTextColor={colors.textFaint}
                 keyboardType="phone-pad"
               />

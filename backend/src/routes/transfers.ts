@@ -9,15 +9,10 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
-// Normalize Sri Lanka mobile numbers to +94XXXXXXXXX format
+// Strips formatting characters only — the caller must type the full
+// international format (e.g. +94771234567), since we support any country.
 function normalizePhone(phone: string): string {
-  let p = phone.replace(/[\s\-\(\)]/g, '')
-  if (p.startsWith('+94')) return p                                   // +94773574828 ✓
-  if (p.startsWith('+') && p.length === 10 && p[1] === '7') return `+94${p.slice(1)}` // +773574828
-  if (p.startsWith('94') && p.length === 11) return `+${p}`          // 94773574828
-  if (p.startsWith('0') && p.length === 10) return `+94${p.slice(1)}`// 0773574828
-  if (p.startsWith('7') && p.length === 9) return `+94${p}`          // 773574828
-  return p
+  return phone.replace(/[\s\-\(\)]/g, '')
 }
 
 // POST /transfers — seller initiates a transfer
@@ -30,6 +25,11 @@ router.post('/', async (req: AuthRequest, res) => {
   const sellerPhone = req.phoneNumber!
 
   const normalizedBuyer = normalizePhone(buyerPhone.trim())
+
+  if (!normalizedBuyer.startsWith('+')) {
+    res.status(400).json({ error: 'Please enter the buyer\'s phone number in international format, e.g. +94771234567' })
+    return
+  }
 
   if (normalizedBuyer === sellerPhone) {
     res.status(400).json({ error: 'You cannot transfer a vehicle to yourself' })

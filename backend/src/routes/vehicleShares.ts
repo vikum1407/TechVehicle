@@ -9,12 +9,10 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+// Strips formatting characters only — the caller must type the full
+// international format (e.g. +94771234567), since we support any country.
 function normalizePhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.startsWith('94') && digits.length === 11) return '+' + digits
-  if (digits.startsWith('0') && digits.length === 10) return '+94' + digits.slice(1)
-  if (digits.length === 9) return '+94' + digits
-  return phone
+  return phone.replace(/[\s\-\(\)]/g, '')
 }
 
 // POST /vehicle-shares — owner shares a vehicle with another phone number
@@ -23,6 +21,10 @@ router.post('/', async (req: AuthRequest, res) => {
   const sharedWithPhone = normalizePhone(req.body.sharedWithPhone ?? '')
   if (!vehicleId || !sharedWithPhone) {
     res.status(400).json({ error: 'vehicleId and sharedWithPhone are required' })
+    return
+  }
+  if (!sharedWithPhone.startsWith('+')) {
+    res.status(400).json({ error: 'Please enter the phone number in international format, e.g. +94771234567' })
     return
   }
   try {

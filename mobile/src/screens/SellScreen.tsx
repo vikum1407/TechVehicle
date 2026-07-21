@@ -106,7 +106,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           </Text>
 
           <FormField
-            label="Buyer's Mobile Number"
+            label="Buyer's Mobile Number (with country code)"
             value={buyerPhone}
             onChangeText={setBuyerPhone}
             placeholder="e.g. +94771234567"
