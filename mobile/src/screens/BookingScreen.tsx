@@ -305,6 +305,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       <Text style={[
                         styles.dateDayNum,
                         slot.available && styles.dateDayNumAvailable,
+                        (slot.status === 'holiday' || (slot.isWorkDay && !slot.available && slot.status === 'open')) && styles.dateDayNumMuted,
                         isToday && styles.dateDayNumToday,
                       ]}>
                         {slot.dayNum}
@@ -388,7 +389,11 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               activeOpacity={slot.available ? 0.8 : 1}
             >
               <View>
-                <Text style={[styles.slotLabel, !slot.available && styles.slotLabelDim]}>
+                <Text style={[
+                  styles.slotLabel,
+                  !slot.available && styles.slotLabelDim,
+                  slot.available && slot.booked > 0 && styles.slotLabelPartial,
+                ]}>
                   {slot.label}
                 </Text>
                 {slot.available && slot.booked > 0 && (
@@ -682,6 +687,7 @@ function makeStyles(c: Colors) {
     dateDimText: { color: c.textFaint },
     dateDayNum: { fontSize: 20, fontWeight: '800', color: c.textSub, marginBottom: 2 },
     dateDayNumAvailable: { color: c.primary },
+    dateDayNumMuted: { color: '#5d4037' },
     dateMonth: { fontSize: 11, color: c.textMuted, marginBottom: 3 },
     dateSlotsAvail: { fontSize: 10, fontWeight: '700', color: c.success, marginTop: 2 },
     dateClosedText: { fontSize: 10, color: c.textFaint, fontWeight: '600', marginTop: 2 },
@@ -717,6 +723,7 @@ function makeStyles(c: Colors) {
     slotCardUnavailable: { borderColor: c.borderMid, backgroundColor: c.surfaceAlt },
     slotLabel: { fontSize: 16, fontWeight: '700', color: c.text },
     slotLabelDim: { color: c.textFaint },
+    slotLabelPartial: { color: '#5d4037' },
     slotBooked: { fontSize: 12, color: c.textFaint, marginTop: 3 },
     slotBookedWarning: { fontSize: 12, color: c.orange, fontWeight: '700', marginTop: 3 },
     slotSelectArrow: { fontSize: 14, color: c.primary, fontWeight: '700' },

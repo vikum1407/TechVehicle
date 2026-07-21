@@ -1865,7 +1865,7 @@ function makeStyles(c: Colors, topInset: number) {
       marginTop: 10, borderLeftWidth: 3, borderLeftColor: '#1565c0',
     },
     counterOfferTitle: { fontSize: 12, color: '#1565c0', fontWeight: '700', marginBottom: 4 },
-    counterOfferDate: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 10 },
+    counterOfferDate: { fontSize: 15, fontWeight: '700', color: '#0d3c6b', marginBottom: 10 },
     counterOfferActions: { flexDirection: 'row', gap: 10 },
     counterAcceptBtn: {
       flex: 1, backgroundColor: '#2e7d32', borderRadius: 8,

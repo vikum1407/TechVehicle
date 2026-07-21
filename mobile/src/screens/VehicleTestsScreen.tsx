@@ -927,8 +927,8 @@ function makeStyles(c: Colors) {
       borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 20,
     },
     chainStatusLabel: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
-    chainStatusKm: { fontSize: 13, color: c.textSub, marginBottom: 2 },
-    chainStatusDate: { fontSize: 12, color: c.textMuted, marginTop: 4 },
+    chainStatusKm: { fontSize: 13, color: '#5d4037', marginBottom: 2 },
+    chainStatusDate: { fontSize: 12, color: '#6d5a52', marginTop: 4 },
 
     chainTip: {
       backgroundColor: '#fff8e1', borderRadius: 10, padding: 12,
@@ -944,8 +944,8 @@ function makeStyles(c: Colors) {
     docStatusPin: { fontSize: 11, fontWeight: '700', marginBottom: 6 },
     docStatusMain: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
     docStatusLabel: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-    docStatusDate: { fontSize: 13, color: c.textSub, marginTop: 2 },
-    docStatusMeta: { fontSize: 13, color: c.textMuted, marginTop: 4, lineHeight: 18 },
+    docStatusDate: { fontSize: 13, color: '#5d4037', marginTop: 2 },
+    docStatusMeta: { fontSize: 13, color: '#6d5a52', marginTop: 4, lineHeight: 18 },
     docStatusHint: { fontSize: 11, color: c.textFaint, marginTop: 10 },
   })
 }

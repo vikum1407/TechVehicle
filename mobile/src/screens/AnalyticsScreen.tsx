@@ -556,7 +556,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
               <Text style={[styles.anomalyTitle, a.severity === 'warning' ? styles.anomalyTitleWarn : styles.anomalyTitleInfo]}>
                 {a.severity === 'warning' ? '⚠️ ' : 'ℹ️ '}{a.title}
               </Text>
-              <Text style={styles.anomalyDesc}>{a.description}</Text>
+              <Text style={[styles.anomalyDesc, a.severity === 'warning' && styles.anomalyDescWarn]}>{a.description}</Text>
             </View>
           ))}
         </View>
@@ -832,6 +832,7 @@ function makeStyles(c: Colors) {
     anomalyTitleWarn: { color: '#e65100' },
     anomalyTitleInfo: { color: c.primaryTintText },
     anomalyDesc: { fontSize: 13, color: c.textSub, lineHeight: 19 },
+    anomalyDescWarn: { color: '#5d4037' },
 
     forecastCard: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,

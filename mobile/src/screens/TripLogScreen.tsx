@@ -252,7 +252,7 @@ function makeStyles(c: Colors) {
     },
     profitCardGreen: { backgroundColor: '#e8f5e9', borderLeftWidth: 4, borderLeftColor: '#2e7d32' },
     profitCardRed: { backgroundColor: '#ffebee', borderLeftWidth: 4, borderLeftColor: '#c62828' },
-    profitLabel: { fontSize: 13, color: c.textSub, fontWeight: '600' },
+    profitLabel: { fontSize: 13, color: '#5d4037', fontWeight: '600' },
     profitValue: { fontSize: 18, fontWeight: '800' },
     profitPos: { color: '#2e7d32' },
     profitNeg: { color: '#c62828' },
