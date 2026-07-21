@@ -26,7 +26,8 @@ export default function LoginScreen({ onOTPSent }: Props) {
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [loading, setLoading] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const handleSendOTP = async () => {
     const digits = phone.trim()
@@ -197,14 +198,14 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    scrollContent: { flexGrow: 1, justifyContent: 'center' },
+    scrollContent: { flexGrow: 1 },
 
     hero: {
       backgroundColor: c.primary,
-      paddingTop: 64, paddingBottom: 56, paddingHorizontal: 24,
+      paddingTop: topInset + 40, paddingBottom: 56, paddingHorizontal: 24,
       alignItems: 'center', overflow: 'hidden', position: 'relative',
     },
     heroRoad: {
