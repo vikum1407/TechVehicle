@@ -32,6 +32,7 @@ import CostForecastScreen from './src/screens/CostForecastScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import SettingsScreen from './src/screens/SettingsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
+import FloatingHomeButton from './src/components/FloatingHomeButton'
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
@@ -64,6 +65,9 @@ type Vehicle = {
 
 // Screens that show the bottom tab bar
 const TAB_SCREENS: Screen[] = ['vehicles', 'garage']
+
+// Screens where a floating Home shortcut doesn't make sense (auth flow, or already home)
+const NO_HOME_SCREENS: Screen[] = ['loading', 'login', 'otp', 'roleSelect', 'vehicles', 'garage']
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
@@ -549,6 +553,7 @@ export default function App() {
         <AddExpenseScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          currentMileage={selectedVehicle.mileage}
           onExpenseAdded={() => setScreen('vehicleDashboard')}
           onBack={() => setScreen('vehicleDashboard')}
         />
@@ -611,6 +616,10 @@ export default function App() {
           }}
           onSettings={() => { setNotifPrefsReturnTo('notifications'); setScreen('notificationPrefs') }}
         />
+      )}
+
+      {!NO_HOME_SCREENS.includes(screen) && (
+        <FloatingHomeButton onPress={() => setScreen('vehicles')} />
       )}
     </ThemeProvider>
     </SafeAreaProvider>

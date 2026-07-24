@@ -115,7 +115,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No forecast available yet</Text>
               <Text style={styles.emptyNote}>
-                Add more service records and fuel logs to unlock predictions. The forecast improves as your vehicle history grows.
+                We need at least one past record of each service type (e.g. an oil change) to know when the next one is due. Log your service history to unlock predictions — the forecast improves as your records grow.
               </Text>
             </View>
           )}

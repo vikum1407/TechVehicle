@@ -13,6 +13,7 @@ import Button from '../components/Button'
 type Props = {
   token: string
   vehicleId: string
+  currentMileage: number
   onExpenseAdded: () => void
   onBack: () => void
 }
@@ -55,7 +56,7 @@ function parseMMYYYY(s: string): string | null {
 
 const RENEWAL_CATEGORIES = new Set(['Revenue Licence', 'Insurance'])
 
-export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onBack }: Props) {
+export default function AddExpenseScreen({ token, vehicleId, currentMileage, onExpenseAdded, onBack }: Props) {
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
@@ -83,15 +84,31 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
       Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')
       return
     }
-
-    let renewalExpiryISO: string | null = null
-    if (renewalExpiry.trim()) {
-      renewalExpiryISO = parseMMYYYY(renewalExpiry.trim())
-      if (!renewalExpiryISO) {
-        Alert.alert('Invalid expiry date', 'Use MM/YYYY format (e.g. 06/2026)')
-        return
-      }
+    if (renewalExpiry.trim() && !parseMMYYYY(renewalExpiry.trim())) {
+      Alert.alert('Invalid expiry date', 'Use MM/YYYY format (e.g. 06/2026)')
+      return
     }
+
+    const mileageNum = mileage ? parseInt(mileage) : null
+    if (mileageNum != null && mileageNum > currentMileage) {
+      Alert.alert(
+        'Mileage higher than current',
+        `You entered ${mileageNum.toLocaleString()} km, which is higher than the vehicle's current mileage of ${currentMileage.toLocaleString()} km. Update the vehicle's mileage to ${mileageNum.toLocaleString()} km?`,
+        [
+          { text: 'No, just save expense', style: 'cancel', onPress: () => saveExpense(false) },
+          { text: 'Yes, update mileage', onPress: () => saveExpense(true) },
+        ]
+      )
+      return
+    }
+
+    saveExpense(false)
+  }
+
+  const saveExpense = async (updateVehicleMileage: boolean) => {
+    const isoDate = parseDate(date)!
+    const renewalExpiryISO = renewalExpiry.trim() ? parseMMYYYY(renewalExpiry.trim()) : null
+    const mileageNum = mileage ? parseInt(mileage) : null
 
     setLoading(true)
     try {
@@ -100,9 +117,13 @@ export default function AddExpenseScreen({ token, vehicleId, onExpenseAdded, onB
         category,
         amount: parseFloat(amount),
         description: description.trim() || undefined,
-        mileage: mileage ? parseInt(mileage) : undefined,
+        mileage: mileageNum ?? undefined,
         notes: notes.trim() || undefined,
       })
+
+      if (updateVehicleMileage && mileageNum != null) {
+        await api.updateMileage(token, vehicleId, mileageNum)
+      }
 
       if (renewalExpiryISO && category === 'Revenue Licence') {
         await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: renewalExpiryISO })
