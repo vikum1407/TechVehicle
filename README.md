@@ -134,6 +134,25 @@ Priority was reconfirmed 2026-07-04: finish V1 (including the UI Upgrade above) 
 
 ---
 
+## Traffic Penalty Tracking / Driving Quality — Planned, Not Started (discussed 2026-07-20)
+
+Idea: bring Sri Lanka's official traffic penalty schedule into the app, and use it as one input into a broader "driving quality" signal for a vehicle owner. Two distinct pieces, not one feature:
+
+**1. Driving-quality signal from data already collected (near-zero new work)**
+"Fine" already exists as an Expense category, so fine *frequency* is already a usable proxy today with no schema change. This slots into the same idea as the existing tyre-alignment-frequency and oil-interval anomaly signals already shipped in the Intelligence Layer — driving/road-condition proxies derived from wear-and-cost patterns rather than sensors. No OBD-II or phone-sensor telematics needed for a first version.
+
+**2. Structured "Traffic Penalty" sub-form (the bigger addition)**
+Give the "Fine" expense category the same treatment as Oil Change / Tyre Change / Emission Test: a structured sub-form instead of free-text amount. User picks the actual offense (e.g. "Speeding — 1st offense", "No seatbelt", "Mobile phone use while driving", "Vehicle document expired") from a curated Sri Lanka Motor Traffic Act fine schedule, and the app auto-fills the official amount. Unlocks real analytics later ("3 speeding fines in 8 months") instead of just a cost total.
+
+**Open questions to resolve before building (not yet decided):**
+- **Data currency** — Sri Lanka's traffic fines were revised sharply by Gazette in 2023 and can change again; same curated-database maintenance risk already flagged for the Prediction Engine's service-interval data. Needs an owner for keeping the fine schedule current, or it becomes actively misleading.
+- **Does it travel with Sell/Transfer?** — Transfer currently moves *all* records to the buyer. Tyre wear/oil history describes the vehicle's condition (buyer wants it); traffic fines describe the *previous owner's* driving behavior (arguably shouldn't follow the vehicle to a new owner). Needs an explicit decision: exclude "Fine" from Share/Transfer, or treat it like everything else.
+- **Tone/framing** — a scored "driving quality" number derived partly from fines could read as judgmental. Likely safer to frame neutrally (e.g. "compliance cost this year: LKR X") rather than a labeled score, at least for v1.
+
+**Scope not yet defined:** which offense categories to include in the curated fine list is still open — needs to be decided before any schema or curation work starts.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -172,4 +191,46 @@ The Codespace/Metro-tunnel workflow above is for **active development**. It does
    - *(A `backend/railway.json` existed from an earlier, since-abandoned attempt to use Railway — removed 2026-07-19 since Railway no longer has a free tier.)*
 2. **Mobile → EAS Update, opened in Expo Go.** Instead of Codespace's Metro bundler + tunnel URL, publish the JS bundle to Expo's free EAS Update CDN (`eas update --branch preview`) and open it via the persistent project link/QR from `expo.dev` — testers scan it once in Expo Go and get the current published version any time, no dev server needed. Requires adding the `expo-updates` package (not yet installed) and running `eas init` once to get a real EAS project ID (`app.json`'s `extra.eas.projectId` is still the placeholder `YOUR_EAS_PROJECT_ID`). Every time mobile code changes, one `eas update` command re-publishes; testers just reopen the same link.
 
-**Status:** config scaffolding done (`backend/render.yaml` added, `mobile/eas.json`'s stale Railway placeholder URLs replaced with a Render placeholder). Not yet deployed — remaining steps need a Render account + dashboard setup, an `eas init`/`eas update` run, and installing `expo-updates`, all done from the Codespace/browser.
+**Status: DONE, live since 2026-07-19.** Backend deployed at `https://techvehicle-backend.onrender.com` (confirmed working via `/health`). Mobile published via `eas update --branch preview`, opened through the persistent Expo Go link — confirmed working on both Android and iPhone. `app.json` has the real EAS project ID, owner, and update URL. To publish a new mobile update after any code change: `cd mobile && npx eas-cli update --branch preview --message "..."` — testers just reopen the same link, no new QR scan needed.
+
+---
+
+## Bug Fixes & Feature Polish Round (2026-07-21)
+
+A full day of testing feedback, deeper features, and infrastructure fixes — all pushed to `main` and published.
+
+**Login screen**
+- Redesigned with a navy hero band, amber accent badge, and 3 value-perk icons (service history / fuel / verified transfer), replacing a flat generic form
+- Added a searchable country-code picker (~190 countries, flag + dial code, defaults to Sri Lanka) — was hardcoded to `+94` only
+- Fixed a layout bug where picking a country left a blank gap and shifted the whole screen down (content was vertically centered, which combined with the picker modal's own keyboard interactions confused the outer screen's available-height calculation — fixed by anchoring content to the top instead of centering it)
+
+**International phone number support**
+- Removed the Sri-Lanka-only shorthand-guessing logic in the backend (buyer phone at Sell/Transfer, shared-with phone at Family/Shared Access) — those heuristics (e.g. "any 9-digit number starting with 7 is Sri Lankan") can't work safely for arbitrary countries. Both now require the full international format (`+94771234567` etc.) with a clear error if it's missing.
+
+**Profile / Settings / Garage restructure**
+- Split the combined Profile+Settings screen into two: **Profile** (identity, stats, photo upload) and **Settings** (notification preferences), reached via the header avatar → Profile → a "⚙️ Settings" row inside it
+- Removed the duplicate "Log out" button that used to sit in the My Vehicles header (it lives on Profile now, alongside the account stats)
+- Added profile photo upload, reusing the existing R2 upload pipeline already used for vehicle photos
+- The Garage tab now stays hidden until a garage is actually registered (gated on whether the account has a `Garage` record, not which role was picked at signup — so dual-role accounts still see both tabs). Profile gets a "Register a Garage / Service Center" entry point for owners who want to open one later, with its own back button since it's a new way into a screen that previously had none
+- New garage-role signups now route straight to garage registration, then auto-advance to the Schedule tab after registering — previously they landed on an empty "My Vehicles" screen with no visible way to find garage registration at all
+
+**Bug fixes from device testing**
+- Add Vehicle's Brand/Model picker modal wasn't wrapped in `KeyboardAvoidingView`, hiding search results behind the keyboard
+- Missing spacing between Vehicle Type selector and Current Mileage field (Add Vehicle), Category grid and Amount field (Add Expense), Insurance details panel and Save button (Add Expense), and search bar and date-filter chips (Vehicle History)
+- Historical fuel entry (odometer reading lower than current mileage) was blocked by a leftover validation check, even though the backend already fully supported it
+- Analytics' Fuel Economy tile now shows a helpful "log 3+ fill-ups to see this" message instead of a bare "—" when there isn't enough data yet
+
+**Deeper features**
+- **Counter-offer messages:** when a garage suggests a different booking slot, an auto-message now posts into the existing per-booking message thread ("Garage suggested a new slot: 22 Jul · Afternoon"), with an optional note field the garage can fill in — instead of the slot change being silent outside a push notification
+- **Dark-mode contrast audit:** found and fixed 8 real bugs across 5 screens (Analytics, Booking, Trip Log, Vehicle Dashboard, Vehicle Tests) — the recurring pattern was a hardcoded light-pastel background paired with a theme-shifting text color that turned unreadable in dark mode. The other 6 originally-flagged files (Cost Forecast, Log Fuel, Predictions, Sell, Share, Vehicle History) were checked and confirmed already safe
+- **PDF branding:** added amber accent touches (a small dot next to the brand line, an amber bottom-border on the vehicle header card, Grand Total highlighted in amber instead of navy) — the logo itself stays a text wordmark until the app name (TechVehicle vs. DriveVault) is decided
+- **Add Expense mileage sync:** entering a mileage higher than the vehicle's current reading now asks whether to update the vehicle's mileage record, rather than silently ignoring the field like before
+- **Cost Forecast messaging:** the empty state now explains the real mechanism (need at least one past record of each service type to establish a baseline) instead of a generic "add more records" message
+- **Floating Home button:** a small 🏠 shortcut now floats bottom-right on every screen except the auth flow and the two tab roots, jumping straight back to My Vehicles regardless of navigation depth
+
+**Infrastructure**
+- Fixed the Render backend build failing on `tsconfig.json`'s deprecated `moduleResolution` option — `npm run build` (`tsc`) had never actually been exercised before, since the Codespace dev workflow only ever used `nodemon --exec ts-node`, which doesn't invoke `tsc` directly
+- Cleaned up `app.json`'s EAS project config (real project ID, owner, update URL; removed a permissions-array duplication bug from a config-sync glitch)
+- Added `backend/src/scripts/deleteAccount.ts` — a one-off script to fully wipe a test account by phone number (deletes vehicles/garage first, which cascade their service records/bookings/etc., then notifications and the user row)
+
+**Old-device support:** decided as a low-priority floor — the iPhone 6s/iOS 15 fixes already made stay in place (they're harmless on modern devices too), but no further iOS-15-specific quirks will be proactively chased without a real user report.
