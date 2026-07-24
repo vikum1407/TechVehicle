@@ -256,7 +256,7 @@ export default function App() {
   const handleRoleSelected = async (uType: 'owner' | 'garage') => {
     await SecureStore.setItemAsync('userType', uType)
     setUserType(uType)
-    setScreen('vehicles')
+    setScreen(uType === 'garage' ? 'garage' : 'vehicles')
     registerPush(token)
     loadNotifCount(token)
   }

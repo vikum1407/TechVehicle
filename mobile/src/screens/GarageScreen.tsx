@@ -435,6 +435,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.registerGarage(token, { name, address, brNumber })
       setGarage(data)
       setEditing(false)
+      setTab('schedule')
       onRegistered?.()
     } catch (e: any) {
       Alert.alert('Error', e.message)
