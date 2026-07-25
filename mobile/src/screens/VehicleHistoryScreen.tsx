@@ -38,7 +38,7 @@ type Props = {
   token: string
   vehicle: Vehicle
   onBack: () => void
-  initialServiceSearch?: string
+  initialEditRecordId?: string
 }
 
 const EXPENSE_CATEGORIES = [
@@ -56,15 +56,16 @@ function parseItems(description: string) {
   return description.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-export default function VehicleHistoryScreen({ token, vehicle, onBack, initialServiceSearch }: Props) {
+export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEditRecordId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('service')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([])
   const [loading, setLoading] = useState(true)
+  const autoEditHandled = useRef(false)
 
   // Service tab state
-  const [search, setSearch] = useState(initialServiceSearch || '')
+  const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
   const [catFilter, setCatFilter] = useState('All')
   const [mileageMin, setMileageMin] = useState('')
@@ -233,6 +234,15 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialSe
     })
     setEditService(r)
   }
+
+  useEffect(() => {
+    if (autoEditHandled.current || !initialEditRecordId || records.length === 0) return
+    const match = records.find(r => r.id === initialEditRecordId)
+    if (match) {
+      autoEditHandled.current = true
+      openEditService(match)
+    }
+  }, [records, initialEditRecordId])
 
   const openEditExpense = (e: Expense) => {
     setDraftExpense({

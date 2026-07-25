@@ -86,7 +86,9 @@ export default function App() {
   const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
   const [hasGarage, setHasGarage] = useState(false)
   const [addServiceReturnTo, setAddServiceReturnTo] = useState<'vehicleDashboard' | 'predictions' | 'costForecast'>('vehicleDashboard')
-  const [historyServiceSearch, setHistoryServiceSearch] = useState('')
+  const [historyEditRecordId, setHistoryEditRecordId] = useState('')
+  const [historyReturnTo, setHistoryReturnTo] = useState<'vehicleDashboard' | 'predictions'>('vehicleDashboard')
+  const [knowledgeHubReturnTo, setKnowledgeHubReturnTo] = useState<'vehicleDashboard' | 'analytics'>('vehicleDashboard')
   const [garageEntryFrom, setGarageEntryFrom] = useState<'tab' | 'profile'>('tab')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
@@ -210,10 +212,10 @@ export default function App() {
       tripLog: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
       vehicleTests: 'vehicleDashboard',
-      vehicleHistory: 'vehicleDashboard',
+      vehicleHistory: historyReturnTo,
       analytics: 'vehicleDashboard',
       predictions: 'vehicleDashboard',
-      knowledgeHub: 'vehicleDashboard',
+      knowledgeHub: knowledgeHubReturnTo,
       share: 'vehicleDashboard',
       sell: 'vehicleDashboard',
       booking: 'vehicleDashboard',
@@ -234,7 +236,7 @@ export default function App() {
       return false
     })
     return () => handler.remove()
-  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage, addServiceReturnTo])
+  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage, addServiceReturnTo, historyReturnTo, knowledgeHubReturnTo])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -416,9 +418,9 @@ export default function App() {
           onVehicleTests={() => { setTestsInitialTab('emission'); setScreen('vehicleTests') }}
           onChainService={() => { setTestsInitialTab('chain'); setScreen('vehicleTests') }}
           onTripLog={() => setScreen('tripLog')}
-          onViewHistory={() => setScreen('vehicleHistory')}
+          onViewHistory={() => { setHistoryReturnTo('vehicleDashboard'); setScreen('vehicleHistory') }}
           onPredictions={() => setScreen('predictions')}
-          onKnowledgeHub={() => setScreen('knowledgeHub')}
+          onKnowledgeHub={() => { setKnowledgeHubReturnTo('vehicleDashboard'); setScreen('knowledgeHub') }}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
           onVehicleUpdated={(updated) => {
             setSelectedVehicle(prev => prev ? { ...prev, ...updated } : prev)
@@ -512,8 +514,8 @@ export default function App() {
         <VehicleHistoryScreen
           token={token}
           vehicle={selectedVehicle}
-          initialServiceSearch={historyServiceSearch}
-          onBack={() => { setHistoryServiceSearch(''); setScreen('vehicleDashboard') }}
+          initialEditRecordId={historyEditRecordId}
+          onBack={() => { setHistoryEditRecordId(''); setScreen(historyReturnTo) }}
         />
       )}
       {screen === 'analytics' && selectedVehicle && (
@@ -521,7 +523,7 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           onBack={() => setScreen('vehicleDashboard')}
-          onKnowledgeHub={() => setScreen('knowledgeHub')}
+          onKnowledgeHub={() => { setKnowledgeHubReturnTo('analytics'); setScreen('knowledgeHub') }}
         />
       )}
       {screen === 'predictions' && selectedVehicle && (
@@ -534,14 +536,14 @@ export default function App() {
           readOnly={selectedVehicle.isShared}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
           onLogNow={() => { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setScreen('addServiceRecord') }}
-          onEditRecord={(term) => { setHistoryServiceSearch(term); setScreen('vehicleHistory') }}
+          onEditRecord={(id) => { setHistoryEditRecordId(id); setHistoryReturnTo('predictions'); setScreen('vehicleHistory') }}
         />
       )}
       {screen === 'knowledgeHub' && selectedVehicle && (
         <KnowledgeHubScreen
           token={token}
           vehicle={selectedVehicle}
-          onBack={() => setScreen('vehicleDashboard')}
+          onBack={() => setScreen(knowledgeHubReturnTo)}
         />
       )}
       {screen === 'costForecast' && selectedVehicle && (

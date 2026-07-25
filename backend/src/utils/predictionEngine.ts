@@ -9,6 +9,7 @@ export type PredictionRow = {
   status: 'overdue' | 'due_soon' | 'ok' | 'no_data'
   lastDoneKm: number | null
   lastDoneDate: string | null
+  lastRecordId: string | null
   dueAtKm: number | null
   remainingKm: number | null
   dueAtDate: string | null
@@ -88,7 +89,7 @@ const BASE_TYRE_LIFE_KM = 40000
 
 function computeTyrePrediction(
   vehicle: VehicleInput,
-  records: { description: string; mileage: number | null; date: Date }[]
+  records: { id: string; description: string; mileage: number | null; date: Date }[]
 ): PredictionRow {
   const tyreRecord = records
     .filter(r => r.description.toLowerCase().includes('tyre change'))
@@ -100,7 +101,7 @@ function computeTyrePrediction(
       keywords: ['Tyre Change'],
       source: 'Log a tyre change in service records to unlock a personalised prediction',
       status: 'no_data',
-      lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
+      lastDoneKm: null, lastDoneDate: null, lastRecordId: null, dueAtKm: null,
       remainingKm: null, dueAtDate: null, remainingDays: null,
       customKmInterval: null, customDaysInterval: null,
     }
@@ -142,6 +143,7 @@ function computeTyrePrediction(
     status,
     lastDoneKm: lastTyreKm,
     lastDoneDate: lastTyreDate.toISOString(),
+    lastRecordId: tyreRecord.id,
     dueAtKm, remainingKm, dueAtDate: null, remainingDays: null,
     customKmInterval: null, customDaysInterval: null,
   }
@@ -149,7 +151,7 @@ function computeTyrePrediction(
 
 export function computePredictions(
   vehicle: VehicleInput,
-  records: { description: string; mileage: number | null; date: Date }[]
+  records: { id: string; description: string; mileage: number | null; date: Date }[]
 ): PredictionRow[] {
   const today = new Date()
 
@@ -188,7 +190,7 @@ export function computePredictions(
         id: interval.id, group: interval.group, name: interval.name, source: interval.source,
         keywords: interval.keywords,
         status: 'no_data' as const,
-        lastDoneKm: null, lastDoneDate: null, dueAtKm: null,
+        lastDoneKm: null, lastDoneDate: null, lastRecordId: null, dueAtKm: null,
         remainingKm: null, dueAtDate: null, remainingDays: null,
         customKmInterval, customDaysInterval,
       }
@@ -229,7 +231,7 @@ export function computePredictions(
     return {
       id: interval.id, group: interval.group, name: interval.name, source: interval.source,
       keywords: interval.keywords,
-      status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(),
+      status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(), lastRecordId: last.id,
       dueAtKm, remainingKm, dueAtDate, remainingDays,
       customKmInterval, customDaysInterval,
     }

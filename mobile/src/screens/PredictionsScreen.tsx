@@ -81,6 +81,7 @@ type Prediction = {
   status: 'overdue' | 'due_soon' | 'ok' | 'no_data'
   lastDoneKm: number | null
   lastDoneDate: string | null
+  lastRecordId: string | null
   dueAtKm: number | null
   remainingKm: number | null
   dueAtDate: string | null
@@ -100,7 +101,7 @@ type Props = {
   readOnly?: boolean
   onBack: () => void
   onLogNow?: (serviceName: string) => void
-  onEditRecord?: (searchTerm: string) => void
+  onEditRecord?: (recordId: string) => void
 }
 
 function statusConfig(c: Colors) {
@@ -514,9 +515,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                 </Text>
               </View>
 
-              {p.lastDoneDate && onEditRecord && (
+              {p.lastRecordId && onEditRecord && (
                 <TouchableOpacity
-                  onPress={() => { setSelectedPrediction(null); onEditRecord(p.keywords[0]) }}
+                  onPress={() => { const id = p.lastRecordId!; setSelectedPrediction(null); onEditRecord(id) }}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
                   <Text style={styles.detailEditLink}>✏️ Mileage or date wrong? Edit this record</Text>
