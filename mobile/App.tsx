@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import * as SecureStore from 'expo-secure-store'
+import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
 import { ThemeProvider } from './src/theme/ThemeContext'
@@ -92,7 +92,7 @@ export default function App() {
 
   // Load persisted seen counts on startup
   useEffect(() => {
-    SecureStore.getItemAsync('bookingSeenCounts').then(raw => {
+    storage.getItemAsync('bookingSeenCounts').then(raw => {
       if (raw) {
         try { setBookingSeenCounts(JSON.parse(raw)) } catch {}
       }
@@ -102,7 +102,7 @@ export default function App() {
   // Persist to SecureStore whenever seen counts change
   useEffect(() => {
     if (Object.keys(bookingSeenCounts).length > 0) {
-      SecureStore.setItemAsync('bookingSeenCounts', JSON.stringify(bookingSeenCounts)).catch(() => {})
+      storage.setItemAsync('bookingSeenCounts', JSON.stringify(bookingSeenCounts)).catch(() => {})
     }
   }, [bookingSeenCounts])
 
@@ -174,9 +174,9 @@ export default function App() {
 
   useEffect(() => {
     Promise.all([
-      SecureStore.getItemAsync('token'),
-      SecureStore.getItemAsync('phoneNumber'),
-      SecureStore.getItemAsync('userType'),
+      storage.getItemAsync('token'),
+      storage.getItemAsync('phoneNumber'),
+      storage.getItemAsync('userType'),
     ]).then(([savedToken, savedPhone, savedUserType]) => {
       if (savedToken && savedPhone) {
         setToken(savedToken)
@@ -240,10 +240,10 @@ export default function App() {
   }
 
   const handleVerified = async (authToken: string, phone: string, uType: string | null, isNewUser: boolean) => {
-    await SecureStore.setItemAsync('token', authToken)
-    await SecureStore.setItemAsync('phoneNumber', phone)
+    await storage.setItemAsync('token', authToken)
+    await storage.setItemAsync('phoneNumber', phone)
     if (uType) {
-      await SecureStore.setItemAsync('userType', uType)
+      await storage.setItemAsync('userType', uType)
       setUserType(uType as 'owner' | 'garage')
     }
     setToken(authToken)
@@ -254,7 +254,7 @@ export default function App() {
   }
 
   const handleRoleSelected = async (uType: 'owner' | 'garage') => {
-    await SecureStore.setItemAsync('userType', uType)
+    await storage.setItemAsync('userType', uType)
     setUserType(uType)
     setScreen(uType === 'garage' ? 'garage' : 'vehicles')
     registerPush(token)
@@ -275,10 +275,10 @@ export default function App() {
   }
 
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync('token')
-    await SecureStore.deleteItemAsync('phoneNumber')
-    await SecureStore.deleteItemAsync('userType')
-    await SecureStore.deleteItemAsync('bookingSeenCounts')
+    await storage.deleteItemAsync('token')
+    await storage.deleteItemAsync('phoneNumber')
+    await storage.deleteItemAsync('userType')
+    await storage.deleteItemAsync('bookingSeenCounts')
     setToken('')
     setPhoneNumber('')
     setUserType(null)
