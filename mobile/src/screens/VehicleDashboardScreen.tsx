@@ -930,44 +930,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )
         })()}
 
-        {/* Upcoming Services — top prediction warnings surfaced on dashboard */}
-        {topPredictions.length > 0 && (
-          <View style={styles.predictionsSection}>
-            <View style={styles.predictionsSectionHeader}>
-              <Text style={styles.predictionsSectionTitle}>💡 Predictions</Text>
-              <TouchableOpacity onPress={onPredictions}>
-                <Text style={styles.predictionsViewAll}>View all →</Text>
-              </TouchableOpacity>
-            </View>
-            {topPredictions.map(p => {
-              const isOverdue = p.status === 'overdue'
-              const cardBg    = isOverdue ? '#ffebee' : '#fff8e1'
-              const borderClr = isOverdue ? '#c62828' : '#f9a825'
-              const textClr   = isOverdue ? '#c62828' : '#e65100'
-              const badge     = isOverdue ? '🚨 Overdue' : '⚠ Due Soon'
-              const kmText    = p.remainingKm  != null ? `${Math.abs(p.remainingKm).toLocaleString()} km${isOverdue ? ' overdue' : ' remaining'}` : null
-              const daysText  = p.remainingDays != null ? `${Math.abs(p.remainingDays)} day${Math.abs(p.remainingDays) !== 1 ? 's' : ''}${isOverdue ? ' overdue' : ' remaining'}` : null
-              const detail    = kmText || daysText || (isOverdue ? 'Service needed now' : 'Service due soon')
-              return (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[styles.predictionCard, { backgroundColor: cardBg, borderLeftColor: borderClr }]}
-                  onPress={onPredictions}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.predictionName, { color: textClr }]}>{p.name}</Text>
-                    <Text style={styles.predictionDetail}>{detail}</Text>
-                  </View>
-                  <View style={[styles.predictionBadge, { backgroundColor: borderClr }]}>
-                    <Text style={styles.predictionBadgeText}>{badge}</Text>
-                  </View>
-                </TouchableOpacity>
-              )
-            })}
-          </View>
-        )}
-
         {/* My Appointments — owner's booked service slots */}
         {myBookings.length > 0 && (
           <View style={styles.appointmentsSection}>
@@ -1130,23 +1092,27 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           {topPredictions.length === 0 ? (
             <Text style={styles.predAllOk}>✓ All tracked services are on schedule</Text>
           ) : (
-            topPredictions.map(p => (
-              <View key={p.id} style={styles.predItem}>
-                <View style={[styles.predDot, { backgroundColor: p.status === 'overdue' ? '#c62828' : '#e65100' }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.predItemName}>{p.name}</Text>
-                  <Text style={styles.predItemDetail}>
-                    {p.status === 'overdue'
-                      ? `Overdue${p.remainingKm != null ? ` by ${Math.abs(p.remainingKm).toLocaleString()} km` : ''}`
-                      : `Due in${p.remainingKm != null ? ` ${p.remainingKm.toLocaleString()} km` : p.remainingDays != null ? ` ${p.remainingDays} days` : ''}`
-                    }
-                  </Text>
+            topPredictions.map(p => {
+              const isOverdue = p.status === 'overdue'
+              const cardBg    = isOverdue ? '#ffebee' : '#fff8e1'
+              const borderClr = isOverdue ? '#c62828' : '#f9a825'
+              const textClr   = isOverdue ? '#c62828' : '#e65100'
+              const badge     = isOverdue ? '🚨 Overdue' : '⚠ Due Soon'
+              const detail    = isOverdue
+                ? `Overdue${p.remainingKm != null ? ` by ${Math.abs(p.remainingKm).toLocaleString()} km` : ''}`
+                : `Due in${p.remainingKm != null ? ` ${p.remainingKm.toLocaleString()} km` : p.remainingDays != null ? ` ${p.remainingDays} days` : ''}`
+              return (
+                <View key={p.id} style={[styles.predItem, { backgroundColor: cardBg, borderLeftColor: borderClr }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.predItemName, { color: textClr }]}>{p.name}</Text>
+                    <Text style={styles.predItemDetail}>{detail}</Text>
+                  </View>
+                  <View style={[styles.predItemBadge, { backgroundColor: borderClr }]}>
+                    <Text style={styles.predItemBadgeText}>{badge}</Text>
+                  </View>
                 </View>
-                <Text style={[styles.predStatus, { color: p.status === 'overdue' ? '#c62828' : '#e65100' }]}>
-                  {p.status === 'overdue' ? '⚠️' : '🔔'}
-                </Text>
-              </View>
-            ))
+              )
+            })
           )}
         </TouchableOpacity>
 
@@ -1708,19 +1674,6 @@ function makeStyles(c: Colors, topInset: number) {
       paddingHorizontal: 10, paddingVertical: 5,
     },
     tagMoreText: { fontSize: 13, color: c.primary, fontWeight: '600' },
-    predictionsSection: { marginHorizontal: 16, marginBottom: 10 },
-    predictionsSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    predictionsSectionTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    predictionsViewAll: { fontSize: 13, color: c.primary, fontWeight: '600' },
-    predictionCard: {
-      borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center',
-      borderLeftWidth: 4, marginBottom: 8,
-      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-    },
-    predictionName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-    predictionDetail: { fontSize: 12, color: c.textSub },
-    predictionBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
-    predictionBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
     renewalSection: { marginHorizontal: 16, marginBottom: 10 },
     renewalCard: {
@@ -1757,11 +1710,14 @@ function makeStyles(c: Colors, topInset: number) {
     predCardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
     predCardLink: { fontSize: 13, color: c.primary, fontWeight: '600' },
     predAllOk: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
-    predItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 10, borderTopWidth: 1, borderTopColor: c.border },
-    predDot: { width: 8, height: 8, borderRadius: 4 },
-    predItemName: { fontSize: 13, fontWeight: '600', color: c.text },
-    predItemDetail: { fontSize: 12, color: c.textMuted, marginTop: 1 },
-    predStatus: { fontSize: 16 },
+    predItem: {
+      flexDirection: 'row', alignItems: 'center',
+      padding: 12, borderRadius: 10, borderLeftWidth: 4, marginTop: 8,
+    },
+    predItemName: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+    predItemDetail: { fontSize: 12, color: c.textMuted },
+    predItemBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
+    predItemBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
     submissionsSection: { marginHorizontal: 16, marginTop: 10, marginBottom: 8 },
     submissionsSectionTitle: {
