@@ -554,7 +554,7 @@ function makeStyles(c: Colors) {
     multiline: { height: 80, textAlignVertical: 'top' },
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
-    summary: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginTop: 20 },
+    summary: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginTop: 20, marginBottom: 20 },
     summaryLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 8 },
     summaryLine: { fontSize: 13, color: c.textBody, marginBottom: 4, lineHeight: 20 },
     requiredStar: { color: c.error, fontWeight: '700' },

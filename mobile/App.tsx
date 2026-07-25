@@ -85,6 +85,8 @@ export default function App() {
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
   const [hasGarage, setHasGarage] = useState(false)
+  const [addServiceReturnTo, setAddServiceReturnTo] = useState<'vehicleDashboard' | 'predictions' | 'costForecast'>('vehicleDashboard')
+  const [historyServiceSearch, setHistoryServiceSearch] = useState('')
   const [garageEntryFrom, setGarageEntryFrom] = useState<'tab' | 'profile'>('tab')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
@@ -203,7 +205,7 @@ export default function App() {
       otp: 'login',
       addVehicle: 'vehicles',
       vehicleDashboard: 'vehicles',
-      addServiceRecord: 'vehicleDashboard',
+      addServiceRecord: addServiceReturnTo,
       logFuel: 'vehicleDashboard',
       tripLog: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
@@ -232,7 +234,7 @@ export default function App() {
       return false
     })
     return () => handler.remove()
-  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage])
+  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage, addServiceReturnTo])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -407,7 +409,7 @@ export default function App() {
           notifUnread={notifUnreadCount > 0}
           onNotifications={() => setScreen('notifications')}
           onBack={() => setScreen('vehicles')}
-          onAddRecord={() => setScreen('addServiceRecord')}
+          onAddRecord={() => { setAddServiceReturnTo('vehicleDashboard'); setScreen('addServiceRecord') }}
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
@@ -434,8 +436,8 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleType={selectedVehicle.vehicleType}
           currentMileage={selectedVehicle.mileage}
-          onRecordAdded={() => setScreen('vehicleDashboard')}
-          onBack={() => setScreen('vehicleDashboard')}
+          onRecordAdded={() => setScreen(addServiceReturnTo)}
+          onBack={() => setScreen(addServiceReturnTo)}
         />
       )}
       {screen === 'logFuel' && selectedVehicle && (
@@ -510,7 +512,8 @@ export default function App() {
         <VehicleHistoryScreen
           token={token}
           vehicle={selectedVehicle}
-          onBack={() => setScreen('vehicleDashboard')}
+          initialServiceSearch={historyServiceSearch}
+          onBack={() => { setHistoryServiceSearch(''); setScreen('vehicleDashboard') }}
         />
       )}
       {screen === 'analytics' && selectedVehicle && (
@@ -530,7 +533,8 @@ export default function App() {
           initialTab={predictionsInitialTab}
           readOnly={selectedVehicle.isShared}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
-          onLogNow={() => { setPredictionsInitialTab('services'); setScreen('addServiceRecord') }}
+          onLogNow={() => { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setScreen('addServiceRecord') }}
+          onEditRecord={(term) => { setHistoryServiceSearch(term); setScreen('vehicleHistory') }}
         />
       )}
       {screen === 'knowledgeHub' && selectedVehicle && (
@@ -546,7 +550,7 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
-          onAddService={() => setScreen('addServiceRecord')}
+          onAddService={() => { setAddServiceReturnTo('costForecast'); setScreen('addServiceRecord') }}
         />
       )}
       {screen === 'addExpense' && selectedVehicle && (

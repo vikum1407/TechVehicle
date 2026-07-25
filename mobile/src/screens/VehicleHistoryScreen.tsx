@@ -38,6 +38,7 @@ type Props = {
   token: string
   vehicle: Vehicle
   onBack: () => void
+  initialServiceSearch?: string
 }
 
 const EXPENSE_CATEGORIES = [
@@ -55,7 +56,7 @@ function parseItems(description: string) {
   return description.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) {
+export default function VehicleHistoryScreen({ token, vehicle, onBack, initialServiceSearch }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('service')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -63,7 +64,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack }: Props) 
   const [loading, setLoading] = useState(true)
 
   // Service tab state
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(initialServiceSearch || '')
   const [dateFilter, setDateFilter] = useState<'all' | '1y' | '6m' | '3m'>('all')
   const [catFilter, setCatFilter] = useState('All')
   const [mileageMin, setMileageMin] = useState('')

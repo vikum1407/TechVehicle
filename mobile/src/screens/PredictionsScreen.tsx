@@ -100,6 +100,7 @@ type Props = {
   readOnly?: boolean
   onBack: () => void
   onLogNow?: (serviceName: string) => void
+  onEditRecord?: (searchTerm: string) => void
 }
 
 function statusConfig(c: Colors) {
@@ -121,7 +122,7 @@ function kmStr(km: number) {
 
 type SetupEntry = { date: string; mileage: string; brand: string; extras: Record<string, string> }
 
-export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', readOnly = false, onBack, onLogNow }: Props) {
+export default function PredictionsScreen({ token, vehicleId, vehicleName, currentMileage, initialTab = 'services', readOnly = false, onBack, onLogNow, onEditRecord }: Props) {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
@@ -513,6 +514,15 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                 </Text>
               </View>
 
+              {p.lastDoneDate && onEditRecord && (
+                <TouchableOpacity
+                  onPress={() => { setSelectedPrediction(null); onEditRecord(p.keywords[0]) }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.detailEditLink}>✏️ Mileage or date wrong? Edit this record</Text>
+                </TouchableOpacity>
+              )}
+
               {(p.dueAtKm !== null || p.dueAtDate !== null) && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailRowLabel}>Due at</Text>
@@ -631,8 +641,8 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                 />
 
                 <TouchableOpacity
-                  style={[styles.overrideSaveBtn, savingOverride && { opacity: 0.6 }]}
-                  disabled={savingOverride}
+                  style={[styles.overrideSaveBtn, (savingOverride || (!overrideKm.trim() && !overrideDays.trim())) && { opacity: 0.6 }]}
+                  disabled={savingOverride || (!overrideKm.trim() && !overrideDays.trim())}
                   onPress={async () => {
                     const kmNum = overrideKm.trim() ? Number(overrideKm.trim()) : null
                     const daysNum = overrideDays.trim() ? Number(overrideDays.trim()) : null
@@ -834,6 +844,7 @@ function makeStyles(c: Colors) {
       fontSize: 13, color: c.text, fontWeight: '600',
       flex: 1, textAlign: 'right', marginLeft: 16,
     },
+    detailEditLink: { fontSize: 12, color: c.primary, fontWeight: '600', textAlign: 'right', marginTop: 6 },
     detailRemaining: {
       borderWidth: 1.5, borderRadius: 10, padding: 12,
       marginTop: 14, marginBottom: 4, alignItems: 'center',
