@@ -12,6 +12,7 @@ import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import DateField from '../components/DateField'
 import Button from '../components/Button'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
@@ -706,13 +707,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <View style={styles.row}>
           <View style={styles.half}>
-            <FormField
-              label="Service Date"
-              value={subDate}
-              onChangeText={setSubDate}
-              placeholder="DD/MM/YYYY"
-              keyboardType="numbers-and-punctuation"
-            />
+            <DateField label="Service Date" value={subDate} onChange={setSubDate} maximumDate={new Date()} />
           </View>
           <View style={styles.half}>
             <FormField
@@ -1335,6 +1330,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </View>
                 )}
 
+                {isConfirmed && attachedShare && !isExpanded && (
+                  <View style={styles.confirmedBadge}>
+                    <Text style={styles.confirmedText}>
+                      {alreadySubmitted ? '✓ Service submitted — awaiting owner approval' : '📋 Confirmed — tap to view history & submit service'}
+                    </Text>
+                  </View>
+                )}
+
                 {/* ── Expanded: confirmed without share → show submit button ── */}
                 {isExpanded && isConfirmed && !attachedShare && (
                   <View style={styles.inlineShareSection}>
@@ -1483,14 +1486,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </View>
                 )}
 
-                {!isExpanded && (
-                  <Text style={styles.expandHint}>
-                    {attachedShare
-                      ? 'Tap to view shared history & submit service'
-                      : isConfirmed
-                        ? 'Tap to submit completed service'
-                        : 'Tap to expand'}
-                  </Text>
+                {!isExpanded && !isConfirmed && (
+                  <Text style={styles.expandHint}>Tap to expand</Text>
                 )}
               </TouchableOpacity>
             )

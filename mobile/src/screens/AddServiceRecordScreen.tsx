@@ -14,6 +14,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import DateField from '../components/DateField'
 import Button from '../components/Button'
 
 type Props = {
@@ -401,13 +402,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       {/* ── Date / Mileage / Cost ─────────────────────────── */}
       <View style={styles.row}>
         <View style={styles.half}>
-          <FormField
-            label="Date"
-            value={date}
-            onChangeText={setDate}
-            placeholder="DD/MM/YYYY"
-            keyboardType="numbers-and-punctuation"
-          />
+          <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={styles.half}>
           <FormField

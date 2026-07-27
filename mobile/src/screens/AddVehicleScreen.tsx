@@ -14,6 +14,7 @@ import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { BRANDS_LIST, BRAND_MODELS } from '../constants/vehicleData'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import DateField from '../components/DateField'
 import Button from '../components/Button'
 import Chip from '../components/Chip'
 
@@ -352,13 +353,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       <View style={styles.divider} />
       <Text style={styles.sectionLabel}>Optional Details</Text>
 
-      <FormField
-        label="Purchase Date"
-        placeholder="DD/MM/YYYY"
-        value={purchaseDate}
-        onChangeText={setPurchaseDate}
-        keyboardType="numbers-and-punctuation"
-      />
+      <DateField label="Purchase Date" value={purchaseDate} onChange={setPurchaseDate} maximumDate={new Date()} />
 
       <Text style={styles.label}>Owner History</Text>
       <View style={styles.chipRow}>

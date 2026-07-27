@@ -172,6 +172,7 @@ model Booking {
   serviceType    String?
   shareSessionId String?
   reminderSent   Boolean       @default(false)
+  reminder1hSent Boolean       @default(false)
   counterDate    DateTime?
   counterSlot    String?
   createdAt      DateTime      @default(now())

@@ -9,6 +9,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import DateField from '../components/DateField'
 import Button from '../components/Button'
 
 type Props = {
@@ -447,10 +448,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <FormField
-                  label="Test Date" value={eDate} onChangeText={setEDate}
-                  placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
-                />
+                <DateField label="Test Date" value={eDate} onChange={setEDate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField
@@ -548,10 +546,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <FormField
-                  label="Date" value={aDate} onChangeText={setADate}
-                  placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
-                />
+                <DateField label="Date" value={aDate} onChange={setADate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField
@@ -708,10 +703,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <FormField
-                  label="Date" value={cDate} onChangeText={setCDate}
-                  placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation"
-                />
+                <DateField label="Date" value={cDate} onChange={setCDate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField

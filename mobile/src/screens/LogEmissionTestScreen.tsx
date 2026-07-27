@@ -8,6 +8,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import DateField from '../components/DateField'
 import Button from '../components/Button'
 
 type Props = {
@@ -142,7 +143,7 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
 
       <View style={s.row}>
         <View style={s.half}>
-          <FormField label="Test Date" value={date} onChangeText={setDate} placeholder="DD/MM/YYYY" keyboardType="numbers-and-punctuation" />
+          <DateField label="Test Date" value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={s.half}>
           <FormField label="Mileage (km)" value={mileage} onChangeText={setMileage} placeholder="e.g. 45000" keyboardType="number-pad" />
