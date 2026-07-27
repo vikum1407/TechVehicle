@@ -100,7 +100,7 @@ export const api = {
     return data
   },
 
-  updateGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string }) => {
+  updateGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string; priceList?: { service: string; price: number }[] }) => {
     const res = await fetch(`${API_URL}/garages/me`, {
       method: 'PUT',
       headers: authHeaders(token),
@@ -117,6 +117,71 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to search garages')
+    return data as {
+      id: string; name: string; address: string | null; verified: boolean
+      priceList: { service: string; price: number }[] | null
+      avgRating: number | null; ratingCount: number
+    }[]
+  },
+
+  lookupVehicle: async (token: string, registrationNo: string) => {
+    const res = await fetch(`${API_URL}/vehicles/lookup?registrationNo=${encodeURIComponent(registrationNo)}`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Vehicle not found')
+    return data as {
+      id: string; registrationNo: string; make: string; model: string; year: number
+      mileage: number; fuelType: string; vehicleType: string | null
+    }
+  },
+
+  submitWalkinService: async (token: string, payload: {
+    vehicleId: string; description: string; mileage?: number; cost?: number
+    notes?: string; photos?: string[]; categories?: string[]
+  }) => {
+    const res = await fetch(`${API_URL}/service-submissions/walkin`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to submit walk-in service')
+    return data
+  },
+
+  rateGarage: async (token: string, submissionId: string, rating: number, comment?: string) => {
+    const res = await fetch(`${API_URL}/service-submissions/${submissionId}/rate`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ rating, comment }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to submit rating')
+    return data
+  },
+
+  getGarageCustomers: async (token: string) => {
+    const res = await fetch(`${API_URL}/garages/customers`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch customers')
+    return data as {
+      vehicleId: string; registrationNo: string; make: string; model: string; year: number
+      jobCount: number; totalRevenue: number; lastServiceDate: string | null
+      prediction: { name: string; status: string; remainingKm: number | null; remainingDays: number | null } | null
+      lastReminderSentAt: string | null
+    }[]
+  },
+
+  sendServiceReminder: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/garages/customers/${vehicleId}/remind`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to send reminder')
     return data
   },
 
@@ -291,6 +356,7 @@ export const api = {
     cost?: number
     notes?: string
     photos?: string[]
+    categories?: string[]
   }) => {
     const res = await fetch(`${API_URL}/service-submissions`, {
       method: 'POST',
@@ -445,6 +511,7 @@ export const api = {
     return data as {
       id: string; status: string; createdAt: string
       description: string; cost: number | null; mileage: number | null
+      categories: string[]
       vehicle: { registrationNo: string; make: string; model: string; year: number }
     }[]
   },

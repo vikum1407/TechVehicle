@@ -200,6 +200,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [accepting, setAccepting] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
+  const [ratingPrompt, setRatingPrompt] = useState<{ submissionId: string; garageName: string } | null>(null)
+  const [ratingValue, setRatingValue] = useState(0)
+  const [ratingComment, setRatingComment] = useState('')
+  const [submittingRating, setSubmittingRating] = useState(false)
   const [pendingTransfer, setPendingTransfer] = useState<PendingTransfer | null>(null)
   const [cancellingTransfer, setCancellingTransfer] = useState(false)
   const [miniAnalytics, setMiniAnalytics] = useState<MiniAnalytics | null>(null)
@@ -385,15 +389,33 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     }
   }
 
-  const handleAccept = async (submissionId: string) => {
-    setAccepting(submissionId)
+  const handleAccept = async (sub: Submission) => {
+    setAccepting(sub.id)
     try {
-      await api.acceptSubmission(token, submissionId)
+      await api.acceptSubmission(token, sub.id)
       await loadRecords()
+      if (sub.garage) {
+        setRatingPrompt({ submissionId: sub.id, garageName: sub.garage.name })
+        setRatingValue(0)
+        setRatingComment('')
+      }
     } catch (e: any) {
       Alert.alert('Error', e.message)
     } finally {
       setAccepting(null)
+    }
+  }
+
+  const handleSubmitRating = async () => {
+    if (!ratingPrompt || ratingValue === 0) return
+    setSubmittingRating(true)
+    try {
+      await api.rateGarage(token, ratingPrompt.submissionId, ratingValue, ratingComment.trim() || undefined)
+      setRatingPrompt(null)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setSubmittingRating(false)
     }
   }
 
@@ -1173,7 +1195,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.acceptBtn, styles.acceptBtnFlex, accepting === sub.id && styles.acceptBtnDisabled]}
-                      onPress={() => handleAccept(sub.id)}
+                      onPress={() => handleAccept(sub)}
                       disabled={accepting === sub.id || rejecting === sub.id}
                     >
                       {accepting === sub.id
@@ -1186,7 +1208,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 {sub.garage && (
                   <TouchableOpacity
                     style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
-                    onPress={() => handleAccept(sub.id)}
+                    onPress={() => handleAccept(sub)}
                     disabled={accepting === sub.id}
                   >
                     {accepting === sub.id
@@ -1516,6 +1538,52 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 {sharingAccess
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Text style={styles.familyShareBtnText}>Share</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={!!ratingPrompt} transparent animationType="slide" onRequestClose={() => setRatingPrompt(null)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.moreSheetOverlay}>
+          <View style={styles.moreSheetCard}>
+            <View style={styles.moreSheetHeaderRow}>
+              <Text style={styles.moreSheetTitle}>Rate {ratingPrompt?.garageName}</Text>
+              <TouchableOpacity onPress={() => setRatingPrompt(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.moreSheetClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.ratingSubtitle}>How was your experience with this service?</Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <TouchableOpacity key={n} onPress={() => setRatingValue(n)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                  <Text style={styles.starIcon}>{n <= ratingValue ? '⭐' : '☆'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.ratingCommentInput}
+              value={ratingComment}
+              onChangeText={setRatingComment}
+              placeholder="Add a comment (optional)"
+              placeholderTextColor={colors.textFaint}
+              multiline
+            />
+            <View style={styles.ratingBtnRow}>
+              <TouchableOpacity style={styles.ratingSkipBtn} onPress={() => setRatingPrompt(null)}>
+                <Text style={styles.ratingSkipBtnText}>Skip</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.ratingSubmitBtn, (ratingValue === 0 || submittingRating) && { opacity: 0.5 }]}
+                onPress={handleSubmitRating}
+                disabled={ratingValue === 0 || submittingRating}
+              >
+                {submittingRating
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.ratingSubmitBtnText}>Submit Rating</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -1923,5 +1991,23 @@ function makeStyles(c: Colors, topInset: number) {
       paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center',
     },
     familyShareBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    ratingSubtitle: { fontSize: 14, color: c.textSub, marginBottom: 16 },
+    starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
+    starIcon: { fontSize: 32 },
+    ratingCommentInput: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
+      paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text,
+      minHeight: 64, textAlignVertical: 'top', marginBottom: 16,
+    },
+    ratingBtnRow: { flexDirection: 'row', gap: 12 },
+    ratingSkipBtn: {
+      flex: 1, borderRadius: 10, paddingVertical: 13, alignItems: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid,
+    },
+    ratingSkipBtnText: { fontSize: 14, fontWeight: '700', color: c.textSub },
+    ratingSubmitBtn: {
+      flex: 2, backgroundColor: c.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center',
+    },
+    ratingSubmitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   })
 }

@@ -12,7 +12,7 @@ router.use(authMiddleware)
 // POST /service-submissions — garage submits completed service
 // Accepts either shareSessionId (owner shared records) or bookingId (no share attached)
 router.post('/', async (req: AuthRequest, res) => {
-  const { shareSessionId, bookingId, vehicleId, description, parts, brand, mileage, cost, notes, photos } = req.body
+  const { shareSessionId, bookingId, vehicleId, description, parts, brand, mileage, cost, notes, photos, categories } = req.body
   if (!vehicleId || !description?.trim()) {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
@@ -61,6 +61,7 @@ router.post('/', async (req: AuthRequest, res) => {
         cost: cost ? Number(cost) : null,
         notes: notes?.trim() || null,
         photos: Array.isArray(photos) ? photos : [],
+        categories: Array.isArray(categories) ? categories : [],
         status: 'pending',
       },
       include: { garage: true },
@@ -91,6 +92,68 @@ router.post('/', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('POST /service-submissions error:', error)
     res.status(500).json({ error: 'Failed to create submission' })
+  }
+})
+
+// POST /service-submissions/walkin — garage submits a completed service for a vehicle it looked up
+// directly by registration number, with no prior booking or share session
+router.post('/walkin', async (req: AuthRequest, res) => {
+  const { vehicleId, description, parts, brand, mileage, cost, notes, photos, categories } = req.body
+  if (!vehicleId || !description?.trim()) {
+    res.status(400).json({ error: 'vehicleId and description are required' })
+    return
+  }
+  if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
+    res.status(400).json({ error: 'cost is required and must be greater than 0' })
+    return
+  }
+  try {
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
+    if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }
+
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const submission = await prisma.serviceSubmission.create({
+      data: {
+        vehicleId,
+        garageId: garage.id,
+        ownerPhone: vehicle.ownerPhone,
+        description: description.trim(),
+        parts: parts?.trim() || null,
+        brand: brand?.trim() || null,
+        mileage: mileage ? Number(mileage) : null,
+        cost: cost ? Number(cost) : null,
+        notes: notes?.trim() || null,
+        photos: Array.isArray(photos) ? photos : [],
+        categories: Array.isArray(categories) ? categories : [],
+        status: 'pending',
+      },
+      include: { garage: true },
+    })
+
+    const ownerUser = await prisma.user.findUnique({ where: { phoneNumber: vehicle.ownerPhone } })
+    const ownerPrefs = parsePrefs(ownerUser?.notificationPrefs)
+    if (ownerPrefs.submission) {
+      await sendPush(
+        ownerUser?.pushToken,
+        'Service Record Submitted',
+        `${garage.name} submitted a completed service record for ${vehicle.registrationNo}`,
+        { screen: 'vehicles', vehicleId }
+      )
+    }
+    await createNotification(
+      prisma, vehicle.ownerPhone,
+      'submission',
+      vehicle.registrationNo,
+      `${garage.name} submitted a completed service record for your review`,
+      { screen: 'vehicleDashboard', vehicleId }
+    )
+
+    res.status(201).json(submission)
+  } catch (error) {
+    console.error('POST /service-submissions/walkin error:', error)
+    res.status(500).json({ error: 'Failed to create walk-in submission' })
   }
 })
 
@@ -321,6 +384,41 @@ router.get('/garage', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('GET /service-submissions/garage error:', error)
     res.status(500).json({ error: 'Failed to fetch submissions' })
+  }
+})
+
+// POST /service-submissions/:id/rate — owner rates the garage after accepting a submission
+router.post('/:id/rate', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  const { rating, comment } = req.body
+  const ratingNum = Number(rating)
+  if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+    res.status(400).json({ error: 'rating must be between 1 and 5' }); return
+  }
+  try {
+    const submission = await prisma.serviceSubmission.findFirst({
+      where: { id, ownerPhone: req.phoneNumber!, status: 'accepted' },
+    })
+    if (!submission) { res.status(404).json({ error: 'Submission not found or not accepted' }); return }
+    if (!submission.garageId) { res.status(400).json({ error: 'This submission has no garage to rate' }); return }
+
+    const existing = await prisma.garageRating.findUnique({ where: { submissionId: id } })
+    if (existing) { res.status(409).json({ error: 'You already rated this service' }); return }
+
+    const created = await prisma.garageRating.create({
+      data: {
+        garageId: submission.garageId,
+        vehicleId: submission.vehicleId,
+        ownerPhone: req.phoneNumber!,
+        submissionId: id,
+        rating: ratingNum,
+        comment: comment?.trim() || null,
+      },
+    })
+    res.status(201).json(created)
+  } catch (error) {
+    console.error('POST /service-submissions/:id/rate error:', error)
+    res.status(500).json({ error: 'Failed to submit rating' })
   }
 })
 

@@ -30,6 +30,9 @@ type GarageResult = {
   name: string
   address: string | null
   verified: boolean
+  priceList?: { service: string; price: number }[] | null
+  avgRating?: number | null
+  ratingCount?: number
 }
 
 type DateSlot = {
@@ -63,6 +66,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [searchResults, setSearchResults] = useState<GarageResult[]>([])
   const [searching, setSearching] = useState(false)
   const [selectedGarage, setSelectedGarage] = useState<GarageResult | null>(null)
+  const [expandedPriceGarageId, setExpandedPriceGarageId] = useState<string | null>(null)
 
   const [dates, setDates] = useState<DateSlot[]>([])
   const [timeSlots, setTimeSlots] = useState<string[]>([])
@@ -233,25 +237,56 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             </View>
           )}
 
-          {searchResults.map(garage => (
-            <TouchableOpacity
-              key={garage.id}
-              style={styles.garageCard}
-              onPress={() => handleSelectGarage(garage)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.garageCardLeft}>
-                <Text style={styles.garageName}>{garage.name}</Text>
-                {garage.address && <Text style={styles.garageAddress}>{garage.address}</Text>}
+          {searchResults.map(garage => {
+            const isExpanded = expandedPriceGarageId === garage.id
+            const cheapest = garage.priceList && garage.priceList.length > 0
+              ? Math.min(...garage.priceList.map(p => p.price))
+              : null
+            return (
+              <View key={garage.id} style={styles.garageCard}>
+                <TouchableOpacity
+                  style={styles.garageCardMain}
+                  onPress={() => handleSelectGarage(garage)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.garageCardLeft}>
+                    <Text style={styles.garageName}>{garage.name}</Text>
+                    {garage.address && <Text style={styles.garageAddress}>{garage.address}</Text>}
+                    {!!garage.ratingCount && (
+                      <Text style={styles.garageRating}>⭐ {garage.avgRating} ({garage.ratingCount})</Text>
+                    )}
+                  </View>
+                  <View style={styles.garageCardRight}>
+                    <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
+                      <Text style={styles.badgeText}>{garage.verified ? '✅ Verified' : '⚠️ Unverified'}</Text>
+                    </View>
+                    <Text style={styles.selectText}>Select →</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {cheapest != null && (
+                  <TouchableOpacity
+                    style={styles.priceToggle}
+                    onPress={() => setExpandedPriceGarageId(isExpanded ? null : garage.id)}
+                  >
+                    <Text style={styles.priceToggleText}>
+                      💰 From LKR {cheapest.toLocaleString()} — Price List {isExpanded ? '▲' : '▼'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {isExpanded && garage.priceList && (
+                  <View style={styles.priceListBox}>
+                    {garage.priceList.map((p, i) => (
+                      <View key={i} style={styles.priceListRow}>
+                        <Text style={styles.priceListService}>{p.service}</Text>
+                        <Text style={styles.priceListValue}>LKR {p.price.toLocaleString()}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
-              <View style={styles.garageCardRight}>
-                <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
-                  <Text style={styles.badgeText}>{garage.verified ? '✅ Verified' : '⚠️ Unverified'}</Text>
-                </View>
-                <Text style={styles.selectText}>Select →</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+            )
+          })}
         </ScrollView>
       </View>
       </KeyboardAvoidingView>
@@ -652,18 +687,30 @@ function makeStyles(c: Colors) {
 
     garageCard: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 12,
-      flexDirection: 'row', alignItems: 'center',
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
     },
+    garageCardMain: { flexDirection: 'row', alignItems: 'center' },
     garageCardLeft: { flex: 1 },
     garageCardRight: { alignItems: 'flex-end', gap: 6 },
     garageName: { fontSize: 16, fontWeight: '700', color: c.text, marginBottom: 3 },
     garageAddress: { fontSize: 13, color: c.textMuted },
+    garageRating: { fontSize: 12, color: '#e65100', fontWeight: '700', marginTop: 3 },
     badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
     badgeVerified: { backgroundColor: '#e8f5e9' },
     badgeUnverified: { backgroundColor: '#fff8e1' },
     badgeText: { fontSize: 12, fontWeight: '600' },
     selectText: { fontSize: 13, color: c.primary, fontWeight: '600' },
+    priceToggle: {
+      marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border,
+    },
+    priceToggleText: { fontSize: 12, color: c.primary, fontWeight: '700' },
+    priceListBox: { marginTop: 8 },
+    priceListRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    priceListService: { fontSize: 13, color: c.textSub },
+    priceListValue: { fontSize: 13, color: c.text, fontWeight: '700' },
 
     selectedGarageBanner: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 20,

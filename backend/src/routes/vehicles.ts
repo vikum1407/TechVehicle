@@ -130,6 +130,30 @@ router.patch('/:id/photo', async (req: AuthRequest, res) => {
   }
 })
 
+// GET /vehicles/lookup?registrationNo=xxx — garage looks up a vehicle for walk-in service logging.
+// Returns minimal identity fields only — no owner phone, no service history — full detail
+// still requires the owner's consent via a Share or Booking.
+router.get('/lookup', async (req: AuthRequest, res) => {
+  const registrationNo = (req.query.registrationNo as string || '').trim()
+  if (registrationNo.length < 2) {
+    res.status(400).json({ error: 'Registration number is required' }); return
+  }
+  try {
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
+    if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }
+
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { registrationNo: { equals: registrationNo, mode: 'insensitive' } },
+      select: { id: true, registrationNo: true, make: true, model: true, year: true, mileage: true, fuelType: true, vehicleType: true },
+    })
+    if (!vehicle) { res.status(404).json({ error: 'No vehicle found with that registration number' }); return }
+    res.json(vehicle)
+  } catch (error) {
+    console.error('GET /vehicles/lookup error:', error)
+    res.status(500).json({ error: 'Failed to look up vehicle' })
+  }
+})
+
 // GET /vehicles/:id/progress — vehicle profile completion score
 router.get('/:id/progress', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }

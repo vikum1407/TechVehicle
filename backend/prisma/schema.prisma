@@ -112,6 +112,30 @@ model Garage {
   availability      GarageAvailability?
   bookings          Booking[]
   calendarOverrides GarageCalendarOverride[]
+  reminders         GarageReminder[]
+  ratings           GarageRating[]
+  priceList         Json?
+}
+
+model GarageReminder {
+  id        String   @id @default(cuid())
+  garageId  String
+  vehicleId String
+  sentAt    DateTime @default(now())
+  garage    Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  @@unique([garageId, vehicleId])
+}
+
+model GarageRating {
+  id           String   @id @default(cuid())
+  garageId     String
+  vehicleId    String
+  ownerPhone   String
+  submissionId String   @unique
+  rating       Int
+  comment      String?
+  createdAt    DateTime @default(now())
+  garage       Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
 }
 
 model ShareSession {
@@ -228,6 +252,7 @@ model ServiceSubmission {
   cost             Float?
   notes            String?
   structuredData   Json?
+  categories       String[] @default([])
   photos           String[]
   status           String    @default("pending")
   createdAt        DateTime  @default(now())

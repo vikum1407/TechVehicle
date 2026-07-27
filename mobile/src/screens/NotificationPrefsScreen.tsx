@@ -49,6 +49,11 @@ const PREFS = [
     title: 'Service Submission Alerts',
     description: 'Notify when a garage submits a completed service record',
   },
+  {
+    key: 'garage_reminder',
+    title: 'Garage Service Reminders',
+    description: 'Notify when a garage you\'ve used flags your vehicle as due for service',
+  },
 ]
 
 export default function NotificationPrefsScreen({ token, onBack }: Props) {
@@ -60,6 +65,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
     booking: true,
     transfer: true,
     submission: true,
+    garage_reminder: true,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)

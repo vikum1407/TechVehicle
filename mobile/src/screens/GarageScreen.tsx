@@ -40,6 +40,9 @@ type Garage = {
   brNumber: string | null
   verified: boolean
   createdAt: string
+  priceList?: { service: string; price: number }[] | null
+  avgRating?: number | null
+  ratingCount?: number
 }
 
 type SharedRecord = {
@@ -69,11 +72,19 @@ type IncomingShare = {
   records: SharedRecord[]
 }
 
-type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar' | 'history'
+type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar' | 'customers' | 'history'
+
+type Customer = {
+  vehicleId: string; registrationNo: string; make: string; model: string; year: number
+  jobCount: number; totalRevenue: number; lastServiceDate: string | null
+  prediction: { name: string; status: string; remainingKm: number | null; remainingDays: number | null } | null
+  lastReminderSentAt: string | null
+}
 
 type CompletedJob = {
   id: string; status: string; createdAt: string
   description: string; cost: number | null; mileage: number | null
+  categories: string[]
   vehicle: { registrationNo: string; make: string; model: string; year: number }
 }
 
@@ -167,10 +178,25 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [historyJobs, setHistoryJobs] = useState<CompletedJob[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
+  // Customers tab state
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customersLoading, setCustomersLoading] = useState(false)
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [remindingId, setRemindingId] = useState<string | null>(null)
+  const [walkinOpen, setWalkinOpen] = useState(false)
+  const [walkinRegNo, setWalkinRegNo] = useState('')
+  const [walkinLookupLoading, setWalkinLookupLoading] = useState(false)
+  const [walkinResult, setWalkinResult] = useState<{
+    id: string; registrationNo: string; make: string; model: string; year: number
+    mileage: number; fuelType: string; vehicleType: string | null
+  } | null>(null)
+  const [isWalkIn, setIsWalkIn] = useState(false)
+
   // Garage profile form
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [brNumber, setBrNumber] = useState('')
+  const [priceListRows, setPriceListRows] = useState<{ service: string; price: string }[]>([])
 
   // Full submission form — shown when a share is being submitted
   const [submittingShare, setSubmittingShare] = useState<IncomingShare | null>(null)
@@ -342,6 +368,31 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
   }
 
+  const loadCustomers = async () => {
+    setCustomersLoading(true)
+    try {
+      const data = await api.getGarageCustomers(token)
+      setCustomers(data)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setCustomersLoading(false)
+    }
+  }
+
+  const handleRemind = async (vehicleId: string) => {
+    setRemindingId(vehicleId)
+    try {
+      await api.sendServiceReminder(token, vehicleId)
+      setCustomers(prev => prev.map(c => c.vehicleId === vehicleId ? { ...c, lastReminderSentAt: new Date().toISOString() } : c))
+      Alert.alert('Reminder Sent', 'The owner has been notified.')
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setRemindingId(null)
+    }
+  }
+
   const handleSaveSchedule = async () => {
     setSavingSchedule(true)
     try {
@@ -427,6 +478,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (tab === 'schedule' && garage) { loadSchedule(); loadOverrides(calMonth) }
     if (tab === 'calendar' && garage) { loadBookings(); loadSchedule(); loadOverrides(calMonth) }
     if (tab === 'history' && garage) { loadHistory() }
+    if (tab === 'customers' && garage) { loadCustomers() }
   }, [tab, garage])
 
   const handleRegister = async () => {
@@ -449,7 +501,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (!name.trim()) { Alert.alert('Required', 'Please enter your garage name.'); return }
     setSaving(true)
     try {
-      const data = await api.updateGarage(token, { name, address, brNumber })
+      const priceList = priceListRows
+        .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
+        .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
+      const data = await api.updateGarage(token, { name, address, brNumber, priceList })
       setGarage(data)
       setEditing(false)
     } catch (e: any) {
@@ -491,6 +546,47 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
     openSubmitForm(mockShare)
     setSubmittingBookingId(booking.id)
+  }
+
+  const handleWalkinLookup = async () => {
+    if (!walkinRegNo.trim()) return
+    setWalkinLookupLoading(true)
+    setWalkinResult(null)
+    try {
+      const result = await api.lookupVehicle(token, walkinRegNo.trim())
+      setWalkinResult(result)
+    } catch (e: any) {
+      Alert.alert('Not Found', e.message)
+    } finally {
+      setWalkinLookupLoading(false)
+    }
+  }
+
+  const openSubmitFormFromWalkin = () => {
+    if (!walkinResult) return
+    const mockShare: IncomingShare = {
+      id: '',
+      vehicleId: walkinResult.id,
+      createdAt: new Date().toISOString(),
+      ownerPhone: '',
+      avgFuelEfficiency: null,
+      totalServiceCost: 0,
+      vehicle: {
+        registrationNo: walkinResult.registrationNo,
+        make: walkinResult.make,
+        model: walkinResult.model,
+        year: walkinResult.year,
+        fuelType: walkinResult.fuelType || 'Petrol',
+        vehicleType: walkinResult.vehicleType,
+        mileage: walkinResult.mileage,
+      },
+      records: [],
+    }
+    openSubmitForm(mockShare)
+    setIsWalkIn(true)
+    setWalkinOpen(false)
+    setWalkinRegNo('')
+    setWalkinResult(null)
   }
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
@@ -583,25 +679,40 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     const description = allItems
       .map(i => i.brand ? `${i.name} (${i.brand})` : i.name)
       .join(', ')
+    const categories = Array.from(new Set(allItems.map(i => i.category)))
 
     setSubmitting(true)
     try {
-      const isFromBooking = !!submittingBookingId
-      await api.submitService(token, {
-        shareSessionId: isFromBooking ? undefined : submittingShare.id,
-        bookingId: submittingBookingId || undefined,
-        vehicleId: submittingShare.vehicleId,
-        description,
-        mileage: subMileageNum,
-        cost: subCost ? parseFloat(subCost) : undefined,
-        notes: subNotes.trim() || undefined,
-        photos: subPhotos.length > 0 ? subPhotos : undefined,
-      })
-      const trackKey = submittingBookingId ? `booking_${submittingBookingId}` : submittingShare.id
-      setSubmittedIds(prev => new Set(prev).add(trackKey))
+      if (isWalkIn) {
+        await api.submitWalkinService(token, {
+          vehicleId: submittingShare.vehicleId,
+          description,
+          mileage: subMileageNum,
+          cost: subCost ? parseFloat(subCost) : undefined,
+          notes: subNotes.trim() || undefined,
+          photos: subPhotos.length > 0 ? subPhotos : undefined,
+          categories,
+        })
+      } else {
+        const isFromBooking = !!submittingBookingId
+        await api.submitService(token, {
+          shareSessionId: isFromBooking ? undefined : submittingShare.id,
+          bookingId: submittingBookingId || undefined,
+          vehicleId: submittingShare.vehicleId,
+          description,
+          mileage: subMileageNum,
+          cost: subCost ? parseFloat(subCost) : undefined,
+          notes: subNotes.trim() || undefined,
+          photos: subPhotos.length > 0 ? subPhotos : undefined,
+          categories,
+        })
+        const trackKey = submittingBookingId ? `booking_${submittingBookingId}` : submittingShare.id
+        setSubmittedIds(prev => new Set(prev).add(trackKey))
+      }
       setSubmittingBookingId(null)
       setSubmittingShare(null)
       setSubPhotos([])
+      setIsWalkIn(false)
       Alert.alert('Submitted', 'Service record sent to the vehicle owner for acceptance.')
     } catch (e: any) {
       Alert.alert('Error', e.message)
@@ -628,7 +739,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Submit Completed Service" onBack={() => setSubmittingShare(null)} />
+        <ScreenHeader title="Submit Completed Service" onBack={() => { setSubmittingShare(null); setIsWalkIn(false) }} />
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
 
         {/* Which vehicle */}
@@ -905,7 +1016,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       </View>
 
       {garage && !editing && (
-        <View style={styles.tabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, tab === 'profile' && styles.tabActive]}
             onPress={() => setTab('profile')}
@@ -931,12 +1042,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.tab, tab === 'customers' && styles.tabActive]}
+            onPress={() => setTab('customers')}
+          >
+            <Text style={[styles.tabText, tab === 'customers' && styles.tabTextActive]}>Customers</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.tab, tab === 'history' && styles.tabActive]}
             onPress={() => setTab('history')}
           >
             <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>Revenue</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       )}
 
       {(tab === 'profile' || !garage) && (
@@ -945,16 +1062,26 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <>
               <View style={styles.profileCard}>
                 <Text style={styles.garageName}>{garage.name}</Text>
-                <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
-                  <Text style={styles.badgeText}>
-                    {garage.verified ? '✅ Verified Garage' : '⚠️ Unverified'}
-                  </Text>
+                <View style={styles.badgeRow}>
+                  <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
+                    <Text style={styles.badgeText}>
+                      {garage.verified ? '✅ Verified Garage' : '⚠️ Unverified'}
+                    </Text>
+                  </View>
+                  {garage.ratingCount != null && garage.ratingCount > 0 && (
+                    <View style={styles.ratingBadge}>
+                      <Text style={styles.ratingBadgeText}>⭐ {garage.avgRating} ({garage.ratingCount})</Text>
+                    </View>
+                  )}
                 </View>
                 {garage.address && <Text style={styles.detail}>📍 {garage.address}</Text>}
                 {garage.brNumber
                   ? <Text style={styles.detail}>🏢 BR: {garage.brNumber}</Text>
                   : <Text style={styles.detailMuted}>No BR number added — add one to get verified</Text>
                 }
+                <Text style={styles.detail}>
+                  💰 {garage.priceList && garage.priceList.length > 0 ? `${garage.priceList.length} price(s) listed` : 'No price list added yet'}
+                </Text>
               </View>
 
               {!garage.verified && (
@@ -973,6 +1100,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   setName(garage.name)
                   setAddress(garage.address || '')
                   setBrNumber(garage.brNumber || '')
+                  setPriceListRows((garage.priceList || []).map(p => ({ service: p.service, price: String(p.price) })))
                   setEditing(true)
                 }}
               >
@@ -998,6 +1126,38 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
               <Text style={styles.label}>BR Number (optional)</Text>
               <TextInput style={styles.input} value={brNumber} onChangeText={setBrNumber} placeholder="e.g. PV 00123456" autoCapitalize="characters" />
+
+              <Text style={[styles.label, { marginTop: 20 }]}>Price List (optional)</Text>
+              <Text style={styles.formSubtitleSmall}>Let owners see estimated costs before they book.</Text>
+              {priceListRows.map((row, i) => (
+                <View key={i} style={styles.priceRow}>
+                  <TextInput
+                    style={[styles.input, styles.priceServiceInput]}
+                    value={row.service}
+                    onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, service: v } : r))}
+                    placeholder="e.g. Oil Change"
+                  />
+                  <TextInput
+                    style={[styles.input, styles.pricePriceInput]}
+                    value={row.price}
+                    onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, price: v } : r))}
+                    placeholder="LKR"
+                    keyboardType="number-pad"
+                  />
+                  <TouchableOpacity
+                    style={styles.priceRemoveBtn}
+                    onPress={() => setPriceListRows(prev => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Text style={styles.priceRemoveBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={styles.priceAddBtn}
+                onPress={() => setPriceListRows(prev => [...prev, { service: '', price: '' }])}
+              >
+                <Text style={styles.priceAddBtnText}>+ Add a service price</Text>
+              </TouchableOpacity>
 
               <View style={styles.brNote}>
                 <Text style={styles.brNoteText}>
@@ -1671,6 +1831,86 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </ScrollView>
       )}
 
+      {/* ── Customers tab ──────────────────────────────────────────────── */}
+      {tab === 'customers' && (
+        <ScrollView contentContainerStyle={styles.content}>
+          <TouchableOpacity style={styles.walkinBtn} onPress={() => setWalkinOpen(true)}>
+            <Text style={styles.walkinBtnText}>🚶 Log a Walk-in Service</Text>
+          </TouchableOpacity>
+
+          <FormField
+            label="Search"
+            value={customerSearch}
+            onChangeText={setCustomerSearch}
+            placeholder="Search by registration number"
+          />
+
+          {customersLoading ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+          ) : (() => {
+            const q = customerSearch.trim().toLowerCase()
+            const filtered = customers.filter(c => !q || c.registrationNo.toLowerCase().includes(q))
+            if (filtered.length === 0) {
+              return (
+                <View style={styles.empty}>
+                  <Text style={styles.emptyIcon}>👥</Text>
+                  <Text style={styles.emptyText}>No customers yet</Text>
+                  <Text style={styles.emptySub}>Vehicles you've serviced through bookings or shares will appear here</Text>
+                </View>
+              )
+            }
+            return filtered.map(cust => {
+              const isOverdue = cust.prediction?.status === 'overdue'
+              const isDueSoon = cust.prediction?.status === 'due_soon'
+              const cooldownMs = cust.lastReminderSentAt ? Date.now() - new Date(cust.lastReminderSentAt).getTime() : null
+              const cooldownActive = cooldownMs != null && cooldownMs < 7 * 24 * 60 * 60 * 1000
+              const daysSinceReminder = cooldownMs != null ? Math.floor(cooldownMs / 86400000) : null
+
+              return (
+                <View key={cust.vehicleId} style={styles.custCard}>
+                  <View style={styles.custTop}>
+                    <Text style={styles.custReg}>{cust.registrationNo}</Text>
+                    {(isOverdue || isDueSoon) && (
+                      <View style={[styles.custBadge, isOverdue ? styles.custBadgeOverdue : styles.custBadgeDueSoon]}>
+                        <Text style={styles.custBadgeText}>{isOverdue ? '🚨 Overdue' : '⚠ Due Soon'}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.custVehicle}>{cust.year} {cust.make} {cust.model}</Text>
+                  <View style={styles.custStatsRow}>
+                    <Text style={styles.custStat}>{cust.jobCount} job{cust.jobCount !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.custStat}>LKR {cust.totalRevenue.toLocaleString()}</Text>
+                    {cust.lastServiceDate && (
+                      <Text style={styles.custStat}>
+                        Last: {new Date(cust.lastServiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </Text>
+                    )}
+                  </View>
+                  {cust.prediction && (isOverdue || isDueSoon) && (
+                    <Text style={styles.custPredictionText}>{cust.prediction.name}</Text>
+                  )}
+                  {(isOverdue || isDueSoon) && (
+                    <TouchableOpacity
+                      style={[styles.custRemindBtn, cooldownActive && styles.custRemindBtnDisabled]}
+                      disabled={cooldownActive || remindingId === cust.vehicleId}
+                      onPress={() => handleRemind(cust.vehicleId)}
+                    >
+                      {remindingId === cust.vehicleId ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.custRemindBtnText}>
+                          {cooldownActive ? `Sent ${daysSinceReminder}d ago` : '🔔 Send Reminder'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )
+            })
+          })()}
+        </ScrollView>
+      )}
+
       {/* ── Revenue / History tab ──────────────────────────────────────── */}
       {tab === 'history' && (
         <ScrollView contentContainerStyle={styles.content}>
@@ -1701,6 +1941,25 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             }
             const maxRev = Math.max(...months.map(m => m.revenue), 1)
 
+            const avgJobValue = completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0
+
+            const jobsByVehicle = new Map<string, number>()
+            completed.forEach(j => {
+              jobsByVehicle.set(j.vehicle.registrationNo, (jobsByVehicle.get(j.vehicle.registrationNo) ?? 0) + 1)
+            })
+            const distinctVehicles = jobsByVehicle.size
+            const repeatVehicles = Array.from(jobsByVehicle.values()).filter(n => n > 1).length
+            const repeatPct = distinctVehicles > 0 ? Math.round((repeatVehicles / distinctVehicles) * 100) : 0
+
+            const catRevenue = new Map<string, number>()
+            completed.forEach(j => {
+              const cats = j.categories && j.categories.length > 0 ? j.categories : ['Uncategorized']
+              cats.forEach(cat => catRevenue.set(cat, (catRevenue.get(cat) ?? 0) + (j.cost ?? 0)))
+            })
+            const catBreakdown = Array.from(catRevenue.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6)
+            const maxCatRevenue = Math.max(...catBreakdown.map(c => c[1]), 1)
+            const CAT_COLORS = ['#1d3a5f', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b']
+
             return (
               <>
                 {/* Summary cards */}
@@ -1716,6 +1975,33 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <Text style={styles.revCardSub}>{thisMonthJobs.length} job{thisMonthJobs.length !== 1 ? 's' : ''}</Text>
                   </View>
                 </View>
+                <View style={styles.revSummaryRow}>
+                  <View style={styles.revCard}>
+                    <Text style={styles.revCardLabel}>Avg Job Value</Text>
+                    <Text style={styles.revCardValue}>LKR {avgJobValue.toLocaleString()}</Text>
+                  </View>
+                  <View style={styles.revCard}>
+                    <Text style={styles.revCardLabel}>Repeat Customers</Text>
+                    <Text style={styles.revCardValue}>{repeatPct}%</Text>
+                    <Text style={styles.revCardSub}>{repeatVehicles} of {distinctVehicles} vehicles</Text>
+                  </View>
+                </View>
+
+                {/* Revenue by category */}
+                {catBreakdown.length > 0 && (
+                  <View style={styles.revChartCard}>
+                    <Text style={styles.revChartTitle}>Revenue by Category</Text>
+                    {catBreakdown.map(([cat, rev], i) => (
+                      <View key={cat} style={styles.revCatRow}>
+                        <Text style={styles.revCatLabel} numberOfLines={1}>{cat}</Text>
+                        <View style={styles.revCatBarTrack}>
+                          <View style={[styles.revCatBarFill, { width: `${Math.round((rev / maxCatRevenue) * 100)}%` as any, backgroundColor: CAT_COLORS[i % CAT_COLORS.length] }]} />
+                        </View>
+                        <Text style={styles.revCatAmount}>{Math.round(rev / 1000)}k</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 {/* Monthly bar chart */}
                 <View style={styles.revChartCard}>
@@ -1771,6 +2057,50 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             )
           })()}
         </ScrollView>
+      )}
+
+      {/* ── Walk-in service lookup modal ──────────────────────────────── */}
+      {walkinOpen && (
+        <Modal visible animationType="slide" transparent={false} onRequestClose={() => setWalkinOpen(false)}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.container}>
+            <ScreenHeader title="Log a Walk-in Service" onBack={() => { setWalkinOpen(false); setWalkinRegNo(''); setWalkinResult(null) }} />
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+              <Text style={styles.walkinIntro}>
+                Enter the vehicle's registration number to look it up, then log the completed service. The owner will still need to Accept it before it's added to their history.
+              </Text>
+              <View style={styles.walkinSearchRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={walkinRegNo}
+                  onChangeText={setWalkinRegNo}
+                  placeholder="e.g. WP CAB-1234"
+                  autoCapitalize="characters"
+                />
+                <TouchableOpacity style={styles.walkinFindBtn} onPress={handleWalkinLookup} disabled={walkinLookupLoading}>
+                  {walkinLookupLoading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.walkinFindBtnText}>Find</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+
+              {walkinResult && (
+                <View style={styles.walkinResultCard}>
+                  <Text style={styles.walkinResultReg}>{walkinResult.registrationNo}</Text>
+                  <Text style={styles.walkinResultVehicle}>
+                    {walkinResult.year} {walkinResult.make} {walkinResult.model}
+                  </Text>
+                  <Text style={styles.walkinResultMeta}>{walkinResult.mileage.toLocaleString()} km · {walkinResult.fuelType}</Text>
+                  <TouchableOpacity style={styles.walkinConfirmBtn} onPress={openSubmitFormFromWalkin}>
+                    <Text style={styles.walkinConfirmBtnText}>Log Service for this Vehicle</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+          </KeyboardAvoidingView>
+        </Modal>
       )}
 
       {/* ── Counter-suggest modal ─────────────────────────────────────── */}
@@ -1954,11 +2284,14 @@ function makeStyles(c: Colors, topInset: number) {
       width: 10, height: 10, borderRadius: 5,
       backgroundColor: '#e53935', borderWidth: 1.5, borderColor: c.surface,
     },
-    tabs: {
-      flexDirection: 'row', backgroundColor: c.surface,
-      borderBottomWidth: 1, borderBottomColor: c.border,
+    tabsScroll: {
+      backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
+      flexGrow: 0,
     },
-    tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+    tabs: {
+      flexDirection: 'row',
+    },
+    tab: { paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
     tabActive: { borderBottomWidth: 2, borderBottomColor: c.primary },
     tabText: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
     tabTextActive: { color: c.primary },
@@ -1968,10 +2301,23 @@ function makeStyles(c: Colors, topInset: number) {
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
     },
     garageName: { fontSize: 22, fontWeight: '800', color: c.text, marginBottom: 12 },
+    badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
     badge: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 14 },
     badgeVerified: { backgroundColor: '#e6f4ea' },
     badgeUnverified: { backgroundColor: '#fff8e1' },
     badgeText: { fontSize: 13, fontWeight: '700' },
+    ratingBadge: {
+      alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6,
+      marginBottom: 14, backgroundColor: '#fff3e0',
+    },
+    ratingBadgeText: { fontSize: 13, fontWeight: '700', color: '#e65100' },
+    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    priceServiceInput: { flex: 2 },
+    pricePriceInput: { flex: 1 },
+    priceRemoveBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    priceRemoveBtnText: { fontSize: 16, color: c.error, fontWeight: '700' },
+    priceAddBtn: { alignSelf: 'flex-start', marginTop: 4, marginBottom: 4 },
+    priceAddBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
     detail: { fontSize: 14, color: c.textSub, marginBottom: 6 },
     detailMuted: { fontSize: 13, color: c.textFaint, fontStyle: 'italic', marginTop: 4 },
     infoBox: { backgroundColor: c.primaryTint, borderRadius: 12, padding: 16, marginBottom: 16 },
@@ -2318,5 +2664,61 @@ function makeStyles(c: Colors, topInset: number) {
     revJobMeta: { flexDirection: 'row', gap: 12 },
     revJobDate: { fontSize: 12, color: c.textFaint },
     revJobMileage: { fontSize: 12, color: c.textFaint },
+    revCatRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+    revCatLabel: { width: 100, fontSize: 12, color: c.textSub, fontWeight: '600' },
+    revCatBarTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: c.borderMid, marginHorizontal: 8, overflow: 'hidden' },
+    revCatBarFill: { height: '100%', borderRadius: 5 },
+    revCatAmount: { fontSize: 12, color: c.textMuted, fontWeight: '700', width: 42, textAlign: 'right' },
+
+    walkinBtn: {
+      backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14,
+      alignItems: 'center', marginBottom: 16,
+    },
+    walkinBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    custCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 12,
+      borderWidth: 1, borderColor: c.border,
+    },
+    custTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    custReg: { fontSize: 16, fontWeight: '800', color: c.text },
+    custBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    custBadgeOverdue: { backgroundColor: '#c62828' },
+    custBadgeDueSoon: { backgroundColor: '#e65100' },
+    custBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    custVehicle: { fontSize: 13, color: c.textSub, marginTop: 2 },
+    custStatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+    custStat: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+    custPredictionText: { fontSize: 12, color: c.textSub, marginTop: 8, fontStyle: 'italic' },
+    custRemindBtn: {
+      backgroundColor: c.primary, borderRadius: 8, paddingVertical: 9,
+      alignItems: 'center', marginTop: 10,
+    },
+    custRemindBtnDisabled: { backgroundColor: c.borderMid },
+    custRemindBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+    walkinIntro: { fontSize: 13, color: c.textSub, marginBottom: 16, lineHeight: 19 },
+    walkinSearchRow: { flexDirection: 'row', gap: 10 },
+    walkinFindBtn: {
+      backgroundColor: c.primary, borderRadius: 10, paddingHorizontal: 20,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    walkinFindBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    walkinResultCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 16, marginTop: 20,
+      borderWidth: 1, borderColor: c.border,
+    },
+    walkinResultReg: { fontSize: 18, fontWeight: '800', color: c.text },
+    walkinResultVehicle: { fontSize: 14, color: c.textSub, marginTop: 4 },
+    walkinResultMeta: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+    walkinConfirmBtn: {
+      backgroundColor: c.primary, borderRadius: 10, paddingVertical: 12,
+      alignItems: 'center', marginTop: 14,
+    },
+    walkinConfirmBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+    empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
+    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyText: { fontSize: 15, fontWeight: '700', color: c.textSub, marginBottom: 4 },
+    emptySub: { fontSize: 13, color: c.textFaint, textAlign: 'center' },
   })
 }
