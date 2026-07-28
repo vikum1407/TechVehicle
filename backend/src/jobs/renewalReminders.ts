@@ -49,8 +49,8 @@ async function checkRenewals() {
           : `Emission test due in ${days} days`
         const body = `${label} — renew your carbon / emission test before it expires.`
 
-        await sendPush(owner.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
-        await createNotification(prisma, owner.phoneNumber, 'emission_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await sendPush(owner.pushToken, title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, owner.phoneNumber, 'emission_reminder', title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
         await prisma.vehicle.update({
           where: { id: vehicle.id },
           data: { lastEmissionReminderSent: now },
@@ -69,8 +69,8 @@ async function checkRenewals() {
           : `Revenue licence due in ${days} days`
         const body = `${label} — renew your revenue licence before it expires.`
 
-        await sendPush(owner.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
-        await createNotification(prisma, owner.phoneNumber, 'licence_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await sendPush(owner.pushToken, title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, owner.phoneNumber, 'licence_reminder', title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
         await prisma.vehicle.update({
           where: { id: vehicle.id },
           data: { lastLicenceReminderSent: now },
@@ -89,8 +89,8 @@ async function checkRenewals() {
           : `Insurance due in ${days} days`
         const body = `${label} — renew your vehicle insurance before it expires.`
 
-        await sendPush(owner.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
-        await createNotification(prisma, owner.phoneNumber, 'insurance_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await sendPush(owner.pushToken, title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, owner.phoneNumber, 'insurance_reminder', title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
         await prisma.vehicle.update({
           where: { id: vehicle.id },
           data: { lastInsuranceReminderSent: now },

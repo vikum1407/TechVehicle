@@ -168,6 +168,19 @@ export default function App() {
             setScreen('vehicles')
           }
         }
+      } else if (targetScreen === 'vehicleDashboard') {
+        if (vehicleId) {
+          const vehicle = vehicles.find(v => v.id === vehicleId)
+          if (vehicle) {
+            setSelectedVehicle(vehicle)
+            if (bookingId) setFocusVehicleBookingId(bookingId)
+            setScreen('vehicleDashboard')
+          } else {
+            setScreen('vehicles')
+          }
+        } else {
+          setScreen('vehicles')
+        }
       }
     })
     return () => {
@@ -598,6 +611,14 @@ export default function App() {
               if (target === 'garage') {
                 if (bookingId) setFocusBookingId(bookingId)
                 setScreen('garage'); return
+              }
+              if (target === 'predictions_setup' && vehicleId) {
+                const v = vehicles.find(v => v.id === vehicleId)
+                if (v) {
+                  setSelectedVehicle(v)
+                  setPredictionsInitialTab('setup')
+                  setScreen('predictions'); return
+                }
               }
               if ((target === 'vehicleDashboard' || target === 'vehicles') && vehicleId) {
                 const v = vehicles.find(v => v.id === vehicleId)

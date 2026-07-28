@@ -97,7 +97,6 @@ async function checkServicesDue() {
       if (overdue.length === 0 && dueSoon.length === 0) continue
 
       const vehicleName = `${vehicle.make} ${vehicle.model} (${vehicle.registrationNo})`
-      const linkTo = JSON.stringify({ screen: 'VehicleDashboard', vehicleId: vehicle.id })
 
       if (overdue.length > 0) {
         const names = overdue.map(p => p.name).join(', ')
@@ -106,8 +105,8 @@ async function checkServicesDue() {
           ? `${names} is overdue. Schedule a service soon.`
           : `${overdue.length} services overdue: ${names}`
 
-        await sendPush(user.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
-        await createNotification(prisma, user.phoneNumber, 'service_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await sendPush(user.pushToken, title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, user.phoneNumber, 'service_reminder', title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
       } else {
         const top = dueSoon[0]
         const kmText   = top.remainingKm   != null ? `${top.remainingKm.toLocaleString()} km` : ''
@@ -116,8 +115,8 @@ async function checkServicesDue() {
         const title = `Service due soon — ${vehicleName}`
         const body  = `${top.name} due in ${timeLeft}`
 
-        await sendPush(user.pushToken, title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
-        await createNotification(prisma, user.phoneNumber, 'service_reminder', title, body, { screen: 'VehicleDashboard', vehicleId: vehicle.id })
+        await sendPush(user.pushToken, title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
+        await createNotification(prisma, user.phoneNumber, 'service_reminder', title, body, { screen: 'vehicleDashboard', vehicleId: vehicle.id })
       }
     }
   }
