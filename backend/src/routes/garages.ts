@@ -225,6 +225,29 @@ router.post('/customers/:vehicleId/remind', async (req: AuthRequest, res) => {
   }
 })
 
+// GET /garages/:id/ratings — star distribution + written reviews for a garage
+router.get('/:id/ratings', async (req: AuthRequest, res) => {
+  const garageId = req.params.id as string
+  try {
+    const [distGroups, reviews, stats] = await Promise.all([
+      prisma.garageRating.groupBy({ by: ['rating'], where: { garageId }, _count: { rating: true } }),
+      prisma.garageRating.findMany({
+        where: { garageId, comment: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        select: { rating: true, comment: true, createdAt: true },
+      }),
+      getRatingStats(garageId),
+    ])
+    const distribution: Record<string, number> = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 }
+    distGroups.forEach(g => { distribution[String(g.rating)] = g._count.rating })
+    res.json({ ...stats, distribution, reviews })
+  } catch (error) {
+    console.error('GET /garages/:id/ratings error:', error)
+    res.status(500).json({ error: 'Failed to fetch ratings' })
+  }
+})
+
 async function getRatingStats(garageId: string): Promise<{ avgRating: number | null; ratingCount: number }> {
   const agg = await prisma.garageRating.aggregate({
     where: { garageId },

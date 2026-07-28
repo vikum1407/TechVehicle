@@ -67,6 +67,13 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [searching, setSearching] = useState(false)
   const [selectedGarage, setSelectedGarage] = useState<GarageResult | null>(null)
   const [expandedPriceGarageId, setExpandedPriceGarageId] = useState<string | null>(null)
+  const [expandedReviewsGarageId, setExpandedReviewsGarageId] = useState<string | null>(null)
+  const [reviewsLoadingId, setReviewsLoadingId] = useState<string | null>(null)
+  const [reviewsCache, setReviewsCache] = useState<Record<string, {
+    avgRating: number | null; ratingCount: number
+    distribution: Record<string, number>
+    reviews: { rating: number; comment: string | null; createdAt: string }[]
+  }>>({})
 
   const [dates, setDates] = useState<DateSlot[]>([])
   const [timeSlots, setTimeSlots] = useState<string[]>([])
@@ -124,6 +131,21 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       Alert.alert('Error', e.message)
     } finally {
       setSearching(false)
+    }
+  }
+
+  const handleToggleReviews = async (garageId: string) => {
+    if (expandedReviewsGarageId === garageId) { setExpandedReviewsGarageId(null); return }
+    setExpandedReviewsGarageId(garageId)
+    if (reviewsCache[garageId]) return
+    setReviewsLoadingId(garageId)
+    try {
+      const data = await api.getGarageRatings(token, garageId)
+      setReviewsCache(prev => ({ ...prev, [garageId]: data }))
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setReviewsLoadingId(null)
     }
   }
 
@@ -252,9 +274,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   <View style={styles.garageCardLeft}>
                     <Text style={styles.garageName}>{garage.name}</Text>
                     {garage.address && <Text style={styles.garageAddress}>{garage.address}</Text>}
-                    {!!garage.ratingCount && (
-                      <Text style={styles.garageRating}>⭐ {garage.avgRating} ({garage.ratingCount})</Text>
-                    )}
                   </View>
                   <View style={styles.garageCardRight}>
                     <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
@@ -263,6 +282,47 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     <Text style={styles.selectText}>Select →</Text>
                   </View>
                 </TouchableOpacity>
+
+                {!!garage.ratingCount && (() => {
+                  const reviewsExpanded = expandedReviewsGarageId === garage.id
+                  const detail = reviewsCache[garage.id]
+                  return (
+                    <>
+                      <TouchableOpacity style={styles.priceToggle} onPress={() => handleToggleReviews(garage.id)}>
+                        <Text style={styles.garageRating}>
+                          ⭐ {garage.avgRating} ({garage.ratingCount}) — Reviews {reviewsExpanded ? '▲' : '▼'}
+                        </Text>
+                      </TouchableOpacity>
+                      {reviewsExpanded && (
+                        reviewsLoadingId === garage.id ? (
+                          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />
+                        ) : detail && (
+                          <View style={styles.reviewsBox}>
+                            {[5, 4, 3, 2, 1].map(star => {
+                              const count = detail.distribution[String(star)] ?? 0
+                              const pct = detail.ratingCount > 0 ? Math.round((count / detail.ratingCount) * 100) : 0
+                              return (
+                                <View key={star} style={styles.reviewsDistRow}>
+                                  <Text style={styles.reviewsDistLabel}>{star}★</Text>
+                                  <View style={styles.reviewsDistTrack}>
+                                    <View style={[styles.reviewsDistFill, { width: `${pct}%` as any }]} />
+                                  </View>
+                                  <Text style={styles.reviewsDistCount}>{count}</Text>
+                                </View>
+                              )
+                            })}
+                            {detail.reviews.length > 0 && detail.reviews.slice(0, 5).map((r, i) => (
+                              <View key={i} style={styles.reviewCard}>
+                                <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
+                                <Text style={styles.reviewComment}>{r.comment}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )
+                      )}
+                    </>
+                  )
+                })()}
 
                 {cheapest != null && (
                   <TouchableOpacity
@@ -711,6 +771,17 @@ function makeStyles(c: Colors) {
     },
     priceListService: { fontSize: 13, color: c.textSub },
     priceListValue: { fontSize: 13, color: c.text, fontWeight: '700' },
+    reviewsBox: { marginTop: 8, marginBottom: 8 },
+    reviewsDistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    reviewsDistLabel: { width: 26, fontSize: 11, color: c.textSub, fontWeight: '600' },
+    reviewsDistTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: c.borderMid, marginHorizontal: 8, overflow: 'hidden' },
+    reviewsDistFill: { height: '100%', borderRadius: 4, backgroundColor: '#f9a825' },
+    reviewsDistCount: { width: 24, fontSize: 11, color: c.textMuted, textAlign: 'right' },
+    reviewCard: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 8,
+    },
+    reviewStars: { fontSize: 12, marginBottom: 4 },
+    reviewComment: { fontSize: 13, color: c.textBody, lineHeight: 18 },
 
     selectedGarageBanner: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 20,

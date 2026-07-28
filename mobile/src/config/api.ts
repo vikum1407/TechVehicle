@@ -124,6 +124,19 @@ export const api = {
     }[]
   },
 
+  getGarageRatings: async (token: string, garageId: string) => {
+    const res = await fetch(`${API_URL}/garages/${garageId}/ratings`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch ratings')
+    return data as {
+      avgRating: number | null; ratingCount: number
+      distribution: Record<string, number>
+      reviews: { rating: number; comment: string | null; createdAt: string }[]
+    }
+  },
+
   lookupVehicle: async (token: string, registrationNo: string) => {
     const res = await fetch(`${API_URL}/vehicles/lookup?registrationNo=${encodeURIComponent(registrationNo)}`, {
       headers: authHeaders(token),

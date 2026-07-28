@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image, Modal,
@@ -129,6 +129,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<Tab>('profile')
+  const tabScrollRef = useRef<ScrollView>(null)
+  const tabLayouts = useRef<Partial<Record<Tab, { x: number; width: number }>>>({})
+  const bookingsScrollRef = useRef<ScrollView>(null)
+  const bookingLayouts = useRef<Record<string, number>>({})
   const [shares, setShares] = useState<IncomingShare[]>([])
   const [sharesLoading, setSharesLoading] = useState(false)
   const [expandedShare, setExpandedShare] = useState<string | null>(null)
@@ -197,6 +201,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [address, setAddress] = useState('')
   const [brNumber, setBrNumber] = useState('')
   const [priceListRows, setPriceListRows] = useState<{ service: string; price: string }[]>([])
+  const [ratingsModalOpen, setRatingsModalOpen] = useState(false)
+  const [ratingsLoading, setRatingsLoading] = useState(false)
+  const [ratingsDetail, setRatingsDetail] = useState<{
+    avgRating: number | null; ratingCount: number
+    distribution: Record<string, number>
+    reviews: { rating: number; comment: string | null; createdAt: string }[]
+  } | null>(null)
 
   // Full submission form — shown when a share is being submitted
   const [submittingShare, setSubmittingShare] = useState<IncomingShare | null>(null)
@@ -453,10 +464,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (!focusBookingId || !garage) return
     setTab('bookings')
     const focusAndLoad = async () => {
+      setExpandedBooking(focusBookingId)
       setExpandedMessagesSet(prev => new Set(prev).add(focusBookingId))
       const notes = await loadBookingNotes(focusBookingId)
       onBookingSeen?.(focusBookingId, notes.length)
       onFocusHandled?.()
+      // Give the card time to render/expand before measuring its position
+      setTimeout(() => {
+        const y = bookingLayouts.current[focusBookingId]
+        if (y != null) {
+          bookingsScrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true })
+        }
+      }, 300)
     }
     if (bookings.length === 0) {
       loadBookings().then(focusAndLoad)
@@ -480,6 +499,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (tab === 'history' && garage) { loadHistory() }
     if (tab === 'customers' && garage) { loadCustomers() }
   }, [tab, garage])
+
+  // Keep the active tab fully in view when tabs overflow the screen width
+  useEffect(() => {
+    const layout = tabLayouts.current[tab]
+    if (layout) {
+      tabScrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 16), animated: true })
+    }
+  }, [tab])
 
   const handleRegister = async () => {
     if (!name.trim()) { Alert.alert('Required', 'Please enter your garage name.'); return }
@@ -511,6 +538,20 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       Alert.alert('Error', e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openRatingsModal = async () => {
+    if (!garage) return
+    setRatingsModalOpen(true)
+    setRatingsLoading(true)
+    try {
+      const data = await api.getGarageRatings(token, garage.id)
+      setRatingsDetail(data)
+    } catch (e: any) {
+      Alert.alert('Error', e.message)
+    } finally {
+      setRatingsLoading(false)
     }
   }
 
@@ -898,7 +939,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         )}
 
-        <Button title="Submit to Owner" onPress={handleSubmitService} loading={submitting} />
+        <View style={{ marginTop: 24 }}>
+          <Button title="Submit to Owner" onPress={handleSubmitService} loading={submitting} />
+        </View>
         </ScrollView>
       </View>
       </KeyboardAvoidingView>
@@ -1016,40 +1059,52 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       </View>
 
       {garage && !editing && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
+        <ScrollView
+          ref={tabScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabs}
+        >
           <TouchableOpacity
             style={[styles.tab, tab === 'profile' && styles.tabActive]}
             onPress={() => setTab('profile')}
+            onLayout={e => { tabLayouts.current.profile = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'schedule' && styles.tabActive]}
             onPress={() => setTab('schedule')}
+            onLayout={e => { tabLayouts.current.schedule = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'bookings' && styles.tabActive]}
             onPress={() => setTab('bookings')}
+            onLayout={e => { tabLayouts.current.bookings = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'calendar' && styles.tabActive]}
             onPress={() => setTab('calendar')}
+            onLayout={e => { tabLayouts.current.calendar = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'customers' && styles.tabActive]}
             onPress={() => setTab('customers')}
+            onLayout={e => { tabLayouts.current.customers = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'customers' && styles.tabTextActive]}>Customers</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'history' && styles.tabActive]}
             onPress={() => setTab('history')}
+            onLayout={e => { tabLayouts.current.history = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>Revenue</Text>
           </TouchableOpacity>
@@ -1069,9 +1124,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     </Text>
                   </View>
                   {garage.ratingCount != null && garage.ratingCount > 0 && (
-                    <View style={styles.ratingBadge}>
-                      <Text style={styles.ratingBadgeText}>⭐ {garage.avgRating} ({garage.ratingCount})</Text>
-                    </View>
+                    <TouchableOpacity style={styles.ratingBadge} onPress={openRatingsModal}>
+                      <Text style={styles.ratingBadgeText}>⭐ {garage.avgRating} ({garage.ratingCount}) ›</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
                 {garage.address && <Text style={styles.detail}>📍 {garage.address}</Text>}
@@ -1378,7 +1433,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       )}
 
       {tab === 'bookings' && garage && (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView ref={bookingsScrollRef} contentContainerStyle={styles.content}>
           {bookingsLoading ? (
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
           ) : bookings.length === 0 ? (
@@ -1406,6 +1461,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             return (
               <TouchableOpacity
                 key={booking.id}
+                onLayout={e => { bookingLayouts.current[booking.id] = e.nativeEvent.layout.y }}
                 style={[
                   styles.bookingCard,
                   isPending && styles.bookingCardPending,
@@ -2057,6 +2113,63 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             )
           })()}
         </ScrollView>
+      )}
+
+      {/* ── Ratings breakdown modal ────────────────────────────────────── */}
+      {ratingsModalOpen && (
+        <Modal visible animationType="slide" transparent={false} onRequestClose={() => setRatingsModalOpen(false)}>
+          <View style={styles.container}>
+            <ScreenHeader title="Reviews" onBack={() => setRatingsModalOpen(false)} />
+            <ScrollView contentContainerStyle={styles.content}>
+              {ratingsLoading ? (
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+              ) : ratingsDetail && (
+                <>
+                  <View style={styles.ratingsSummaryRow}>
+                    <Text style={styles.ratingsAvgNum}>{ratingsDetail.avgRating}</Text>
+                    <View>
+                      <Text style={styles.ratingsAvgStars}>{'⭐'.repeat(Math.round(ratingsDetail.avgRating ?? 0))}</Text>
+                      <Text style={styles.ratingsCountText}>
+                        {ratingsDetail.ratingCount} rating{ratingsDetail.ratingCount !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.ratingsDistWrap}>
+                    {[5, 4, 3, 2, 1].map(star => {
+                      const count = ratingsDetail.distribution[String(star)] ?? 0
+                      const pct = ratingsDetail.ratingCount > 0 ? Math.round((count / ratingsDetail.ratingCount) * 100) : 0
+                      return (
+                        <View key={star} style={styles.ratingsDistRow}>
+                          <Text style={styles.ratingsDistLabel}>{star}★</Text>
+                          <View style={styles.ratingsDistTrack}>
+                            <View style={[styles.ratingsDistFill, { width: `${pct}%` as any }]} />
+                          </View>
+                          <Text style={styles.ratingsDistCount}>{count}</Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+
+                  <Text style={styles.ratingsReviewsTitle}>Written Reviews</Text>
+                  {ratingsDetail.reviews.length === 0 ? (
+                    <Text style={styles.emptySub}>No written reviews yet.</Text>
+                  ) : (
+                    ratingsDetail.reviews.map((r, i) => (
+                      <View key={i} style={styles.reviewCard}>
+                        <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
+                        <Text style={styles.reviewComment}>{r.comment}</Text>
+                        <Text style={styles.reviewDate}>
+                          {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </Modal>
       )}
 
       {/* ── Walk-in service lookup modal ──────────────────────────────── */}
@@ -2715,6 +2828,25 @@ function makeStyles(c: Colors, topInset: number) {
       alignItems: 'center', marginTop: 14,
     },
     walkinConfirmBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+    ratingsSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
+    ratingsAvgNum: { fontSize: 44, fontWeight: '800', color: c.text },
+    ratingsAvgStars: { fontSize: 16, marginBottom: 2 },
+    ratingsCountText: { fontSize: 13, color: c.textMuted },
+    ratingsDistWrap: { marginBottom: 28 },
+    ratingsDistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+    ratingsDistLabel: { width: 28, fontSize: 12, color: c.textSub, fontWeight: '600' },
+    ratingsDistTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: c.borderMid, marginHorizontal: 8, overflow: 'hidden' },
+    ratingsDistFill: { height: '100%', borderRadius: 5, backgroundColor: '#f9a825' },
+    ratingsDistCount: { width: 28, fontSize: 12, color: c.textMuted, textAlign: 'right' },
+    ratingsReviewsTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 12 },
+    reviewCard: {
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
+      borderWidth: 1, borderColor: c.border,
+    },
+    reviewStars: { fontSize: 13, marginBottom: 6 },
+    reviewComment: { fontSize: 14, color: c.textBody, lineHeight: 20, marginBottom: 6 },
+    reviewDate: { fontSize: 11, color: c.textFaint },
 
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
     emptyIcon: { fontSize: 40, marginBottom: 12 },
