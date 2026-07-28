@@ -147,6 +147,7 @@ router.get('/customers', async (req: AuthRequest, res) => {
         make: vehicle.make,
         model: vehicle.model,
         year: vehicle.year,
+        vehicleType: vehicle.vehicleType ?? null,
         jobCount: group?._count.id ?? 0,
         totalRevenue: group?._sum.cost ?? 0,
         lastServiceDate: group?._max.createdAt ?? null,
@@ -164,6 +165,34 @@ router.get('/customers', async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('GET /garages/customers error:', error)
     res.status(500).json({ error: 'Failed to fetch customers' })
+  }
+})
+
+// GET /garages/customers/:vehicleId/history — itemized ledger of every accepted job this garage has
+// logged for this specific vehicle (the digital version of a garage's own customer record book)
+router.get('/customers/:vehicleId/history', async (req: AuthRequest, res) => {
+  const vehicleId = req.params.vehicleId as string
+  try {
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
+    if (!garage) { res.status(404).json({ error: 'No garage registered' }); return }
+
+    const hasSubmission = await prisma.serviceSubmission.findFirst({
+      where: { garageId: garage.id, vehicleId, status: 'accepted' },
+    })
+    const hasBooking = hasSubmission ? null : await prisma.booking.findFirst({
+      where: { garageId: garage.id, vehicleId, status: { in: ['confirmed', 'completed'] } },
+    })
+    if (!hasSubmission && !hasBooking) { res.status(404).json({ error: 'Not a customer of this garage' }); return }
+
+    const history = await prisma.serviceSubmission.findMany({
+      where: { garageId: garage.id, vehicleId, status: 'accepted' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, description: true, categories: true, cost: true, mileage: true, notes: true, photos: true, createdAt: true },
+    })
+    res.json(history)
+  } catch (error) {
+    console.error('GET /garages/customers/:vehicleId/history error:', error)
+    res.status(500).json({ error: 'Failed to fetch customer history' })
   }
 })
 

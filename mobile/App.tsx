@@ -19,6 +19,7 @@ import VehicleTestsScreen from './src/screens/VehicleTestsScreen'
 import VehicleHistoryScreen from './src/screens/VehicleHistoryScreen'
 import AnalyticsScreen from './src/screens/AnalyticsScreen'
 import GarageScreen from './src/screens/GarageScreen'
+import GarageLedgerScreen from './src/screens/GarageLedgerScreen'
 import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
@@ -36,7 +37,7 @@ import FloatingHomeButton from './src/components/FloatingHomeButton'
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect'
-  | 'vehicles' | 'garage'
+  | 'vehicles' | 'garage' | 'garageLedger'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
   | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
@@ -80,6 +81,7 @@ export default function App() {
   const [garageBadge, setGarageBadge] = useState(0)
   const [newVehicle, setNewVehicle] = useState<Vehicle | null>(null)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
+  const [ledgerFocusVehicleId, setLedgerFocusVehicleId] = useState<string | null>(null)
   const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
@@ -238,6 +240,7 @@ export default function App() {
       settings: 'profile',
       notificationPrefs: notifPrefsReturnTo,
       notifications: 'vehicles',
+      garageLedger: 'garage',
       ...(garageEntryFrom === 'profile' && !hasGarage ? { garage: 'profile' as Screen } : {}),
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -375,6 +378,14 @@ export default function App() {
                 onNotifSeen={setNotifUnreadCount}
                 onRegistered={() => setHasGarage(true)}
                 onBack={garageEntryFrom === 'profile' ? () => setScreen('profile') : undefined}
+                onOpenLedger={(vehicleId) => { setLedgerFocusVehicleId(vehicleId ?? null); setScreen('garageLedger') }}
+              />
+            )}
+            {screen === 'garageLedger' && (
+              <GarageLedgerScreen
+                token={token}
+                focusVehicleId={ledgerFocusVehicleId}
+                onBack={() => { setLedgerFocusVehicleId(null); setScreen('garage') }}
               />
             )}
           </View>

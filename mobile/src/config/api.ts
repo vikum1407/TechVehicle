@@ -182,6 +182,7 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to fetch customers')
     return data as {
       vehicleId: string; registrationNo: string; make: string; model: string; year: number
+      vehicleType: string | null
       jobCount: number; totalRevenue: number; lastServiceDate: string | null
       prediction: { name: string; status: string; remainingKm: number | null; remainingDays: number | null } | null
       lastReminderSentAt: string | null
@@ -196,6 +197,18 @@ export const api = {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to send reminder')
     return data
+  },
+
+  getCustomerLedgerHistory: async (token: string, vehicleId: string) => {
+    const res = await fetch(`${API_URL}/garages/customers/${vehicleId}/history`, {
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch customer history')
+    return data as {
+      id: string; description: string; categories: string[]; cost: number | null
+      mileage: number | null; notes: string | null; photos: string[]; createdAt: string
+    }[]
   },
 
   createShare: async (token: string, payload: { vehicleId: string; garageId: string; recordIds: string[]; serviceType?: string }) => {

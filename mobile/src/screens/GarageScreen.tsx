@@ -31,6 +31,7 @@ type Props = {
   onNotifSeen?: (newCount: number) => void
   onRegistered?: () => void
   onBack?: () => void
+  onOpenLedger?: (vehicleId?: string) => void
 }
 
 type Garage = {
@@ -123,12 +124,13 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered, onBack }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered, onBack, onOpenLedger }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<Tab>('profile')
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const tabScrollRef = useRef<ScrollView>(null)
   const tabLayouts = useRef<Partial<Record<Tab, { x: number; width: number }>>>({})
   const bookingsScrollRef = useRef<ScrollView>(null)
@@ -1050,13 +1052,35 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           )}
           <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
         </View>
-        {onNotifPress && (
-          <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
-            <Text style={styles.bellIcon}>🔔</Text>
-            {notifUnread && <View style={styles.bellDot} />}
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerRight}>
+          {garage && onOpenLedger && (
+            <TouchableOpacity style={styles.moreBtn} onPress={() => setMoreMenuOpen(true)}>
+              <Text style={styles.moreIcon}>⋯</Text>
+            </TouchableOpacity>
+          )}
+          {onNotifPress && (
+            <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
+              <Text style={styles.bellIcon}>🔔</Text>
+              {notifUnread && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {moreMenuOpen && (
+        <Modal visible animationType="fade" transparent onRequestClose={() => setMoreMenuOpen(false)}>
+          <TouchableOpacity style={styles.moreOverlay} activeOpacity={1} onPress={() => setMoreMenuOpen(false)}>
+            <View style={styles.moreMenuCard}>
+              <TouchableOpacity
+                style={styles.moreMenuItem}
+                onPress={() => { setMoreMenuOpen(false); onOpenLedger?.() }}
+              >
+                <Text style={styles.moreMenuItemText}>📒 Customer Ledger</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       {garage && !editing && (
         <ScrollView
@@ -1960,6 +1984,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       )}
                     </TouchableOpacity>
                   )}
+                  {onOpenLedger && (
+                    <TouchableOpacity onPress={() => onOpenLedger(cust.vehicleId)}>
+                      <Text style={styles.viewHistoryLink}>View Full History →</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )
             })
@@ -2387,9 +2416,20 @@ function makeStyles(c: Colors, topInset: number) {
       paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: c.border,
     },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     headerTitle: { fontSize: 20, fontWeight: '800', color: c.text },
     backBtn: {},
     backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
+    moreBtn: { padding: 4 },
+    moreIcon: { fontSize: 24, color: c.text, fontWeight: '800' },
+    moreOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
+    moreMenuCard: {
+      position: 'absolute', top: 60, right: 20, backgroundColor: c.surface,
+      borderRadius: 12, paddingVertical: 6, minWidth: 190,
+      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, elevation: 6,
+    },
+    moreMenuItem: { paddingVertical: 12, paddingHorizontal: 16 },
+    moreMenuItemText: { fontSize: 14, fontWeight: '600', color: c.text },
     bellBtn: { padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },
     bellDot: {
@@ -2808,6 +2848,7 @@ function makeStyles(c: Colors, topInset: number) {
     },
     custRemindBtnDisabled: { backgroundColor: c.borderMid },
     custRemindBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    viewHistoryLink: { fontSize: 12, color: c.primary, fontWeight: '700', marginTop: 10 },
 
     walkinIntro: { fontSize: 13, color: c.textSub, marginBottom: 16, lineHeight: 19 },
     walkinSearchRow: { flexDirection: 'row', gap: 10 },
