@@ -153,6 +153,31 @@ Give the "Fine" expense category the same treatment as Oil Change / Tyre Change 
 
 ---
 
+## Garage Customer Ledger — Planned, Not Started (discussed 2026-07-28)
+
+Sri Lankan garages traditionally keep a physical book/file per regular customer — the garage-side mirror of the app's own origin story (an owner's physical file of bills and records). This feature digitizes that, as a dedicated feature reached via a new "⋯" (More) menu on the garage account — not a new tab in the main tab bar.
+
+**Relationship to the existing Customers tab (built 2026-07-27, part of the Garage Feature Pack):** the two serve different daily habits even though they read the same underlying data (`/garages/customers` — every vehicle this garage has an accepted-submission or confirmed-booking relationship with; this data already persists indefinitely since `ServiceSubmission` rows are never deleted, only flipped to `status: accepted`).
+
+| | Customers tab (unchanged) | Ledger (new) |
+|---|---|---|
+| Purpose | "Who do I need to act on today?" | "What's this customer's full record?" |
+| Sort | Overdue/due-soon first | Alphabetical / last service |
+| Shows | Summary per vehicle + reminder button | Full itemized history — every job, date, cost, mileage, categories |
+| Filter | Search by reg. no. | Filter/group by vehicle type (12 existing types) |
+| Actions | Send Reminder, Log Walk-in Service | Browse/reference only |
+
+Only one touchpoint planned between them: each Customers-tab row gets a "View Full History →" link into that customer's Ledger detail screen.
+
+**Planned build order:**
+1. **Ledger core** — "⋯" menu on the Garage header (garage accounts only) → new `GarageLedgerScreen`: full customer directory filterable by vehicle type, tap a customer → itemized history (new backend endpoint over the existing accepted-`ServiceSubmission` data — no new data-saving mechanism needed, it's a presentation-layer feature). Customers tab gets the one "View Full History" link added.
+2. **Business insights** (after Phase 1 is live and tested) — a section inside the Ledger for the garage's own analytics/revenue forecasting, using the same trend-projection approach as the owner's Cost Forecast screen.
+3. **Deferred, not in first release:** equipment/parts-needs forecasting. Has a cold-start problem — needs real accumulated job/parts history before any prediction is credible, same rule-based-first philosophy as the main Prediction Engine's own phasing. Full note also recorded in `CLAUDE.md`.
+
+**Status:** Plan agreed 2026-07-28. Not yet built — a round of bug fixes/polish from device testing is being completed first.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
