@@ -174,7 +174,7 @@ Only one touchpoint planned between them: each Customers-tab row gets a "View Fu
 2. **Business insights** (after Phase 1 is live and tested) — a section inside the Ledger for the garage's own analytics/revenue forecasting, using the same trend-projection approach as the owner's Cost Forecast screen.
 3. **Deferred, not in first release:** equipment/parts-needs forecasting. Has a cold-start problem — needs real accumulated job/parts history before any prediction is credible, same rule-based-first philosophy as the main Prediction Engine's own phasing. Full note also recorded in `CLAUDE.md`.
 
-**Status:** Plan agreed 2026-07-28. Not yet built — a round of bug fixes/polish from device testing is being completed first.
+**Status:** Phase 1 (Ledger core) DONE and pushed 2026-07-28 — "⋯" More menu on the garage header, `GarageLedgerScreen` (directory, vehicle-type filter, expandable itemized history), and the "View Full History" link on Customers tab rows. Phase 2 (business insights/revenue forecasting) not yet started.
 
 ---
 
