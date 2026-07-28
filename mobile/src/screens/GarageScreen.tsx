@@ -1043,29 +1043,77 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {!garage && onBack && (
-            <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.backText}>← Back</Text>
-            </TouchableOpacity>
+      {(tab === 'customers' || tab === 'history') && garage && !editing ? (
+        <ScreenHeader
+          title={tab === 'customers' ? 'Customers' : 'Revenue'}
+          onBack={() => setTab('profile')}
+        />
+      ) : (
+        <>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              {!garage && onBack && (
+                <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.backText}>← Back</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
+            </View>
+            <View style={styles.headerRight}>
+              {garage && onOpenLedger && (
+                <TouchableOpacity style={styles.moreBtn} onPress={() => setMoreMenuOpen(true)}>
+                  <Text style={styles.moreIcon}>⋯</Text>
+                </TouchableOpacity>
+              )}
+              {onNotifPress && (
+                <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
+                  <Text style={styles.bellIcon}>🔔</Text>
+                  {notifUnread && <View style={styles.bellDot} />}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {garage && !editing && (
+            <ScrollView
+              ref={tabScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabsScroll}
+              contentContainerStyle={styles.tabs}
+            >
+              <TouchableOpacity
+                style={[styles.tab, tab === 'profile' && styles.tabActive]}
+                onPress={() => setTab('profile')}
+                onLayout={e => { tabLayouts.current.profile = e.nativeEvent.layout }}
+              >
+                <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, tab === 'schedule' && styles.tabActive]}
+                onPress={() => setTab('schedule')}
+                onLayout={e => { tabLayouts.current.schedule = e.nativeEvent.layout }}
+              >
+                <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, tab === 'bookings' && styles.tabActive]}
+                onPress={() => setTab('bookings')}
+                onLayout={e => { tabLayouts.current.bookings = e.nativeEvent.layout }}
+              >
+                <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, tab === 'calendar' && styles.tabActive]}
+                onPress={() => setTab('calendar')}
+                onLayout={e => { tabLayouts.current.calendar = e.nativeEvent.layout }}
+              >
+                <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
+              </TouchableOpacity>
+            </ScrollView>
           )}
-          <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          {garage && onOpenLedger && (
-            <TouchableOpacity style={styles.moreBtn} onPress={() => setMoreMenuOpen(true)}>
-              <Text style={styles.moreIcon}>⋯</Text>
-            </TouchableOpacity>
-          )}
-          {onNotifPress && (
-            <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
-              <Text style={styles.bellIcon}>🔔</Text>
-              {notifUnread && <View style={styles.bellDot} />}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+        </>
+      )}
 
       <Modal visible={moreMenuOpen} transparent animationType="slide" onRequestClose={() => setMoreMenuOpen(false)}>
         <View style={styles.moreSheetOverlay}>
@@ -1091,45 +1139,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         </View>
       </Modal>
-
-      {garage && !editing && (
-        <ScrollView
-          ref={tabScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsScroll}
-          contentContainerStyle={styles.tabs}
-        >
-          <TouchableOpacity
-            style={[styles.tab, tab === 'profile' && styles.tabActive]}
-            onPress={() => setTab('profile')}
-            onLayout={e => { tabLayouts.current.profile = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tab === 'schedule' && styles.tabActive]}
-            onPress={() => setTab('schedule')}
-            onLayout={e => { tabLayouts.current.schedule = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tab === 'bookings' && styles.tabActive]}
-            onPress={() => setTab('bookings')}
-            onLayout={e => { tabLayouts.current.bookings = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tab === 'calendar' && styles.tabActive]}
-            onPress={() => setTab('calendar')}
-            onLayout={e => { tabLayouts.current.calendar = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
 
       {(tab === 'profile' || !garage) && (
         <ScrollView contentContainerStyle={styles.content}>
