@@ -1067,20 +1067,30 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </View>
       </View>
 
-      {moreMenuOpen && (
-        <Modal visible animationType="fade" transparent onRequestClose={() => setMoreMenuOpen(false)}>
-          <TouchableOpacity style={styles.moreOverlay} activeOpacity={1} onPress={() => setMoreMenuOpen(false)}>
-            <View style={styles.moreMenuCard}>
-              <TouchableOpacity
-                style={styles.moreMenuItem}
-                onPress={() => { setMoreMenuOpen(false); onOpenLedger?.() }}
-              >
-                <Text style={styles.moreMenuItemText}>📒 Customer Ledger</Text>
+      <Modal visible={moreMenuOpen} transparent animationType="slide" onRequestClose={() => setMoreMenuOpen(false)}>
+        <View style={styles.moreSheetOverlay}>
+          <View style={styles.moreSheetCard}>
+            <View style={styles.moreSheetHeaderRow}>
+              <Text style={styles.moreSheetTitle}>More for this garage</Text>
+              <TouchableOpacity onPress={() => setMoreMenuOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.moreSheetClose}>✕</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
+            <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('customers') }}>
+              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
+              <Text style={styles.moreSheetItemText}>Customers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('history') }}>
+              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
+              <Text style={styles.moreSheetItemText}>Revenue</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); onOpenLedger?.() }}>
+              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📒</Text></View>
+              <Text style={styles.moreSheetItemText}>Customer Ledger</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {garage && !editing && (
         <ScrollView
@@ -1117,20 +1127,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             onLayout={e => { tabLayouts.current.calendar = e.nativeEvent.layout }}
           >
             <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tab === 'customers' && styles.tabActive]}
-            onPress={() => setTab('customers')}
-            onLayout={e => { tabLayouts.current.customers = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'customers' && styles.tabTextActive]}>Customers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tab === 'history' && styles.tabActive]}
-            onPress={() => setTab('history')}
-            onLayout={e => { tabLayouts.current.history = e.nativeEvent.layout }}
-          >
-            <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>Revenue</Text>
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -2422,14 +2418,15 @@ function makeStyles(c: Colors, topInset: number) {
     backText: { fontSize: 15, color: c.primary, fontWeight: '600' },
     moreBtn: { padding: 4 },
     moreIcon: { fontSize: 24, color: c.text, fontWeight: '800' },
-    moreOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
-    moreMenuCard: {
-      position: 'absolute', top: 60, right: 20, backgroundColor: c.surface,
-      borderRadius: 12, paddingVertical: 6, minWidth: 190,
-      shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, elevation: 6,
-    },
-    moreMenuItem: { paddingVertical: 12, paddingHorizontal: 16 },
-    moreMenuItemText: { fontSize: 14, fontWeight: '600', color: c.text },
+    moreSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+    moreSheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    moreSheetTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    moreSheetClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
+    moreSheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.border },
+    moreSheetIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: c.primaryTint, alignItems: 'center', justifyContent: 'center' },
+    moreSheetIconText: { fontSize: 15 },
+    moreSheetItemText: { fontSize: 14, fontWeight: '600', color: c.text },
     bellBtn: { padding: 4, position: 'relative' },
     bellIcon: { fontSize: 22 },
     bellDot: {
