@@ -753,6 +753,19 @@ Each entry needs: recommended oil grade + type, tyre size (front/rear), timing b
 
 ---
 
+### Garage Customer Ledger (planned, not yet built)
+
+**Idea (noted 2026-07-28):** Sri Lankan garages traditionally keep a physical book/file per regular customer — this is the garage-side mirror of the app's own origin story (owner's physical file of bills). The Garage/Service-Center Feature Pack already built a "Customers" tab (vehicles served, job count, revenue, last service date, due-for-service outreach) and a Revenue tab (flat feed of all completed jobs) — both already query the same underlying data (`ServiceSubmission` rows, which are never deleted, only flipped to `status: accepted`). Vikum wants a proper dedicated **Ledger** feature: a "⋯" More menu entry (garage/service accounts only) opening a per-customer, per-vehicle-type itemized service book — presentation-layer only, no new data-saving mechanism needed since the data already persists on both the owner side (`ServiceRecord`) and the garage side (`ServiceSubmission`, accepted status) independently once a submission is accepted.
+
+**Scope discussed so far:**
+- Ledger: itemized per-customer service history (date, service, cost, mileage), filterable/grouped by the 12 vehicle types
+- Business analytics/revenue forecasting for the garage's own business (same trend-projection approach as the owner's Cost Forecast screen)
+- Equipment/parts-needs forecasting — explicitly **deferred, not in first release**. Has a cold-start problem (needs real accumulated job/parts history before any prediction is meaningful) — same rule-based-first-then-AI philosophy as the main Prediction Engine's own phasing. Build only once there's real usage data.
+
+**Status:** Discussion in progress — not yet planned or built.
+
+---
+
 ## Risks to Watch
 
 1. **Mileage data quality** — The prediction engine is only as good as the mileage data. Make mileage entry frictionless and immediately rewarding. This is the most important UX problem to solve.
