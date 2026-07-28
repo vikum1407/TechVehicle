@@ -381,13 +381,6 @@ export default function App() {
                 onOpenLedger={(vehicleId) => { setLedgerFocusVehicleId(vehicleId ?? null); setScreen('garageLedger') }}
               />
             )}
-            {screen === 'garageLedger' && (
-              <GarageLedgerScreen
-                token={token}
-                focusVehicleId={ledgerFocusVehicleId}
-                onBack={() => { setLedgerFocusVehicleId(null); setScreen('garage') }}
-              />
-            )}
           </View>
           <BottomTabBar
             activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
@@ -400,6 +393,13 @@ export default function App() {
       )}
 
       {/* ── Deep screens (no tab bar) ─────────────────────────────────── */}
+      {screen === 'garageLedger' && (
+        <GarageLedgerScreen
+          token={token}
+          focusVehicleId={ledgerFocusVehicleId}
+          onBack={() => { setLedgerFocusVehicleId(null); setScreen('garage') }}
+        />
+      )}
       {screen === 'addVehicle' && (
         <AddVehicleScreen
           token={token}
