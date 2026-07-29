@@ -82,6 +82,7 @@ export default function App() {
   const [newVehicle, setNewVehicle] = useState<Vehicle | null>(null)
   const [focusBookingId, setFocusBookingId] = useState<string | null>(null)
   const [ledgerFocusVehicleId, setLedgerFocusVehicleId] = useState<string | null>(null)
+  const [garageReturnTab, setGarageReturnTab] = useState<'profile' | 'customers' | 'history'>('profile')
   const [focusVehicleBookingId, setFocusVehicleBookingId] = useState<string | null>(null)
   const [bookingSeenCounts, setBookingSeenCounts] = useState<Record<string, number>>({})
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
@@ -378,13 +379,18 @@ export default function App() {
                 onNotifSeen={setNotifUnreadCount}
                 onRegistered={() => setHasGarage(true)}
                 onBack={garageEntryFrom === 'profile' ? () => setScreen('profile') : undefined}
-                onOpenLedger={(vehicleId) => { setLedgerFocusVehicleId(vehicleId ?? null); setScreen('garageLedger') }}
+                initialTab={garageReturnTab}
+                onOpenLedger={(vehicleId) => {
+                  setLedgerFocusVehicleId(vehicleId ?? null)
+                  setGarageReturnTab(vehicleId ? 'customers' : 'profile')
+                  setScreen('garageLedger')
+                }}
               />
             )}
           </View>
           <BottomTabBar
             activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
-            onTabPress={(tab) => { setGarageEntryFrom('tab'); setScreen(tab); loadNotifCount(token) }}
+            onTabPress={(tab) => { setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token) }}
             vehiclesBadge={vehiclesBadge}
             garageBadge={garageBadge}
             showGarageTab={hasGarage || screen === 'garage'}

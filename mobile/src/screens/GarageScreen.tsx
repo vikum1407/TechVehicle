@@ -32,6 +32,7 @@ type Props = {
   onRegistered?: () => void
   onBack?: () => void
   onOpenLedger?: (vehicleId?: string) => void
+  initialTab?: 'profile' | 'customers' | 'history'
 }
 
 type Garage = {
@@ -124,12 +125,12 @@ type BookingNote = {
   createdAt: string
 }
 
-export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered, onBack, onOpenLedger }: Props) {
+export default function GarageScreen({ token, focusBookingId, onMessageCountChange, onFocusHandled, bookingSeenCounts = {}, onBookingSeen, notifUnread, onNotifPress, onNotifSeen, onRegistered, onBack, onOpenLedger, initialTab }: Props) {
   const [garage, setGarage] = useState<Garage | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [tab, setTab] = useState<Tab>('profile')
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'profile')
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const tabScrollRef = useRef<ScrollView>(null)
   const tabLayouts = useRef<Partial<Record<Tab, { x: number; width: number }>>>({})
