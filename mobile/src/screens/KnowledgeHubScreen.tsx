@@ -48,6 +48,7 @@ type VehicleSpec = {
   fuelEconomyKmL?: number
   knownIssues: string[]
   notes?: string
+  dataConfidence?: 'verified' | 'needs-update'
 }
 
 type ServiceRecord = {
@@ -339,6 +340,11 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
         <Text style={styles.specCardTitle}>{s.make} {s.model}</Text>
         <Text style={styles.specCardYear}>{s.yearFrom}–{s.yearTo ?? 'present'}</Text>
       </View>
+      {s.dataConfidence === 'needs-update' && (
+        <View style={styles.updateFlagBox}>
+          <Text style={styles.updateFlagText}>🔄 Keep Updating — these figures are a general starting point and haven't been verified against an official manual yet</Text>
+        </View>
+      )}
       {(s.engine || s.engineCapacityCC) && (
         <Text style={styles.specEngine}>
           {[s.engine, s.engineCapacityCC ? `${s.engineCapacityCC}cc` : null, s.fuelType].filter(Boolean).join(' · ')}
@@ -597,6 +603,12 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, letterSpacing: 0.5,
     },
     specGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 4, gap: 4 },
+
+    updateFlagBox: {
+      margin: 16, marginBottom: 0, backgroundColor: c.surfaceAlt,
+      borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#8e24aa',
+    },
+    updateFlagText: { fontSize: 11, color: c.textSub, lineHeight: 16, fontWeight: '600' },
 
     noteBox: {
       marginHorizontal: 16, marginBottom: 6, backgroundColor: c.surfaceAlt,
