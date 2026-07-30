@@ -1428,8 +1428,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       </Modal>
 
       <Modal visible={moreActionsSheet} transparent animationType="slide" onRequestClose={() => setMoreActionsSheet(false)}>
-        <View style={styles.moreSheetOverlay}>
-          <View style={styles.moreSheetCard}>
+        <TouchableOpacity style={styles.moreSheetOverlay} activeOpacity={1} onPress={() => setMoreActionsSheet(false)}>
+          <TouchableOpacity style={styles.moreSheetCard} activeOpacity={1} onPress={() => {}}>
             <View style={styles.moreSheetHeaderRow}>
               <Text style={styles.moreSheetTitle}>More for this vehicle</Text>
               <TouchableOpacity onPress={() => setMoreActionsSheet(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -1480,8 +1480,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.moreSheetItemText}>Sell / Transfer Vehicle</Text>
               </TouchableOpacity>
             )}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       <Modal visible={familyShareModal} transparent animationType="slide" onRequestClose={() => setFamilyShareModal(false)}>

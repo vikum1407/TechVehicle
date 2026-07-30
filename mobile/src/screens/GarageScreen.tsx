@@ -1117,8 +1117,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       )}
 
       <Modal visible={moreMenuOpen} transparent animationType="slide" onRequestClose={() => setMoreMenuOpen(false)}>
-        <View style={styles.moreSheetOverlay}>
-          <View style={styles.moreSheetCard}>
+        <TouchableOpacity style={styles.moreSheetOverlay} activeOpacity={1} onPress={() => setMoreMenuOpen(false)}>
+          <TouchableOpacity style={styles.moreSheetCard} activeOpacity={1} onPress={() => {}}>
             <View style={styles.moreSheetHeaderRow}>
               <Text style={styles.moreSheetTitle}>More for this garage</Text>
               <TouchableOpacity onPress={() => setMoreMenuOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -1137,8 +1137,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📒</Text></View>
               <Text style={styles.moreSheetItemText}>Customer Ledger</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {(tab === 'profile' || !garage) && (
@@ -1802,13 +1802,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   const fillRatio = schedMaxPerDay > 0 ? count / schedMaxPerDay : 0
                   const isSelected = selectedCalDate === dateStr
 
-                  let cellBg = '#fff'
+                  let cellBg: string = colors.surface
+                  let cellTextColor: string | null = null
                   if (override?.status === 'closed' || override?.status === 'holiday') {
                     cellBg = '#fce4ec'
+                    cellTextColor = '#6d2145'
                   } else if (fillRatio >= 1) {
                     cellBg = '#ffebee'
+                    cellTextColor = '#7a1f1f'
                   } else if (fillRatio > 0) {
                     cellBg = '#fff3e0'
+                    cellTextColor = '#7a4a00'
                   }
 
                   return (
@@ -1822,7 +1826,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       onPress={() => setSelectedCalDate(isSelected ? null : dateStr)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.calDayNum, isSelected && { color: colors.primary }]}>{day}</Text>
+                      <Text style={[
+                        styles.calDayNum,
+                        cellTextColor ? { color: cellTextColor } : null,
+                        isSelected && { color: colors.primary },
+                      ]}>{day}</Text>
                       {count > 0 && (
                         <Text style={[
                           styles.calBookingCount,
@@ -2446,12 +2454,12 @@ function makeStyles(c: Colors, topInset: number) {
     },
     tabsScroll: {
       backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
-      flexGrow: 0,
+      flexGrow: 0, height: 48,
     },
     tabs: {
-      flexDirection: 'row',
+      flexDirection: 'row', height: 48,
     },
-    tab: { paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
+    tab: { height: 48, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
     tabActive: { borderBottomWidth: 2, borderBottomColor: c.primary },
     tabText: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
     tabTextActive: { color: c.primary },
