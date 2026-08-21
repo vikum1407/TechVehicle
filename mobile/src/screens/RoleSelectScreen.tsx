@@ -40,7 +40,7 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
       </TouchableOpacity>
 
       <View style={styles.top}>
-        <Text style={styles.appName}>TechVehicle</Text>
+        <Text style={styles.appName}>Vocksy</Text>
         <Text style={styles.title}>How will you use the app?</Text>
         <Text style={styles.subtitle}>
           Choose your primary role. You can always use both features after setup.

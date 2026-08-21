@@ -272,7 +272,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.logo}>TechVehicle</Text>
+          <Text style={styles.logo}>Vocksy</Text>
           <Text style={styles.phone}>{phoneNumber}</Text>
         </View>
         <View style={styles.headerRight}>

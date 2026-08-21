@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "TechVehicle",
-    "slug": "techvehicle",
+    "name": "Vocksy",
+    "slug": "vocksy",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.techvehicle.app"
+      "bundleIdentifier": "com.vocksy.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1d3a5f"
       },
-      "package": "com.techvehicle.app",
+      "package": "com.vocksy.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
@@ -43,8 +43,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "TechVehicle needs access to your photos to attach receipts to service records.",
-          "cameraPermission": "TechVehicle needs camera access to photograph receipts."
+          "photosPermission": "Vocksy needs access to your photos to attach receipts to service records.",
+          "cameraPermission": "Vocksy needs camera access to photograph receipts."
         }
       ]
     ],

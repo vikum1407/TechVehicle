@@ -57,7 +57,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <View style={styles.heroRoad} />
-          <Text style={styles.logo}>TechVehicle</Text>
+          <Text style={styles.logo}>Vocksy</Text>
           <Text style={styles.tagline}>Your vehicle's digital service file</Text>
         </View>
 

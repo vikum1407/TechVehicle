@@ -25,7 +25,7 @@ export default function SettingsScreen({ onBack, onNotificationPrefs }: Props) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>TechVehicle · v1.0.0</Text>
+      <Text style={styles.version}>Vocksy · v1.0.0</Text>
     </ScrollView>
   )
 }

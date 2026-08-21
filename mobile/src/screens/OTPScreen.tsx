@@ -43,7 +43,7 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.inner}>
-        <Text style={styles.logo}>TechVehicle</Text>
+        <Text style={styles.logo}>Vocksy</Text>
         <Text style={styles.tagline}>Your vehicle companion</Text>
 
         <View style={styles.card}>

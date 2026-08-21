@@ -35,7 +35,7 @@ app.use(express.json())
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'TechVehicle API is running',
+    message: 'Vocksy API is running',
     timestamp: new Date().toISOString()
   })
 })
@@ -60,7 +60,7 @@ app.use('/service-categories', serviceCategoryRoutes)
 app.use('/vehicle-shares', vehicleShareRoutes)
 
 app.listen(PORT, () => {
-  console.log(`TechVehicle backend running on port ${PORT}`)
+  console.log(`Vocksy backend running on port ${PORT}`)
   startRenewalReminderJob()
   startServiceNotificationJob()
   startBookingReminderJob()

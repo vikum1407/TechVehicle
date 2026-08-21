@@ -143,7 +143,7 @@ function buildHtml(
   </style>
 </head>
 <body>
-  <div class="brand"><span class="dot"></span>TechVehicle — Vehicle History Report</div>
+  <div class="brand"><span class="dot"></span>Vocksy — Vehicle History Report</div>
 
   <div class="vehicle-header">
     <h1>${vehicle.registrationNo}</h1>
@@ -226,7 +226,7 @@ function buildHtml(
   </div>
 
   <div class="footer">
-    TechVehicle · Verified Vehicle History · ${vehicle.registrationNo} · ${generatedOn}
+    Vocksy · Verified Vehicle History · ${vehicle.registrationNo} · ${generatedOn}
   </div>
 </body>
 </html>`

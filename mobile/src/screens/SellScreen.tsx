@@ -101,7 +101,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
       {step === 'enterPhone' && (
         <>
           <Text style={styles.sectionSub}>
-            Enter the mobile number the buyer uses for their TechVehicle account.
+            Enter the mobile number the buyer uses for their Vocksy account.
             They will receive a transfer request to accept.
           </Text>
 
@@ -157,7 +157,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
             <Text style={styles.warningTitle}>⚠️ This is irreversible</Text>
             <Text style={styles.warningText}>
               Once the buyer accepts, all service history, fuel logs, and expense records are permanently removed from your account and added to theirs.{'\n\n'}
-              If the buyer does not have a TechVehicle account yet, they will see this transfer when they register with the same number.{'\n\n'}
+              If the buyer does not have a Vocksy account yet, they will see this transfer when they register with the same number.{'\n\n'}
               You can cancel this transfer at any time before the buyer accepts.
             </Text>
           </View>

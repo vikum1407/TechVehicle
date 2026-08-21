@@ -14,7 +14,7 @@ export default function HomeScreen({ phoneNumber, onLogout }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>TechVehicle</Text>
+      <Text style={styles.logo}>Vocksy</Text>
       <Text style={styles.welcome}>Welcome!</Text>
       <Text style={styles.phone}>{phoneNumber}</Text>
       <Text style={styles.subtitle}>Your vehicle companion is ready.</Text>
