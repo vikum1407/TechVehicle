@@ -14,6 +14,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Vehicle = {
   id: string
@@ -169,12 +170,12 @@ function Sparkline({ data, color, gradId }: {
 }
 
 function getTrend(data: number[], higherIsBetter: boolean) {
-  if (data.length < 2) return { arrow: '→', label: 'Not enough data', color: '#aaa' }
+  if (data.length < 2) return { arrow: '→', labelKey: 'dashboard.trend.notEnoughData' as const, color: '#aaa' }
   const first = data[0], last = data[data.length - 1]
   const pct = ((last - first) / (Math.abs(first) || 1)) * 100
-  if (pct > 3) return { arrow: '↑', label: 'Increasing', color: higherIsBetter ? '#34a853' : '#e65100' }
-  if (pct < -3) return { arrow: '↓', label: 'Declining', color: higherIsBetter ? '#e65100' : '#34a853' }
-  return { arrow: '→', label: 'Stable', color: '#888' }
+  if (pct > 3) return { arrow: '↑', labelKey: 'dashboard.trend.increasing' as const, color: higherIsBetter ? '#34a853' : '#e65100' }
+  if (pct < -3) return { arrow: '↓', labelKey: 'dashboard.trend.declining' as const, color: higherIsBetter ? '#e65100' : '#34a853' }
+  return { arrow: '→', labelKey: 'dashboard.trend.stable' as const, color: '#888' }
 }
 
 function getExpiryAlert(dateStr: string | null | undefined): { daysLeft: number; urgency: 'expired' | 'critical' | 'warning' } | null {
@@ -187,10 +188,13 @@ function getExpiryAlert(dateStr: string | null | undefined): { daysLeft: number;
   return null
 }
 
-function expiryLabel(days: number): string {
-  if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`
-  if (days === 0) return 'Expires today!'
-  return `Expires in ${days} day${days !== 1 ? 's' : ''}`
+function expiryLabel(t: (key: any, params?: Record<string, string | number>) => string, days: number): string {
+  if (days < 0) {
+    const n = Math.abs(days)
+    return t('dashboard.expiredDaysAgo', { days: n, s: n !== 1 ? 's' : '' })
+  }
+  if (days === 0) return t('dashboard.expiresToday')
+  return t('dashboard.expiresIn', { days, s: days !== 1 ? 's' : '' })
 }
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -252,11 +256,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
 
   const handleSaveVehicle = async () => {
     if (!draftVehicle.make.trim() || !draftVehicle.model.trim() || !draftVehicle.year || !draftVehicle.fuelType) {
-      Alert.alert('Required', 'Make, model, year, and fuel type are required.')
+      Alert.alert(t('dashboard.required.title'), t('dashboard.required.message'))
       return
     }
     setSavingVehicle(true)
@@ -281,7 +286,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       setEditVehicleModal(false)
       onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null, emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null, revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null })
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save vehicle details')
+      Alert.alert(t('common.error'), e.message || t('dashboard.saveVehicleError'))
     } finally {
       setSavingVehicle(false)
     }
@@ -296,7 +301,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       setShareInput('')
       await loadRecords()
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSharingAccess(false)
     }
@@ -304,12 +309,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   const handleRevokeShare = (shareId: string, phone: string) => {
     Alert.alert(
-      'Revoke Access',
-      `Remove ${phone}'s access to this vehicle?`,
+      t('dashboard.revokeAccess.title'),
+      t('dashboard.revokeAccess.message', { phone }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Revoke',
+          text: t('dashboard.revoke'),
           style: 'destructive',
           onPress: async () => {
             setRevokingShareId(shareId)
@@ -317,7 +322,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               await api.revokeVehicleShare(token, shareId)
               await loadRecords()
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setRevokingShareId(null)
             }
@@ -330,7 +335,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const pickVehiclePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      Alert.alert(t('dashboard.permissionNeeded.title'), t('dashboard.permissionNeeded.message'))
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
@@ -346,7 +351,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       await api.updateVehiclePhoto(token, vehicle.id, url)
       setVehiclePhotoUrl(url)
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+      Alert.alert(t('dashboard.uploadFailed.title'), e.message || t('dashboard.uploadFailed.message'))
     } finally {
       setUploadingVehiclePhoto(false)
     }
@@ -400,7 +405,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         setRatingComment('')
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setAccepting(null)
     }
@@ -413,7 +418,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       await api.rateGarage(token, ratingPrompt.submissionId, ratingValue, ratingComment.trim() || undefined)
       setRatingPrompt(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSubmittingRating(false)
     }
@@ -421,12 +426,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   const handleReject = (submissionId: string) => {
     Alert.alert(
-      'Reject Submission',
-      'This submission will be removed and the submitter will be notified. Continue?',
+      t('dashboard.rejectSubmission.title'),
+      t('dashboard.rejectSubmission.message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Reject',
+          text: t('dashboard.reject'),
           style: 'destructive',
           onPress: async () => {
             setRejecting(submissionId)
@@ -434,7 +439,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               await api.rejectSubmission(token, submissionId)
               await loadRecords()
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setRejecting(null)
             }
@@ -447,19 +452,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const handleCancelTransfer = () => {
     if (!pendingTransfer) return
     Alert.alert(
-      'Cancel Transfer',
-      'Cancel the pending transfer request?',
+      t('dashboard.cancelTransfer.title'),
+      t('dashboard.cancelTransfer.message'),
       [
-        { text: 'No', style: 'cancel' },
+        { text: t('dashboard.no'), style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: t('dashboard.yesCancel'),
           onPress: async () => {
             setCancellingTransfer(true)
             try {
               await api.cancelTransfer(token, pendingTransfer.id)
               setPendingTransfer(null)
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setCancellingTransfer(false)
             }
@@ -472,7 +477,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const handleUpdateMileage = async () => {
     const newMileage = parseInt(mileageInput)
     if (!mileageInput || isNaN(newMileage) || newMileage <= vehicle.mileage) {
-      Alert.alert('Invalid mileage', `Please enter a value higher than the current odometer (${vehicle.mileage.toLocaleString()} km).`)
+      Alert.alert(t('dashboard.invalidMileage.title'), t('dashboard.invalidMileage.message', { mileage: vehicle.mileage.toLocaleString() }))
       return
     }
     setSavingMileage(true)
@@ -482,7 +487,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       setEditingMileage(false)
       setMileageInput('')
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingMileage(false)
     }
@@ -501,7 +506,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       const notes = await api.getBookingNotes(token, sub.bookingId!)
       setBookingNotes(prev => ({ ...prev, [sub.bookingId!]: notes }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setLoadingNotes(prev => { const s = new Set(prev); s.delete(key); return s })
     }
@@ -520,7 +525,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       }))
       setMessageInputs(prev => ({ ...prev, [sub.id]: '' }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSendingMessage(null)
     }
@@ -528,12 +533,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
   const handleCancelBooking = (bookingId: string) => {
     Alert.alert(
-      'Cancel Booking',
-      'Cancel this service appointment?',
+      t('dashboard.cancelBooking.title'),
+      t('dashboard.cancelBooking.message'),
       [
-        { text: 'No', style: 'cancel' },
+        { text: t('dashboard.no'), style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: t('dashboard.yesCancel'),
           style: 'destructive',
           onPress: async () => {
             setCancellingBooking(bookingId)
@@ -541,7 +546,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               await api.cancelBooking(token, bookingId)
               setMyBookings(prev => prev.filter(b => b.id !== bookingId))
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setCancellingBooking(null)
             }
@@ -562,24 +567,24 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         : b
       ))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setRespondingCounter(null)
     }
   }
 
   const handleDeclineCounter = async (bookingId: string) => {
-    Alert.alert('Decline Suggestion', 'Decline this slot suggestion? The booking will be cancelled.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('dashboard.declineSuggestion.title'), t('dashboard.declineSuggestion.message'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Decline', style: 'destructive',
+        text: t('common.decline'), style: 'destructive',
         onPress: async () => {
           setRespondingCounter(bookingId)
           try {
             await api.declineCounter(token, bookingId)
             setMyBookings(prev => prev.filter(b => b.id !== bookingId))
           } catch (e: any) {
-            Alert.alert('Error', e.message)
+            Alert.alert(t('common.error'), e.message)
           } finally {
             setRespondingCounter(null)
           }
@@ -607,7 +612,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         .then(({ count }) => onNotifSeen?.(count))
         .catch(() => {})
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setLoadingNotes(prev => { const s = new Set(prev); s.delete(bookingId); return s })
     }
@@ -628,7 +633,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       onBookingSeen?.(bookingId, updated.length)
       setMessageInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSendingMessage(null)
     }
@@ -706,7 +711,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       >
         {loadFailed && (
           <TouchableOpacity style={styles.errorBanner} onPress={loadRecords} activeOpacity={0.8}>
-            <Text style={styles.errorBannerText}>⚠️  Could not load data — tap to retry</Text>
+            <Text style={styles.errorBannerText}>{t('dashboard.loadFailed')}</Text>
           </TouchableOpacity>
         )}
         <View style={styles.vehicleCard}>
@@ -716,25 +721,25 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <View style={styles.vehiclePhotoOverlay}>
                 {uploadingVehiclePhoto
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.vehiclePhotoOverlayText}>📷 Change</Text>}
+                  : <Text style={styles.vehiclePhotoOverlayText}>{t('dashboard.change')}</Text>}
               </View>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.vehiclePhotoAdd} onPress={pickVehiclePhoto} disabled={uploadingVehiclePhoto} activeOpacity={0.8}>
               {uploadingVehiclePhoto
                 ? <ActivityIndicator color="rgba(255,255,255,0.8)" size="small" />
-                : <Text style={styles.vehiclePhotoAddText}>📷  Add vehicle photo</Text>}
+                : <Text style={styles.vehiclePhotoAddText}>{t('dashboard.addVehiclePhoto')}</Text>}
             </TouchableOpacity>
           )}
           <View style={styles.vehicleNameRow}>
             <Text style={styles.vehicleName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
             {vehicle.isShared ? (
               <View style={[styles.editVehicleBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <Text style={styles.editVehicleBtnText}>👁 View only</Text>
+                <Text style={styles.editVehicleBtnText}>{t('dashboard.viewOnly')}</Text>
               </View>
             ) : (
               <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
-                <Text style={styles.editVehicleBtnText}>Edit</Text>
+                <Text style={styles.editVehicleBtnText}>{t('dashboard.edit')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -746,7 +751,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <TouchableOpacity style={styles.mileageRow} onPress={() => { setMileageInput(''); setEditingMileage(true) }}>
                 <Text style={styles.vehicleDetail}>{vehicle.mileage.toLocaleString()} km</Text>
                 <Animated.View style={[styles.mileageUpdatePill, { borderColor: mileageUpdateBorderColor }]}>
-                  <Text style={styles.mileageEditHint}>✏️ Update</Text>
+                  <Text style={styles.mileageEditHint}>{t('dashboard.update')}</Text>
                 </Animated.View>
               </TouchableOpacity>
             ) : (
@@ -772,25 +777,25 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           {vehicle.isShared ? (
             <View style={styles.quickActions}>
               <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
-                <Text style={styles.quickBtnText}>📊 Insights</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.insights')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onPredictions}>
-                <Text style={styles.quickBtnText}>💡 Predictions</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.predictions')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.quickActions}>
               <TouchableOpacity style={[styles.quickBtn, styles.quickBtnEmphasis]} onPress={onLogFuel}>
-                <Text style={[styles.quickBtnText, styles.quickBtnTextEmphasis]}>⛽ Log Fuel</Text>
+                <Text style={[styles.quickBtnText, styles.quickBtnTextEmphasis]}>{t('dashboard.logFuel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
-                <Text style={styles.quickBtnText}>🔧 Add Service</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.addService')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onAddExpense}>
-                <Text style={styles.quickBtnText}>💰 Add Expense</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.addExpense')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onAnalytics}>
-                <Text style={styles.quickBtnText}>📊 Insights</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.insights')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -800,19 +805,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {showSparklines && (
           <View style={styles.sparkRow}>
             <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-              <Text style={styles.sparkTitle}>Mileage</Text>
+              <Text style={styles.sparkTitle}>{t('dashboard.mileage')}</Text>
               <Sparkline data={mileageValues} color={colors.primary} gradId="dashMileage" />
               <Text style={styles.sparkValue}>
                 {vehicle.mileage.toLocaleString()}
                 <Text style={styles.sparkUnit}> km</Text>
               </Text>
               <Text style={[styles.sparkTrend, { color: mileageTrend.color }]}>
-                {mileageTrend.arrow} {mileageTrend.label}
+                {mileageTrend.arrow} {t(mileageTrend.labelKey)}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-              <Text style={styles.sparkTitle}>Fuel Economy</Text>
+              <Text style={styles.sparkTitle}>{t('dashboard.fuelEconomy')}</Text>
               <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
               <Text style={styles.sparkValue}>
                 {miniAnalytics?.avgFuelEfficiency != null
@@ -821,7 +826,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.sparkUnit}> km/L</Text>
               </Text>
               <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
-                {effValues.length >= 2 ? `${effTrend.arrow} ${effTrend.label}` : 'Log more fill-ups'}
+                {effValues.length >= 2 ? `${effTrend.arrow} ${t(effTrend.labelKey)}` : t('dashboard.logMoreFillups')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -833,8 +838,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             {vehicleProgress && vehicleProgress.score < 100 && (
               <>
                 <View style={styles.progressCardHeader}>
-                  <Text style={styles.progressCardTitle}>Vehicle Profile</Text>
-                  <Text style={styles.progressCardPct}>{vehicleProgress.score}% complete</Text>
+                  <Text style={styles.progressCardTitle}>{t('dashboard.vehicleProfile')}</Text>
+                  <Text style={styles.progressCardPct}>{t('dashboard.complete', { pct: vehicleProgress.score })}</Text>
                 </View>
                 <View style={styles.progressBarTrack}>
                   <View style={[styles.progressBarFill, { width: `${vehicleProgress.score}%` as any }]} />
@@ -851,7 +856,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <View style={styles.profileCardRow}>
                 {vehicle.purchaseDate && (
                   <View style={styles.profileStat}>
-                    <Text style={styles.profileStatLabel}>Purchased</Text>
+                    <Text style={styles.profileStatLabel}>{t('dashboard.purchased')}</Text>
                     <Text style={styles.profileStatValue}>
                       {new Date(vehicle.purchaseDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                     </Text>
@@ -859,13 +864,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 )}
                 {vehicle.ownerCount != null && (
                   <View style={styles.profileStat}>
-                    <Text style={styles.profileStatLabel}>Owners</Text>
+                    <Text style={styles.profileStatLabel}>{t('dashboard.owners')}</Text>
                     <Text style={styles.profileStatValue}>{vehicle.ownerCount}</Text>
                   </View>
                 )}
                 {vehicle.registrationNo && (
                   <View style={styles.profileStat}>
-                    <Text style={styles.profileStatLabel}>Reg No</Text>
+                    <Text style={styles.profileStatLabel}>{t('dashboard.regNo')}</Text>
                     <Text style={styles.profileStatValue} numberOfLines={1}>{vehicle.registrationNo}</Text>
                   </View>
                 )}
@@ -895,10 +900,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(emission.urgency) }]}>
-                      {emission.urgency === 'expired' ? '🚨' : '⚠️'} Emission Test
+                      {emission.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.emissionTest')}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(emission.urgency) }]}>
-                      {expiryLabel(emission.daysLeft)}
+                      {expiryLabel(t, emission.daysLeft)}
                     </Text>
                     <Text style={styles.renewalDate}>
                       {new Date(vehicle.emissionTestExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -915,10 +920,10 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(licence.urgency) }]}>
-                      {licence.urgency === 'expired' ? '🚨' : '⚠️'} Revenue Licence
+                      {licence.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.revenueLicence')}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(licence.urgency) }]}>
-                      {expiryLabel(licence.daysLeft)}
+                      {expiryLabel(t, licence.daysLeft)}
                     </Text>
                     <Text style={styles.renewalDate}>
                       {new Date(vehicle.revenueLicenceExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -935,11 +940,11 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(insurance.urgency) }]}>
-                      {insurance.urgency === 'expired' ? '🚨' : '⚠️'} Insurance
+                      {insurance.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.insurance')}
                       {vehicle.insuranceCompany ? ` — ${vehicle.insuranceCompany}` : ''}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(insurance.urgency) }]}>
-                      {expiryLabel(insurance.daysLeft)}
+                      {expiryLabel(t, insurance.daysLeft)}
                     </Text>
                     <Text style={styles.renewalDate}>
                       {new Date(vehicle.insuranceExpiry!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -955,12 +960,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {/* My Appointments — owner's booked service slots */}
         {myBookings.length > 0 && (
           <View style={styles.appointmentsSection}>
-            <Text style={styles.appointmentsSectionTitle}>📅 My Appointments ({myBookings.length})</Text>
+            <Text style={styles.appointmentsSectionTitle}>{t('dashboard.myAppointments', { count: myBookings.length })}</Text>
             {myBookings.map(bk => {
               const isConfirmed = bk.status === 'confirmed'
               const isCounter   = bk.status === 'counter_suggested'
               const statusColor = isConfirmed ? '#2e7d32' : isCounter ? '#1565c0' : '#e65100'
-              const statusLabel = isConfirmed ? '✓ Confirmed' : isCounter ? '🔄 Counter Suggested' : '⏳ Pending'
+              const statusLabel = isConfirmed ? t('dashboard.confirmed') : isCounter ? t('dashboard.counterSuggested') : t('dashboard.pending')
               const isExpanded = expandedMessages.has(bk.id)
               return (
                 <View key={bk.id} style={[styles.appointmentCard, { borderLeftColor: statusColor }]}>
@@ -982,7 +987,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                   {bk.serviceType && (
                     <View style={styles.serviceTypeChip}>
                       <Text style={styles.serviceTypeChipText}>
-                        {bk.serviceType === 'full' ? '🔧 Full Service' : bk.serviceType === 'between' ? '⚡ Between Service' : '🏭 Third-Party'}
+                        {bk.serviceType === 'full' ? t('dashboard.fullService') : bk.serviceType === 'between' ? t('dashboard.betweenService') : t('dashboard.thirdParty')}
                       </Text>
                     </View>
                   )}
@@ -995,7 +1000,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
                   {isCounter && bk.counterDate && (
                     <View style={styles.counterOfferCard}>
-                      <Text style={styles.counterOfferTitle}>🔄 Garage suggests a different slot:</Text>
+                      <Text style={styles.counterOfferTitle}>{t('dashboard.counterOfferTitle')}</Text>
                       <Text style={styles.counterOfferDate}>
                         {new Date(bk.counterDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                         {bk.counterSlot ? `  ·  ${bk.counterSlot}` : ''}
@@ -1008,7 +1013,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         >
                           {respondingCounter === bk.id
                             ? <ActivityIndicator size="small" color="#fff" />
-                            : <Text style={styles.counterAcceptBtnText}>✓ Accept</Text>
+                            : <Text style={styles.counterAcceptBtnText}>{t('dashboard.acceptShort')}</Text>
                           }
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -1016,7 +1021,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                           onPress={() => handleDeclineCounter(bk.id)}
                           disabled={respondingCounter === bk.id}
                         >
-                          <Text style={styles.counterDeclineBtnText}>✕ Decline</Text>
+                          <Text style={styles.counterDeclineBtnText}>{t('dashboard.declineShort')}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1029,7 +1034,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     >
                       <View style={styles.messagesToggleRow}>
                         <Text style={styles.messagesToggleSmallText}>
-                          💬 Messages {isExpanded ? '▲' : '▼'}
+                          {t('dashboard.messages')} {isExpanded ? '▲' : '▼'}
                         </Text>
                         {(() => {
                           const unread = Math.max(0, (bk._count?.bookingNotes ?? 0) - (bookingSeenCounts[bk.id] ?? 0))
@@ -1045,7 +1050,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                       >
                         {cancellingBooking === bk.id
                           ? <ActivityIndicator size="small" color="#c62828" />
-                          : <Text style={styles.cancelBkBtnText}>Cancel</Text>
+                          : <Text style={styles.cancelBkBtnText}>{t('dashboard.cancel')}</Text>
                         }
                       </TouchableOpacity>
                     )}
@@ -1058,7 +1063,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                       ) : (
                         <>
                           {(bookingNotes[bk.id] || []).length === 0 ? (
-                            <Text style={styles.noMessages}>No messages yet</Text>
+                            <Text style={styles.noMessages}>{t('dashboard.noMessagesYet')}</Text>
                           ) : (bookingNotes[bk.id] || []).map(note => (
                             <View
                               key={note.id}
@@ -1068,7 +1073,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                               ]}
                             >
                               <Text style={styles.messageSender}>
-                                {note.senderPhone !== phoneNumber ? 'Garage' : 'You'}
+                                {note.senderPhone !== phoneNumber ? t('dashboard.garage') : t('dashboard.you')}
                               </Text>
                               <Text style={styles.messageText}>{note.message}</Text>
                               <Text style={styles.messageTime}>
@@ -1081,7 +1086,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                               style={styles.messageInput}
                               value={messageInputs[bk.id] || ''}
                               onChangeText={v => setMessageInputs(prev => ({ ...prev, [bk.id]: v }))}
-                              placeholder="Type a message..."
+                              placeholder={t('dashboard.typeMessage')}
                               multiline={false}
                             />
                             <TouchableOpacity
@@ -1108,21 +1113,21 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {/* Upcoming Services prediction card */}
         <TouchableOpacity style={styles.predCard} onPress={onPredictions} activeOpacity={0.85}>
           <View style={styles.predCardHeader}>
-            <Text style={styles.predCardTitle}>🔮 Upcoming Services</Text>
-            <Text style={styles.predCardLink}>View all →</Text>
+            <Text style={styles.predCardTitle}>{t('dashboard.upcomingServices')}</Text>
+            <Text style={styles.predCardLink}>{t('dashboard.viewAll')}</Text>
           </View>
           {topPredictions.length === 0 ? (
-            <Text style={styles.predAllOk}>✓ All tracked services are on schedule</Text>
+            <Text style={styles.predAllOk}>{t('dashboard.allOnSchedule')}</Text>
           ) : (
             topPredictions.map(p => {
               const isOverdue = p.status === 'overdue'
               const cardBg    = isOverdue ? '#ffebee' : '#fff8e1'
               const borderClr = isOverdue ? '#c62828' : '#f9a825'
               const textClr   = isOverdue ? '#c62828' : '#e65100'
-              const badge     = isOverdue ? '🚨 Overdue' : '⚠ Due Soon'
+              const badge     = isOverdue ? t('dashboard.overdue') : t('dashboard.dueSoon')
               const detail    = isOverdue
-                ? `Overdue${p.remainingKm != null ? ` by ${Math.abs(p.remainingKm).toLocaleString()} km` : ''}`
-                : `Due in${p.remainingKm != null ? ` ${p.remainingKm.toLocaleString()} km` : p.remainingDays != null ? ` ${p.remainingDays} days` : ''}`
+                ? t('dashboard.overdueBy', { extra: p.remainingKm != null ? t('dashboard.overdueByKm', { km: Math.abs(p.remainingKm).toLocaleString() }) : '' })
+                : t('dashboard.dueIn', { extra: p.remainingKm != null ? t('dashboard.dueInKm', { km: p.remainingKm.toLocaleString() }) : p.remainingDays != null ? t('dashboard.dueInDays', { days: p.remainingDays }) : '' })
               return (
                 <View key={p.id} style={[styles.predItem, { backgroundColor: cardBg, borderLeftColor: borderClr }]}>
                   <View style={{ flex: 1 }}>
@@ -1142,13 +1147,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {submissions.length > 0 && (
           <View style={styles.submissionsSection}>
             <Text style={styles.submissionsSectionTitle}>
-              ⚠️ Pending for Approval ({submissions.length})
+              {t('dashboard.pendingApproval', { count: submissions.length })}
             </Text>
             {submissions.map(sub => (
               <View key={sub.id} style={styles.submissionCard}>
                 <View style={styles.submissionHeader}>
                   <Text style={styles.submissionGarage}>
-                    {sub.garage ? `${sub.garage.name}${sub.garage.verified ? ' ✅' : ''}` : sub.submittedByPhone ?? 'Shared user'}
+                    {sub.garage ? `${sub.garage.name}${sub.garage.verified ? ' ✅' : ''}` : sub.submittedByPhone ?? t('dashboard.sharedUser')}
                   </Text>
                   <Text style={styles.submissionDate}>
                     {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -1161,8 +1166,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     </View>
                   ))}
                 </View>
-                {sub.parts && <Text style={styles.submissionMeta}>Parts: {sub.parts}</Text>}
-                {sub.brand && <Text style={styles.submissionMeta}>Brand: {sub.brand}</Text>}
+                {sub.parts && <Text style={styles.submissionMeta}>{t('dashboard.parts', { parts: sub.parts })}</Text>}
+                {sub.brand && <Text style={styles.submissionMeta}>{t('dashboard.brand', { brand: sub.brand })}</Text>}
                 {sub.cost != null && (
                   <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
                 )}
@@ -1190,7 +1195,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     >
                       {rejecting === sub.id
                         ? <ActivityIndicator color="#c62828" size="small" />
-                        : <Text style={styles.rejectBtnText}>✕ Reject</Text>
+                        : <Text style={styles.rejectBtnText}>{t('dashboard.rejectShort')}</Text>
                       }
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -1200,7 +1205,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     >
                       {accepting === sub.id
                         ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.acceptBtnText}>✓ Accept</Text>
+                        : <Text style={styles.acceptBtnText}>{t('dashboard.acceptShort')}</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -1213,7 +1218,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                   >
                     {accepting === sub.id
                       ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={styles.acceptBtnText}>✓ Accept — Add to My History</Text>
+                      : <Text style={styles.acceptBtnText}>{t('dashboard.acceptAddToHistory')}</Text>
                     }
                   </TouchableOpacity>
                 )}
@@ -1225,7 +1230,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     onPress={() => toggleMessages(sub)}
                   >
                     <Text style={styles.messagesToggleText}>
-                      💬 Messages {expandedMessages.has(sub.id) ? '▲' : '▼'}
+                      {t('dashboard.messages')} {expandedMessages.has(sub.id) ? '▲' : '▼'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1237,7 +1242,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     ) : (
                       <>
                         {(bookingNotes[sub.bookingId] || []).length === 0 ? (
-                          <Text style={styles.noMessages}>No messages yet</Text>
+                          <Text style={styles.noMessages}>{t('dashboard.noMessagesYet')}</Text>
                         ) : (bookingNotes[sub.bookingId] || []).map(note => (
                           <View
                             key={note.id}
@@ -1247,7 +1252,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                             ]}
                           >
                             <Text style={styles.messageSender}>
-                              {note.senderPhone !== phoneNumber ? 'Garage' : 'You'}
+                              {note.senderPhone !== phoneNumber ? t('dashboard.garage') : t('dashboard.you')}
                             </Text>
                             <Text style={styles.messageText}>{note.message}</Text>
                             <Text style={styles.messageTime}>
@@ -1260,7 +1265,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                             style={styles.messageInput}
                             value={messageInputs[sub.id] || ''}
                             onChangeText={v => setMessageInputs(prev => ({ ...prev, [sub.id]: v }))}
-                            placeholder="Type a message..."
+                            placeholder={t('dashboard.typeMessage')}
                             multiline={false}
                           />
                           <TouchableOpacity
@@ -1286,8 +1291,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {pendingTransfer && (
           <View style={styles.transferBanner}>
             <View style={styles.transferBannerLeft}>
-              <Text style={styles.transferBannerTitle}>Transfer Pending</Text>
-              <Text style={styles.transferBannerSub}>Waiting for {pendingTransfer.buyerPhone} to accept</Text>
+              <Text style={styles.transferBannerTitle}>{t('dashboard.transferPending')}</Text>
+              <Text style={styles.transferBannerSub}>{t('dashboard.waitingForBuyer', { phone: pendingTransfer.buyerPhone })}</Text>
             </View>
             <TouchableOpacity
               style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
@@ -1296,14 +1301,14 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             >
               {cancellingTransfer
                 ? <ActivityIndicator color="#c62828" size="small" />
-                : <Text style={styles.cancelTransferBtnText}>Cancel</Text>
+                : <Text style={styles.cancelTransferBtnText}>{t('dashboard.cancel')}</Text>
               }
             </TouchableOpacity>
           </View>
         )}
 
         <TouchableOpacity style={styles.historyBtn} onPress={onViewHistory} activeOpacity={0.8}>
-          <Text style={styles.historyBtnText}>📋 Full History & Expenses</Text>
+          <Text style={styles.historyBtnText}>{t('dashboard.fullHistoryExpenses')}</Text>
           <Text style={styles.historyBtnArrow}>›</Text>
         </TouchableOpacity>
 
@@ -1315,19 +1320,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         <View style={styles.editVehicleOverlay}>
           <View style={styles.editVehicleCard}>
             <View style={styles.editVehicleHeaderRow}>
-              <Text style={styles.editVehicleTitle}>Edit Vehicle Details</Text>
+              <Text style={styles.editVehicleTitle}>{t('dashboard.editVehicleDetails')}</Text>
               <TouchableOpacity onPress={() => setEditVehicleModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.editVehicleLabel}>Make</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>Model</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.model} onChangeText={v => setDraftVehicle(p => ({ ...p, model: v }))} placeholder="e.g. Prius" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>Year</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.year')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.year} onChangeText={v => setDraftVehicle(p => ({ ...p, year: v }))} keyboardType="number-pad" placeholder="e.g. 2018" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>Fuel Type</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.fuelType')}</Text>
             <View style={styles.fuelTypeRow}>
               {['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Hybrid'].map(ft => (
                 <TouchableOpacity key={ft} style={[styles.fuelTypeChip, draftVehicle.fuelType === ft && styles.fuelTypeChipActive]} onPress={() => setDraftVehicle(p => ({ ...p, fuelType: ft }))}>
@@ -1335,7 +1340,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.editVehicleLabel}>Vehicle Type</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.vehicleType')}</Text>
             <View style={styles.vehicleTypeGrid}>
               {VEHICLE_TYPE_OPTIONS.map(opt => (
                 <TouchableOpacity
@@ -1348,7 +1353,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.editVehicleLabel}>Purchase Date (YYYY-MM-DD)</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.purchaseDate')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.purchaseDate}
@@ -1356,7 +1361,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. 2021-06-15  (optional)"
               placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.editVehicleLabel}>Previous Owners</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.previousOwners')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.ownerCount}
@@ -1365,7 +1370,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. 2  (optional)"
               placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.editVehicleLabel}>Vehicle Notes</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.vehicleNotes')}</Text>
             <TextInput
               style={[styles.editVehicleInput, { minHeight: 80, textAlignVertical: 'top' }]}
               value={draftVehicle.vehicleNotes}
@@ -1375,8 +1380,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholderTextColor={colors.textFaint}
             />
             <View style={styles.editSectionDivider} />
-            <Text style={styles.editSectionTitle}>📅 Renewal Dates</Text>
-            <Text style={styles.editVehicleLabel}>Emission Test Expiry (YYYY-MM-DD)</Text>
+            <Text style={styles.editSectionTitle}>{t('dashboard.renewalDates')}</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.emissionTestExpiry')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.emissionTestExpiry}
@@ -1384,7 +1389,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. 2026-06-30  (optional)"
               placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.editVehicleLabel}>Revenue Licence Expiry (YYYY-MM-DD)</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.revenueLicenceExpiry')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.revenueLicenceExpiry}
@@ -1393,8 +1398,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholderTextColor={colors.textFaint}
             />
             <View style={styles.editSectionDivider} />
-            <Text style={styles.editSectionTitle}>🛡️ Insurance Details</Text>
-            <Text style={styles.editVehicleLabel}>Insurance Company</Text>
+            <Text style={styles.editSectionTitle}>{t('dashboard.insuranceDetails')}</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.insuranceCompany')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.insuranceCompany}
@@ -1402,7 +1407,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. Ceylinco, Union, Allianz  (optional)"
               placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.editVehicleLabel}>Policy Number</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.policyNumber')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.insurancePolicyNo}
@@ -1410,7 +1415,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholder="e.g. POL-2024-001234  (optional)"
               placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.editVehicleLabel}>Insurance Expiry (YYYY-MM-DD)</Text>
+            <Text style={styles.editVehicleLabel}>{t('dashboard.insuranceExpiry')}</Text>
             <TextInput
               style={styles.editVehicleInput}
               value={draftVehicle.insuranceExpiry}
@@ -1419,7 +1424,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               placeholderTextColor={colors.textFaint}
             />
             <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
-              {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>Save Changes</Text>}
+              {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>{t('dashboard.saveChanges')}</Text>}
             </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1431,53 +1436,53 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         <TouchableOpacity style={styles.moreSheetOverlay} activeOpacity={1} onPress={() => setMoreActionsSheet(false)}>
           <TouchableOpacity style={styles.moreSheetCard} activeOpacity={1} onPress={() => {}}>
             <View style={styles.moreSheetHeaderRow}>
-              <Text style={styles.moreSheetTitle}>More for this vehicle</Text>
+              <Text style={styles.moreSheetTitle}>{t('dashboard.moreForVehicle')}</Text>
               <TouchableOpacity onPress={() => setMoreActionsSheet(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.moreSheetClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onVehicleTests() }}>
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧪</Text></View>
-              <Text style={styles.moreSheetItemText}>Vehicle Tests</Text>
+              <Text style={styles.moreSheetItemText}>{t('dashboard.vehicleTests')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onKnowledgeHub() }}>
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧠</Text></View>
-              <Text style={styles.moreSheetItemText}>Know Your Vehicle</Text>
+              <Text style={styles.moreSheetItemText}>{t('dashboard.knowYourVehicle')}</Text>
             </TouchableOpacity>
             {!vehicle.isShared && onCostForecast && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onCostForecast() }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
-                <Text style={styles.moreSheetItemText}>Cost Forecast</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.costForecast')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onBookService() }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📅</Text></View>
-                <Text style={styles.moreSheetItemText}>Book Service Appointment</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.bookServiceAppointment')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onChainService() }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>⛓</Text></View>
-                <Text style={styles.moreSheetItemText}>Chain Service</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.chainService')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onTripLog() }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🛺</Text></View>
-                <Text style={styles.moreSheetItemText}>Daily Trip Log</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.dailyTripLog')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); setFamilyShareModal(true) }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
-                <Text style={styles.moreSheetItemText}>Family / Shared Access</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.familySharedAccess')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && !pendingTransfer && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onSell() }}>
                 <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🔄</Text></View>
-                <Text style={styles.moreSheetItemText}>Sell / Transfer Vehicle</Text>
+                <Text style={styles.moreSheetItemText}>{t('dashboard.sellTransferVehicle')}</Text>
               </TouchableOpacity>
             )}
           </TouchableOpacity>
@@ -1489,7 +1494,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         <View style={styles.moreSheetOverlay}>
           <View style={styles.moreSheetCard}>
             <View style={styles.moreSheetHeaderRow}>
-              <Text style={styles.moreSheetTitle}>Family / Shared Access</Text>
+              <Text style={styles.moreSheetTitle}>{t('dashboard.familySharedAccess')}</Text>
               <TouchableOpacity onPress={() => setFamilyShareModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.moreSheetClose}>✕</Text>
               </TouchableOpacity>
@@ -1504,7 +1509,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                         styles.familyShareStatus,
                         share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
                       ]}>
-                        {share.status === 'active' ? 'Active' : 'Pending'}
+                        {share.status === 'active' ? t('dashboard.active') : t('dashboard.pendingStatus')}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -1514,7 +1519,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                     >
                       {revokingShareId === share.id
                         ? <ActivityIndicator size="small" color={colors.primary} />
-                        : <Text style={styles.revokeBtnText}>Revoke</Text>
+                        : <Text style={styles.revokeBtnText}>{t('dashboard.revoke')}</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -1537,7 +1542,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               >
                 {sharingAccess
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.familyShareBtnText}>Share</Text>
+                  : <Text style={styles.familyShareBtnText}>{t('dashboard.share')}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -1551,12 +1556,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         <View style={styles.moreSheetOverlay}>
           <View style={styles.moreSheetCard}>
             <View style={styles.moreSheetHeaderRow}>
-              <Text style={styles.moreSheetTitle}>Rate {ratingPrompt?.garageName}</Text>
+              <Text style={styles.moreSheetTitle}>{t('dashboard.rate', { name: ratingPrompt?.garageName ?? '' })}</Text>
               <TouchableOpacity onPress={() => setRatingPrompt(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.moreSheetClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.ratingSubtitle}>How was your experience with this service?</Text>
+            <Text style={styles.ratingSubtitle}>{t('dashboard.howWasExperience')}</Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map(n => (
                 <TouchableOpacity key={n} onPress={() => setRatingValue(n)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
@@ -1568,13 +1573,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               style={styles.ratingCommentInput}
               value={ratingComment}
               onChangeText={setRatingComment}
-              placeholder="Add a comment (optional)"
+              placeholder={t('dashboard.addCommentOptional')}
               placeholderTextColor={colors.textFaint}
               multiline
             />
             <View style={styles.ratingBtnRow}>
               <TouchableOpacity style={styles.ratingSkipBtn} onPress={() => setRatingPrompt(null)}>
-                <Text style={styles.ratingSkipBtnText}>Skip</Text>
+                <Text style={styles.ratingSkipBtnText}>{t('dashboard.skip')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.ratingSubmitBtn, (ratingValue === 0 || submittingRating) && { opacity: 0.5 }]}
@@ -1583,7 +1588,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               >
                 {submittingRating
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.ratingSubmitBtnText}>Submit Rating</Text>
+                  : <Text style={styles.ratingSubmitBtnText}>{t('dashboard.submitRating')}</Text>
                 }
               </TouchableOpacity>
             </View>
