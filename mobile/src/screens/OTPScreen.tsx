@@ -7,6 +7,7 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   phoneNumber: string
@@ -19,10 +20,11 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const handleVerify = async () => {
     if (otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit code.')
+      Alert.alert(t('otp.invalid.title'), t('otp.invalid.message'))
       return
     }
 
@@ -31,7 +33,7 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
       const result = await api.verifyOTP(phoneNumber, otp)
       onVerified(result.token, result.phoneNumber, result.userType || null, result.isNewUser || false)
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -44,12 +46,12 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
     >
       <View style={styles.inner}>
         <Text style={styles.logo}>Vocksy</Text>
-        <Text style={styles.tagline}>Your vehicle companion</Text>
+        <Text style={styles.tagline}>{t('otp.tagline')}</Text>
 
         <View style={styles.card}>
-          <Text style={styles.title}>Enter OTP</Text>
+          <Text style={styles.title}>{t('otp.title')}</Text>
           <Text style={styles.subtitle}>
-            A 6-digit code was sent to{'\n'}
+            {t('otp.codeSentTo')}{'\n'}
             <Text style={styles.phone}>{phoneNumber}</Text>
           </Text>
           <Text style={styles.devNote}>
@@ -75,12 +77,12 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
           >
             {loading
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.buttonText}>Verify</Text>
+              : <Text style={styles.buttonText}>{t('otp.verify')}</Text>
             }
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backText}>Change number</Text>
+            <Text style={styles.backText}>{t('otp.changeNumber')}</Text>
           </TouchableOpacity>
         </View>
       </View>

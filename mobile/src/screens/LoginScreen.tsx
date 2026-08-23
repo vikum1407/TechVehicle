@@ -9,16 +9,11 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { COUNTRY_CODES, isoToFlag, CountryCode } from '../constants/countryCodes'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   onOTPSent: (phoneNumber: string) => void
 }
-
-const PERKS = [
-  { icon: '🔧', label: 'Service\nhistory' },
-  { icon: '⛽', label: 'Fuel &\nmileage' },
-  { icon: '📄', label: 'Verified\ntransfer' },
-]
 
 export default function LoginScreen({ onOTPSent }: Props) {
   const [phone, setPhone] = useState('')
@@ -28,11 +23,18 @@ export default function LoginScreen({ onOTPSent }: Props) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
+
+  const PERKS = [
+    { icon: '🔧', label: t('login.perk.serviceHistory') },
+    { icon: '⛽', label: t('login.perk.fuelMileage') },
+    { icon: '📄', label: t('login.perk.verifiedTransfer') },
+  ]
 
   const handleSendOTP = async () => {
     const digits = phone.trim()
     if (digits.length < 6) {
-      Alert.alert('Invalid number', 'Please enter a valid mobile number.')
+      Alert.alert(t('login.invalidNumber.title'), t('login.invalidNumber.message'))
       return
     }
 
@@ -43,7 +45,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
       await api.sendOTP(fullNumber)
       onOTPSent(fullNumber)
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -58,7 +60,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
         <View style={styles.hero}>
           <View style={styles.heroRoad} />
           <Text style={styles.logo}>Vocksy</Text>
-          <Text style={styles.tagline}>Your vehicle's digital service file</Text>
+          <Text style={styles.tagline}>{t('login.tagline')}</Text>
         </View>
 
         <View style={styles.badgeWrap}>
@@ -68,8 +70,8 @@ export default function LoginScreen({ onOTPSent }: Props) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.subtitle}>Enter your mobile number</Text>
+          <Text style={styles.title}>{t('login.signIn')}</Text>
+          <Text style={styles.subtitle}>{t('login.enterMobile')}</Text>
 
           <View style={styles.inputRow}>
             <TouchableOpacity style={styles.prefix} onPress={() => setShowCountryPicker(true)}>
@@ -96,7 +98,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
           >
             {loading
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.buttonText}>Send OTP</Text>
+              : <Text style={styles.buttonText}>{t('login.sendOtp')}</Text>
             }
           </TouchableOpacity>
 
@@ -133,6 +135,7 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const m = useMemo(() => makeModalStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -152,7 +155,7 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={m.container}>
         <View style={m.header}>
-          <Text style={m.title}>Select Country</Text>
+          <Text style={m.title}>{t('login.selectCountry')}</Text>
           <TouchableOpacity onPress={handleClose} style={m.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={m.closeText}>✕</Text>
           </TouchableOpacity>
@@ -161,7 +164,7 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
         <View style={m.searchWrap}>
           <TextInput
             style={m.search}
-            placeholder="Search country or code..."
+            placeholder={t('login.searchCountry')}
             placeholderTextColor={colors.textFaint}
             value={search}
             onChangeText={setSearch}
@@ -189,7 +192,7 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
           )}
           ItemSeparatorComponent={() => <View style={m.sep} />}
           ListEmptyComponent={
-            <Text style={m.empty}>No results for "{search}"</Text>
+            <Text style={m.empty}>{t('login.noResultsFor', { query: search })}</Text>
           }
         />
       </View>

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -20,6 +21,7 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
 
   const handleContinue = async () => {
     if (!selected) return
@@ -28,7 +30,7 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
       await api.setUserType(token, selected)
       onSelected(selected)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
       setSaving(false)
     }
   }
@@ -36,15 +38,13 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <TouchableOpacity onPress={onCancel} style={styles.cancelLink} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={styles.cancelLinkText}>← Use a different number</Text>
+        <Text style={styles.cancelLinkText}>{t('role.useDifferentNumber')}</Text>
       </TouchableOpacity>
 
       <View style={styles.top}>
         <Text style={styles.appName}>Vocksy</Text>
-        <Text style={styles.title}>How will you use the app?</Text>
-        <Text style={styles.subtitle}>
-          Choose your primary role. You can always use both features after setup.
-        </Text>
+        <Text style={styles.title}>{t('role.title')}</Text>
+        <Text style={styles.subtitle}>{t('role.subtitle')}</Text>
       </View>
 
       <View style={styles.cards}>
@@ -55,14 +55,14 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
         >
           <Text style={styles.cardIcon}>🚗</Text>
           <Text style={[styles.cardTitle, selected === 'owner' && styles.cardTitleSelected]}>
-            Vehicle Owner
+            {t('role.owner.title')}
           </Text>
           <Text style={[styles.cardDesc, selected === 'owner' && styles.cardDescSelected]}>
-            Track your vehicles, log service history, manage expenses and book garage appointments.
+            {t('role.owner.desc')}
           </Text>
           {selected === 'owner' && (
             <View style={styles.checkBadge}>
-              <Text style={styles.checkText}>✓ Selected</Text>
+              <Text style={styles.checkText}>{t('role.selected')}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -74,14 +74,14 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
         >
           <Text style={styles.cardIcon}>🏭</Text>
           <Text style={[styles.cardTitle, selected === 'garage' && styles.cardTitleSelected]}>
-            Garage / Service Center
+            {t('role.garage.title')}
           </Text>
           <Text style={[styles.cardDesc, selected === 'garage' && styles.cardDescSelected]}>
-            Manage your garage, receive bookings, submit service records to customers — and track your own personal vehicles too.
+            {t('role.garage.desc')}
           </Text>
           {selected === 'garage' && (
             <View style={styles.checkBadge}>
-              <Text style={styles.checkText}>✓ Selected</Text>
+              <Text style={styles.checkText}>{t('role.selected')}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -94,13 +94,11 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
       >
         {saving
           ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.continueBtnText}>Continue →</Text>
+          : <Text style={styles.continueBtnText}>{t('role.continue')}</Text>
         }
       </TouchableOpacity>
 
-      <Text style={styles.note}>
-        You can access all features after setup. This setting can be changed in your profile.
-      </Text>
+      <Text style={styles.note}>{t('role.note')}</Text>
     </ScrollView>
   )
 }
