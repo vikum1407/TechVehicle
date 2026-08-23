@@ -46,7 +46,8 @@
           "photosPermission": "Vocksy needs access to your photos to attach receipts to service records.",
           "cameraPermission": "Vocksy needs camera access to photograph receipts."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {
