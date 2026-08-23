@@ -9,6 +9,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const VEHICLE_TYPE_ICON: Record<string, string> = Object.fromEntries(
   VEHICLE_TYPE_OPTIONS.map(opt => [opt.value, opt.icon])
@@ -114,6 +115,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<string | null>(null)
   const [previewTransfer, setPreviewTransfer] = useState<IncomingTransfer | null>(null)
@@ -135,7 +137,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
       setIncomingTransfers(transferData)
       setPendingShares(shareData.filter((s: VehicleShareInvite) => s.status === 'pending'))
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -147,7 +149,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
       await api.acceptVehicleShare(token, share.id)
       await loadAll()
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setAcceptingShare(null)
     }
@@ -155,12 +157,12 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
 
   const handleDeclineShare = (share: VehicleShareInvite) => {
     Alert.alert(
-      'Decline Sharing',
-      `Decline access to ${share.vehicle.registrationNo}?`,
+      t('myVehicles.declineSharing.title'),
+      t('myVehicles.declineSharing.message', { reg: share.vehicle.registrationNo }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Decline',
+          text: t('common.decline'),
           style: 'destructive',
           onPress: async () => {
             setDecliningShare(share.id)
@@ -168,7 +170,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               await api.revokeVehicleShare(token, share.id)
               await loadAll()
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setDecliningShare(null)
             }
@@ -192,7 +194,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
       const data = await api.getTransferRecords(token, transfer.id)
       setPreviewRecords(data)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
       setPreviewTransfer(null)
     } finally {
       setLoadingPreview(false)
@@ -201,12 +203,18 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
 
   const handleAcceptTransfer = async (transfer: IncomingTransfer) => {
     Alert.alert(
-      'Accept Vehicle Transfer',
-      `Accept ${transfer.vehicle.registrationNo} (${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}) from ${transfer.sellerPhone}?\n\nAll service history will be added to your account.`,
+      t('myVehicles.acceptTransfer.title'),
+      t('myVehicles.acceptTransfer.message', {
+        reg: transfer.vehicle.registrationNo,
+        year: transfer.vehicle.year,
+        make: transfer.vehicle.make,
+        model: transfer.vehicle.model,
+        phone: transfer.sellerPhone,
+      }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Accept',
+          text: t('common.accept'),
           onPress: async () => {
             setAccepting(transfer.id)
             setPreviewTransfer(null)
@@ -214,7 +222,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               await api.acceptTransfer(token, transfer.id)
               await loadAll()
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setAccepting(null)
             }
@@ -250,7 +258,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
             <Text style={styles.regNo}>{item.registrationNo}</Text>
             {item.isShared ? (
               <View style={styles.sharedBadge}>
-                <Text style={styles.sharedBadgeText}>👥 Shared</Text>
+                <Text style={styles.sharedBadgeText}>{t('myVehicles.shared')}</Text>
               </View>
             ) : (
               <Text style={styles.fuelType}>{item.fuelType}</Text>
@@ -258,7 +266,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           </View>
           <Text style={styles.vehicleName}>{item.year} {item.make} {item.model}</Text>
           {item.isShared && item.sharedByPhone ? (
-            <Text style={styles.sharedByText}>from {item.sharedByPhone}</Text>
+            <Text style={styles.sharedByText}>{t('myVehicles.sharedFrom', { phone: item.sharedByPhone })}</Text>
           ) : (
             <Text style={styles.mileage}>{item.mileage.toLocaleString()} km</Text>
           )}
@@ -308,14 +316,14 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                 style={styles.searchInput}
                 value={searchText}
                 onChangeText={setSearchText}
-                placeholder="Search by registration, make or model..."
+                placeholder={t('myVehicles.search')}
                 placeholderTextColor={colors.textFaint}
                 clearButtonMode="while-editing"
               />
               {incomingTransfers.length > 0 && (
                 <View style={styles.transfersSection}>
                   <Text style={styles.transfersSectionTitle}>
-                    Incoming Vehicle Transfers ({incomingTransfers.length})
+                    {t('myVehicles.incomingTransfers', { count: incomingTransfers.length })}
                   </Text>
                   {incomingTransfers.map(transfer => (
                     <View key={transfer.id} style={styles.transferCard}>
@@ -335,13 +343,13 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                           <Text style={styles.transferCountItem}>💰 {transfer.vehicle._count.expenses}</Text>
                         </View>
                       </View>
-                      <Text style={styles.transferFrom}>From {transfer.sellerPhone} · {formatDate(transfer.createdAt)}</Text>
+                      <Text style={styles.transferFrom}>{t('myVehicles.transferFrom', { phone: transfer.sellerPhone, date: formatDate(transfer.createdAt) })}</Text>
                       <View style={styles.transferActions}>
                         <TouchableOpacity
                           style={styles.viewHistoryBtn}
                           onPress={() => handleViewHistory(transfer)}
                         >
-                          <Text style={styles.viewHistoryBtnText}>View History</Text>
+                          <Text style={styles.viewHistoryBtnText}>{t('myVehicles.viewHistory')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.acceptBtn, accepting === transfer.id && styles.acceptBtnDisabled]}
@@ -350,7 +358,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                         >
                           {accepting === transfer.id
                             ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={styles.acceptBtnText}>Accept</Text>
+                            : <Text style={styles.acceptBtnText}>{t('common.accept')}</Text>
                           }
                         </TouchableOpacity>
                       </View>
@@ -362,7 +370,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               {pendingShares.length > 0 && (
                 <View style={styles.sharesSection}>
                   <Text style={styles.sharesSectionTitle}>
-                    Sharing Invitations ({pendingShares.length})
+                    {t('myVehicles.sharingInvitations', { count: pendingShares.length })}
                   </Text>
                   {pendingShares.map(share => (
                     <View key={share.id} style={styles.shareInviteCard}>
@@ -377,10 +385,10 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                           </Text>
                         </View>
                         <View style={styles.shareInviteBadge}>
-                          <Text style={styles.shareInviteBadgeText}>👥 Invite</Text>
+                          <Text style={styles.shareInviteBadgeText}>{t('myVehicles.invite')}</Text>
                         </View>
                       </View>
-                      <Text style={styles.shareInviteFrom}>From {share.ownerPhone}</Text>
+                      <Text style={styles.shareInviteFrom}>{t('myVehicles.shareFrom', { phone: share.ownerPhone })}</Text>
                       <View style={styles.shareInviteActions}>
                         <TouchableOpacity
                           style={[styles.declineShareBtn, decliningShare === share.id && { opacity: 0.5 }]}
@@ -389,7 +397,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                         >
                           {decliningShare === share.id
                             ? <ActivityIndicator color="#c62828" size="small" />
-                            : <Text style={styles.declineShareBtnText}>Decline</Text>
+                            : <Text style={styles.declineShareBtnText}>{t('common.decline')}</Text>
                           }
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -399,7 +407,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                         >
                           {acceptingShare === share.id
                             ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={styles.acceptShareBtnText}>Accept Access</Text>
+                            : <Text style={styles.acceptShareBtnText}>{t('myVehicles.acceptAccess')}</Text>
                           }
                         </TouchableOpacity>
                       </View>
@@ -409,20 +417,20 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               )}
 
               <TouchableOpacity style={styles.addButton} onPress={onAddVehicle}>
-                <Text style={styles.addButtonText}>+ Add Vehicle</Text>
+                <Text style={styles.addButtonText}>{t('myVehicles.addVehicle')}</Text>
               </TouchableOpacity>
             </>
           }
           ListEmptyComponent={
             searchText ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>No matches</Text>
-                <Text style={styles.emptySubtitle}>No vehicles match "{searchText}"</Text>
+                <Text style={styles.emptyTitle}>{t('myVehicles.noMatches')}</Text>
+                <Text style={styles.emptySubtitle}>{t('myVehicles.noMatchesFor', { query: searchText })}</Text>
               </View>
             ) : incomingTransfers.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>No vehicles yet</Text>
-                <Text style={styles.emptySubtitle}>Add your first vehicle to get started</Text>
+                <Text style={styles.emptyTitle}>{t('myVehicles.noVehicles')}</Text>
+                <Text style={styles.emptySubtitle}>{t('myVehicles.noVehiclesSub')}</Text>
               </View>
             ) : null
           }
@@ -440,9 +448,9 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           {/* Modal header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setPreviewTransfer(null)}>
-              <Text style={styles.modalBack}>✕ Close</Text>
+              <Text style={styles.modalBack}>{t('common.close')}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Vehicle History</Text>
+            <Text style={styles.modalTitle}>{t('myVehicles.vehicleHistory')}</Text>
             <View style={{ width: 60 }} />
           </View>
 
@@ -464,10 +472,10 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
             <ScrollView style={styles.modalScroll} contentContainerStyle={{ paddingBottom: 120 }}>
               {/* Service Records */}
               <Text style={styles.modalSectionTitle}>
-                🔧 Service Records ({previewRecords.serviceRecords.length})
+                {t('myVehicles.serviceRecords', { count: previewRecords.serviceRecords.length })}
               </Text>
               {previewRecords.serviceRecords.length === 0 ? (
-                <Text style={styles.modalEmpty}>No service records</Text>
+                <Text style={styles.modalEmpty}>{t('myVehicles.noServiceRecords')}</Text>
               ) : previewRecords.serviceRecords.map(r => (
                 <View key={r.id} style={styles.recordCard}>
                   <View style={styles.recordCardRow}>
@@ -476,18 +484,18 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                   </View>
                   <Text style={styles.recordDesc}>{r.description}</Text>
                   {r.mileage != null && <Text style={styles.recordMeta}>{r.mileage.toLocaleString()} km</Text>}
-                  {r.parts && <Text style={styles.recordMeta}>Parts: {r.parts}</Text>}
-                  {r.brand && <Text style={styles.recordMeta}>Brand: {r.brand}</Text>}
+                  {r.parts && <Text style={styles.recordMeta}>{t('myVehicles.parts', { parts: r.parts })}</Text>}
+                  {r.brand && <Text style={styles.recordMeta}>{t('myVehicles.brand', { brand: r.brand })}</Text>}
                   {r.notes && <Text style={styles.recordNotes}>{r.notes}</Text>}
                 </View>
               ))}
 
               {/* Fuel Logs */}
               <Text style={styles.modalSectionTitle}>
-                ⛽ Fuel Logs ({previewRecords.fuelLogs.length})
+                {t('myVehicles.fuelLogs', { count: previewRecords.fuelLogs.length })}
               </Text>
               {previewRecords.fuelLogs.length === 0 ? (
-                <Text style={styles.modalEmpty}>No fuel logs</Text>
+                <Text style={styles.modalEmpty}>{t('myVehicles.noFuelLogs')}</Text>
               ) : previewRecords.fuelLogs.map(f => (
                 <View key={f.id} style={styles.recordCard}>
                   <View style={styles.recordCardRow}>
@@ -502,10 +510,10 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
 
               {/* Expenses */}
               <Text style={styles.modalSectionTitle}>
-                💰 Expenses ({previewRecords.expenses.length})
+                {t('myVehicles.expenses', { count: previewRecords.expenses.length })}
               </Text>
               {previewRecords.expenses.length === 0 ? (
-                <Text style={styles.modalEmpty}>No expenses</Text>
+                <Text style={styles.modalEmpty}>{t('myVehicles.noExpenses')}</Text>
               ) : previewRecords.expenses.map(e => (
                 <View key={e.id} style={styles.recordCard}>
                   <View style={styles.recordCardRow}>
@@ -529,7 +537,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
               >
                 {accepting === previewTransfer.id
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.modalAcceptBtnText}>Accept Transfer</Text>
+                  : <Text style={styles.modalAcceptBtnText}>{t('myVehicles.acceptTransfer')}</Text>
                 }
               </TouchableOpacity>
             </View>
