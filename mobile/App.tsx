@@ -6,6 +6,7 @@ import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api } from './src/config/api'
 import { ThemeProvider } from './src/theme/ThemeContext'
+import { LanguageProvider } from './src/i18n/LanguageContext'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
@@ -328,6 +329,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
     <ThemeProvider>
+    <LanguageProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
 
       {/* ── Auth screens ─────────────────────────────────────────────── */}
@@ -665,6 +667,7 @@ export default function App() {
       {!NO_HOME_SCREENS.includes(screen) && (
         <FloatingHomeButton onPress={() => setScreen('vehicles')} />
       )}
+    </LanguageProvider>
     </ThemeProvider>
     </SafeAreaProvider>
   )
