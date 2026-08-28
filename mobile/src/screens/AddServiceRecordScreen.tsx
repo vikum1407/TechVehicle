@@ -16,6 +16,8 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
@@ -30,40 +32,40 @@ type Props = {
 type StructuredTextField = {
   type: 'text'
   key: string
-  label: string
+  labelKey: TranslationKey
   placeholder: string
   keyboard?: 'default' | 'decimal-pad' | 'number-pad'
 }
 type StructuredChipsField = {
   type: 'chips'
   key: string
-  label: string
+  labelKey: TranslationKey
   options: string[]
 }
 type StructuredField = StructuredTextField | StructuredChipsField
 
 const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
   'Oil Change': [
-    { type: 'chips', key: 'oilBrand', label: 'Oil Brand', options: ['Castrol', 'Mobil 1', 'Shell', 'Total', 'Motul', 'Valvoline'] },
-    { type: 'chips', key: 'oilGrade', label: 'Oil Grade (viscosity)', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
-    { type: 'chips', key: 'oilType',  label: 'Oil Type', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
+    { type: 'chips', key: 'oilBrand', labelKey: 'addService.field.oilBrand', options: ['Castrol', 'Mobil 1', 'Shell', 'Total', 'Motul', 'Valvoline'] },
+    { type: 'chips', key: 'oilGrade', labelKey: 'addService.field.oilGrade', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
+    { type: 'chips', key: 'oilType',  labelKey: 'addService.field.oilType', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
   ],
   'Tyre Change': [
-    { type: 'chips', key: 'tyreBrand',    label: 'Tyre Brand',         options: ['Michelin', 'Bridgestone', 'Yokohama', 'Apollo', 'CEAT', 'MRF', 'Dunlop'] },
-    { type: 'text',  key: 'tyreSize',     label: 'Tyre Size',          placeholder: 'e.g. 185/65R15' },
-    { type: 'chips', key: 'tyresChanged', label: 'How many tyres?',    options: ['1', '2', '4'] },
+    { type: 'chips', key: 'tyreBrand',    labelKey: 'addService.field.tyreBrand',    options: ['Michelin', 'Bridgestone', 'Yokohama', 'Apollo', 'CEAT', 'MRF', 'Dunlop'] },
+    { type: 'text',  key: 'tyreSize',     labelKey: 'addService.field.tyreSize',     placeholder: 'e.g. 185/65R15' },
+    { type: 'chips', key: 'tyresChanged', labelKey: 'addService.field.tyresChanged', options: ['1', '2', '4'] },
   ],
   'Emission Test / Carbon Test': [
-    { type: 'text',  key: 'co',      label: 'CO %',            placeholder: 'e.g. 0.8',  keyboard: 'decimal-pad' },
-    { type: 'text',  key: 'hc',      label: 'HC ppm',          placeholder: 'e.g. 120',  keyboard: 'number-pad'  },
-    { type: 'text',  key: 'co2',     label: 'CO₂ %',           placeholder: 'e.g. 14.2', keyboard: 'decimal-pad' },
-    { type: 'text',  key: 'lambda',  label: 'Lambda',          placeholder: 'e.g. 1.01', keyboard: 'decimal-pad' },
-    { type: 'chips', key: 'result',  label: 'Test Result',     options: ['Pass', 'Fail'] },
-    { type: 'text',  key: 'station', label: 'Testing Station', placeholder: 'e.g. Werahera Testing Station' },
+    { type: 'text',  key: 'co',      labelKey: 'addService.field.co',      placeholder: 'e.g. 0.8',  keyboard: 'decimal-pad' },
+    { type: 'text',  key: 'hc',      labelKey: 'addService.field.hc',      placeholder: 'e.g. 120',  keyboard: 'number-pad'  },
+    { type: 'text',  key: 'co2',     labelKey: 'addService.field.co2',     placeholder: 'e.g. 14.2', keyboard: 'decimal-pad' },
+    { type: 'text',  key: 'lambda',  labelKey: 'addService.field.lambda',  placeholder: 'e.g. 1.01', keyboard: 'decimal-pad' },
+    { type: 'chips', key: 'result',  labelKey: 'addService.field.result',  options: ['Pass', 'Fail'] },
+    { type: 'text',  key: 'station', labelKey: 'addService.field.station', placeholder: 'e.g. Werahera Testing Station' },
   ],
   'AC Gas Refill': [
-    { type: 'chips', key: 'refrigerantType', label: 'Refrigerant Type',       options: ['R134a', 'R1234yf', 'R22 (old)'] },
-    { type: 'text',  key: 'quantityGrams',   label: 'Quantity Filled (grams)', placeholder: 'e.g. 450', keyboard: 'number-pad' },
+    { type: 'chips', key: 'refrigerantType', labelKey: 'addService.field.refrigerantType', options: ['R134a', 'R1234yf', 'R22 (old)'] },
+    { type: 'text',  key: 'quantityGrams',   labelKey: 'addService.field.quantityGrams',   placeholder: 'e.g. 450', keyboard: 'number-pad' },
   ],
 }
 
@@ -91,6 +93,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
 
@@ -129,7 +132,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
     if (photos.length >= 5) {
-      Alert.alert('Limit reached', 'You can attach up to 5 photos per service record.')
+      Alert.alert(t('addService.limitReached.title'), t('addService.limitReached.message'))
       return
     }
     const permission = source === 'camera'
@@ -137,7 +140,10 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       : await ImagePicker.requestMediaLibraryPermissionsAsync()
 
     if (!permission.granted) {
-      Alert.alert('Permission needed', `Please allow ${source} access in your device settings.`)
+      Alert.alert(
+        t('addService.permissionNeeded.title'),
+        t('addService.permissionNeeded.message', { source: t(source === 'camera' ? 'addService.cameraAccess' : 'addService.galleryAccess') })
+      )
       return
     }
 
@@ -157,7 +163,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       const url = await api.uploadPhoto(token, compressed.uri)
       setPhotos(prev => [...prev, url])
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+      Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
     } finally {
       setUploadingPhoto(false)
     }
@@ -175,29 +181,29 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
     const allItems = [...selectedItems, ...extras]
 
     if (allItems.length === 0) {
-      Alert.alert('Select a service', 'Please tap at least one service done.')
+      Alert.alert(t('addService.selectService.title'), t('addService.selectService.message'))
       return
     }
     const isoDate = parseDMY(date)
     if (!isoDate) {
-      Alert.alert('Invalid date', 'Please enter the date as DD/MM/YYYY.')
+      Alert.alert(t('addService.invalidDate.title'), t('addService.invalidDate.message'))
       return
     }
     if (!mileage.trim()) {
-      Alert.alert('Mileage required', 'Please enter the odometer reading at the time of this service.')
+      Alert.alert(t('addService.mileageRequired.title'), t('addService.mileageRequired.message'))
       return
     }
     const mileageNum = parseInt(mileage)
     if (isNaN(mileageNum) || mileageNum <= 0) {
-      Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
+      Alert.alert(t('addService.invalidMileage.title'), t('addService.invalidMileage.message'))
       return
     }
     if (!cost.trim()) {
-      Alert.alert('Cost required', 'Please enter the total cost for this service.')
+      Alert.alert(t('addService.costRequired.title'), t('addService.costRequired.message'))
       return
     }
     if (isNaN(parseFloat(cost)) || parseFloat(cost) <= 0) {
-      Alert.alert('Invalid cost', 'Please enter a valid cost greater than 0.')
+      Alert.alert(t('addService.invalidCost.title'), t('addService.invalidCost.message'))
       return
     }
 
@@ -235,7 +241,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         })
         onRecordAdded()
       } catch (error: any) {
-        Alert.alert('Error', error.message)
+        Alert.alert(t('common.error'), error.message)
       } finally {
         setLoading(false)
       }
@@ -244,11 +250,11 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
     // Warn (don't block) if mileage is higher than current — could be a typo
     if (mileageNum > currentMileage + 500) {
       Alert.alert(
-        'Check mileage',
-        `The mileage you entered (${mileageNum.toLocaleString()} km) is higher than the vehicle's current recorded mileage of ${currentMileage.toLocaleString()} km. Is this correct?`,
+        t('addService.checkMileage.title'),
+        t('addService.checkMileage.message', { entered: mileageNum.toLocaleString(), current: currentMileage.toLocaleString() }),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes, save', onPress: doSave },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('addService.yesSave'), onPress: doSave },
         ]
       )
       return
@@ -263,13 +269,13 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Add Service Record" onBack={onBack} />
+      <ScreenHeader title={t('addService.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>
-        Tap everything that was done <Text style={styles.requiredStar}>*</Text>
+        {t('addService.subtitle')} <Text style={styles.requiredStar}>*</Text>
       </Text>
       {saveAttempted && selectedItems.length === 0 && !otherText.trim() && (
-        <Text style={styles.fieldError}>Please select at least one service</Text>
+        <Text style={styles.fieldError}>{t('addService.selectAtLeastOne')}</Text>
       )}
 
       {categories.map(cat => (
@@ -299,10 +305,10 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       ))}
 
       <FormField
-        label="Other (not listed above)"
+        label={t('addService.other')}
         value={otherText}
         onChangeText={setOtherText}
-        placeholder="Type anything else that was done..."
+        placeholder={t('addService.otherPlaceholder')}
       />
 
       {/* ── Structured details section ────────────────────── */}
@@ -310,10 +316,10 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         <View style={styles.structuredSection}>
           <Text style={styles.structuredTitle}>
             {itemsWithStructured.length === 1
-              ? `${itemsWithStructured[0].name} Details`
-              : 'Service Details'}
+              ? t('addService.itemDetails', { name: itemsWithStructured[0].name })
+              : t('addService.serviceDetails')}
           </Text>
-          <Text style={styles.structuredSub}>Saved for analytics and predictions</Text>
+          <Text style={styles.structuredSub}>{t('addService.savedForAnalytics')}</Text>
 
           {itemsWithStructured.map(item => {
             const fields = STRUCTURED_ITEMS[item.name]
@@ -326,7 +332,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
                   if (field.type === 'chips') {
                     return (
                       <View key={field.key} style={styles.structuredFieldWrap}>
-                        <Text style={styles.structuredFieldLabel}>{field.label}</Text>
+                        <Text style={styles.structuredFieldLabel}>{t(field.labelKey)}</Text>
                         <View style={styles.chipRow}>
                           {field.options.map(opt => (
                             <TouchableOpacity
@@ -347,7 +353,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
 
                   return (
                     <View key={field.key} style={styles.structuredFieldWrap}>
-                      <Text style={styles.structuredFieldLabel}>{field.label}</Text>
+                      <Text style={styles.structuredFieldLabel}>{t(field.labelKey)}</Text>
                       <TextInput
                         style={styles.input}
                         value={values[field.key] || ''}
@@ -367,8 +373,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       {/* ── Brand picker ──────────────────────────────────── */}
       {itemsNeedingBrand.length > 0 && (
         <View style={styles.brandsSection}>
-          <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
-          <Text style={styles.brandsSectionSub}>Select brand for each replaced part</Text>
+          <Text style={styles.brandsSectionTitle}>{t('addService.partsBrand')}</Text>
+          <Text style={styles.brandsSectionSub}>{t('addService.selectBrandSub')}</Text>
 
           {itemsNeedingBrand.map(item => {
             const brands = ITEM_BRANDS[item.name] || CATEGORY_BRANDS[item.category] || CATEGORY_BRANDS['General & Other']
@@ -391,7 +397,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
                   style={[styles.input, { marginTop: 6 }]}
                   value={customBrands[item.name] || ''}
                   onChangeText={v => setCustomBrandForItem(item.name, v)}
-                  placeholder="Or type brand..."
+                  placeholder={t('addService.orTypeBrand')}
                 />
               </View>
             )
@@ -402,11 +408,11 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       {/* ── Date / Mileage / Cost ─────────────────────────── */}
       <View style={styles.row}>
         <View style={styles.half}>
-          <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+          <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={styles.half}>
           <FormField
-            label="Mileage (km)"
+            label={t('addService.mileage')}
             required
             value={mileage}
             onChangeText={setMileage}
@@ -417,7 +423,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       </View>
 
       <FormField
-        label="Total Cost (LKR)"
+        label={t('addService.totalCost')}
         required
         value={cost}
         onChangeText={setCost}
@@ -425,7 +431,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         keyboardType="number-pad"
       />
 
-      <Text style={styles.catLabel}>Photos (optional, max 5)</Text>
+      <Text style={styles.catLabel}>{t('addService.photos')}</Text>
       <View style={styles.photoRow}>
         {photos.map((url) => (
           <View key={url} style={styles.photoThumb}>
@@ -444,7 +450,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
             >
               {uploadingPhoto
                 ? <ActivityIndicator size="small" color={colors.primary} />
-                : <Text style={styles.photoBtnText}>📷 Camera</Text>
+                : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
               }
             </TouchableOpacity>
             <TouchableOpacity
@@ -452,25 +458,27 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
               onPress={() => pickPhoto('gallery')}
               disabled={uploadingPhoto}
             >
-              <Text style={styles.photoBtnText}>🖼 Gallery</Text>
+              <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       <FormField
-        label="Notes (optional)"
+        label={t('addService.notes')}
         style={styles.multiline}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Any additional notes..."
+        placeholder={t('addService.notesPlaceholder')}
         multiline
         numberOfLines={2}
       />
 
       {selectedItems.length > 0 && (
         <View style={styles.summary}>
-          <Text style={styles.summaryLabel}>{selectedItems.length} service{selectedItems.length > 1 ? 's' : ''} selected</Text>
+          <Text style={styles.summaryLabel}>
+            {t('addService.servicesSelected', { count: selectedItems.length, s: selectedItems.length > 1 ? 's' : '' })}
+          </Text>
           {selectedItems.map(i => (
             <Text key={i.name} style={styles.summaryLine}>
               • {i.name}{i.brand ? ` — ${i.brand}` : ''}
@@ -479,7 +487,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
         </View>
       )}
 
-      <Button title="Save Record" onPress={handleSubmit} loading={loading} />
+      <Button title={t('addService.saveRecord')} onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
     </KeyboardAvoidingView>

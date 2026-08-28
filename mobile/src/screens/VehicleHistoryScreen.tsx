@@ -9,6 +9,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Tab = 'service' | 'expenses' | 'fuel'
 
@@ -99,9 +100,10 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const s = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
 
   const handleQuickAdd = async () => {
-    if (!quickDraft.description.trim()) { Alert.alert('Required', 'Please describe what was done.'); return }
+    if (!quickDraft.description.trim()) { Alert.alert(t('history.quickAdd.required.title'), t('history.quickAdd.required.message')); return }
     const yearNum = parseInt(quickDraft.year)
     const isoDate = (!isNaN(yearNum) && yearNum >= 1990 && yearNum <= new Date().getFullYear())
       ? new Date(`${yearNum}-07-01`).toISOString()
@@ -119,7 +121,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       setShowQuickAdd(false)
       await loadAll()
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to save record.')
+      Alert.alert(t('common.error'), e.message || t('history.quickAdd.saveFailed'))
     } finally {
       setSavingQuick(false)
     }
@@ -214,7 +216,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
     try {
       await exportVehiclePdf(vehicle, records, fuelLogs, expenses)
     } catch (e: any) {
-      Alert.alert('Export failed', (e as any).message || 'Could not generate PDF')
+      Alert.alert(t('history.exportFailed.title'), (e as any).message || t('history.exportFailed.message'))
     } finally {
       setExporting(false)
     }
@@ -283,7 +285,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       setRecords(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
       setEditService(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save changes')
+      Alert.alert(t('common.error'), e.message || t('history.saveChangesFailed'))
     } finally {
       setSavingEdit(false)
     }
@@ -304,7 +306,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       setExpenses(prev => prev.map(e => e.id === updated.id ? { ...e, ...updated } : e))
       setEditExpense(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save changes')
+      Alert.alert(t('common.error'), e.message || t('history.saveChangesFailed'))
     } finally {
       setSavingEdit(false)
     }
@@ -324,69 +326,69 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       setFuelLogs(prev => prev.map(f => f.id === updated.id ? { ...f, ...updated } : f))
       setEditFuel(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save changes')
+      Alert.alert(t('common.error'), e.message || t('history.saveChangesFailed'))
     } finally {
       setSavingEdit(false)
     }
   }
 
   const confirmDeleteService = (id: string) => {
-    Alert.alert('Delete Record', 'Delete this service record permanently?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
+    Alert.alert(t('history.deleteRecord.title'), t('history.deleteRecord.message'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try {
           await api.deleteServiceRecord(token, id)
           setRecords(prev => prev.filter(r => r.id !== id))
-        } catch (e: any) { Alert.alert('Error', e.message) }
+        } catch (e: any) { Alert.alert(t('common.error'), e.message) }
       }},
     ])
   }
 
   const confirmDeleteExpense = (id: string) => {
-    Alert.alert('Delete Expense', 'Delete this expense permanently?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
+    Alert.alert(t('history.deleteExpense.title'), t('history.deleteExpense.message'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try {
           await api.deleteExpense(token, id)
           setExpenses(prev => prev.filter(e => e.id !== id))
-        } catch (e: any) { Alert.alert('Error', e.message) }
+        } catch (e: any) { Alert.alert(t('common.error'), e.message) }
       }},
     ])
   }
 
   const confirmDeleteFuel = (id: string) => {
-    Alert.alert('Delete Fuel Log', 'Delete this fill-up record permanently?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
+    Alert.alert(t('history.deleteFuel.title'), t('history.deleteFuel.message'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try {
           await api.deleteFuelLog(token, id)
           setFuelLogs(prev => prev.filter(f => f.id !== id))
-        } catch (e: any) { Alert.alert('Error', e.message) }
+        } catch (e: any) { Alert.alert(t('common.error'), e.message) }
       }},
     ])
   }
 
   const openServiceMenu = (r: ServiceRecord) => {
     Alert.alert(fmt(r.date), r.description.split(',')[0].trim(), [
-      { text: 'Edit', onPress: () => openEditService(r) },
-      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteService(r.id) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.edit'), onPress: () => openEditService(r) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => confirmDeleteService(r.id) },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
   const openExpenseMenu = (e: Expense) => {
     Alert.alert(fmt(e.date), `${e.category} — LKR ${e.amount.toLocaleString()}`, [
-      { text: 'Edit', onPress: () => openEditExpense(e) },
-      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteExpense(e.id) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.edit'), onPress: () => openEditExpense(e) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => confirmDeleteExpense(e.id) },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
   const openFuelMenu = (f: FuelLog) => {
     Alert.alert(fmt(f.date), `${f.mileage?.toLocaleString() ?? '?'} km${f.litres ? ` · ${f.litres}L` : ''}`, [
-      { text: 'Edit', onPress: () => openEditFuel(f) },
-      { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteFuel(f.id) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.edit'), onPress: () => openEditFuel(f) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => confirmDeleteFuel(f.id) },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
@@ -424,7 +426,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {preview.map((item, i) => (
                 <View key={i} style={s.tag}><Text style={s.tagText} numberOfLines={1}>{item}</Text></View>
               ))}
-              {extra > 0 && <View style={s.tagMore}><Text style={s.tagMoreText}>+{extra} more</Text></View>}
+              {extra > 0 && <View style={s.tagMore}><Text style={s.tagMoreText}>{t('history.moreCount', { count: extra })}</Text></View>}
             </View>
             {r.mileage != null && <Text style={s.cardMeta}>{r.mileage.toLocaleString()} km</Text>}
           </View>
@@ -447,11 +449,11 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 ))}
               </View>
             )}
-            <Text style={s.collapseHint}>Tap to collapse</Text>
+            <Text style={s.collapseHint}>{t('history.tapToCollapse')}</Text>
           </View>
         )}
         {!isExpanded && items.length > 2 && (
-          <Text style={s.expandHint}>Tap to see all</Text>
+          <Text style={s.expandHint}>{t('history.tapToSeeAll')}</Text>
         )}
       </TouchableOpacity>
     )
@@ -461,24 +463,24 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
     <View style={s.container}>
       <ScreenHeader
         title={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-        subtitle={`${vehicle.registrationNo} · History`}
+        subtitle={t('history.headerSubtitle', { reg: vehicle.registrationNo })}
         onBack={onBack}
       />
 
       {/* Tab bar */}
       <View style={s.tabBar}>
         {([
-          { key: 'service', label: `📋 Service (${records.length})` },
-          { key: 'expenses', label: `💰 Expenses (${expenses.length})` },
-          { key: 'fuel', label: `⛽ Fuel (${fuelLogs.length})` },
-        ] as { key: Tab; label: string }[]).map(t => (
+          { key: 'service', label: `📋 ${t('history.tab.service')} (${records.length})` },
+          { key: 'expenses', label: `💰 ${t('history.tab.expenses')} (${expenses.length})` },
+          { key: 'fuel', label: `⛽ ${t('history.tab.fuel')} (${fuelLogs.length})` },
+        ] as { key: Tab; label: string }[]).map(tb => (
           <TouchableOpacity
-            key={t.key}
-            style={[s.tab, activeTab === t.key && s.tabActive]}
-            onPress={() => setActiveTab(t.key)}
+            key={tb.key}
+            style={[s.tab, activeTab === tb.key && s.tabActive]}
+            onPress={() => setActiveTab(tb.key)}
             activeOpacity={0.7}
           >
-            <Text style={[s.tabText, activeTab === t.key && s.tabTextActive]}>{t.label}</Text>
+            <Text style={[s.tabText, activeTab === tb.key && s.tabTextActive]}>{tb.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -494,14 +496,14 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <View style={s.serviceTopRow}>
                 <TextInput
                   style={s.searchInput}
-                  placeholder="Search (e.g. Oil, Brake, Tyre...)"
+                  placeholder={t('history.searchServicePlaceholder')}
                   placeholderTextColor={colors.textFaint}
                   value={search}
                   onChangeText={setSearch}
                   clearButtonMode="while-editing"
                 />
                 <TouchableOpacity style={s.addPastBtn} onPress={() => setShowQuickAdd(true)}>
-                  <Text style={s.addPastBtnText}>+ Add</Text>
+                  <Text style={s.addPastBtnText}>{t('history.addBtn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.exportBtn, exporting && s.exportBtnDisabled]}
@@ -524,7 +526,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     onPress={() => setDateFilter(f)}
                   >
                     <Text style={[s.filterChipText, dateFilter === f && s.filterChipTextActive]}>
-                      {f === 'all' ? 'All time' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                      {f === 'all' ? t('history.filter.allTime') : f === '1y' ? t('history.filter.oneYear') : f === '6m' ? t('history.filter.sixMonths') : t('history.filter.threeMonths')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -533,7 +535,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                   onPress={() => setShowMileageFilter(v => !v)}
                 >
                   <Text style={[s.filterChipText, showMileageFilter && s.filterChipTextActive]}>
-                    {(mileageMin || mileageMax) ? `${mileageMin || '0'}–${mileageMax || '∞'} km` : '⊕ Mileage'}
+                    {(mileageMin || mileageMax) ? `${mileageMin || '0'}–${mileageMax || '∞'} km` : t('history.mileageChip')}
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -543,7 +545,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 <View style={s.mileageRow}>
                   <TextInput
                     style={s.mileageInput}
-                    placeholder="Min km"
+                    placeholder={t('history.minKm')}
                     placeholderTextColor={colors.textFaint}
                     value={mileageMin}
                     onChangeText={setMileageMin}
@@ -552,7 +554,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                   <Text style={s.mileageSep}>—</Text>
                   <TextInput
                     style={s.mileageInput}
-                    placeholder="Max km"
+                    placeholder={t('history.maxKm')}
                     placeholderTextColor={colors.textFaint}
                     value={mileageMax}
                     onChangeText={setMileageMax}
@@ -560,7 +562,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                   />
                   {(mileageMin || mileageMax) && (
                     <TouchableOpacity onPress={() => { setMileageMin(''); setMileageMax('') }}>
-                      <Text style={s.mileageClear}>Clear</Text>
+                      <Text style={s.mileageClear}>{t('history.clear')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -583,9 +585,9 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {(search.trim() || dateFilter !== 'all' || catFilter !== 'All' || mileageMin || mileageMax) && (
                 <View style={s.filterCountRow}>
-                  <Text style={s.filterCount}>{filteredRecords.length} of {records.length} records</Text>
+                  <Text style={s.filterCount}>{t('history.filterCountRecords', { filtered: filteredRecords.length, total: records.length })}</Text>
                   <TouchableOpacity onPress={() => { setSearch(''); setDateFilter('all'); setCatFilter('All'); setMileageMin(''); setMileageMax(''); setShowMileageFilter(false) }}>
-                    <Text style={s.clearLink}>Clear all</Text>
+                    <Text style={s.clearLink}>{t('history.clearAll')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -593,18 +595,18 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {records.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>🔧</Text>
-                  <Text style={s.emptyText}>No service records yet</Text>
-                  <Text style={s.emptySub}>Tap + Add Record on the dashboard to log your first service</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noServiceRecords')}</Text>
+                  <Text style={s.emptySub}>{t('history.empty.noServiceRecordsSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
-                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                    <Text style={s.emptyBtnText}>{t('history.backToDashboard')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : filteredRecords.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>🔍</Text>
-                  <Text style={s.emptyText}>No records match</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noRecordsMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setSearch(''); setDateFilter('all'); setCatFilter('All'); setMileageMin(''); setMileageMax(''); setShowMileageFilter(false) }}>
-                    <Text style={s.emptyBtnText}>Clear all filters</Text>
+                    <Text style={s.emptyBtnText}>{t('history.clearAllFilters')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -619,16 +621,16 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {/* Total summary card */}
               <View style={s.totalCard}>
                 <Text style={s.totalLabel}>
-                  {expCatFilter === 'All' ? 'Total Expenses' : expCatFilter}
+                  {expCatFilter === 'All' ? t('history.totalExpenses') : expCatFilter}
                 </Text>
                 <Text style={s.totalAmount}>LKR {expenseTotal.toLocaleString()}</Text>
-                <Text style={s.totalSub}>{filteredExpenses.length} record{filteredExpenses.length !== 1 ? 's' : ''}</Text>
+                <Text style={s.totalSub}>{t('history.recordsCount', { count: filteredExpenses.length, s: filteredExpenses.length !== 1 ? 's' : '' })}</Text>
               </View>
 
               {/* Search */}
               <TextInput
                 style={s.searchInput}
-                placeholder="Search by description..."
+                placeholder={t('history.searchByDescription')}
                 placeholderTextColor={colors.textFaint}
                 value={expSearch}
                 onChangeText={setExpSearch}
@@ -644,7 +646,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     onPress={() => setExpDateFilter(f)}
                   >
                     <Text style={[s.filterChipText, expDateFilter === f && s.filterChipTextActive]}>
-                      {f === 'all' ? 'All time' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                      {f === 'all' ? t('history.filter.allTime') : f === '1y' ? t('history.filter.oneYear') : f === '6m' ? t('history.filter.sixMonths') : t('history.filter.threeMonths')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -671,9 +673,9 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {(expSearch.trim() || expDateFilter !== 'all' || expCatFilter !== 'All') && (
                 <View style={s.filterCountRow}>
-                  <Text style={s.filterCount}>{filteredExpenses.length} of {expenses.length} expenses</Text>
+                  <Text style={s.filterCount}>{t('history.filterCountExpenses', { filtered: filteredExpenses.length, total: expenses.length })}</Text>
                   <TouchableOpacity onPress={() => { setExpSearch(''); setExpDateFilter('all'); setExpCatFilter('All') }}>
-                    <Text style={s.clearLink}>Clear all</Text>
+                    <Text style={s.clearLink}>{t('history.clearAll')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -681,18 +683,18 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {expenses.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>💰</Text>
-                  <Text style={s.emptyText}>No expenses yet</Text>
-                  <Text style={s.emptySub}>Tap Add Expense on the dashboard to track insurance, fuel, and other costs</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noExpenses')}</Text>
+                  <Text style={s.emptySub}>{t('history.empty.noExpensesSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
-                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                    <Text style={s.emptyBtnText}>{t('history.backToDashboard')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : filteredExpenses.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>🔍</Text>
-                  <Text style={s.emptyText}>No expenses match</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noExpensesMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setExpSearch(''); setExpDateFilter('all'); setExpCatFilter('All') }}>
-                    <Text style={s.emptyBtnText}>Clear all filters</Text>
+                    <Text style={s.emptyBtnText}>{t('history.clearAllFilters')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -724,7 +726,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {/* Search + date filter */}
               <TextInput
                 style={s.searchInput}
-                placeholder="Search by station name..."
+                placeholder={t('history.searchByStation')}
                 placeholderTextColor={colors.textFaint}
                 value={fuelSearch}
                 onChangeText={setFuelSearch}
@@ -738,7 +740,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     onPress={() => setFuelDateFilter(f)}
                   >
                     <Text style={[s.filterChipText, fuelDateFilter === f && s.filterChipTextActive]}>
-                      {f === 'all' ? 'All time' : f === '1y' ? '1 Year' : f === '6m' ? '6 Months' : '3 Months'}
+                      {f === 'all' ? t('history.filter.allTime') : f === '1y' ? t('history.filter.oneYear') : f === '6m' ? t('history.filter.sixMonths') : t('history.filter.threeMonths')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -746,9 +748,9 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {(fuelSearch.trim() || fuelDateFilter !== 'all') && (
                 <View style={s.filterCountRow}>
-                  <Text style={s.filterCount}>{filteredFuelLogs.length} of {fuelLogs.length} fill-ups</Text>
+                  <Text style={s.filterCount}>{t('history.filterCountFuel', { filtered: filteredFuelLogs.length, total: fuelLogs.length })}</Text>
                   <TouchableOpacity onPress={() => { setFuelSearch(''); setFuelDateFilter('all') }}>
-                    <Text style={s.clearLink}>Clear</Text>
+                    <Text style={s.clearLink}>{t('history.clear')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -758,18 +760,18 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 <View style={s.fuelSummary}>
                   <View style={s.fuelStat}>
                     <Text style={s.fuelStatVal}>{filteredFuelLogs.length}</Text>
-                    <Text style={s.fuelStatLabel}>Fill-ups</Text>
+                    <Text style={s.fuelStatLabel}>{t('history.fillUps')}</Text>
                   </View>
                   {avgKmPerL && (
                     <View style={s.fuelStat}>
                       <Text style={s.fuelStatVal}>{avgKmPerL}</Text>
-                      <Text style={s.fuelStatLabel}>Avg km/L</Text>
+                      <Text style={s.fuelStatLabel}>{t('history.avgKmL')}</Text>
                     </View>
                   )}
                   {totalFuelCost > 0 && (
                     <View style={s.fuelStat}>
                       <Text style={s.fuelStatVal}>LKR {totalFuelCost.toLocaleString()}</Text>
-                      <Text style={s.fuelStatLabel}>Total spent</Text>
+                      <Text style={s.fuelStatLabel}>{t('history.totalSpent')}</Text>
                     </View>
                   )}
                 </View>
@@ -778,18 +780,18 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {fuelLogs.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>⛽</Text>
-                  <Text style={s.emptyText}>No fuel logs yet</Text>
-                  <Text style={s.emptySub}>Tap Log Fuel on the dashboard to start tracking efficiency and mileage</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noFuelLogs')}</Text>
+                  <Text style={s.emptySub}>{t('history.empty.noFuelLogsSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
-                    <Text style={s.emptyBtnText}>← Back to Dashboard</Text>
+                    <Text style={s.emptyBtnText}>{t('history.backToDashboard')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : filteredFuelLogs.length === 0 ? (
                 <View style={s.empty}>
                   <Text style={s.emptyIcon}>🔍</Text>
-                  <Text style={s.emptyText}>No fill-ups match</Text>
+                  <Text style={s.emptyText}>{t('history.empty.noFillUpsMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setFuelSearch(''); setFuelDateFilter('all') }}>
-                    <Text style={s.emptyBtnText}>Clear filters</Text>
+                    <Text style={s.emptyBtnText}>{t('history.clearFilters')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -825,13 +827,13 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
           <View style={s.editModalCard}>
             <View style={s.editModalHeader}>
-              <Text style={s.editModalTitle}>Add Past Record</Text>
+              <Text style={s.editModalTitle}>{t('history.quickAdd.title')}</Text>
               <TouchableOpacity onPress={() => setShowQuickAdd(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={s.editModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.editLabel}>What was done? *</Text>
+              <Text style={s.editLabel}>{t('history.quickAdd.whatWasDone')}</Text>
               <TextInput
                 style={s.editInput}
                 value={quickDraft.description}
@@ -840,36 +842,36 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 placeholderTextColor={colors.textFaint}
                 autoFocus
               />
-              <Text style={s.editLabel}>Approximate year</Text>
+              <Text style={s.editLabel}>{t('history.quickAdd.approxYear')}</Text>
               <TextInput
                 style={s.editInput}
                 value={quickDraft.year}
                 onChangeText={v => setQuickDraft(p => ({ ...p, year: v }))}
-                placeholder="e.g. 2022  (leave blank if unsure)"
+                placeholder={t('history.quickAdd.yearPlaceholder')}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
                 maxLength={4}
               />
-              <Text style={s.editLabel}>Mileage at the time (km)</Text>
+              <Text style={s.editLabel}>{t('history.quickAdd.mileageAtTime')}</Text>
               <TextInput
                 style={s.editInput}
                 value={quickDraft.mileage}
                 onChangeText={v => setQuickDraft(p => ({ ...p, mileage: v }))}
-                placeholder="Optional"
+                placeholder={t('history.optional')}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
               />
-              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <Text style={s.editLabel}>{t('history.costLkr')}</Text>
               <TextInput
                 style={s.editInput}
                 value={quickDraft.cost}
                 onChangeText={v => setQuickDraft(p => ({ ...p, cost: v }))}
-                placeholder="Optional"
+                placeholder={t('history.optional')}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
               />
               <Text style={[s.editLabel, { color: '#aaa', fontSize: 12, marginTop: 4 }]}>
-                All fields except the description are optional — approximate values are fine.
+                {t('history.quickAdd.footerNote')}
               </Text>
             </ScrollView>
             <TouchableOpacity
@@ -879,7 +881,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
             >
               {savingQuick
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={s.editSaveBtnText}>Save Record</Text>
+                : <Text style={s.editSaveBtnText}>{t('addService.saveRecord')}</Text>
               }
             </TouchableOpacity>
           </View>
@@ -891,28 +893,28 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
           <View style={s.editModalCard}>
             <View style={s.editModalHeader}>
-              <Text style={s.editModalTitle}>Edit Service Record</Text>
+              <Text style={s.editModalTitle}>{t('history.editService.title')}</Text>
               <TouchableOpacity onPress={() => setEditService(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={s.editModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <Text style={s.editLabel}>{t('history.dateYMD')}</Text>
               <TextInput style={s.editInput} value={draftService.date} onChangeText={v => setDraftService(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Services done</Text>
+              <Text style={s.editLabel}>{t('history.editService.servicesDone')}</Text>
               <TextInput style={s.editInput} value={draftService.description} onChangeText={v => setDraftService(p => ({ ...p, description: v }))} placeholder="Oil Change, Air Filter" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Odometer (km)</Text>
+              <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
               <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Parts</Text>
+              <Text style={s.editLabel}>{t('history.editService.parts')}</Text>
               <TextInput style={s.editInput} value={draftService.parts} onChangeText={v => setDraftService(p => ({ ...p, parts: v }))} placeholder="e.g. NGK Spark Plug" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Brand</Text>
+              <Text style={s.editLabel}>{t('history.editService.brand')}</Text>
               <TextInput style={s.editInput} value={draftService.brand} onChangeText={v => setDraftService(p => ({ ...p, brand: v }))} placeholder="e.g. Bosch" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <Text style={s.editLabel}>{t('history.costLkr')}</Text>
               <TextInput style={s.editInput} value={draftService.cost} onChangeText={v => setDraftService(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 4500" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Notes</Text>
-              <TextInput style={[s.editInput, s.editInputMulti]} value={draftService.notes} onChangeText={v => setDraftService(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor={colors.textFaint} />
+              <Text style={s.editLabel}>{t('history.notes')}</Text>
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftService.notes} onChangeText={v => setDraftService(p => ({ ...p, notes: v }))} multiline placeholder={t('history.additionalNotesPlaceholder')} placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveService} disabled={savingEdit}>
-                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>{t('history.saveChanges')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -924,26 +926,26 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
           <View style={s.editModalCard}>
             <View style={s.editModalHeader}>
-              <Text style={s.editModalTitle}>Edit Expense</Text>
+              <Text style={s.editModalTitle}>{t('history.editExpense.title')}</Text>
               <TouchableOpacity onPress={() => setEditExpense(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={s.editModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <Text style={s.editLabel}>{t('history.dateYMD')}</Text>
               <TextInput style={s.editInput} value={draftExpense.date} onChangeText={v => setDraftExpense(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Category</Text>
+              <Text style={s.editLabel}>{t('history.editExpense.category')}</Text>
               <TextInput style={s.editInput} value={draftExpense.category} onChangeText={v => setDraftExpense(p => ({ ...p, category: v }))} placeholder="e.g. Insurance" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Amount (LKR)</Text>
+              <Text style={s.editLabel}>{t('addExpense.amount')}</Text>
               <TextInput style={s.editInput} value={draftExpense.amount} onChangeText={v => setDraftExpense(p => ({ ...p, amount: v }))} keyboardType="number-pad" placeholder="e.g. 24000" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Description</Text>
-              <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder="Optional description" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Odometer (km)</Text>
+              <Text style={s.editLabel}>{t('history.editExpense.description')}</Text>
+              <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder={t('history.optionalDescription')} placeholderTextColor={colors.textFaint} />
+              <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
               <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Notes</Text>
-              <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder="Additional notes..." placeholderTextColor={colors.textFaint} />
+              <Text style={s.editLabel}>{t('history.notes')}</Text>
+              <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder={t('history.additionalNotesPlaceholder')} placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveExpense} disabled={savingEdit}>
-                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>{t('history.saveChanges')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -955,24 +957,24 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
           <View style={s.editModalCard}>
             <View style={s.editModalHeader}>
-              <Text style={s.editModalTitle}>Edit Fill-up</Text>
+              <Text style={s.editModalTitle}>{t('history.editFuel.title')}</Text>
               <TouchableOpacity onPress={() => setEditFuel(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={s.editModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.editLabel}>Date (YYYY-MM-DD)</Text>
+              <Text style={s.editLabel}>{t('history.dateYMD')}</Text>
               <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Odometer (km)</Text>
+              <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
               <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Litres</Text>
+              <Text style={s.editLabel}>{t('history.litres')}</Text>
               <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Cost (LKR)</Text>
+              <Text style={s.editLabel}>{t('history.costLkr')}</Text>
               <TextInput style={s.editInput} value={draftFuel.cost} onChangeText={v => setDraftFuel(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 8900" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>Station</Text>
+              <Text style={s.editLabel}>{t('history.station')}</Text>
               <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder="e.g. Ceylinco Petrol" placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveFuel} disabled={savingEdit}>
-                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>Save Changes</Text>}
+                {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>{t('history.saveChanges')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>

@@ -10,6 +10,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -43,6 +44,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const mileageNum = mileage ? parseInt(mileage) : 0
   const isHistorical = mileageNum > 0 && mileageNum < currentMileage
@@ -54,12 +56,12 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
 
   const handleSubmit = async () => {
     if (!mileage || mileageNum <= 0) {
-      Alert.alert('Enter mileage', 'Please enter the odometer reading.')
+      Alert.alert(t('logFuel.enterMileage.title'), t('logFuel.enterMileage.message'))
       return
     }
     const isoDate = parseDate(date)
     if (!isoDate) {
-      Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')
+      Alert.alert(t('logFuel.invalidDate.title'), t('logFuel.invalidDate.message'))
       return
     }
 
@@ -75,7 +77,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       })
       onLogged(mileageNum)
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -84,37 +86,37 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Log Fuel Fill-up" onBack={onBack} />
+      <ScreenHeader title={t('logFuel.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.subtitle}>Last recorded: {currentMileage.toLocaleString()} km</Text>
+      <Text style={styles.subtitle}>{t('logFuel.lastRecorded', { mileage: currentMileage.toLocaleString() })}</Text>
 
       <FormField
-        label="Odometer Reading (km)"
+        label={t('logFuel.odometerReading')}
         required
         value={mileage}
         onChangeText={setMileage}
         keyboardType="number-pad"
-        placeholder="Current odometer reading"
+        placeholder={t('logFuel.currentOdometerReading')}
       />
 
       {isHistorical && (
         <View style={styles.historicalNote}>
           <Text style={styles.historicalNoteText}>
-            📋 Historical entry — odometer will not be updated (current: {currentMileage.toLocaleString()} km)
+            {t('logFuel.historicalNote', { mileage: currentMileage.toLocaleString() })}
           </Text>
         </View>
       )}
       {kmSinceLast != null && (
         <View style={styles.insight}>
           <Text style={styles.insightText}>
-            {kmSinceLast.toLocaleString()} km since last fill-up
+            {t('logFuel.kmSinceLastFillup', { km: kmSinceLast.toLocaleString() })}
             {kmPerLitre ? `  ·  ${kmPerLitre} km/L` : ''}
           </Text>
         </View>
       )}
 
       <FormField
-        label="Litres filled"
+        label={t('logFuel.litresFilled')}
         value={litres}
         onChangeText={setLitres}
         keyboardType="decimal-pad"
@@ -122,39 +124,39 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       />
 
       <FormField
-        label="Total Cost (LKR)"
+        label={t('logFuel.totalCost')}
         value={cost}
         onChangeText={setCost}
         keyboardType="number-pad"
         placeholder="e.g. 9800"
       />
 
-      <Text style={styles.label}>Tank</Text>
+      <Text style={styles.label}>{t('logFuel.tank')}</Text>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           style={[styles.toggleBtn, fullTank && styles.toggleBtnActive]}
           onPress={() => setFullTank(true)}
         >
-          <Text style={[styles.toggleText, fullTank && styles.toggleTextActive]}>Full tank</Text>
+          <Text style={[styles.toggleText, fullTank && styles.toggleTextActive]}>{t('logFuel.fullTank')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toggleBtn, !fullTank && styles.toggleBtnActive]}
           onPress={() => setFullTank(false)}
         >
-          <Text style={[styles.toggleText, !fullTank && styles.toggleTextActive]}>Partial</Text>
+          <Text style={[styles.toggleText, !fullTank && styles.toggleTextActive]}>{t('logFuel.partial')}</Text>
         </TouchableOpacity>
       </View>
 
-      <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+      <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
 
       <FormField
-        label="Fuel Station (optional)"
+        label={t('logFuel.fuelStation')}
         value={station}
         onChangeText={setStation}
         placeholder="e.g. Ceylon Petroleum, IOC"
       />
 
-      <Button title="Save Fill-up" onPress={handleSubmit} loading={loading} />
+      <Button title={t('logFuel.saveFillup')} onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
     </KeyboardAvoidingView>

@@ -10,6 +10,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -70,34 +71,39 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const handleSubmit = async () => {
     if (!category) {
-      Alert.alert('Select category', 'Please select an expense category.')
+      Alert.alert(t('addExpense.selectCategory.title'), t('addExpense.selectCategory.message'))
       return
     }
     if (!amount || parseFloat(amount) <= 0) {
-      Alert.alert('Enter amount', 'Please enter the expense amount.')
+      Alert.alert(t('addExpense.enterAmount.title'), t('addExpense.enterAmount.message'))
       return
     }
     const isoDate = parseDate(date)
     if (!isoDate) {
-      Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')
+      Alert.alert(t('addExpense.invalidDate.title'), t('addExpense.invalidDate.message'))
       return
     }
     if (renewalExpiry.trim() && !parseMMYYYY(renewalExpiry.trim())) {
-      Alert.alert('Invalid expiry date', 'Use MM/YYYY format (e.g. 06/2026)')
+      Alert.alert(t('addExpense.invalidExpiry.title'), t('addExpense.invalidExpiry.message'))
       return
     }
 
     const mileageNum = mileage ? parseInt(mileage) : null
     if (mileageNum != null && mileageNum > currentMileage) {
       Alert.alert(
-        'Mileage higher than current',
-        `You entered ${mileageNum.toLocaleString()} km, which is higher than the vehicle's current mileage of ${currentMileage.toLocaleString()} km. Update the vehicle's mileage to ${mileageNum.toLocaleString()} km?`,
+        t('addExpense.mileageHigher.title'),
+        t('addExpense.mileageHigher.message', {
+          mileage: mileageNum.toLocaleString(),
+          current: currentMileage.toLocaleString(),
+          mileage2: mileageNum.toLocaleString(),
+        }),
         [
-          { text: 'No, just save expense', style: 'cancel', onPress: () => saveExpense(false) },
-          { text: 'Yes, update mileage', onPress: () => saveExpense(true) },
+          { text: t('addExpense.mileageHigher.no'), style: 'cancel', onPress: () => saveExpense(false) },
+          { text: t('addExpense.mileageHigher.yes'), onPress: () => saveExpense(true) },
         ]
       )
       return
@@ -139,7 +145,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
 
       onExpenseAdded()
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -148,11 +154,11 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Add Expense" onBack={onBack} />
+      <ScreenHeader title={t('addExpense.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.subtitle}>Track all vehicle-related costs</Text>
+      <Text style={styles.subtitle}>{t('addExpense.subtitle')}</Text>
 
-      <Text style={styles.label}>Category *</Text>
+      <Text style={styles.label}>{t('addExpense.category')}</Text>
       <View style={styles.categoryGrid}>
         {CATEGORIES.map(cat => (
           <TouchableOpacity
@@ -170,7 +176,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       </View>
 
       <FormField
-        label="Amount (LKR)"
+        label={t('addExpense.amount')}
         required
         value={amount}
         onChangeText={setAmount}
@@ -179,7 +185,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       />
 
       <FormField
-        label="Description (optional)"
+        label={t('addExpense.description')}
         value={description}
         onChangeText={setDescription}
         placeholder="e.g. Annual insurance renewal — Union Assurance"
@@ -187,25 +193,25 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
 
       <View style={styles.row}>
         <View style={styles.half}>
-          <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+          <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={styles.half}>
           <FormField
-            label="Mileage (km)"
+            label={t('addExpense.mileage')}
             value={mileage}
             onChangeText={setMileage}
             keyboardType="number-pad"
-            placeholder="optional"
+            placeholder={t('addExpense.mileageOptional')}
           />
         </View>
       </View>
 
       <FormField
-        label="Notes (optional)"
+        label={t('addExpense.notes')}
         style={styles.multiline}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Any additional notes..."
+        placeholder={t('addExpense.notesPlaceholder')}
         multiline
         numberOfLines={2}
       />
@@ -213,10 +219,10 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       {/* Renewal reminder — shown for Revenue Licence */}
       {category === 'Revenue Licence' && (
         <View style={styles.reminderCard}>
-          <Text style={styles.reminderTitle}>Set Renewal Reminder</Text>
-          <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+          <Text style={styles.reminderTitle}>{t('addExpense.setRenewalReminder')}</Text>
+          <Text style={styles.reminderSub}>{t('addExpense.reminderSub')}</Text>
           <FormField
-            label="Next Renewal Date (MM/YYYY)"
+            label={t('addExpense.nextRenewalDate')}
             value={renewalExpiry}
             onChangeText={setRenewalExpiry}
             placeholder="e.g. 06/2026"
@@ -228,23 +234,23 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       {/* Insurance details — shown for Insurance */}
       {category === 'Insurance' && (
         <View style={styles.reminderCard}>
-          <Text style={styles.reminderTitle}>Insurance Details</Text>
-          <Text style={styles.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+          <Text style={styles.reminderTitle}>{t('addExpense.insuranceDetails')}</Text>
+          <Text style={styles.reminderSub}>{t('addExpense.reminderSub')}</Text>
           <FormField
-            label="Policy Expiry Date (MM/YYYY)"
+            label={t('addExpense.policyExpiryDate')}
             value={renewalExpiry}
             onChangeText={setRenewalExpiry}
             placeholder="e.g. 12/2026"
             keyboardType="numbers-and-punctuation"
           />
           <FormField
-            label="Insurance Company (optional)"
+            label={t('addExpense.insuranceCompany')}
             value={insuranceCompany}
             onChangeText={setInsuranceCompany}
             placeholder="e.g. Union Assurance, AIA, Ceylinco"
           />
           <FormField
-            label="Policy Number (optional)"
+            label={t('addExpense.policyNumber')}
             value={insurancePolicyNo}
             onChangeText={setInsurancePolicyNo}
             placeholder="e.g. UA-2024-0012345"
@@ -252,7 +258,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
         </View>
       )}
 
-      <Button title="Save Expense" onPress={handleSubmit} loading={loading} />
+      <Button title={t('addExpense.saveExpense')} onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
     </KeyboardAvoidingView>
