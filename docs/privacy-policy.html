@@ -1,0 +1,649 @@
+<title>Vocksy Privacy Policy</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap">
+
+<style>
+  :root {
+    --navy: #012362;
+    --navy-deep: #001040;
+    --amber: #F5A623;
+    --amber-muted: #F5A62330;
+    --bg: #F4F6FB;
+    --surface: #FFFFFF;
+    --border: #DDE3EF;
+    --text: #1A2540;
+    --text-muted: #5A6A8A;
+    --text-light: #8A9ABE;
+    --link: #0040B0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #1A4A9E;
+      --navy-deep: #0A1628;
+      --amber: #F5A623;
+      --amber-muted: #F5A62320;
+      --bg: #080F22;
+      --surface: #0D1B3E;
+      --border: #1E3560;
+      --text: #E8EDF8;
+      --text-muted: #8A9ABE;
+      --text-light: #4A5A7A;
+      --link: #6B9FFF;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --navy: #1A4A9E;
+    --navy-deep: #0A1628;
+    --amber: #F5A623;
+    --amber-muted: #F5A62320;
+    --bg: #080F22;
+    --surface: #0D1B3E;
+    --border: #1E3560;
+    --text: #E8EDF8;
+    --text-muted: #8A9ABE;
+    --text-light: #4A5A7A;
+    --link: #6B9FFF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.75;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* Header */
+  .site-header {
+    background: var(--navy-deep);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--amber);
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    background: var(--navy);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(245,166,35,0.3);
+  }
+
+  .logo-v {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--amber);
+    line-height: 1;
+  }
+
+  .logo-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #FFFFFF;
+    letter-spacing: -0.3px;
+  }
+
+  .logo-tagline {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.5px;
+    margin-top: 1px;
+  }
+
+  .header-badge {
+    margin-left: auto;
+    background: var(--amber-muted);
+    border: 1px solid rgba(245,166,35,0.3);
+    color: var(--amber);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* Layout */
+  .page-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  @media (max-width: 780px) {
+    .page-wrap { grid-template-columns: 1fr; gap: 32px; }
+    .toc-wrap { display: none; }
+  }
+
+  /* TOC */
+  .toc-wrap {
+    position: sticky;
+    top: 80px;
+  }
+
+  .toc-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 12px;
+  }
+
+  .toc-list {
+    list-style: none;
+    border-left: 2px solid var(--border);
+  }
+
+  .toc-list li a {
+    display: block;
+    padding: 5px 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    line-height: 1.4;
+    transition: color 0.15s, border-color 0.15s;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+
+  .toc-list li a:hover {
+    color: var(--amber);
+    border-left-color: var(--amber);
+  }
+
+  /* Main content */
+  .doc-hero {
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .doc-eyebrow {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .doc-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    text-wrap: balance;
+    margin-bottom: 16px;
+  }
+
+  .doc-meta {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .doc-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .doc-intro {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: var(--amber-muted);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* Sections */
+  .policy-section {
+    margin-bottom: 44px;
+    scroll-margin-top: 88px;
+  }
+
+  .section-heading {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .section-heading { color: #A0BEFF; }
+  }
+  :root[data-theme="dark"] .section-heading { color: #A0BEFF; }
+
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--navy);
+    color: var(--amber);
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .section-num { background: #1A4A9E; }
+  }
+  :root[data-theme="dark"] .section-num { background: #1A4A9E; }
+
+  p { margin-bottom: 14px; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+
+  .sub-heading {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 20px 0 8px;
+  }
+
+  ul, ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+    max-width: 65ch;
+  }
+
+  li { margin-bottom: 6px; line-height: 1.65; }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .data-table th {
+    background: var(--navy);
+    color: #FFFFFF;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .data-table th { background: #1A3A7E; }
+  }
+  :root[data-theme="dark"] .data-table th { background: #1A3A7E; }
+
+  .data-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .data-table tr:nth-child(even) td {
+    background: var(--bg);
+  }
+
+  a { color: var(--link); }
+  a:hover { text-decoration: none; }
+
+  .contact-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 16px;
+    max-width: 420px;
+  }
+
+  .contact-card .name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .contact-card .detail {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .contact-card .detail a {
+    color: var(--link);
+  }
+
+  .footer {
+    background: var(--navy-deep);
+    padding: 24px;
+    text-align: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 40px;
+  }
+
+  .footer strong { color: var(--amber); }
+</style>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo-mark"><span class="logo-v">V</span></div>
+    <div>
+      <div class="logo-text">Vocksy</div>
+      <div class="logo-tagline">Every mile matters</div>
+    </div>
+    <div class="header-badge">Legal</div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <!-- TOC sidebar -->
+  <nav class="toc-wrap" aria-label="Table of contents">
+    <div class="toc-label">Contents</div>
+    <ul class="toc-list">
+      <li><a href="#information">Information We Collect</a></li>
+      <li><a href="#use">How We Use It</a></li>
+      <li><a href="#sharing">Data Sharing</a></li>
+      <li><a href="#storage">Storage & Security</a></li>
+      <li><a href="#rights">Your Rights</a></li>
+      <li><a href="#transfer">Vehicle Transfer</a></li>
+      <li><a href="#retention">Data Retention</a></li>
+      <li><a href="#children">Children's Privacy</a></li>
+      <li><a href="#changes">Policy Changes</a></li>
+      <li><a href="#contact">Contact Us</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main document -->
+  <main>
+    <div class="doc-hero">
+      <div class="doc-eyebrow">Privacy Policy</div>
+      <h1 class="doc-title">How Vocksy handles your data</h1>
+      <div class="doc-meta">
+        <span>Effective: 28 August 2026</span>
+        <span>Last updated: 28 August 2026</span>
+      </div>
+      <div class="doc-intro">
+        Vocksy is a vehicle maintenance tracking app. We collect only what is needed to provide the service. This policy explains what we collect, why, and how you can control it. We do not sell your personal data to third parties.
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section class="policy-section" id="information">
+      <h2 class="section-heading"><span class="section-num">1</span> Information We Collect</h2>
+
+      <p>We collect information you provide directly and information generated as you use the app.</p>
+
+      <div class="sub-heading">Account Information</div>
+      <ul>
+        <li><strong>Phone number</strong> — used for account creation and login via OTP verification. We do not store passwords.</li>
+        <li><strong>Role</strong> — whether you are a Vehicle Owner or a Garage / Service Center.</li>
+      </ul>
+
+      <div class="sub-heading">Vehicle Information</div>
+      <ul>
+        <li>Registration number, make, model, year, fuel type, and vehicle type</li>
+        <li>Purchase date, owner count, and vehicle notes (optional)</li>
+        <li>Revenue licence expiry and emission test expiry dates</li>
+        <li>Vehicle photos</li>
+        <li>Current odometer reading and mileage history</li>
+      </ul>
+
+      <div class="sub-heading">Service &amp; Maintenance Records</div>
+      <ul>
+        <li>Service records: date, category, description, mileage, cost, parts used, brands</li>
+        <li>Structured data for specific service types: oil grade, tyre size, emission test readings (CO%, HC ppm, CO2%, Lambda), AC refrigerant details</li>
+        <li>Fuel logs: date, odometer reading, litres, cost</li>
+        <li>Expense records: date, category, amount, description</li>
+        <li>Receipt and bill photos uploaded by you</li>
+      </ul>
+
+      <div class="sub-heading">Garage Information (Garage accounts only)</div>
+      <ul>
+        <li>Garage name, Business Registration (BR) number (optional), contact details</li>
+        <li>Availability schedule, time slots, and calendar settings</li>
+      </ul>
+
+      <div class="sub-heading">Usage Data</div>
+      <ul>
+        <li>Booking records, share sessions, and service submissions between owners and garages</li>
+        <li>Push notification tokens (for sending reminders and alerts)</li>
+        <li>App version and device type (collected by Expo / Firebase)</li>
+      </ul>
+    </section>
+
+    <!-- 2 -->
+    <section class="policy-section" id="use">
+      <h2 class="section-heading"><span class="section-num">2</span> How We Use Your Information</h2>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Purpose</th>
+            <th>Data used</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Authenticate your account</td>
+            <td>Phone number, OTP</td>
+          </tr>
+          <tr>
+            <td>Provide vehicle maintenance tracking</td>
+            <td>Vehicle data, service records, fuel logs, expenses</td>
+          </tr>
+          <tr>
+            <td>Generate service predictions and reminders</td>
+            <td>Mileage, service history, manufacturer interval data</td>
+          </tr>
+          <tr>
+            <td>Send push notifications</td>
+            <td>Push token, notification preferences</td>
+          </tr>
+          <tr>
+            <td>Enable history sharing with garages</td>
+            <td>Selected service records, vehicle profile</td>
+          </tr>
+          <tr>
+            <td>Process garage bookings</td>
+            <td>Booking details, availability, shared records</td>
+          </tr>
+          <tr>
+            <td>Facilitate vehicle history transfer at sale</td>
+            <td>All vehicle records, buyer phone number</td>
+          </tr>
+          <tr>
+            <td>Send renewal reminders</td>
+            <td>Revenue licence and emission test expiry dates</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>We do not use your data for advertising, profiling for third-party marketing, or any purpose beyond operating the Vocksy service.</p>
+    </section>
+
+    <!-- 3 -->
+    <section class="policy-section" id="sharing">
+      <h2 class="section-heading"><span class="section-num">3</span> Data Sharing</h2>
+
+      <p>We do not sell your personal data. We share data only with the following service providers who operate under strict data processing agreements:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Purpose</th>
+            <th>Data shared</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Google Firebase</strong></td>
+            <td>Phone number authentication, push notifications</td>
+            <td>Phone number, push notification token</td>
+          </tr>
+          <tr>
+            <td><strong>Neon (PostgreSQL)</strong></td>
+            <td>Database hosting</td>
+            <td>All app data stored in the database</td>
+          </tr>
+          <tr>
+            <td><strong>Cloudflare R2</strong></td>
+            <td>Photo and file storage</td>
+            <td>Uploaded photos and receipt images</td>
+          </tr>
+          <tr>
+            <td><strong>Expo (EAS)</strong></td>
+            <td>Mobile app delivery</td>
+            <td>App bundle, device info</td>
+          </tr>
+          <tr>
+            <td><strong>Render</strong></td>
+            <td>Backend server hosting</td>
+            <td>API requests processed by the backend</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>We may also disclose information if required by law, court order, or to protect the rights and safety of our users.</p>
+
+      <div class="sub-heading">Sharing between users</div>
+      <p>When you choose to share service records with a garage, only the records you select are shared. The garage sees a read-only view. You control what is shared and can stop sharing at any time.</p>
+    </section>
+
+    <!-- 4 -->
+    <section class="policy-section" id="storage">
+      <h2 class="section-heading"><span class="section-num">4</span> Storage &amp; Security</h2>
+      <p>Your data is stored on servers located in the Asia Pacific region. We use industry-standard security measures including HTTPS encryption for all data in transit and encrypted database storage.</p>
+      <p>Photos and receipt images are compressed to approximately 200–400 KB before storage to minimise your storage footprint and cost.</p>
+      <p>Authentication tokens are stored securely on your device using the platform's secure storage (iOS Keychain / Android Keystore). We do not store your OTP codes.</p>
+      <p>No method of electronic storage or transmission is 100% secure. We take reasonable precautions but cannot guarantee absolute security.</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="policy-section" id="rights">
+      <h2 class="section-heading"><span class="section-num">5</span> Your Rights</h2>
+      <p>You have the following rights regarding your data:</p>
+      <ul>
+        <li><strong>Access</strong> — view all your vehicle records, service history, fuel logs, and expenses within the app at any time.</li>
+        <li><strong>Export</strong> — generate a PDF of your full service and expense history from the History screen.</li>
+        <li><strong>Correction</strong> — edit any record directly within the app.</li>
+        <li><strong>Deletion</strong> — request deletion of your account and all associated data by contacting us at the email below. We will process deletion requests within 30 days.</li>
+      </ul>
+      <p>To exercise any of these rights, contact us at <a href="mailto:vikum1407@gmail.com">vikum1407@gmail.com</a>.</p>
+    </section>
+
+    <!-- 6 -->
+    <section class="policy-section" id="transfer">
+      <h2 class="section-heading"><span class="section-num">6</span> Vehicle History Transfer</h2>
+      <p>Vocksy includes a Sell / Transfer feature that allows you to transfer your vehicle's complete history to a buyer. When a transfer is accepted:</p>
+      <ul>
+        <li>All vehicle records are permanently removed from your account</li>
+        <li>The full history is added to the buyer's account</li>
+        <li>The transfer is irreversible once the buyer accepts</li>
+      </ul>
+      <p>Until the buyer accepts, the transfer remains pending and you retain full access. This design ensures the vehicle history is tamper-evident and trustworthy for the buyer.</p>
+    </section>
+
+    <!-- 7 -->
+    <section class="policy-section" id="retention">
+      <h2 class="section-heading"><span class="section-num">7</span> Data Retention</h2>
+      <p>We retain your data for as long as your account is active. If you request deletion of your account, we will delete all associated personal data within 30 days, except where we are required to retain it by law.</p>
+      <p>Anonymised, aggregated data (with no personal identifiers) may be retained for service improvement purposes.</p>
+    </section>
+
+    <!-- 8 -->
+    <section class="policy-section" id="children">
+      <h2 class="section-heading"><span class="section-num">8</span> Children's Privacy</h2>
+      <p>Vocksy is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us and we will promptly delete it.</p>
+    </section>
+
+    <!-- 9 -->
+    <section class="policy-section" id="changes">
+      <h2 class="section-heading"><span class="section-num">9</span> Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. When we do, we will update the effective date at the top of this page and, for material changes, notify you via a push notification or in-app notice.</p>
+      <p>Continued use of Vocksy after any changes constitutes your acceptance of the updated policy.</p>
+    </section>
+
+    <!-- 10 -->
+    <section class="policy-section" id="contact">
+      <h2 class="section-heading"><span class="section-num">10</span> Contact Us</h2>
+      <p>If you have any questions, requests, or concerns about this Privacy Policy or your personal data, please contact us:</p>
+      <div class="contact-card">
+        <div class="name">Vocksy — Data Contact</div>
+        <div class="detail">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+          <a href="mailto:vikum1407@gmail.com">vikum1407@gmail.com</a>
+        </div>
+        <div class="detail">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          Response within 5 business days
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer class="footer">
+  &copy; 2026 <strong>Vocksy</strong>. All rights reserved. &nbsp;·&nbsp; Every mile matters.
+</footer>
