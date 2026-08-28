@@ -10,6 +10,7 @@ import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Tab = 'service' | 'expenses' | 'fuel'
 
@@ -43,9 +44,22 @@ type Props = {
 }
 
 const EXPENSE_CATEGORIES = [
-  'All', 'Insurance', 'Revenue Licence', 'Emission Test', 'Fine',
+  'All', 'Insurance', 'Revenue Licence', 'Emission Test', 'Fine / Penalty',
   'Parking', 'Toll', 'Accessories', 'Washing', 'Other',
 ]
+
+const EXPENSE_CATEGORY_LABEL_KEYS: Record<string, TranslationKey> = {
+  'All': 'expenseCategory.all',
+  'Insurance': 'expenseCategory.insurance',
+  'Revenue Licence': 'expenseCategory.revenueLicence',
+  'Emission Test': 'expenseCategory.emissionTest',
+  'Fine / Penalty': 'expenseCategory.fine',
+  'Parking': 'expenseCategory.parking',
+  'Toll': 'expenseCategory.toll',
+  'Accessories': 'expenseCategory.accessories',
+  'Washing': 'expenseCategory.washing',
+  'Other': 'expenseCategory.other',
+}
 
 function fmt(isoDate: string) {
   try {
@@ -621,7 +635,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               {/* Total summary card */}
               <View style={s.totalCard}>
                 <Text style={s.totalLabel}>
-                  {expCatFilter === 'All' ? t('history.totalExpenses') : expCatFilter}
+                  {expCatFilter === 'All' ? t('history.totalExpenses') : t(EXPENSE_CATEGORY_LABEL_KEYS[expCatFilter] ?? 'expenseCategory.other')}
                 </Text>
                 <Text style={s.totalAmount}>LKR {expenseTotal.toLocaleString()}</Text>
                 <Text style={s.totalSub}>{t('history.recordsCount', { count: filteredExpenses.length, s: filteredExpenses.length !== 1 ? 's' : '' })}</Text>
@@ -664,7 +678,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                       onPress={() => setExpCatFilter(cat)}
                     >
                       <Text style={[s.catChipText, expCatFilter === cat && s.catChipTextActive]}>
-                        {cat} {cat !== 'All' ? `(${count})` : ''}
+                        {t(EXPENSE_CATEGORY_LABEL_KEYS[cat] ?? 'expenseCategory.other')} {cat !== 'All' ? `(${count})` : ''}
                       </Text>
                     </TouchableOpacity>
                   )

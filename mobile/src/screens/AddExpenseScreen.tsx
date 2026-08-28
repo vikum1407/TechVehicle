@@ -11,6 +11,7 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
@@ -20,16 +21,16 @@ type Props = {
   onBack: () => void
 }
 
-const CATEGORIES = [
-  { label: 'Insurance', icon: '🛡️' },
-  { label: 'Revenue Licence', icon: '📋' },
-  { label: 'Emission Test', icon: '💨' },
-  { label: 'Fine / Penalty', icon: '🚨' },
-  { label: 'Parking', icon: '🅿️' },
-  { label: 'Toll', icon: '🛣️' },
-  { label: 'Accessories', icon: '🔩' },
-  { label: 'Washing', icon: '🚿' },
-  { label: 'Other', icon: '📝' },
+const CATEGORIES: { value: string; labelKey: TranslationKey; icon: string }[] = [
+  { value: 'Insurance', labelKey: 'expenseCategory.insurance', icon: '🛡️' },
+  { value: 'Revenue Licence', labelKey: 'expenseCategory.revenueLicence', icon: '📋' },
+  { value: 'Emission Test', labelKey: 'expenseCategory.emissionTest', icon: '💨' },
+  { value: 'Fine / Penalty', labelKey: 'expenseCategory.fine', icon: '🚨' },
+  { value: 'Parking', labelKey: 'expenseCategory.parking', icon: '🅿️' },
+  { value: 'Toll', labelKey: 'expenseCategory.toll', icon: '🛣️' },
+  { value: 'Accessories', labelKey: 'expenseCategory.accessories', icon: '🔩' },
+  { value: 'Washing', labelKey: 'expenseCategory.washing', icon: '🚿' },
+  { value: 'Other', labelKey: 'expenseCategory.other', icon: '📝' },
 ]
 
 const today = () => {
@@ -162,14 +163,14 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       <View style={styles.categoryGrid}>
         {CATEGORIES.map(cat => (
           <TouchableOpacity
-            key={cat.label}
-            style={[styles.categoryCard, category === cat.label && styles.categoryCardSelected]}
-            onPress={() => setCategory(cat.label)}
+            key={cat.value}
+            style={[styles.categoryCard, category === cat.value && styles.categoryCardSelected]}
+            onPress={() => setCategory(cat.value)}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryIcon}>{cat.icon}</Text>
-            <Text style={[styles.categoryLabel, category === cat.label && styles.categoryLabelSelected]}>
-              {cat.label}
+            <Text style={[styles.categoryLabel, category === cat.value && styles.categoryLabelSelected]}>
+              {t(cat.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}

@@ -12,6 +12,17 @@ const si: Record<TranslationKey, string> = {
   'common.edit': 'සංස්කරණය',
   'common.delete': 'මකන්න',
 
+  'expenseCategory.all': 'සියල්ල',
+  'expenseCategory.insurance': 'රක්ෂණය',
+  'expenseCategory.revenueLicence': 'ආදායම් බලපත්‍රය',
+  'expenseCategory.emissionTest': 'විමෝචන පරීක්ෂණය',
+  'expenseCategory.fine': 'දඩය / දඬුවම',
+  'expenseCategory.parking': 'නැවතුම් ස්ථානය',
+  'expenseCategory.toll': 'ටෝල් ගාස්තුව',
+  'expenseCategory.accessories': 'උපාංග',
+  'expenseCategory.washing': 'සේදීම',
+  'expenseCategory.other': 'වෙනත්',
+
   'settings.title': 'සැකසුම්',
   'settings.notificationPrefs': 'දැනුම්දීම් සැකසුම්',
   'settings.language': 'භාෂාව',

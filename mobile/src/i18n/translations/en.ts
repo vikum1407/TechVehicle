@@ -10,6 +10,17 @@ const en = {
   'common.edit': 'Edit',
   'common.delete': 'Delete',
 
+  'expenseCategory.all': 'All',
+  'expenseCategory.insurance': 'Insurance',
+  'expenseCategory.revenueLicence': 'Revenue Licence',
+  'expenseCategory.emissionTest': 'Emission Test',
+  'expenseCategory.fine': 'Fine / Penalty',
+  'expenseCategory.parking': 'Parking',
+  'expenseCategory.toll': 'Toll',
+  'expenseCategory.accessories': 'Accessories',
+  'expenseCategory.washing': 'Washing',
+  'expenseCategory.other': 'Other',
+
   'settings.title': 'Settings',
   'settings.notificationPrefs': 'Notification Preferences',
   'settings.language': 'Language',
