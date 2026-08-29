@@ -11,6 +11,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -107,6 +108,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const [cSaving, setCSaving] = useState(false)
   const colors = useColors()
   const s = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const loadRecords = useCallback(async () => {
     try {
@@ -154,12 +156,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     .slice(0, 10)
 
   function getDocStatus(dateStr: string | null | undefined): { label: string; color: string; bg: string } {
-    if (!dateStr) return { label: 'Expiry not set', color: colors.textMuted, bg: '#f5f5f5' }
+    if (!dateStr) return { label: t('vehicleTests.docStatus.notSet'), color: colors.textMuted, bg: '#f5f5f5' }
     const days = Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
-    if (days < 0)   return { label: `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`, color: colors.error, bg: '#ffebee' }
-    if (days <= 7)  return { label: `Expires in ${days} day${days !== 1 ? 's' : ''} — Critical!`, color: colors.error, bg: '#ffebee' }
-    if (days <= 30) return { label: `Expires in ${days} days`, color: colors.warning, bg: '#fff3e0' }
-    return { label: `Valid — expires in ${days} days`, color: colors.success, bg: '#e8f5e9' }
+    if (days < 0)   return { label: t('vehicleTests.docStatus.expiredAgo', { days: Math.abs(days), s: Math.abs(days) !== 1 ? 's' : '' }), color: colors.error, bg: '#ffebee' }
+    if (days <= 7)  return { label: t('vehicleTests.docStatus.criticalSoon', { days, s: days !== 1 ? 's' : '' }), color: colors.error, bg: '#ffebee' }
+    if (days <= 30) return { label: t('vehicleTests.docStatus.expiresIn', { days }), color: colors.warning, bg: '#fff3e0' }
+    return { label: t('vehicleTests.docStatus.valid', { days }), color: colors.success, bg: '#e8f5e9' }
   }
 
   const chainStatus = (() => {
@@ -194,15 +196,15 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     const kmSince = lastTyreKm !== null ? currentMileage - lastTyreKm : null
 
     let multiplier = 1.0
-    let freqNote = 'no alignment data — using 40,000 km baseline'
+    let freqNote = t('vehicleTests.freqNote.noData')
     if (kmSince !== null && kmSince > 0 && alignmentsSince.length > 0) {
       const per10k = (alignmentsSince.length / kmSince) * 10000
-      if (per10k <= 0.5)      { multiplier = 1.2; freqNote = 'low alignment frequency — good roads' }
-      else if (per10k <= 1.0) { multiplier = 1.0; freqNote = 'normal alignment frequency' }
-      else if (per10k <= 2.0) { multiplier = 0.8; freqNote = 'high alignment frequency — rough roads or wear' }
-      else                    { multiplier = 0.65; freqNote = 'very high frequency — inspect suspension' }
+      if (per10k <= 0.5)      { multiplier = 1.2; freqNote = t('vehicleTests.freqNote.low') }
+      else if (per10k <= 1.0) { multiplier = 1.0; freqNote = t('vehicleTests.freqNote.normal') }
+      else if (per10k <= 2.0) { multiplier = 0.8; freqNote = t('vehicleTests.freqNote.high') }
+      else                    { multiplier = 0.65; freqNote = t('vehicleTests.freqNote.veryHigh') }
     } else if (alignmentsSince.length > 0) {
-      freqNote = `${alignmentsSince.length} alignment${alignmentsSince.length > 1 ? 's' : ''} since last tyre change`
+      freqNote = t('vehicleTests.freqNote.countSince', { count: alignmentsSince.length, s: alignmentsSince.length > 1 ? 's' : '' })
     }
 
     const BASE = 40000
@@ -222,14 +224,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   })()
 
   const saveEmissionTest = async () => {
-    if (!eResult) { Alert.alert('Required', 'Please select Pass or Fail'); return }
+    if (!eResult) { Alert.alert(t('logEmissionTest.required.title'), t('logEmissionTest.required.message')); return }
     const isoDate = parseDMY(eDate)
-    if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    if (!isoDate) { Alert.alert(t('logEmissionTest.invalidDate.title'), t('logEmissionTest.invalidDate.message')); return }
 
     let nextExpiryISO: string | undefined
     if (eNextExpiry.trim()) {
       const parsed = parseMMYYYY(eNextExpiry.trim())
-      if (!parsed) { Alert.alert('Invalid expiry', 'Use MM/YYYY format — e.g. 06/2027'); return }
+      if (!parsed) { Alert.alert(t('vehicleTests.invalidExpiry.title'), t('vehicleTests.invalidExpiry.message')); return }
       nextExpiryISO = parsed
     }
 
@@ -248,7 +250,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             },
           }
           await api.submitSharedTest(token, vehicleId, 'Emission Test / Carbon Test', isoDate, mileageNum ?? undefined, eCost ? parseFloat(eCost) : undefined, structuredData)
-          Alert.alert('Submitted', 'Emission test submitted to the owner for approval.')
+          Alert.alert(t('vehicleTests.submitted.title'), t('vehicleTests.emissionSubmitted'))
         } else {
           await api.logEmissionTest(token, vehicleId, {
             date: isoDate,
@@ -265,14 +267,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           if (nextExpiryISO) {
             await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
           }
-          Alert.alert('Saved', 'Emission test recorded.')
+          Alert.alert(t('logEmissionTest.saved.title'), t('logEmissionTest.saved.message'))
         }
         setEResult(''); setEDate(todayDMY()); setEMileage(String(currentMileage))
         setECo(''); setEHc(''); setECo2(''); setELambda('')
         setEStation(''); setECost(''); setENextExpiry('')
         loadRecords()
       } catch (e: any) {
-        Alert.alert('Error', e.message)
+        Alert.alert(t('common.error'), e.message)
       } finally {
         setESaving(false)
       }
@@ -280,9 +282,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
     if (mileageNum !== null && mileageNum > currentMileage + 500) {
       Alert.alert(
-        'Check mileage',
-        `${mileageNum.toLocaleString()} km is higher than current recorded mileage. Correct?`,
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes, save', onPress: doSave }]
+        t('addService.checkMileage.title'),
+        t('vehicleTests.checkMileageMessage', { km: mileageNum.toLocaleString() }),
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('addService.yesSave'), onPress: doSave }]
       )
       return
     }
@@ -291,7 +293,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
   const saveAlignment = async () => {
     const isoDate = parseDMY(aDate)
-    if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    if (!isoDate) { Alert.alert(t('logEmissionTest.invalidDate.title'), t('logEmissionTest.invalidDate.message')); return }
 
     const mileageNum = aMileage ? parseInt(aMileage) : null
 
@@ -303,7 +305,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           : undefined
         if (isShared) {
           await api.submitSharedTest(token, vehicleId, 'Wheel Alignment', isoDate, mileageNum ?? undefined, aCost ? parseFloat(aCost) : undefined, structuredData ?? {})
-          Alert.alert('Submitted', 'Wheel alignment submitted to the owner for approval.')
+          Alert.alert(t('vehicleTests.submitted.title'), t('vehicleTests.alignmentSubmitted'))
         } else {
           await api.addServiceRecord(token, vehicleId, {
             date: isoDate,
@@ -312,12 +314,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             cost: aCost ? parseFloat(aCost) : undefined,
             structuredData,
           })
-          Alert.alert('Saved', 'Wheel alignment recorded.')
+          Alert.alert(t('logEmissionTest.saved.title'), t('vehicleTests.alignmentSaved'))
         }
         setADate(todayDMY()); setAMileage(String(currentMileage)); setAAxle(''); setACost('')
         loadRecords()
       } catch (e: any) {
-        Alert.alert('Error', e.message)
+        Alert.alert(t('common.error'), e.message)
       } finally {
         setASaving(false)
       }
@@ -325,9 +327,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
     if (mileageNum !== null && mileageNum > currentMileage + 500) {
       Alert.alert(
-        'Check mileage',
-        `${mileageNum.toLocaleString()} km is higher than current recorded mileage. Correct?`,
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes, save', onPress: doSave }]
+        t('addService.checkMileage.title'),
+        t('vehicleTests.checkMileageMessage', { km: mileageNum.toLocaleString() }),
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('addService.yesSave'), onPress: doSave }]
       )
       return
     }
@@ -335,9 +337,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   }
 
   const saveChain = async () => {
-    if (!cServiceType) { Alert.alert('Required', 'Please select a service type'); return }
+    if (!cServiceType) { Alert.alert(t('vehicleTests.selectServiceType.title'), t('vehicleTests.selectServiceType.message')); return }
     const isoDate = parseDMY(cDate)
-    if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    if (!isoDate) { Alert.alert(t('logEmissionTest.invalidDate.title'), t('logEmissionTest.invalidDate.message')); return }
     const mileageNum = cMileage ? parseInt(cMileage) : null
     const doSave = async () => {
       setCSaving(true)
@@ -354,20 +356,20 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           cost: cCost ? parseFloat(cCost) : undefined,
           structuredData: { 'Chain Service': { serviceType: cServiceType } },
         })
-        Alert.alert('Saved', `${descMap[cServiceType]} recorded.`)
+        Alert.alert(t('logEmissionTest.saved.title'), t('vehicleTests.recorded', { desc: descMap[cServiceType] }))
         setCServiceType(''); setCDate(todayDMY()); setCMileage(String(currentMileage)); setCCost('')
         loadRecords()
       } catch (e: any) {
-        Alert.alert('Error', e.message)
+        Alert.alert(t('common.error'), e.message)
       } finally {
         setCSaving(false)
       }
     }
     if (mileageNum !== null && mileageNum > currentMileage + 500) {
       Alert.alert(
-        'Check mileage',
-        `${mileageNum.toLocaleString()} km is higher than current recorded mileage. Correct?`,
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes, save', onPress: doSave }]
+        t('addService.checkMileage.title'),
+        t('vehicleTests.checkMileageMessage', { km: mileageNum.toLocaleString() }),
+        [{ text: t('common.cancel'), style: 'cancel' }, { text: t('addService.yesSave'), onPress: doSave }]
       )
       return
     }
@@ -377,26 +379,26 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={s.container}>
-      <ScreenHeader title="Vehicle Tests" subtitle={vehicleName} onBack={onBack} />
+      <ScreenHeader title={t('vehicleTests.title')} subtitle={vehicleName} onBack={onBack} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabBarContent}>
         <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 Emission</Text>
+          <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 {t('vehicleTests.tab.emission')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tab, activeTab === 'alignment' && s.tabActive]} onPress={() => setActiveTab('alignment')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 Alignment</Text>
+          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 {t('vehicleTests.tab.alignment')}</Text>
         </TouchableOpacity>
         {showChainTab && (
           <TouchableOpacity style={[s.tab, activeTab === 'chain' && s.tabActive]} onPress={() => setActiveTab('chain')} activeOpacity={0.7}>
-            <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>⛓ Chain</Text>
+            <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>⛓ {t('vehicleTests.tab.chain')}</Text>
             {chainStatus.lubeStatus === 'overdue' && <View style={s.tabDot} />}
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[s.tab, activeTab === 'insurance' && s.tabActive]} onPress={() => setActiveTab('insurance')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'insurance' && s.tabTextActive]}>🛡️ Insurance</Text>
+          <Text style={[s.tabText, activeTab === 'insurance' && s.tabTextActive]}>🛡️ {t('vehicleTests.tab.insurance')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tab, activeTab === 'licence' && s.tabActive]} onPress={() => setActiveTab('licence')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'licence' && s.tabTextActive]}>📋 Rev. Licence</Text>
+          <Text style={[s.tabText, activeTab === 'licence' && s.tabTextActive]}>📋 {t('vehicleTests.tab.revLicence')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -411,7 +413,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.histCard, { borderLeftColor: pass ? colors.success : colors.error, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 {t('vehicleTests.latest')}</Text>
                   </View>
                   <View style={s.histRow}>
                     <Text style={[s.histResult, { color: pass ? colors.success : colors.error }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
@@ -428,9 +430,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               )
             })()}
 
-            <Text style={s.sectionTitle}>Log Emission / Carbon Test</Text>
+            <Text style={s.sectionTitle}>{t('vehicleTests.logEmissionTest')}</Text>
 
-            <Text style={s.label}>Test Result <Text style={s.req}>*</Text></Text>
+            <Text style={s.label}>{t('logEmissionTest.testResult')} <Text style={s.req}>*</Text></Text>
             <View style={s.chipRow}>
               {(['Pass', 'Fail'] as const).map(opt => (
                 <TouchableOpacity
@@ -448,54 +450,54 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             <View style={s.row}>
               <View style={s.half}>
-                <DateField label="Test Date" value={eDate} onChange={setEDate} maximumDate={new Date()} />
+                <DateField label={t('logEmissionTest.testDate')} value={eDate} onChange={setEDate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField
-                  label="Mileage (km)" value={eMileage} onChangeText={setEMileage}
+                  label={t('addService.mileage')} value={eMileage} onChangeText={setEMileage}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
             </View>
 
-            <Text style={s.subSectionLabel}>Readings from test certificate (optional)</Text>
+            <Text style={s.subSectionLabel}>{t('vehicleTests.readingsOptional')}</Text>
             <View style={s.row}>
               <View style={s.half}>
-                <FormField label="CO %" value={eCo} onChangeText={setECo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
+                <FormField label={t('addService.field.co')} value={eCo} onChangeText={setECo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
               </View>
               <View style={s.half}>
-                <FormField label="HC ppm" value={eHc} onChangeText={setEHc} placeholder="e.g. 120" keyboardType="number-pad" />
+                <FormField label={t('addService.field.hc')} value={eHc} onChangeText={setEHc} placeholder="e.g. 120" keyboardType="number-pad" />
               </View>
             </View>
             <View style={s.row}>
               <View style={s.half}>
-                <FormField label="CO₂ %" value={eCo2} onChangeText={setECo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
+                <FormField label={t('addService.field.co2')} value={eCo2} onChangeText={setECo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
               </View>
               <View style={s.half}>
-                <FormField label="Lambda" value={eLambda} onChangeText={setELambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
+                <FormField label={t('addService.field.lambda')} value={eLambda} onChangeText={setELambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
               </View>
             </View>
 
-            <FormField label="Testing Station (optional)" value={eStation} onChangeText={setEStation} placeholder="e.g. Werahera Testing Station" />
+            <FormField label={t('logEmissionTest.testingStation')} value={eStation} onChangeText={setEStation} placeholder="e.g. Werahera Testing Station" />
 
-            <FormField label="Cost (LKR, optional)" value={eCost} onChangeText={setECost} placeholder="e.g. 2500" keyboardType="number-pad" />
+            <FormField label={t('logEmissionTest.costOptional')} value={eCost} onChangeText={setECost} placeholder="e.g. 2500" keyboardType="number-pad" />
 
             <View style={s.reminderCard}>
-              <Text style={s.reminderTitle}>Set Renewal Reminder</Text>
-              <Text style={s.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+              <Text style={s.reminderTitle}>{t('addExpense.setRenewalReminder')}</Text>
+              <Text style={s.reminderSub}>{t('addExpense.reminderSub')}</Text>
               <FormField
-                label="Next Expiry Date (MM/YYYY)" value={eNextExpiry} onChangeText={setENextExpiry}
+                label={t('logEmissionTest.nextExpiryDate')} value={eNextExpiry} onChangeText={setENextExpiry}
                 placeholder="e.g. 06/2027" keyboardType="numbers-and-punctuation"
               />
             </View>
 
             <View style={s.saveBtnWrap}>
-              <Button title={isShared ? 'Submit for Approval' : 'Save Emission Test'} onPress={saveEmissionTest} loading={eSaving} />
+              <Button title={isShared ? t('vehicleTests.submitForApproval') : t('logEmissionTest.saveEmissionTest')} onPress={saveEmissionTest} loading={eSaving} />
             </View>
 
             {emissionHistory.length > 1 && (
               <>
-                <Text style={s.historyTitle}>Previous Tests</Text>
+                <Text style={s.historyTitle}>{t('vehicleTests.previousTests')}</Text>
                 {emissionHistory.slice(1).map(r => {
                   const sd = r.structuredData?.['Emission Test / Carbon Test'] || {}
                   const pass = sd.result === 'Pass'
@@ -529,34 +531,34 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.histCard, { borderLeftColor: colors.primary, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 Latest</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 {t('vehicleTests.latest')}</Text>
                   </View>
                   <View style={s.histRow}>
                     <Text style={s.histLabel}>Wheel Alignment</Text>
                     <Text style={s.histDate}>{fmtDate(last.date)}</Text>
                     {last.mileage != null && <Text style={s.histMeta}>{last.mileage.toLocaleString()} km</Text>}
                   </View>
-                  {sd.axle && <Text style={s.histMeta}>Axle: {sd.axle}</Text>}
+                  {sd.axle && <Text style={s.histMeta}>{t('vehicleTests.axleLabel', { axle: sd.axle })}</Text>}
                   {last.cost != null && <Text style={s.histCost}>LKR {last.cost.toLocaleString()}</Text>}
                 </View>
               )
             })()}
 
-            <Text style={s.sectionTitle}>Log Wheel Alignment</Text>
+            <Text style={s.sectionTitle}>{t('vehicleTests.logWheelAlignment')}</Text>
 
             <View style={s.row}>
               <View style={s.half}>
-                <DateField label="Date" value={aDate} onChange={setADate} maximumDate={new Date()} />
+                <DateField label={t('common.date')} value={aDate} onChange={setADate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField
-                  label="Mileage (km)" value={aMileage} onChangeText={setAMileage}
+                  label={t('addService.mileage')} value={aMileage} onChangeText={setAMileage}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
             </View>
 
-            <Text style={s.label}>Axle Aligned (optional)</Text>
+            <Text style={s.label}>{t('vehicleTests.axleAligned')}</Text>
             <View style={s.chipRow}>
               {(['Front', 'Rear', 'Both'] as const).map(opt => (
                 <TouchableOpacity
@@ -570,30 +572,30 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               ))}
             </View>
 
-            <FormField label="Cost (LKR, optional)" value={aCost} onChangeText={setACost} placeholder="e.g. 1500" keyboardType="number-pad" />
+            <FormField label={t('logEmissionTest.costOptional')} value={aCost} onChangeText={setACost} placeholder="e.g. 1500" keyboardType="number-pad" />
 
             <View style={s.saveBtnWrap}>
-              <Button title={isShared ? 'Submit for Approval' : 'Save Alignment Record'} onPress={saveAlignment} loading={aSaving} />
+              <Button title={isShared ? t('vehicleTests.submitForApproval') : t('vehicleTests.saveAlignmentRecord')} onPress={saveAlignment} loading={aSaving} />
             </View>
 
             {tyrePrediction ? (
               <View style={s.predCard}>
-                <Text style={s.predTitle}>Tyre Life Prediction</Text>
+                <Text style={s.predTitle}>{t('vehicleTests.tyreLifePrediction')}</Text>
                 <Text style={s.predNote}>
                   {tyrePrediction.alignmentCount > 0
-                    ? `${tyrePrediction.alignmentCount} alignment${tyrePrediction.alignmentCount > 1 ? 's' : ''} since your last tyre change (${tyrePrediction.lastTyreDate}) — ${tyrePrediction.freqNote}.`
-                    : `Based on your last tyre change (${tyrePrediction.lastTyreDate}). Log alignments to refine this prediction.`
+                    ? t('vehicleTests.predNoteWithAlignments', { count: tyrePrediction.alignmentCount, s: tyrePrediction.alignmentCount > 1 ? 's' : '', date: tyrePrediction.lastTyreDate, note: tyrePrediction.freqNote })
+                    : t('vehicleTests.predNoteNoAlignments', { date: tyrePrediction.lastTyreDate })
                   }
                 </Text>
                 <View style={s.predRow}>
                   <View style={s.predStat}>
                     <Text style={s.predStatVal}>{tyrePrediction.predictedLife.toLocaleString()} km</Text>
-                    <Text style={s.predStatLabel}>Predicted life</Text>
+                    <Text style={s.predStatLabel}>{t('vehicleTests.predictedLife')}</Text>
                   </View>
                   {tyrePrediction.dueAtKm != null && (
                     <View style={s.predStat}>
                       <Text style={s.predStatVal}>{tyrePrediction.dueAtKm.toLocaleString()} km</Text>
-                      <Text style={s.predStatLabel}>Change due at</Text>
+                      <Text style={s.predStatLabel}>{t('vehicleTests.changeDueAt')}</Text>
                     </View>
                   )}
                   {tyrePrediction.remainingKm != null && (
@@ -603,11 +605,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                         tyrePrediction.remainingKm < 0 ? { color: colors.error } : tyrePrediction.remainingKm <= 3000 ? { color: colors.warning } : {},
                       ]}>
                         {tyrePrediction.remainingKm < 0
-                          ? `${Math.abs(tyrePrediction.remainingKm).toLocaleString()} km overdue`
-                          : `${tyrePrediction.remainingKm.toLocaleString()} km left`
+                          ? t('vehicleTests.kmOverdue', { km: Math.abs(tyrePrediction.remainingKm).toLocaleString() })
+                          : t('vehicleTests.kmLeft', { km: tyrePrediction.remainingKm.toLocaleString() })
                         }
                       </Text>
-                      <Text style={s.predStatLabel}>Remaining</Text>
+                      <Text style={s.predStatLabel}>{t('vehicleTests.remaining')}</Text>
                     </View>
                   )}
                 </View>
@@ -615,14 +617,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             ) : (
               <View style={s.predHint}>
                 <Text style={s.predHintText}>
-                  💡 Log a Tyre Change in your service records to unlock a personalised tyre life prediction based on your alignment history.
+                  💡 {t('vehicleTests.predHint')}
                 </Text>
               </View>
             )}
 
             {alignmentHistory.length > 1 && (
               <>
-                <Text style={s.historyTitle}>Previous Alignments</Text>
+                <Text style={s.historyTitle}>{t('vehicleTests.previousAlignments')}</Text>
                 {alignmentHistory.slice(1).map(r => {
                   const sd = r.structuredData?.['Wheel Alignment'] || {}
                   return (
@@ -632,7 +634,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                         <Text style={s.histDate}>{fmtDate(r.date)}</Text>
                         {r.mileage != null && <Text style={s.histMeta}>{r.mileage.toLocaleString()} km</Text>}
                       </View>
-                      {sd.axle && <Text style={s.histMeta}>Axle: {sd.axle}</Text>}
+                      {sd.axle && <Text style={s.histMeta}>{t('vehicleTests.axleLabel', { axle: sd.axle })}</Text>}
                       {r.cost != null && <Text style={s.histCost}>LKR {r.cost.toLocaleString()}</Text>}
                     </View>
                   )
@@ -641,42 +643,42 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             )}
 
             {!loadingRecords && alignmentHistory.length === 0 && (
-              <Text style={s.emptyNote}>No alignment records yet. Log your first one above.</Text>
+              <Text style={s.emptyNote}>{t('vehicleTests.noAlignmentRecords')}</Text>
             )}
           </>
         ) : activeTab === 'chain' ? (
           <>
-            <Text style={s.sectionTitle}>Chain Maintenance</Text>
+            <Text style={s.sectionTitle}>{t('vehicleTests.chainMaintenance')}</Text>
 
             {/* Chain status card */}
             {(() => {
               const { lubeStatus, kmSinceLube, kmSinceReplace, lastLube, lastReplace } = chainStatus
               const statusColor = lubeStatus === 'ok' ? colors.success : lubeStatus === 'due' ? colors.warning : lubeStatus === 'overdue' ? colors.error : colors.textMuted
               const statusBg = lubeStatus === 'ok' ? '#e8f5e9' : lubeStatus === 'due' ? '#fff3e0' : lubeStatus === 'overdue' ? '#fdecea' : '#f5f5f5'
-              const statusLabel = lubeStatus === 'ok' ? '✓ Lubrication OK' : lubeStatus === 'due' ? '⚠ Lubrication Due Soon' : lubeStatus === 'overdue' ? '⚠ Lubrication OVERDUE' : 'No lubrication recorded'
+              const statusLabel = lubeStatus === 'ok' ? `✓ ${t('vehicleTests.chain.ok')}` : lubeStatus === 'due' ? `⚠ ${t('vehicleTests.chain.dueSoon')}` : lubeStatus === 'overdue' ? `⚠ ${t('vehicleTests.chain.overdue')}` : t('vehicleTests.chain.noRecord')
               return (
                 <View style={[s.chainStatusCard, { backgroundColor: statusBg, borderColor: statusColor }]}>
                   <Text style={[s.chainStatusLabel, { color: statusColor }]}>{statusLabel}</Text>
                   {kmSinceLube !== null && (
-                    <Text style={s.chainStatusKm}>{kmSinceLube.toLocaleString()} km since last lube · Recommended every 500 km</Text>
+                    <Text style={s.chainStatusKm}>{t('vehicleTests.chain.kmSinceLube', { km: kmSinceLube.toLocaleString() })}</Text>
                   )}
                   {kmSinceLube === null && (
-                    <Text style={s.chainStatusKm}>Log your first chain lubrication to start tracking.</Text>
+                    <Text style={s.chainStatusKm}>{t('vehicleTests.chain.logFirst')}</Text>
                   )}
                   {kmSinceReplace !== null && (
-                    <Text style={s.chainStatusKm}>Chain & sprocket: {kmSinceReplace.toLocaleString()} km since last replacement</Text>
+                    <Text style={s.chainStatusKm}>{t('vehicleTests.chain.kmSinceReplace', { km: kmSinceReplace.toLocaleString() })}</Text>
                   )}
                   {lastLube && (
-                    <Text style={s.chainStatusDate}>Last lube: {fmtDate(lastLube.date)}{lastLube.mileage != null ? ` at ${lastLube.mileage.toLocaleString()} km` : ''}</Text>
+                    <Text style={s.chainStatusDate}>{t('vehicleTests.chain.lastLube', { date: fmtDate(lastLube.date) })}{lastLube.mileage != null ? t('vehicleTests.atKmPlain', { km: lastLube.mileage.toLocaleString() }) : ''}</Text>
                   )}
                   {lastReplace && (
-                    <Text style={s.chainStatusDate}>Last chain & sprocket: {fmtDate(lastReplace.date)}{lastReplace.mileage != null ? ` at ${lastReplace.mileage.toLocaleString()} km` : ''}</Text>
+                    <Text style={s.chainStatusDate}>{t('vehicleTests.chain.lastReplace', { date: fmtDate(lastReplace.date) })}{lastReplace.mileage != null ? t('vehicleTests.atKmPlain', { km: lastReplace.mileage.toLocaleString() }) : ''}</Text>
                   )}
                 </View>
               )
             })()}
 
-            <Text style={s.label}>Service Type <Text style={s.req}>*</Text></Text>
+            <Text style={s.label}>{t('vehicleTests.serviceType')} <Text style={s.req}>*</Text></Text>
             <View style={s.chipRow}>
               {(['Lubrication', 'Tension Check', 'Chain & Sprocket'] as const).map(opt => (
                 <TouchableOpacity
@@ -692,36 +694,36 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
             {cServiceType === 'Lubrication' && (
               <View style={s.chainTip}>
-                <Text style={s.chainTipText}>Recommended every 500 km or after riding in rain. Clean the chain first, then apply lubricant to the inner side while rotating the wheel.</Text>
+                <Text style={s.chainTipText}>{t('vehicleTests.chainTip.lubrication')}</Text>
               </View>
             )}
             {cServiceType === 'Chain & Sprocket' && (
               <View style={s.chainTip}>
-                <Text style={s.chainTipText}>Typical replacement interval: 20,000–30,000 km. Always replace chain and sprockets together — a new chain on worn sprockets wears out quickly.</Text>
+                <Text style={s.chainTipText}>{t('vehicleTests.chainTip.sprocket')}</Text>
               </View>
             )}
 
             <View style={s.row}>
               <View style={s.half}>
-                <DateField label="Date" value={cDate} onChange={setCDate} maximumDate={new Date()} />
+                <DateField label={t('common.date')} value={cDate} onChange={setCDate} maximumDate={new Date()} />
               </View>
               <View style={s.half}>
                 <FormField
-                  label="Mileage (km)" value={cMileage} onChangeText={setCMileage}
+                  label={t('addService.mileage')} value={cMileage} onChangeText={setCMileage}
                   placeholder="e.g. 18000" keyboardType="number-pad"
                 />
               </View>
             </View>
 
-            <FormField label="Cost (LKR, optional)" value={cCost} onChangeText={setCCost} placeholder="e.g. 500" keyboardType="number-pad" />
+            <FormField label={t('logEmissionTest.costOptional')} value={cCost} onChangeText={setCCost} placeholder="e.g. 500" keyboardType="number-pad" />
 
             <View style={s.saveBtnWrap}>
-              <Button title="Save Chain Record" onPress={saveChain} loading={cSaving} />
+              <Button title={t('vehicleTests.saveChainRecord')} onPress={saveChain} loading={cSaving} />
             </View>
 
             {chainHistory.length > 0 && (
               <>
-                <Text style={s.historyTitle}>Chain Service History</Text>
+                <Text style={s.historyTitle}>{t('vehicleTests.chainServiceHistory')}</Text>
                 {chainHistory.map(r => (
                   <View key={r.id} style={[s.histCard, { borderLeftColor: colors.orange }]}>
                     <View style={s.histRow}>
@@ -736,7 +738,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             )}
 
             {!loadingRecords && chainHistory.length === 0 && (
-              <Text style={s.emptyNote}>No chain records yet. Log your first service above.</Text>
+              <Text style={s.emptyNote}>{t('vehicleTests.noChainRecords')}</Text>
             )}
           </>
         ) : activeTab === 'insurance' ? (
@@ -747,30 +749,30 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const hasDetails = insuranceExpiry || insuranceCompany
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
-                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 Current Policy</Text>
+                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentPolicy')}</Text>
                   {insuranceCompany ? (
                     <Text style={[s.docStatusMain, { color: status.color }]}>{insuranceCompany}</Text>
                   ) : null}
                   {insurancePolicyNo ? (
-                    <Text style={s.docStatusMeta}>Policy No: {insurancePolicyNo}</Text>
+                    <Text style={s.docStatusMeta}>{t('vehicleTests.policyNo', { no: insurancePolicyNo })}</Text>
                   ) : null}
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
                   {insuranceExpiry ? (
                     <Text style={s.docStatusDate}>
-                      Expiry: {new Date(insuranceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {t('vehicleTests.expiryDate', { date: new Date(insuranceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                     </Text>
                   ) : null}
                   {!hasDetails && (
-                    <Text style={s.docStatusMeta}>No insurance details saved. Tap Edit on the vehicle card to add them.</Text>
+                    <Text style={s.docStatusMeta}>{t('vehicleTests.noInsuranceDetails')}</Text>
                   )}
-                  <Text style={s.docStatusHint}>Tap Edit on the vehicle card to update</Text>
+                  <Text style={s.docStatusHint}>{t('vehicleTests.tapEditToUpdate')}</Text>
                 </View>
               )
             })()}
 
             {insuranceHistory.length > 0 && (
               <>
-                <Text style={s.historyTitle}>Insurance History</Text>
+                <Text style={s.historyTitle}>{t('vehicleTests.insuranceHistory')}</Text>
                 {insuranceHistory.map(e => (
                   <View key={e.id} style={[s.histCard, { borderLeftColor: colors.primary }]}>
                     <View style={s.histRow}>
@@ -784,7 +786,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </>
             )}
             {!loadingRecords && insuranceHistory.length === 0 && (
-              <Text style={s.emptyNote}>No insurance expense records yet. Log insurance payments via Add Expense.</Text>
+              <Text style={s.emptyNote}>{t('vehicleTests.noInsuranceRecords')}</Text>
             )}
           </>
         ) : activeTab === 'licence' ? (
@@ -794,23 +796,23 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const status = getDocStatus(revenueLicenceExpiry)
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
-                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 Current Revenue Licence</Text>
+                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentRevenueLicence')}</Text>
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
                   {revenueLicenceExpiry ? (
                     <Text style={s.docStatusDate}>
-                      Expiry: {new Date(revenueLicenceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {t('vehicleTests.expiryDate', { date: new Date(revenueLicenceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                     </Text>
                   ) : (
-                    <Text style={s.docStatusMeta}>No expiry date saved. Tap Edit on the vehicle card to set it.</Text>
+                    <Text style={s.docStatusMeta}>{t('vehicleTests.noExpirySaved')}</Text>
                   )}
-                  <Text style={s.docStatusHint}>Tap Edit on the vehicle card to update</Text>
+                  <Text style={s.docStatusHint}>{t('vehicleTests.tapEditToUpdate')}</Text>
                 </View>
               )
             })()}
 
             {licenceHistory.length > 0 && (
               <>
-                <Text style={s.historyTitle}>Revenue Licence History</Text>
+                <Text style={s.historyTitle}>{t('vehicleTests.revenueLicenceHistory')}</Text>
                 {licenceHistory.map(e => (
                   <View key={e.id} style={[s.histCard, { borderLeftColor: '#7b1fa2' }]}>
                     <View style={s.histRow}>
@@ -824,7 +826,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </>
             )}
             {!loadingRecords && licenceHistory.length === 0 && (
-              <Text style={s.emptyNote}>No revenue licence records yet. Log licence payments via Add Expense.</Text>
+              <Text style={s.emptyNote}>{t('vehicleTests.noLicenceRecords')}</Text>
             )}
           </>
         ) : null}

@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type ForecastItem = {
   name: string
@@ -39,22 +40,26 @@ function statusBg(status: string): string {
   return '#f5f5f5'
 }
 
-function statusLabel(status: string): string {
-  if (status === 'overdue')   return '🚨 Overdue'
-  if (status === 'due_soon')  return '⚠️ Due Soon'
-  if (status === 'upcoming')  return '📅 Upcoming'
+function statusLabel(status: string, t: (key: any, params?: Record<string, string | number>) => string): string {
+  if (status === 'overdue')   return `🚨 ${t('costForecast.status.overdue')}`
+  if (status === 'due_soon')  return `⚠️ ${t('costForecast.status.dueSoon')}`
+  if (status === 'upcoming')  return `📅 ${t('costForecast.status.upcoming')}`
   return status
 }
 
-function remainingText(item: ForecastItem): string {
+function remainingText(item: ForecastItem, t: (key: any, params?: Record<string, string | number>) => string): string {
   const parts: string[] = []
   if (item.remainingKm != null) {
     const km = Math.abs(item.remainingKm)
-    parts.push(item.remainingKm < 0 ? `${km.toLocaleString()} km overdue` : `${km.toLocaleString()} km remaining`)
+    parts.push(item.remainingKm < 0
+      ? t('costForecast.kmOverdue', { km: km.toLocaleString() })
+      : t('costForecast.kmRemaining', { km: km.toLocaleString() }))
   }
   if (item.remainingDays != null) {
     const d = Math.abs(item.remainingDays)
-    parts.push(item.remainingDays < 0 ? `${d} day${d !== 1 ? 's' : ''} overdue` : `${d} day${d !== 1 ? 's' : ''} remaining`)
+    parts.push(item.remainingDays < 0
+      ? t('costForecast.daysOverdue', { days: d, s: d !== 1 ? 's' : '' })
+      : t('costForecast.daysRemaining', { days: d, s: d !== 1 ? 's' : '' }))
   }
   return parts.join('  ·  ')
 }
@@ -67,6 +72,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   const [refreshing, setRefreshing] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const load = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true)
@@ -90,7 +96,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Cost Forecast" subtitle={vehicleName} onBack={onBack} />
+      <ScreenHeader title={t('costForecast.title')} subtitle={vehicleName} onBack={onBack} />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} size="large" />
@@ -101,44 +107,43 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
         >
           {/* Total card */}
           <View style={styles.totalCard}>
-            <Text style={styles.totalLabel}>Estimated next {Math.round(periodDays / 30)} months</Text>
+            <Text style={styles.totalLabel}>{t('costForecast.estimatedNextMonths', { months: Math.round(periodDays / 30) })}</Text>
             <Text style={styles.totalAmount}>
-              {total > 0 ? `LKR ${total.toLocaleString()}` : 'Not enough data yet'}
+              {total > 0 ? `LKR ${total.toLocaleString()}` : t('costForecast.notEnoughData')}
             </Text>
             <Text style={styles.totalNote}>
-              Based on your service history and manufacturer recommendations.
-              Costs are estimates — actual amounts vary by garage and parts brand.
+              {t('costForecast.totalNote')}
             </Text>
           </View>
 
           {items.length === 0 && (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No forecast available yet</Text>
+              <Text style={styles.emptyTitle}>{t('costForecast.empty.title')}</Text>
               <Text style={styles.emptyNote}>
-                We need at least one past record of each service type (e.g. an oil change) to know when the next one is due. Log your service history to unlock predictions — the forecast improves as your records grow.
+                {t('costForecast.empty.note')}
               </Text>
             </View>
           )}
 
           {itemsWithCost.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Upcoming Services with Cost Estimates</Text>
+              <Text style={styles.sectionTitle}>{t('costForecast.withEstimates')}</Text>
               {itemsWithCost.map((item, i) => (
                 <View key={i} style={[styles.itemCard, { backgroundColor: statusBg(item.status), borderLeftColor: statusColor(item.status) }]}>
                   <View style={styles.itemTop}>
                     <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
-                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status)}</Text>
+                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status, t)}</Text>
                   </View>
-                  {remainingText(item) ? (
-                    <Text style={styles.itemRemaining}>{remainingText(item)}</Text>
+                  {remainingText(item, t) ? (
+                    <Text style={styles.itemRemaining}>{remainingText(item, t)}</Text>
                   ) : null}
                   <View style={styles.itemBottom}>
-                    <Text style={styles.itemCostLabel}>Estimated cost</Text>
+                    <Text style={styles.itemCostLabel}>{t('costForecast.estimatedCost')}</Text>
                     <Text style={[styles.itemCost, { color: statusColor(item.status) }]}>
                       LKR {item.estimatedCost!.toLocaleString()}
                     </Text>
                   </View>
-                  <Text style={styles.itemBased}>Based on your last {item.basedOn} record{item.basedOn !== 1 ? 's' : ''}</Text>
+                  <Text style={styles.itemBased}>{t('costForecast.basedOnRecords', { count: item.basedOn, s: item.basedOn !== 1 ? 's' : '' })}</Text>
                 </View>
               ))}
             </>
@@ -146,21 +151,21 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
 
           {itemsNoCost.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Other Due Services (no cost data yet)</Text>
+              <Text style={styles.sectionTitle}>{t('costForecast.otherDue')}</Text>
               {itemsNoCost.map((item, i) => (
                 <View key={i} style={[styles.itemCard, styles.itemCardMuted, { borderLeftColor: statusColor(item.status) }]}>
                   <View style={styles.itemTop}>
                     <Text style={styles.itemNameMuted}>{item.name}</Text>
-                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status)}</Text>
+                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status, t)}</Text>
                   </View>
-                  {remainingText(item) ? (
-                    <Text style={styles.itemRemaining}>{remainingText(item)}</Text>
+                  {remainingText(item, t) ? (
+                    <Text style={styles.itemRemaining}>{remainingText(item, t)}</Text>
                   ) : null}
                   <View style={styles.itemNoCostRow}>
-                    <Text style={styles.itemBased}>Log a service cost to improve forecast accuracy.</Text>
+                    <Text style={styles.itemBased}>{t('costForecast.logToImprove')}</Text>
                     {onAddService && (
                       <TouchableOpacity onPress={onAddService} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Text style={styles.itemLogLink}>+ Log Service</Text>
+                        <Text style={styles.itemLogLink}>{t('costForecast.logService')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -170,7 +175,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
           )}
 
           <Text style={styles.footer}>
-            💡 Log service costs consistently to improve forecast accuracy over time.
+            💡 {t('costForecast.footer')}
           </Text>
         </ScrollView>
       )}
