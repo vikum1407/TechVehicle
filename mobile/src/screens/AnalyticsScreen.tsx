@@ -11,6 +11,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -101,7 +102,8 @@ function fmtDate(iso: string) {
 
 function MileageChart({ data }: { data: { mileage: number; label: string }[] }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
-  if (data.length < 2) return <Text style={cs.noData}>Log more fuel fill-ups to see mileage growth</Text>
+  const { t } = useTranslation()
+  if (data.length < 2) return <Text style={cs.noData}>{t('analytics.mileageChart.noData')}</Text>
   const W = 320, H = 150, pL = 44, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
   const vals = data.map(d => d.mileage)
@@ -139,7 +141,8 @@ function MileageChart({ data }: { data: { mileage: number; label: string }[] }) 
 
 function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
-  if (data.length < 2) return <Text style={cs.noData}>Log at least 3 fill-ups with litres to see efficiency trend</Text>
+  const { t } = useTranslation()
+  if (data.length < 2) return <Text style={cs.noData}>{t('analytics.efficiencyChart.noData')}</Text>
   const W = 320, H = 140, pL = 34, pR = 10, pT = 14, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
   const vals = data.map(d => d.kmPerL)
@@ -178,7 +181,8 @@ function EfficiencyChart({ data }: { data: { kmPerL: number; label: string }[] }
 
 function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
-  if (data.length === 0) return <Text style={cs.noData}>Log fill-ups with cost to see spending per fill-up</Text>
+  const { t } = useTranslation()
+  if (data.length === 0) return <Text style={cs.noData}>{t('analytics.fuelCostChart.noData')}</Text>
   const W = 320, H = 120, pL = 40, pR = 10, pT = 10, pB = 28
   const plotW = W - pL - pR, plotH = H - pT - pB
   const maxV = Math.max(...data.map(d => d.cost))
@@ -212,11 +216,12 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
 
 function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Oil Change History</Text>
-        <Text style={styles.sectionBadge}>{data.history.length} records</Text>
+        <Text style={styles.sectionTitle}>{t('analytics.oilCard.title')}</Text>
+        <Text style={styles.sectionBadge}>{t('analytics.recordsCount', { count: data.history.length })}</Text>
       </View>
       {data.history.map((item, i) => (
         <View key={i} style={[styles.tableRow, i === 0 && styles.tableRowFirst]}>
@@ -246,10 +251,11 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
 
 function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Tyre Change History</Text>
+        <Text style={styles.sectionTitle}>{t('analytics.tyreCard.title')}</Text>
         {data.currentSize && (
           <View style={styles.sizeBadge}><Text style={styles.sizeBadgeText}>{data.currentSize}</Text></View>
         )}
@@ -268,7 +274,7 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
             {item.brand && <Text style={styles.tableSubText}>{item.brand}</Text>}
           </View>
           <View style={styles.tableCol3}>
-            {item.tyresChanged && <Text style={styles.tableMeta}>{item.tyresChanged} tyre{item.tyresChanged !== '1' ? 's' : ''}</Text>}
+            {item.tyresChanged && <Text style={styles.tableMeta}>{t('analytics.tyresChangedCount', { count: item.tyresChanged, s: item.tyresChanged !== '1' ? 's' : '' })}</Text>}
             {item.kmThisSet != null && (
               <Text style={styles.tableInterval}>{item.kmThisSet.toLocaleString()} km/set</Text>
             )}
@@ -276,7 +282,7 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
         </View>
       ))}
       {data.history.length < 2 && (
-        <Text style={cs.noData}>Log a second tyre change to see km-per-set calculation</Text>
+        <Text style={cs.noData}>{t('analytics.tyreCard.hint')}</Text>
       )}
     </View>
   )
@@ -284,11 +290,12 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
 
 function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics']> }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Emission Test History</Text>
-        <Text style={styles.sectionBadge}>{data.history.length} tests</Text>
+        <Text style={styles.sectionTitle}>{t('analytics.emissionCard.title')}</Text>
+        <Text style={styles.sectionBadge}>{t('analytics.testsCount', { count: data.history.length })}</Text>
       </View>
       {data.warning && (
         <View style={[styles.warnBanner, data.warning.includes('FAIL') && styles.warnBannerRed]}>
@@ -310,7 +317,7 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
               {item.co != null  && <Text style={styles.emissionVal}>CO: <Text style={styles.emissionNum}>{item.co}%</Text></Text>}
               {item.hc != null  && <Text style={styles.emissionVal}>HC: <Text style={styles.emissionNum}>{item.hc} ppm</Text></Text>}
               {item.co2 != null && <Text style={styles.emissionVal}>CO₂: <Text style={styles.emissionNum}>{item.co2}%</Text></Text>}
-              {!hasReadings && <Text style={styles.tableDash}>No readings</Text>}
+              {!hasReadings && <Text style={styles.tableDash}>{t('analytics.noReadings')}</Text>}
             </View>
             <View style={styles.tableCol3}>
               {item.result && (
@@ -326,7 +333,7 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
         )
       })}
       {!data.history.some(h => h.co != null || h.hc != null) && (
-        <Text style={cs.noData}>Enter CO% and HC ppm readings when logging next emission test</Text>
+        <Text style={cs.noData}>{t('analytics.emissionCard.hint')}</Text>
       )}
     </View>
   )
@@ -334,11 +341,12 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
 
 function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>AC System — Refill History</Text>
-        <Text style={styles.sectionBadge}>{data.refillCount12m} past year</Text>
+        <Text style={styles.sectionTitle}>{t('analytics.acCard.title')}</Text>
+        <Text style={styles.sectionBadge}>{t('analytics.acCard.pastYear', { count: data.refillCount12m })}</Text>
       </View>
       {data.warning && (
         <View style={styles.warnBanner}>
@@ -367,7 +375,7 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
         </View>
       ))}
       {!data.history.some(h => h.quantityGrams != null) && (
-        <Text style={cs.noData}>Enter grams filled when logging next AC refill</Text>
+        <Text style={cs.noData}>{t('analytics.acCard.hint')}</Text>
       )}
     </View>
   )
@@ -384,6 +392,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 function CostForecastCard({ forecast }: { forecast: Forecast }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
   const hasAnyEstimate = forecast.items.some(i => i.estimatedCost !== null)
 
@@ -391,32 +400,32 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
     <View style={styles.forecastCard}>
       <View style={styles.forecastHeader}>
         <View>
-          <Text style={styles.forecastTitle}>Cost Forecast</Text>
-          <Text style={styles.forecastSub}>Next 90 days — upcoming services</Text>
+          <Text style={styles.forecastTitle}>{t('analytics.forecast.title')}</Text>
+          <Text style={styles.forecastSub}>{t('analytics.forecast.subtitle')}</Text>
         </View>
         {hasAnyEstimate && (
           <View style={styles.forecastTotal}>
-            <Text style={styles.forecastTotalLabel}>Estimated</Text>
+            <Text style={styles.forecastTotalLabel}>{t('analytics.forecast.estimated')}</Text>
             <Text style={styles.forecastTotalValue}>{fmt(forecast.totalEstimated)}</Text>
           </View>
         )}
       </View>
 
       {forecast.items.length === 0 ? (
-        <Text style={styles.forecastEmpty}>No services due in the next 90 days.</Text>
+        <Text style={styles.forecastEmpty}>{t('analytics.forecast.empty')}</Text>
       ) : (
         forecast.items.map((item, i) => {
           const color = STATUS_COLOR[item.status] ?? '#888'
           const timeStr = [
             item.remainingKm !== null
               ? item.remainingKm < 0
-                ? `${Math.abs(item.remainingKm).toLocaleString()} km overdue`
-                : `in ${item.remainingKm.toLocaleString()} km`
+                ? t('analytics.forecast.kmOverdue', { km: Math.abs(item.remainingKm).toLocaleString() })
+                : t('analytics.forecast.inKm', { km: item.remainingKm.toLocaleString() })
               : null,
             item.remainingDays !== null
               ? item.remainingDays < 0
-                ? `${Math.abs(item.remainingDays)}d overdue`
-                : `in ${item.remainingDays}d`
+                ? t('analytics.forecast.daysOverdue', { days: Math.abs(item.remainingDays) })
+                : t('analytics.forecast.inDays', { days: item.remainingDays })
               : null,
           ].filter(Boolean).join(' · ')
 
@@ -431,10 +440,10 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
                 {item.estimatedCost !== null ? (
                   <>
                     <Text style={styles.forecastCost}>{fmt(item.estimatedCost)}</Text>
-                    <Text style={styles.forecastCostNote}>avg of {item.basedOn}</Text>
+                    <Text style={styles.forecastCostNote}>{t('analytics.forecast.avgOf', { count: item.basedOn })}</Text>
                   </>
                 ) : (
-                  <Text style={styles.forecastCostNoData}>No estimate</Text>
+                  <Text style={styles.forecastCostNoData}>{t('analytics.forecast.noEstimate')}</Text>
                 )}
               </View>
             </View>
@@ -444,7 +453,7 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
 
       {!hasAnyEstimate && forecast.items.length > 0 && (
         <Text style={styles.forecastHint}>
-          Log service costs when you add records to unlock cost estimates here.
+          {t('analytics.forecast.hint')}
         </Text>
       )}
     </View>
@@ -461,6 +470,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
   const [loadError, setLoadError] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const load = () => {
     setLoading(true)
@@ -486,13 +496,13 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
   if (loadError) return (
     <View style={styles.center}>
       <Text style={styles.errorIcon}>⚠️</Text>
-      <Text style={styles.errorTitle}>Could not load analytics</Text>
-      <Text style={styles.errorSub}>Check your connection and try again</Text>
+      <Text style={styles.errorTitle}>{t('analytics.loadError.title')}</Text>
+      <Text style={styles.errorSub}>{t('analytics.loadError.sub')}</Text>
       <TouchableOpacity style={styles.retryBtn} onPress={load}>
-        <Text style={styles.retryBtnText}>Retry</Text>
+        <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onBack} style={{ marginTop: 12 }}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>← {t('common.back')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -500,10 +510,10 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
   if (!data || (data.totalSpend === 0 && data.recordCounts.fuelLogs === 0 && data.recordCounts.services === 0)) return (
     <View style={styles.center}>
       <Text style={styles.errorIcon}>📊</Text>
-      <Text style={styles.errorTitle}>No data yet</Text>
-      <Text style={styles.errorSub}>Log a fuel fill-up or service record to start seeing analytics</Text>
+      <Text style={styles.errorTitle}>{t('analytics.noData.title')}</Text>
+      <Text style={styles.errorSub}>{t('analytics.noData.sub')}</Text>
       <TouchableOpacity onPress={onBack} style={styles.retryBtn}>
-        <Text style={styles.retryBtnText}>← Back to Dashboard</Text>
+        <Text style={styles.retryBtnText}>{t('history.backToDashboard')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -514,12 +524,12 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Analytics" onBack={onBack} />
+      <ScreenHeader title={t('analytics.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
 
       {/* Total spend */}
       <View style={styles.totalCard}>
-        <Text style={styles.totalLabel}>Total Vehicle Spend</Text>
+        <Text style={styles.totalLabel}>{t('analytics.totalSpend')}</Text>
         <Text style={styles.totalAmount}>{fmt(data.totalSpend)}</Text>
         <View style={styles.pillRow}>
           <View style={styles.pill}><Text style={styles.pillText}>🔧 {fmt(data.serviceCost)}</Text></View>
@@ -531,15 +541,15 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
       {/* Key stats */}
       <View style={styles.statRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Cost / km</Text>
+          <Text style={styles.statLabel}>{t('analytics.costPerKm')}</Text>
           <Text style={styles.statValue}>{data.costPerKm != null ? 'LKR ' + data.costPerKm.toFixed(1) : '—'}</Text>
-          <Text style={styles.statSub}>per kilometre driven</Text>
+          <Text style={styles.statSub}>{t('analytics.perKmDriven')}</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Fuel Economy</Text>
+          <Text style={styles.statLabel}>{t('analytics.fuelEconomy')}</Text>
           <Text style={styles.statValue}>{data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + ' km/L' : '—'}</Text>
           <Text style={styles.statSub}>
-            {data.avgFuelEfficiency != null ? 'average efficiency' : 'log 3+ fill-ups to see this'}
+            {data.avgFuelEfficiency != null ? t('analytics.avgEfficiency') : t('analytics.log3FillUps')}
           </Text>
         </View>
       </View>
@@ -547,7 +557,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
       {/* Anomaly warnings */}
       {anomalies.length > 0 && (
         <View style={styles.anomalySection}>
-          <Text style={styles.anomalySectionTitle}>⚠ Service History Alerts</Text>
+          <Text style={styles.anomalySectionTitle}>⚠ {t('analytics.anomalyAlerts')}</Text>
           {anomalies.map(a => (
             <View
               key={a.id}
@@ -572,8 +582,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>Mileage Growth</Text>
-              <Text style={styles.chartSub}>Odometer over time (km)</Text>
+              <Text style={styles.chartTitle}>{t('analytics.mileageGrowth')}</Text>
+              <Text style={styles.chartSub}>{t('analytics.odometerOverTime')}</Text>
             </View>
             <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
@@ -586,8 +596,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>Fuel Efficiency</Text>
-              <Text style={styles.chartSub}>km per litre — per fill-up</Text>
+              <Text style={styles.chartTitle}>{t('analytics.fuelEfficiency')}</Text>
+              <Text style={styles.chartSub}>{t('analytics.kmPerLitreSub')}</Text>
             </View>
             <View style={[styles.chartDot, { backgroundColor: '#34a853' }]} />
           </View>
@@ -600,8 +610,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>Cost per Fill-up</Text>
-              <Text style={styles.chartSub}>LKR spent each time you refuelled</Text>
+              <Text style={styles.chartTitle}>{t('analytics.costPerFillup')}</Text>
+              <Text style={styles.chartSub}>{t('analytics.lkrSpentPerFillup')}</Text>
             </View>
             <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
@@ -612,7 +622,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
       {/* Spending by category */}
       {data.expenseBreakdown.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spending by Category</Text>
+          <Text style={styles.sectionTitle}>{t('analytics.spendingByCategory')}</Text>
           {data.expenseBreakdown.map((item, i) => (
             <View key={i} style={styles.catRow}>
               <Text style={styles.catLabel} numberOfLines={1}>{item.category}</Text>
@@ -630,7 +640,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
 
       {/* Monthly spend */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Monthly Spend — Last 6 Months</Text>
+        <Text style={styles.sectionTitle}>{t('analytics.monthlySpend')}</Text>
         <View style={styles.monthlyChart}>
           {data.monthlySpend.map((m, i) => {
             const barH = maxMonthly > 0 ? Math.round((m.amount / maxMonthly) * 80) : 0
@@ -651,22 +661,22 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
       <View style={styles.countRow}>
         <View style={styles.countCard}>
           <Text style={styles.countNum}>{data.recordCounts.services}</Text>
-          <Text style={styles.countLbl}>Services</Text>
+          <Text style={styles.countLbl}>{t('analytics.servicesLabel')}</Text>
         </View>
         <View style={styles.countCard}>
           <Text style={styles.countNum}>{data.recordCounts.fuelLogs}</Text>
-          <Text style={styles.countLbl}>Fuel Logs</Text>
+          <Text style={styles.countLbl}>{t('analytics.fuelLogsLabel')}</Text>
         </View>
         <View style={styles.countCard}>
           <Text style={styles.countNum}>{data.recordCounts.expenses}</Text>
-          <Text style={styles.countLbl}>Expenses</Text>
+          <Text style={styles.countLbl}>{t('analytics.expensesLabel')}</Text>
         </View>
       </View>
 
       {/* ── Structured analytics ─────────────────────────── */}
       {(data.oilAnalytics || data.tyreAnalytics || data.emissionAnalytics || data.acAnalytics) && (
         <View style={styles.structuredDivider}>
-          <Text style={styles.structuredDividerText}>Detailed Service Analytics</Text>
+          <Text style={styles.structuredDividerText}>{t('analytics.detailedAnalytics')}</Text>
         </View>
       )}
 
@@ -679,11 +689,11 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
       {onKnowledgeHub && (data.oilAnalytics || data.tyreAnalytics) && (
         <TouchableOpacity style={styles.knowledgeNudge} onPress={onKnowledgeHub} activeOpacity={0.8}>
           <View style={styles.knowledgeNudgeLeft}>
-            <Text style={styles.knowledgeNudgeTitle}>Check Against Manufacturer Specs</Text>
+            <Text style={styles.knowledgeNudgeTitle}>{t('analytics.knowledgeNudge.title')}</Text>
             <Text style={styles.knowledgeNudgeSub}>
               {data.oilAnalytics?.history.some(h => h.grade)
-                ? 'Compare your logged oil grade, tyre size, and service intervals against manufacturer recommendations for your vehicle.'
-                : 'Add oil grade in Prediction Setup, then compare everything against manufacturer recommendations in Knowledge Hub.'}
+                ? t('analytics.knowledgeNudge.subWithGrade')
+                : t('analytics.knowledgeNudge.subNoGrade')}
             </Text>
           </View>
           <Text style={styles.knowledgeNudgeArrow}>→</Text>
