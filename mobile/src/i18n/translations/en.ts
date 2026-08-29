@@ -1078,6 +1078,13 @@ const en = {
   'garage.selectTimeSlotOptional': 'Select a time slot (optional)',
   'garage.addNoteForOwner': 'Add a note for the owner (optional)',
   'garage.sendSuggestionToOwner': 'Send Suggestion to Owner',
+
+  'garageLedger.subtitle': 'Your full service record book',
+  'garageLedger.noCustomersFound': 'No customers found',
+  'garageLedger.tryDifferentSearch': 'Try a different search or filter',
+  'garageLedger.hideHistory': 'Hide history',
+  'garageLedger.viewFullHistory': 'View full history',
+  'garageLedger.noCompletedJobs': 'No completed jobs recorded yet.',
 }
 
 export default en

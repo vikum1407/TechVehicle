@@ -1080,6 +1080,13 @@ const si: Record<TranslationKey, string> = {
   'garage.selectTimeSlotOptional': 'වේලා පරාසයක් තෝරන්න (විකල්ප)',
   'garage.addNoteForOwner': 'හිමිකරු සඳහා සටහනක් එකතු කරන්න (විකල්ප)',
   'garage.sendSuggestionToOwner': 'හිමිකරුට යෝජනාව යවන්න',
+
+  'garageLedger.subtitle': 'ඔබේ සම්පූර්ණ සේවා සටහන් පොත',
+  'garageLedger.noCustomersFound': 'ගනුදෙනුකරුවන් හමු නොවීය',
+  'garageLedger.tryDifferentSearch': 'වෙනත් සෙවීමක් හෝ පෙරහනක් උත්සාහ කරන්න',
+  'garageLedger.hideHistory': 'ඉතිහාසය සඟවන්න',
+  'garageLedger.viewFullHistory': 'සම්පූර්ණ ඉතිහාසය බලන්න',
+  'garageLedger.noCompletedJobs': 'තවම සම්පූර්ණ කළ රැකියා සටහන් වී නැත.',
 }
 
 export default si

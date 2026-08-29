@@ -9,6 +9,7 @@ import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -40,11 +41,12 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
   const rowLayouts = useRef<Record<string, number>>({})
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getGarageCustomers(token)
       .then(setCustomers)
-      .catch((e: any) => Alert.alert('Error', e.message))
+      .catch((e: any) => Alert.alert(t('common.error'), e.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -55,7 +57,7 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
       const data = await api.getCustomerLedgerHistory(token, vehicleId)
       setHistoryCache(prev => ({ ...prev, [vehicleId]: data }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setHistoryLoadingId(null)
     }
@@ -87,14 +89,14 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Customer Ledger" subtitle="Your full service record book" onBack={onBack} />
+      <ScreenHeader title={t('garage.customerLedger')} subtitle={t('garageLedger.subtitle')} onBack={onBack} />
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <FormField
-          label="Search"
+          label={t('garage.search')}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search by registration number"
+          placeholder={t('garage.searchByRegNo')}
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -102,7 +104,7 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
             style={[styles.filterChip, !typeFilter && styles.filterChipActive]}
             onPress={() => setTypeFilter(null)}
           >
-            <Text style={[styles.filterChipText, !typeFilter && styles.filterChipTextActive]}>All</Text>
+            <Text style={[styles.filterChipText, !typeFilter && styles.filterChipTextActive]}>{t('expenseCategory.all')}</Text>
           </TouchableOpacity>
           {VEHICLE_TYPE_OPTIONS.map(opt => (
             <TouchableOpacity
@@ -122,11 +124,11 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📒</Text>
-            <Text style={styles.emptyText}>No customers found</Text>
+            <Text style={styles.emptyText}>{t('garageLedger.noCustomersFound')}</Text>
             <Text style={styles.emptySub}>
               {customers.length === 0
-                ? "Vehicles you've serviced through bookings or shares will appear here"
-                : 'Try a different search or filter'}
+                ? t('garage.noCustomersYetSub')
+                : t('garageLedger.tryDifferentSearch')}
             </Text>
           </View>
         ) : (
@@ -148,22 +150,22 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
                   </View>
                   <Text style={styles.custVehicle}>{cust.year} {cust.make} {cust.model}</Text>
                   <View style={styles.custStatsRow}>
-                    <Text style={styles.custStat}>{cust.jobCount} job{cust.jobCount !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.custStat}>{t('garage.jobCount', { count: cust.jobCount, s: cust.jobCount !== 1 ? 's' : '' })}</Text>
                     <Text style={styles.custStat}>LKR {cust.totalRevenue.toLocaleString()}</Text>
                     {cust.lastServiceDate && (
                       <Text style={styles.custStat}>
-                        Last: {new Date(cust.lastServiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {t('garage.lastLabel', { date: new Date(cust.lastServiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })}
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.expandHint}>{isExpanded ? '▲ Hide history' : '▼ View full history'}</Text>
+                  <Text style={styles.expandHint}>{isExpanded ? `▲ ${t('garageLedger.hideHistory')}` : `▼ ${t('garageLedger.viewFullHistory')}`}</Text>
                 </TouchableOpacity>
 
                 {isExpanded && (
                   historyLoadingId === cust.vehicleId ? (
                     <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
                   ) : items && items.length === 0 ? (
-                    <Text style={styles.emptySub}>No completed jobs recorded yet.</Text>
+                    <Text style={styles.emptySub}>{t('garageLedger.noCompletedJobs')}</Text>
                   ) : items ? (
                     <View style={styles.historyList}>
                       {items.map(item => (
