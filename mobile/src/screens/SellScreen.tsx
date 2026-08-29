@@ -9,6 +9,7 @@ import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Vehicle = {
   id: string
@@ -37,6 +38,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   const [selling, setSelling] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const loadSummary = async () => {
     setLoadingAnalytics(true)
@@ -52,32 +54,32 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
 
   const handleContinue = () => {
     const phone = buyerPhone.trim()
-    if (!phone) { Alert.alert('Required', 'Please enter the buyer\'s mobile number.'); return }
-    if (phone.length < 9) { Alert.alert('Invalid', 'Please enter a valid mobile number.'); return }
+    if (!phone) { Alert.alert(t('sell.required.title'), t('sell.required.message')); return }
+    if (phone.length < 9) { Alert.alert(t('sell.invalid.title'), t('sell.invalid.message')); return }
     setStep('confirm')
     loadSummary()
   }
 
   const handleConfirmSell = async () => {
     Alert.alert(
-      'Confirm Transfer',
-      `Transfer ${vehicle.registrationNo} to ${buyerPhone.trim()}?\n\nThis is irreversible once the buyer accepts. All service history will move to their account.`,
+      t('sell.confirmTransfer.title'),
+      t('sell.confirmTransfer.message', { reg: vehicle.registrationNo, phone: buyerPhone.trim() }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Yes, Transfer',
+          text: t('sell.yesTransfer'),
           style: 'destructive',
           onPress: async () => {
             setSelling(true)
             try {
               await api.initiateTransfer(token, vehicle.id, buyerPhone.trim())
               Alert.alert(
-                'Transfer Initiated',
-                `A transfer request has been sent to ${buyerPhone.trim()}. Once they accept, the vehicle will move to their account.`,
+                t('sell.transferInitiated.title'),
+                t('sell.transferInitiated.message', { phone: buyerPhone.trim() }),
                 [{ text: 'OK', onPress: onTransferInitiated }]
               )
             } catch (e: any) {
-              Alert.alert('Error', e.message)
+              Alert.alert(t('common.error'), e.message)
             } finally {
               setSelling(false)
             }
@@ -90,7 +92,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Sell / Transfer Vehicle" onBack={step === 'confirm' ? () => setStep('enterPhone') : onBack} />
+      <ScreenHeader title={t('sell.title')} onBack={step === 'confirm' ? () => setStep('enterPhone') : onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.vehicleBanner}>
         <Text style={styles.bannerReg}>{vehicle.registrationNo}</Text>
@@ -101,12 +103,11 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
       {step === 'enterPhone' && (
         <>
           <Text style={styles.sectionSub}>
-            Enter the mobile number the buyer uses for their Vocksy account.
-            They will receive a transfer request to accept.
+            {t('sell.enterPhoneNote')}
           </Text>
 
           <FormField
-            label="Buyer's Mobile Number (with country code)"
+            label={t('sell.buyerMobileNumber')}
             value={buyerPhone}
             onChangeText={setBuyerPhone}
             placeholder="e.g. +94771234567"
@@ -114,16 +115,16 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
             autoFocus
           />
 
-          <Button title="Continue →" onPress={handleContinue} />
+          <Button title={t('sell.continueArrow')} onPress={handleContinue} />
         </>
       )}
 
       {step === 'confirm' && (
         <>
-          <Text style={styles.sectionTitle}>Confirm Transfer</Text>
+          <Text style={styles.sectionTitle}>{t('sell.confirmTransferTitle')}</Text>
 
           <View style={styles.confirmCard}>
-            <Text style={styles.confirmLabel}>Transferring to</Text>
+            <Text style={styles.confirmLabel}>{t('sell.transferringTo')}</Text>
             <Text style={styles.confirmPhone}>{buyerPhone.trim()}</Text>
           </View>
 
@@ -131,22 +132,22 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
             <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
           ) : analytics && (
             <View style={styles.summaryCard}>
-              <Text style={styles.confirmLabel}>What transfers with this vehicle</Text>
+              <Text style={styles.confirmLabel}>{t('sell.whatTransfers')}</Text>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>🔧 Service records</Text>
+                <Text style={styles.summaryItem}>🔧 {t('sell.serviceRecords')}</Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.serviceRecords ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>⛽ Fuel logs</Text>
+                <Text style={styles.summaryItem}>⛽ {t('sell.fuelLogs')}</Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.fuelLogs ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>💰 Expense records</Text>
+                <Text style={styles.summaryItem}>💰 {t('sell.expenseRecords')}</Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.expenses ?? 0}</Text>
               </View>
               {analytics.totalSpend > 0 && (
                 <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                  <Text style={styles.summaryTotalLabel}>Total spend recorded</Text>
+                  <Text style={styles.summaryTotalLabel}>{t('sell.totalSpendRecorded')}</Text>
                   <Text style={styles.summaryTotalValue}>LKR {analytics.totalSpend.toLocaleString()}</Text>
                 </View>
               )}
@@ -154,11 +155,9 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           )}
 
           <View style={styles.warningBox}>
-            <Text style={styles.warningTitle}>⚠️ This is irreversible</Text>
+            <Text style={styles.warningTitle}>⚠️ {t('sell.irreversibleTitle')}</Text>
             <Text style={styles.warningText}>
-              Once the buyer accepts, all service history, fuel logs, and expense records are permanently removed from your account and added to theirs.{'\n\n'}
-              If the buyer does not have a Vocksy account yet, they will see this transfer when they register with the same number.{'\n\n'}
-              You can cancel this transfer at any time before the buyer accepts.
+              {t('sell.irreversibleText')}
             </Text>
           </View>
 
@@ -169,7 +168,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           >
             {selling
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.sellBtnText}>Initiate Transfer</Text>
+              : <Text style={styles.sellBtnText}>{t('sell.initiateTransfer')}</Text>
             }
           </TouchableOpacity>
         </>

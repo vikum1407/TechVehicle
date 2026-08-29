@@ -8,6 +8,8 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
@@ -33,10 +35,10 @@ type GarageResult = {
 
 type Step = 'selectServiceType' | 'selectRecords' | 'selectGarage' | 'confirm'
 
-const SERVICE_TYPE_OPTIONS = [
-  { key: 'full', label: 'Full Service', icon: '🔧', desc: 'Complete maintenance visit' },
-  { key: 'between', label: 'Between Service', icon: '⚡', desc: 'Repair or check-up between scheduled services' },
-  { key: 'third_party', label: 'Third-Party Service', icon: '🏭', desc: 'Work done by an external/third-party provider' },
+const SERVICE_TYPE_OPTIONS: { key: string; labelKey: TranslationKey; icon: string; descKey: TranslationKey }[] = [
+  { key: 'full', labelKey: 'share.serviceType.full.label', icon: '🔧', descKey: 'share.serviceType.full.desc' },
+  { key: 'between', labelKey: 'share.serviceType.between.label', icon: '⚡', descKey: 'share.serviceType.between.desc' },
+  { key: 'third_party', labelKey: 'share.serviceType.thirdParty.label', icon: '🏭', descKey: 'share.serviceType.thirdParty.desc' },
 ]
 
 export default function ShareScreen({ token, vehicleId, onBack, onShared }: Props) {
@@ -52,11 +54,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
   const [selectedGarage, setSelectedGarage] = useState<GarageResult | null>(null)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getServiceRecords(token, vehicleId)
       .then(setRecords)
-      .catch((e: any) => Alert.alert('Error', e.message))
+      .catch((e: any) => Alert.alert(t('common.error'), e.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -93,12 +96,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
         serviceType: serviceType || undefined,
       })
       Alert.alert(
-        'Shared',
-        `${selectedIds.size} record${selectedIds.size > 1 ? 's' : ''} shared with ${selectedGarage.name}.`,
+        t('share.shared.title'),
+        t('share.shared.message', { count: selectedIds.size, s: selectedIds.size > 1 ? 's' : '', garage: selectedGarage.name }),
         [{ text: 'OK', onPress: onShared }]
       )
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSending(false)
     }
@@ -125,7 +128,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader
-        title="Share Records"
+        title={t('share.title')}
         onBack={() => {
           if (step === 'selectServiceType') onBack()
           else if (step === 'selectRecords') setStep('selectServiceType')
@@ -147,8 +150,8 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
       {step === 'selectServiceType' && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          <Text style={styles.stepTitle}>Type of Visit</Text>
-          <Text style={styles.stepSub}>What kind of service is this visit for?</Text>
+          <Text style={styles.stepTitle}>{t('share.typeOfVisit')}</Text>
+          <Text style={styles.stepSub}>{t('share.typeOfVisitSub')}</Text>
           {SERVICE_TYPE_OPTIONS.map(opt => (
             <TouchableOpacity
               key={opt.key}
@@ -159,15 +162,15 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
               <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.serviceTypeLabel, serviceType === opt.key && styles.serviceTypeLabelSelected]}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Text>
-                <Text style={[styles.serviceTypeDesc, serviceType === opt.key && styles.serviceTypeDescSelected]}>{opt.desc}</Text>
+                <Text style={[styles.serviceTypeDesc, serviceType === opt.key && styles.serviceTypeDescSelected]}>{t(opt.descKey)}</Text>
               </View>
               {serviceType === opt.key && <Text style={styles.serviceTypeCheck}>✓</Text>}
             </TouchableOpacity>
           ))}
           <View style={styles.nextBtnWrap}>
-            <Button title="Next — Select Records" onPress={() => setStep('selectRecords')} disabled={!serviceType} />
+            <Button title={t('share.nextSelectRecords')} onPress={() => setStep('selectRecords')} disabled={!serviceType} />
           </View>
         </ScrollView>
       )}
@@ -175,12 +178,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
       {step === 'selectRecords' && (
         <>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepTitle}>Select Records to Share</Text>
-            <Text style={styles.stepSub}>Choose which service records the garage can see</Text>
+            <Text style={styles.stepTitle}>{t('share.selectRecordsTitle')}</Text>
+            <Text style={styles.stepSub}>{t('share.selectRecordsSub')}</Text>
           </View>
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
             {records.length === 0 ? (
-              <Text style={styles.emptyText}>No service records yet.</Text>
+              <Text style={styles.emptyText}>{t('share.noServiceRecords')}</Text>
             ) : records.map(record => {
               const services = parseServices(record.description)
               const isSelected = selectedIds.has(record.id)
@@ -221,7 +224,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
           </ScrollView>
           <View style={styles.footer}>
             <Button
-              title={`Next — ${selectedIds.size} Record${selectedIds.size !== 1 ? 's' : ''} Selected`}
+              title={t('share.nextRecordsSelected', { count: selectedIds.size, s: selectedIds.size !== 1 ? 's' : '' })}
               onPress={() => setStep('selectGarage')}
               disabled={selectedIds.size === 0}
             />
@@ -231,14 +234,14 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
       {step === 'selectGarage' && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          <Text style={styles.stepTitle}>Find a Garage</Text>
-          <Text style={styles.stepSub}>Search by garage name</Text>
+          <Text style={styles.stepTitle}>{t('share.findGarage')}</Text>
+          <Text style={styles.stepSub}>{t('share.findGarageSub')}</Text>
 
           <TextInput
             style={styles.searchInput}
             value={searchText}
             onChangeText={handleSearch}
-            placeholder="Type garage name..."
+            placeholder={t('share.typeGarageName')}
             placeholderTextColor={colors.textFaint}
             autoFocus
           />
@@ -262,12 +265,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
           ))}
 
           {searchText.length >= 2 && !searching && garageResults.length === 0 && (
-            <Text style={styles.noResults}>No garages found for "{searchText}"</Text>
+            <Text style={styles.noResults}>{t('share.noGaragesFound', { query: searchText })}</Text>
           )}
 
           {selectedGarage && (
             <View style={styles.nextBtnWrap}>
-              <Button title={`Next — Share with ${selectedGarage.name}`} onPress={() => setStep('confirm')} />
+              <Button title={t('share.nextShareWith', { name: selectedGarage.name })} onPress={() => setStep('confirm')} />
             </View>
           )}
         </ScrollView>
@@ -275,20 +278,20 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
       {step === 'confirm' && selectedGarage && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          <Text style={styles.stepTitle}>Confirm Share</Text>
-          <Text style={styles.stepSub}>Review before sending</Text>
+          <Text style={styles.stepTitle}>{t('share.confirmShare')}</Text>
+          <Text style={styles.stepSub}>{t('share.reviewBeforeSending')}</Text>
 
           <View style={styles.confirmCard}>
-            <Text style={styles.confirmLabel}>Sharing with</Text>
+            <Text style={styles.confirmLabel}>{t('share.sharingWith')}</Text>
             <Text style={styles.confirmGarage}>{selectedGarage.name}</Text>
-            {selectedGarage.verified && <Text style={styles.verifiedText}>✅ Verified Garage</Text>}
+            {selectedGarage.verified && <Text style={styles.verifiedText}>✅ {t('share.verifiedGarage')}</Text>}
             {selectedGarage.address && (
               <Text style={styles.confirmAddress}>📍 {selectedGarage.address}</Text>
             )}
           </View>
 
           <View style={styles.confirmCard}>
-            <Text style={styles.confirmLabel}>{selectedIds.size} record{selectedIds.size !== 1 ? 's' : ''} will be shared</Text>
+            <Text style={styles.confirmLabel}>{t('share.recordsWillBeShared', { count: selectedIds.size, s: selectedIds.size !== 1 ? 's' : '' })}</Text>
             {records
               .filter(r => selectedIds.has(r.id))
               .map(r => (
@@ -305,12 +308,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
-              The garage will see a read-only view of these records only. They cannot edit or delete your history.
+              {t('share.readOnlyWarning')}
             </Text>
           </View>
 
           <View style={styles.shareBtnWrap}>
-            <Button title="Share Records" onPress={handleShare} loading={sending} />
+            <Button title={t('share.shareRecords')} onPress={handleShare} loading={sending} />
           </View>
         </ScrollView>
       )}
