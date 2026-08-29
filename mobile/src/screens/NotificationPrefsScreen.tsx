@@ -7,52 +7,54 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
   onBack: () => void
 }
 
-const PREFS = [
+const PREFS: { key: string; titleKey: TranslationKey; descKey: TranslationKey }[] = [
   {
     key: 'service_due',
-    title: 'Service Due Alerts',
-    description: 'Notify when a service is due or overdue based on your mileage',
+    titleKey: 'notificationPrefs.serviceDue.title',
+    descKey: 'notificationPrefs.serviceDue.desc',
   },
   {
     key: 'mileage_reminder',
-    title: 'Mileage Update Nudges',
-    description: 'Weekly reminder to log a fuel fill-up when no mileage has been recorded',
+    titleKey: 'notificationPrefs.mileageReminder.title',
+    descKey: 'notificationPrefs.mileageReminder.desc',
   },
   {
     key: 'renewal',
-    title: 'Renewal Reminders',
-    description: 'Alerts when Revenue Licence or Emission Test expiry is approaching',
+    titleKey: 'notificationPrefs.renewal.title',
+    descKey: 'notificationPrefs.renewal.desc',
   },
   {
     key: 'insurance_reminder',
-    title: 'Insurance Reminders',
-    description: 'Alerts when vehicle insurance expiry is approaching',
+    titleKey: 'notificationPrefs.insuranceReminder.title',
+    descKey: 'notificationPrefs.insuranceReminder.desc',
   },
   {
     key: 'booking',
-    title: 'Booking Notifications',
-    description: 'Notify when a booking is confirmed, updated, or you receive a message',
+    titleKey: 'notificationPrefs.booking.title',
+    descKey: 'notificationPrefs.booking.desc',
   },
   {
     key: 'transfer',
-    title: 'Transfer Notifications',
-    description: 'Notify when a vehicle transfer is initiated or completed',
+    titleKey: 'notificationPrefs.transfer.title',
+    descKey: 'notificationPrefs.transfer.desc',
   },
   {
     key: 'submission',
-    title: 'Service Submission Alerts',
-    description: 'Notify when a garage submits a completed service record',
+    titleKey: 'notificationPrefs.submission.title',
+    descKey: 'notificationPrefs.submission.desc',
   },
   {
     key: 'garage_reminder',
-    title: 'Garage Service Reminders',
-    description: 'Notify when a garage you\'ve used flags your vehicle as due for service',
+    titleKey: 'notificationPrefs.garageReminder.title',
+    descKey: 'notificationPrefs.garageReminder.desc',
   },
 ]
 
@@ -71,11 +73,12 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
   const [saving, setSaving] = useState<string | null>(null)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getNotificationPrefs(token)
       .then(setPrefs)
-      .catch((e: any) => Alert.alert('Error', e.message))
+      .catch((e: any) => Alert.alert(t('common.error'), e.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -87,7 +90,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
       await api.saveNotificationPrefs(token, updated)
     } catch (e: any) {
       setPrefs(prefs)
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSaving(null)
     }
@@ -95,9 +98,9 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Notification Settings" onBack={onBack} />
+      <ScreenHeader title={t('notificationPrefs.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.subtitle}>Choose which notifications you want to receive</Text>
+      <Text style={styles.subtitle}>{t('notificationPrefs.subtitle')}</Text>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
@@ -109,8 +112,8 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
               style={[styles.row, index < PREFS.length - 1 && styles.rowBorder]}
             >
               <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{pref.title}</Text>
-                <Text style={styles.rowDesc}>{pref.description}</Text>
+                <Text style={styles.rowTitle}>{t(pref.titleKey)}</Text>
+                <Text style={styles.rowDesc}>{t(pref.descKey)}</Text>
               </View>
               <View style={styles.switchWrapper}>
                 {saving === pref.key ? (
@@ -131,8 +134,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
 
       <View style={styles.noteBox}>
         <Text style={styles.noteText}>
-          Push notifications require the app to be installed via an EAS build.
-          In Expo Go, notifications appear only while the app is open.
+          {t('notificationPrefs.easNote')}
         </Text>
       </View>
       </ScrollView>

@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type AppNotification = {
   id: string
@@ -49,16 +50,16 @@ const TYPE_ICON: Record<string, string> = {
 const URGENT_TYPES = new Set(['licence_reminder', 'emission_reminder'])
 const TRANSFER_TYPES = new Set(['transfer', 'transfer_accepted'])
 
-function timeAgo(iso: string): string {
+function timeAgo(t: (key: any, params?: Record<string, string | number>) => string, iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return t('notifications.justNow')
+  if (mins < 60) return t('notifications.minsAgo', { mins })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
+  if (hrs < 24) return t('notifications.hoursAgo', { hrs })
   const days = Math.floor(hrs / 24)
-  if (days === 1) return 'Yesterday'
-  return `${days}d ago`
+  if (days === 1) return t('notifications.yesterday')
+  return t('notifications.daysAgo', { days })
 }
 
 export default function NotificationsScreen({ token, onBack, onNavigate, onMarkAllRead, onSettings }: Props) {
@@ -66,6 +67,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
   const [loading, setLoading] = useState(true)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getNotifications(token)
@@ -94,7 +96,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Notifications"
+        title={t('notifications.title')}
         onBack={onBack}
         rightElement={
           <TouchableOpacity onPress={onSettings} style={styles.settingsBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -108,8 +110,8 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
       ) : notifs.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>🔔</Text>
-          <Text style={styles.emptyText}>No notifications yet</Text>
-          <Text style={styles.emptySubtext}>Booking updates, messages, and transfers will appear here</Text>
+          <Text style={styles.emptyText}>{t('notifications.empty')}</Text>
+          <Text style={styles.emptySubtext}>{t('notifications.emptySub')}</Text>
         </View>
       ) : (
         <FlatList
@@ -137,7 +139,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
                   {item.title}
                 </Text>
                 <Text style={styles.cardText} numberOfLines={2}>{item.body}</Text>
-                <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
+                <Text style={styles.cardTime}>{timeAgo(t, item.createdAt)}</Text>
               </View>
               {!item.read && <View style={[
                 styles.unreadDot,

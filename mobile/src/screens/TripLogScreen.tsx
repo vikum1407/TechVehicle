@@ -10,6 +10,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -44,6 +45,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const startNum = parseInt(startKm) || 0
   const endNum = parseInt(endKm) || 0
@@ -58,20 +60,20 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
 
   const handleSave = async () => {
     if (!endKm || endNum <= 0) {
-      Alert.alert('Enter end odometer', 'Please enter the odometer reading at end of day.')
+      Alert.alert(t('tripLog.enterEndOdometer.title'), t('tripLog.enterEndOdometer.message'))
       return
     }
     if (endNum < startNum) {
-      Alert.alert('Check odometer', 'End odometer cannot be less than start odometer.')
+      Alert.alert(t('tripLog.checkOdometer.title'), t('tripLog.endLessThanStart'))
       return
     }
     if (endNum < currentMileage) {
-      Alert.alert('Check odometer', `Odometer reading cannot be less than current mileage (${currentMileage.toLocaleString()} km).`)
+      Alert.alert(t('tripLog.checkOdometer.title'), t('tripLog.lessThanCurrentMileage', { current: currentMileage.toLocaleString() }))
       return
     }
     const isoDate = parseDate(date)
     if (!isoDate) {
-      Alert.alert('Invalid date', 'Please enter date as DD/MM/YYYY.')
+      Alert.alert(t('logFuel.invalidDate.title'), t('logFuel.invalidDate.message'))
       return
     }
 
@@ -87,25 +89,25 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       })
       onLogged(endNum)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const endKmError = endKm && endNum < startNum ? 'End odometer cannot be less than start odometer' : undefined
+  const endKmError = endKm && endNum < startNum ? t('tripLog.endLessThanStartError') : undefined
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="🛺 Daily Trip Log" onBack={onBack} />
+      <ScreenHeader title={`🛺 ${t('tripLog.title')}`} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.subtitle}>Log today's run — odometer, fuel & earnings</Text>
+      <Text style={styles.subtitle}>{t('tripLog.subtitle')}</Text>
 
-      <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+      <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
 
       <FormField
-        label="Start Odometer (km)"
+        label={t('tripLog.startOdometer')}
         value={startKm}
         onChangeText={setStartKm}
         keyboardType="number-pad"
@@ -113,7 +115,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       />
 
       <FormField
-        label="End Odometer (km)"
+        label={t('tripLog.endOdometer')}
         required
         error={endKmError}
         value={endKm}
@@ -124,17 +126,17 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
 
       {kmDriven !== null && (
         <View style={styles.kmCard}>
-          <Text style={styles.kmCardLabel}>KM driven today</Text>
+          <Text style={styles.kmCardLabel}>{t('tripLog.kmDrivenToday')}</Text>
           <Text style={styles.kmCardValue}>{kmDriven.toLocaleString()} km</Text>
         </View>
       )}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Fuel (optional)</Text>
+        <Text style={styles.sectionTitle}>{t('tripLog.fuelSection')}</Text>
       </View>
 
       <FormField
-        label="Litres filled"
+        label={t('logFuel.litresFilled')}
         value={litres}
         onChangeText={setLitres}
         keyboardType="decimal-pad"
@@ -142,7 +144,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       />
 
       <FormField
-        label="Fuel Cost (LKR)"
+        label={t('tripLog.fuelCost')}
         value={fuelCost}
         onChangeText={setFuelCost}
         keyboardType="number-pad"
@@ -167,11 +169,11 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       )}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Earnings (optional)</Text>
+        <Text style={styles.sectionTitle}>{t('tripLog.earningsSection')}</Text>
       </View>
 
       <FormField
-        label="Today's earnings (LKR)"
+        label={t('tripLog.todaysEarnings')}
         value={earnings}
         onChangeText={setEarnings}
         keyboardType="number-pad"
@@ -180,7 +182,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
 
       {profit !== null && (
         <View style={[styles.profitCard, profit >= 0 ? styles.profitCardGreen : styles.profitCardRed]}>
-          <Text style={styles.profitLabel}>After fuel cost</Text>
+          <Text style={styles.profitLabel}>{t('tripLog.afterFuelCost')}</Text>
           <Text style={[styles.profitValue, profit >= 0 ? styles.profitPos : styles.profitNeg]}>
             LKR {profit.toLocaleString()}
           </Text>
@@ -188,7 +190,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       )}
 
       <FormField
-        label="Notes (optional)"
+        label={t('addService.notes')}
         value={notes}
         onChangeText={setNotes}
         multiline
@@ -198,12 +200,12 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
 
       <View style={styles.saveNote}>
         <Text style={styles.saveNoteText}>
-          ℹ️ This saves as a fuel log entry — find it later under Full History → Fuel. Earnings and profit shown above are for today's reference only and aren't saved.
+          ℹ️ {t('tripLog.saveNote')}
         </Text>
       </View>
 
       <View style={{ marginTop: 16 }}>
-        <Button title="Save Trip Log" onPress={handleSave} loading={loading} />
+        <Button title={t('tripLog.saveTripLog')} onPress={handleSave} loading={loading} />
       </View>
       </ScrollView>
     </View>
