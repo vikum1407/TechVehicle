@@ -9,10 +9,12 @@ import { ITEM_BRANDS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type ExtraFieldConfig = {
   key: string
-  label: string
+  labelKey: TranslationKey
   type: 'chips' | 'text' | 'number'
   options?: string[]
   placeholder?: string
@@ -21,28 +23,28 @@ type ExtraFieldConfig = {
 // Extra structured fields shown in the setup card per service type
 const SETUP_EXTRA_FIELDS: Record<string, ExtraFieldConfig[]> = {
   'Oil Change': [
-    { key: 'oilGrade', label: 'Oil Grade', type: 'chips', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
-    { key: 'oilType',  label: 'Oil Type',  type: 'chips', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
+    { key: 'oilGrade', labelKey: 'predictions.field.oilGrade', type: 'chips', options: ['0W-20', '5W-30', '10W-30', '10W-40', '15W-40', '20W-50'] },
+    { key: 'oilType',  labelKey: 'predictions.field.oilType',  type: 'chips', options: ['Mineral', 'Semi-synthetic', 'Full synthetic'] },
   ],
   'Tyre Change': [
-    { key: 'tyreSize',    label: 'Tyre Size',      type: 'text',  placeholder: 'e.g. 185/65R15' },
-    { key: 'tyresChanged', label: 'Tyres Replaced', type: 'chips', options: ['1', '2', '4'] },
+    { key: 'tyreSize',    labelKey: 'predictions.field.tyreSize',      type: 'text',  placeholder: 'e.g. 185/65R15' },
+    { key: 'tyresChanged', labelKey: 'predictions.field.tyresReplaced', type: 'chips', options: ['1', '2', '4'] },
   ],
   'AC Gas Refill': [
-    { key: 'refrigerantType', label: 'Refrigerant Type', type: 'chips', options: ['R134a', 'R1234yf', 'R22'] },
-    { key: 'quantityGrams',   label: 'Quantity',          type: 'number', placeholder: 'grams, e.g. 500' },
+    { key: 'refrigerantType', labelKey: 'predictions.field.refrigerantType', type: 'chips', options: ['R134a', 'R1234yf', 'R22'] },
+    { key: 'quantityGrams',   labelKey: 'predictions.field.quantity',        type: 'number', placeholder: 'grams, e.g. 500' },
   ],
   'Brake Fluid': [
-    { key: 'fluidType', label: 'Fluid Type', type: 'chips', options: ['DOT 3', 'DOT 4', 'DOT 5.1'] },
+    { key: 'fluidType', labelKey: 'predictions.field.fluidType', type: 'chips', options: ['DOT 3', 'DOT 4', 'DOT 5.1'] },
   ],
   'Coolant Flush': [
-    { key: 'coolantType', label: 'Coolant Type', type: 'chips', options: ['Green (Conventional)', 'Red/Pink (Long-life)', 'Blue (OAT)', 'HOAT'] },
+    { key: 'coolantType', labelKey: 'predictions.field.coolantType', type: 'chips', options: ['Green (Conventional)', 'Red/Pink (Long-life)', 'Blue (OAT)', 'HOAT'] },
   ],
   'Transmission Oil (Auto)': [
-    { key: 'fluidType', label: 'Fluid Type', type: 'chips', options: ['ATF', 'CVT Fluid', 'DCT Fluid'] },
+    { key: 'fluidType', labelKey: 'predictions.field.fluidType', type: 'chips', options: ['ATF', 'CVT Fluid', 'DCT Fluid'] },
   ],
   'Gear Oil (Manual)': [
-    { key: 'gearOilGrade', label: 'Oil Grade', type: 'chips', options: ['75W-90', '80W-90', '85W-90', 'GL-4', 'GL-5'] },
+    { key: 'gearOilGrade', labelKey: 'predictions.field.oilGrade', type: 'chips', options: ['75W-90', '80W-90', '85W-90', 'GL-4', 'GL-5'] },
   ],
 }
 
@@ -104,12 +106,12 @@ type Props = {
   onEditRecord?: (recordId: string) => void
 }
 
-function statusConfig(c: Colors) {
+function statusConfig(c: Colors, t: (key: any, params?: Record<string, string | number>) => string) {
   return {
-    overdue:  { color: '#c62828', bg: c.surface, badge: '⚠️ Overdue',  badgeColor: '#c62828', badgeBg: '#fdecea' },
-    due_soon: { color: '#e65100', bg: c.surface, badge: '🔔 Due Soon', badgeColor: '#e65100', badgeBg: '#fff3e0' },
-    ok:       { color: '#2e7d32', bg: c.surface, badge: '✓ OK',        badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
-    no_data:  { color: '#999',    bg: c.surface, badge: '? No Record', badgeColor: '#777',    badgeBg: c.surfaceAlt },
+    overdue:  { color: '#c62828', bg: c.surface, badge: `⚠️ ${t('predictions.status.overdue')}`,  badgeColor: '#c62828', badgeBg: '#fdecea' },
+    due_soon: { color: '#e65100', bg: c.surface, badge: `🔔 ${t('predictions.status.dueSoon')}`, badgeColor: '#e65100', badgeBg: '#fff3e0' },
+    ok:       { color: '#2e7d32', bg: c.surface, badge: `✓ ${t('predictions.status.ok')}`,        badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
+    no_data:  { color: '#999',    bg: c.surface, badge: `? ${t('predictions.status.noRecord')}`, badgeColor: '#777',    badgeBg: c.surfaceAlt },
   }
 }
 
@@ -136,7 +138,8 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const [savingOverride, setSavingOverride] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
-  const STATUS_CONFIG = useMemo(() => statusConfig(colors), [colors])
+  const { t } = useTranslation()
+  const STATUS_CONFIG = useMemo(() => statusConfig(colors, t), [colors, t])
 
   // Allow parent to switch tab via prop change (e.g. from notification)
   useEffect(() => { setActiveTab(initialTab) }, [initialTab])
@@ -169,19 +172,19 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     const entry = getEntry(p.id)
     const raw = entry.date.trim()
     if (!raw) {
-      Alert.alert('Date required', 'Please enter the month and year, e.g. 06/2023')
+      Alert.alert(t('predictions.dateRequired.title'), t('predictions.dateRequired.message'))
       return
     }
     const parts = raw.split('/')
     if (parts.length !== 2) {
-      Alert.alert('Invalid format', 'Please use MM/YYYY format, e.g. 06/2023')
+      Alert.alert(t('predictions.invalidFormat.title'), t('predictions.invalidFormat.message'))
       return
     }
     const month = parseInt(parts[0], 10)
     const year  = parseInt(parts[1], 10)
     const currentYear = new Date().getFullYear()
     if (isNaN(month) || isNaN(year) || month < 1 || month > 12 || year < 1990 || year > currentYear) {
-      Alert.alert('Invalid date', `Month must be 01–12 and year must be 1990–${currentYear}`)
+      Alert.alert(t('predictions.invalidDate.title'), t('predictions.invalidDate.message', { year: currentYear }))
       return
     }
 
@@ -211,7 +214,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
       })
       await load()
     } catch {
-      Alert.alert('Error', 'Failed to save. Please try again.')
+      Alert.alert(t('common.error'), t('predictions.saveFailed'))
     } finally {
       setSavingId(null)
     }
@@ -223,30 +226,30 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     let distanceLine = ''
     if (p.remainingKm !== null) {
       if (p.remainingKm < 0) {
-        distanceLine = `Overdue by ${kmStr(Math.abs(p.remainingKm))}`
+        distanceLine = t('predictions.overdueByKm', { km: kmStr(Math.abs(p.remainingKm)) })
       } else {
-        distanceLine = `Due in ${kmStr(p.remainingKm)}`
-        if (p.dueAtKm) distanceLine += ` (at ${kmStr(p.dueAtKm)})`
+        distanceLine = t('predictions.dueInKm', { km: kmStr(p.remainingKm) })
+        if (p.dueAtKm) distanceLine += t('predictions.atKmSuffix', { km: kmStr(p.dueAtKm) })
       }
     }
 
     let timeLine = ''
     if (p.remainingDays !== null) {
       if (p.remainingDays < 0) {
-        timeLine = `${Math.abs(p.remainingDays)} days overdue`
+        timeLine = t('predictions.daysOverdue', { days: Math.abs(p.remainingDays) })
       } else if (p.remainingDays === 0) {
-        timeLine = 'Due today'
+        timeLine = t('predictions.dueToday')
       } else {
-        timeLine = `${p.remainingDays} days remaining`
-        if (p.dueAtDate) timeLine += ` (by ${formatDate(p.dueAtDate)})`
+        timeLine = t('predictions.daysRemaining', { days: p.remainingDays })
+        if (p.dueAtDate) timeLine += t('predictions.bySuffix', { date: formatDate(p.dueAtDate) })
       }
     }
 
     let lastLine = ''
     if (p.lastDoneDate && p.lastDoneKm) {
-      lastLine = `Last done: ${formatDate(p.lastDoneDate)} at ${kmStr(p.lastDoneKm)}`
+      lastLine = t('predictions.lastDoneAt', { date: formatDate(p.lastDoneDate), km: kmStr(p.lastDoneKm) })
     } else if (p.lastDoneDate) {
-      lastLine = `Last done: ${formatDate(p.lastDoneDate)}`
+      lastLine = t('predictions.lastDone', { date: formatDate(p.lastDoneDate) })
     }
 
     return (
@@ -279,23 +282,23 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         <View style={styles.setupCardHeader}>
           <Text style={styles.setupCardName}>{p.name}</Text>
         </View>
-        <Text style={styles.setupQuestion}>When was this last done?</Text>
+        <Text style={styles.setupQuestion}>{t('predictions.whenLastDone')}</Text>
 
         <View style={styles.setupFields}>
           <View style={[styles.setupField, { flex: 1, marginRight: 8 }]}>
-            <Text style={styles.setupFieldLabel}>Month / Year</Text>
+            <Text style={styles.setupFieldLabel}>{t('predictions.monthYear')}</Text>
             <TextInput
               style={styles.setupInput}
               placeholder="06/2023"
               placeholderTextColor={colors.textFaint}
               value={entry.date}
-              onChangeText={t => setEntry(p.id, 'date', t)}
+              onChangeText={v => setEntry(p.id, 'date', v)}
               keyboardType="numbers-and-punctuation"
               maxLength={7}
             />
           </View>
           <View style={[styles.setupField, { flex: 1 }]}>
-            <Text style={styles.setupFieldLabel}>Odometer km (opt.)</Text>
+            <Text style={styles.setupFieldLabel}>{t('predictions.odometerKmOpt')}</Text>
             <TextInput
               style={styles.setupInput}
               placeholder="e.g. 54000"
@@ -309,7 +312,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
         {brandOptions && brandOptions.length > 0 && (
           <View style={styles.brandSection}>
-            <Text style={styles.setupFieldLabel}>Brand Used (optional)</Text>
+            <Text style={styles.setupFieldLabel}>{t('predictions.brandUsedOptional')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandRow}>
               {brandOptions.map(brand => (
                 <TouchableOpacity
@@ -328,7 +331,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
         {extraFields.map(ef => (
           <View key={ef.key} style={styles.brandSection}>
-            <Text style={styles.setupFieldLabel}>{ef.label} (optional)</Text>
+            <Text style={styles.setupFieldLabel}>{t(ef.labelKey)} {t('addVehicle.optionalParen')}</Text>
             {ef.type === 'chips' ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandRow}>
                 {(ef.options || []).map(opt => {
@@ -364,7 +367,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         >
           {isSaving
             ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={styles.setupSaveBtnText}>Save & Start Predicting →</Text>
+            : <Text style={styles.setupSaveBtnText}>{t('predictions.saveAndStartPredicting')}</Text>
           }
         </TouchableOpacity>
 
@@ -380,7 +383,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         onPress={() => setActiveTab('services')}
       >
         <Text style={[styles.tabBtnText, activeTab === 'services' && styles.tabBtnTextActive]}>
-          Upcoming Services
+          {t('predictions.tab.upcomingServices')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -388,7 +391,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         onPress={() => setActiveTab('setup')}
       >
         <Text style={[styles.tabBtnText, activeTab === 'setup' && styles.tabBtnTextActive]}>
-          Set Up
+          {t('predictions.tab.setup')}
         </Text>
         {noData.length > 0 && (
           <View style={[styles.tabBadge, activeTab === 'setup' && styles.tabBadgeActive]}>
@@ -411,10 +414,10 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
         <TouchableOpacity style={styles.setupNudge} onPress={() => setActiveTab('setup')} activeOpacity={0.85}>
           <View style={{ flex: 1 }}>
             <Text style={styles.setupNudgeTitle}>
-              {noData.length} item{noData.length > 1 ? 's' : ''} waiting for your history
+              {t('predictions.setupNudge.title', { count: noData.length, s: noData.length > 1 ? 's' : '' })}
             </Text>
             <Text style={styles.setupNudgeBody}>
-              Add when these were last done to unlock more predictions
+              {t('predictions.setupNudge.body')}
             </Text>
           </View>
           <Text style={styles.setupNudgeArrow}>→</Text>
@@ -423,23 +426,23 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
 
       {urgent.length === 0 && ok.length === 0 && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No tracked services yet</Text>
+          <Text style={styles.emptyTitle}>{t('predictions.empty.noServices.title')}</Text>
           <Text style={styles.emptyBody}>
-            Add service records or use the Set Up tab to enter when services were last done.
+            {t('predictions.empty.noServices.body')}
           </Text>
         </View>
       )}
 
       {urgent.length > 0 && (
         <View>
-          <Text style={styles.sectionLabel}>Needs Attention</Text>
+          <Text style={styles.sectionLabel}>{t('predictions.needsAttention')}</Text>
           {urgent.map(renderServiceCard)}
         </View>
       )}
 
       {ok.length > 0 && (
         <View>
-          <Text style={styles.sectionLabel}>On Track</Text>
+          <Text style={styles.sectionLabel}>{t('predictions.onTrack')}</Text>
           {ok.map(renderServiceCard)}
         </View>
       )}
@@ -453,17 +456,17 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     >
       {noData.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>All set!</Text>
+          <Text style={styles.emptyTitle}>{t('predictions.allSet.title')}</Text>
           <Text style={styles.emptyBody}>
-            All service items have history. Check the Upcoming Services tab for predictions.
+            {t('predictions.allSet.body')}
           </Text>
         </View>
       ) : (
         <>
           <View style={styles.setupBanner}>
-            <Text style={styles.setupBannerTitle}>Set up your predictions</Text>
+            <Text style={styles.setupBannerTitle}>{t('predictions.setupBanner.title')}</Text>
             <Text style={styles.setupBannerBody}>
-              Tell us when each service was last done — even an approximate month and year is enough. This data never changes unless you add a new service record.
+              {t('predictions.setupBanner.body')}
             </Text>
           </View>
           {noData.map(renderSetupCard)}
@@ -475,10 +478,10 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Upcoming Services" onBack={onBack} />
+      <ScreenHeader title={t('predictions.tab.upcomingServices')} onBack={onBack} />
 
       <View style={styles.mileageBanner}>
-        <Text style={styles.mileageLabel}>Current mileage</Text>
+        <Text style={styles.mileageLabel}>{t('predictions.currentMileage')}</Text>
         <Text style={styles.mileageValue}>{currentMileage.toLocaleString()} km</Text>
       </View>
 
@@ -507,11 +510,11 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               </View>
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailRowLabel}>Last done</Text>
+                <Text style={styles.detailRowLabel}>{t('predictions.lastDoneLabel')}</Text>
                 <Text style={styles.detailRowValue}>
                   {p.lastDoneDate
                     ? `${formatDate(p.lastDoneDate)}${p.lastDoneKm ? ` · ${kmStr(p.lastDoneKm)}` : ''}`
-                    : 'No record yet'}
+                    : t('predictions.noRecordYet')}
                 </Text>
               </View>
 
@@ -520,18 +523,18 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   onPress={() => { const id = p.lastRecordId!; setSelectedPrediction(null); onEditRecord(id) }}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
-                  <Text style={styles.detailEditLink}>✏️ Mileage or date wrong? Edit this record</Text>
+                  <Text style={styles.detailEditLink}>✏️ {t('predictions.editRecordLink')}</Text>
                 </TouchableOpacity>
               )}
 
               {(p.dueAtKm !== null || p.dueAtDate !== null) && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailRowLabel}>Due at</Text>
+                  <Text style={styles.detailRowLabel}>{t('predictions.dueAtLabel')}</Text>
                   <Text style={styles.detailRowValue}>
                     {[
                       p.dueAtKm   ? kmStr(p.dueAtKm)       : null,
                       p.dueAtDate ? formatDate(p.dueAtDate) : null,
-                    ].filter(Boolean).join(' or ')}
+                    ].filter(Boolean).join(t('predictions.orJoiner'))}
                   </Text>
                 </View>
               )}
@@ -541,16 +544,16 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   {p.remainingKm !== null && (
                     <Text style={[styles.detailRemainingMain, { color: cfg.color }]}>
                       {p.remainingKm < 0
-                        ? `Overdue by ${kmStr(Math.abs(p.remainingKm))}`
-                        : `${kmStr(p.remainingKm)} remaining`}
+                        ? t('predictions.overdueByKm', { km: kmStr(Math.abs(p.remainingKm)) })
+                        : t('predictions.kmRemaining', { km: kmStr(p.remainingKm) })}
                     </Text>
                   )}
                   {p.remainingDays !== null && (
                     <Text style={styles.detailRemainingSecondary}>
                       {p.remainingDays < 0
-                        ? `${Math.abs(p.remainingDays)} days overdue`
-                        : p.remainingDays === 0 ? 'Due today'
-                        : `${p.remainingDays} days remaining`}
+                        ? t('predictions.daysOverdue', { days: Math.abs(p.remainingDays) })
+                        : p.remainingDays === 0 ? t('predictions.dueToday')
+                        : t('predictions.daysRemaining', { days: p.remainingDays })}
                     </Text>
                   )}
                 </View>
@@ -565,7 +568,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   onLogNow?.(p.name)
                 }}
               >
-                <Text style={styles.detailLogBtnText}>Log it now →</Text>
+                <Text style={styles.detailLogBtnText}>{t('predictions.logItNow')}</Text>
               </TouchableOpacity>
 
               {/* Interval row */}
@@ -574,8 +577,8 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   <View style={{ flex: 1 }}>
                     <Text style={styles.intervalLabel}>
                       {p.customKmInterval != null || p.customDaysInterval != null
-                        ? 'Your custom interval'
-                        : 'Manufacturer interval'}
+                        ? t('predictions.customInterval')
+                        : t('predictions.manufacturerInterval')}
                     </Text>
                     <Text style={styles.intervalValue}>
                       {[
@@ -583,9 +586,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                           ? `${(p.customKmInterval as number).toLocaleString()} km`
                           : null,
                         (p.customDaysInterval ?? null) != null
-                          ? `${p.customDaysInterval} days`
+                          ? t('predictions.daysUnit', { days: p.customDaysInterval as number })
                           : null,
-                      ].filter(Boolean).join(' · ') || 'Set a custom interval below'}
+                      ].filter(Boolean).join(' · ') || t('predictions.setIntervalBelow')}
                     </Text>
                   </View>
                   {!readOnly && (
@@ -597,7 +600,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                         setShowOverrideModal(true)
                       }}
                     >
-                      <Text style={styles.customizeBtnText}>✏️ Customize</Text>
+                      <Text style={styles.customizeBtnText}>✏️ {t('predictions.customize')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -618,10 +621,10 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                 onPress={() => setShowOverrideModal(false)}
               />
               <View style={styles.overrideCard}>
-                <Text style={styles.overrideTitle}>Customize Interval</Text>
+                <Text style={styles.overrideTitle}>{t('predictions.override.title')}</Text>
                 <Text style={styles.overrideSubtitle}>{p.name}</Text>
 
-                <Text style={styles.overrideFieldLabel}>Every X km (leave blank to keep default)</Text>
+                <Text style={styles.overrideFieldLabel}>{t('predictions.override.everyXKm')}</Text>
                 <TextInput
                   style={styles.overrideInput}
                   keyboardType="number-pad"
@@ -631,7 +634,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   onChangeText={setOverrideKm}
                 />
 
-                <Text style={styles.overrideFieldLabel}>Every X days (leave blank to keep default)</Text>
+                <Text style={styles.overrideFieldLabel}>{t('predictions.override.everyXDays')}</Text>
                 <TextInput
                   style={styles.overrideInput}
                   keyboardType="number-pad"
@@ -648,7 +651,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                     const kmNum = overrideKm.trim() ? Number(overrideKm.trim()) : null
                     const daysNum = overrideDays.trim() ? Number(overrideDays.trim()) : null
                     if ((kmNum !== null && isNaN(kmNum)) || (daysNum !== null && isNaN(daysNum))) {
-                      Alert.alert('Invalid input', 'Please enter valid numbers')
+                      Alert.alert(t('predictions.invalidInput.title'), t('predictions.invalidInput.message'))
                       return
                     }
                     setSavingOverride(true)
@@ -658,14 +661,14 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                       setSelectedPrediction(null)
                       load()
                     } catch {
-                      Alert.alert('Error', 'Failed to save custom interval')
+                      Alert.alert(t('common.error'), t('predictions.saveIntervalFailed'))
                     } finally {
                       setSavingOverride(false)
                     }
                   }}
                 >
                   <Text style={styles.overrideSaveBtnText}>
-                    {savingOverride ? 'Saving…' : 'Save Interval'}
+                    {savingOverride ? t('predictions.saving') : t('predictions.saveInterval')}
                   </Text>
                 </TouchableOpacity>
 
@@ -681,13 +684,13 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                         setSelectedPrediction(null)
                         load()
                       } catch {
-                        Alert.alert('Error', 'Failed to clear custom interval')
+                        Alert.alert(t('common.error'), t('predictions.clearIntervalFailed'))
                       } finally {
                         setSavingOverride(false)
                       }
                     }}
                   >
-                    <Text style={styles.overrideClearBtnText}>Clear custom interval</Text>
+                    <Text style={styles.overrideClearBtnText}>{t('predictions.clearCustomInterval')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
