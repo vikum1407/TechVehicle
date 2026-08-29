@@ -18,6 +18,8 @@ import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
   getServiceCategories, todayDMY, parseDMY,
 } from '../constants/serviceData'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
@@ -75,6 +77,11 @@ type IncomingShare = {
 }
 
 type Tab = 'profile' | 'schedule' | 'bookings' | 'calendar' | 'customers' | 'history'
+
+const DOW_KEYS: TranslationKey[] = [
+  'garage.dow.sun', 'garage.dow.mon', 'garage.dow.tue', 'garage.dow.wed',
+  'garage.dow.thu', 'garage.dow.fri', 'garage.dow.sat',
+]
 
 type Customer = {
   vehicleId: string; registrationNo: string; make: string; model: string; year: number
@@ -229,6 +236,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getGarage(token)
@@ -239,7 +247,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         setBrNumber(data.brNumber || '')
       })
       .catch(e => {
-        if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
+        if (!e.message.includes('No garage')) Alert.alert(t('common.error'), e.message)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -250,7 +258,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.getIncomingShares(token)
       setShares(data)
     } catch (e: any) {
-      if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
+      if (!e.message.includes('No garage')) Alert.alert(t('common.error'), e.message)
     } finally {
       setSharesLoading(false)
     }
@@ -262,7 +270,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.getGarageBookings(token)
       setBookings(data)
     } catch (e: any) {
-      if (!e.message.includes('No garage')) Alert.alert('Error', e.message)
+      if (!e.message.includes('No garage')) Alert.alert(t('common.error'), e.message)
     } finally {
       setBookingsLoading(false)
     }
@@ -274,7 +282,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       await api.confirmBooking(token, bookingId)
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'confirmed' } : b))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setConfirmingId(null)
     }
@@ -291,7 +299,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       setCounterSlot('')
       setCounterNote('')
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSubmittingCounter(false)
     }
@@ -322,7 +330,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       onBookingSeen?.(bookingId, updated.length)
       setNoteInputs(prev => ({ ...prev, [bookingId]: '' }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSendingNote(null)
     }
@@ -388,7 +396,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.getGarageCustomers(token)
       setCustomers(data)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setCustomersLoading(false)
     }
@@ -399,9 +407,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     try {
       await api.sendServiceReminder(token, vehicleId)
       setCustomers(prev => prev.map(c => c.vehicleId === vehicleId ? { ...c, lastReminderSentAt: new Date().toISOString() } : c))
-      Alert.alert('Reminder Sent', 'The owner has been notified.')
+      Alert.alert(t('garage.reminderSent.title'), t('garage.reminderSent.message'))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setRemindingId(null)
     }
@@ -411,9 +419,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     setSavingSchedule(true)
     try {
       await api.setAvailability(token, schedWorkDays, schedMaxPerDay, schedSlots)
-      Alert.alert('Saved', 'Your schedule settings have been updated.')
+      Alert.alert(t('logEmissionTest.saved.title'), t('garage.scheduleSaved'))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingSchedule(false)
     }
@@ -442,7 +450,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       await loadOverrides(calMonth)
       setEditingOverride(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingOverride(false)
     }
@@ -456,7 +464,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       await loadOverrides(calMonth)
       setEditingOverride(null)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingOverride(false)
     }
@@ -512,7 +520,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   }, [tab])
 
   const handleRegister = async () => {
-    if (!name.trim()) { Alert.alert('Required', 'Please enter your garage name.'); return }
+    if (!name.trim()) { Alert.alert(t('garage.nameRequired.title'), t('garage.nameRequired.message')); return }
     setSaving(true)
     try {
       const data = await api.registerGarage(token, { name, address, brNumber })
@@ -521,14 +529,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       setTab('schedule')
       onRegistered?.()
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSaving(false)
     }
   }
 
   const handleUpdate = async () => {
-    if (!name.trim()) { Alert.alert('Required', 'Please enter your garage name.'); return }
+    if (!name.trim()) { Alert.alert(t('garage.nameRequired.title'), t('garage.nameRequired.message')); return }
     setSaving(true)
     try {
       const priceList = priceListRows
@@ -538,7 +546,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       setGarage(data)
       setEditing(false)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSaving(false)
     }
@@ -552,7 +560,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.getGarageRatings(token, garage.id)
       setRatingsDetail(data)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setRatingsLoading(false)
     }
@@ -600,7 +608,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const result = await api.lookupVehicle(token, walkinRegNo.trim())
       setWalkinResult(result)
     } catch (e: any) {
-      Alert.alert('Not Found', e.message)
+      Alert.alert(t('garage.notFound'), e.message)
     } finally {
       setWalkinLookupLoading(false)
     }
@@ -655,14 +663,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   const pickSubPhoto = async (source: 'camera' | 'gallery') => {
     if (subPhotos.length >= 5) {
-      Alert.alert('Limit reached', 'You can attach up to 5 photos.')
+      Alert.alert(t('garage.photoLimitReached.title'), t('garage.photoLimitReached.message'))
       return
     }
     const permission = source === 'camera'
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permission needed', `Please allow ${source} access in your device settings.`)
+      Alert.alert(
+        t('addService.permissionNeeded.title'),
+        t('addService.permissionNeeded.message', { source: t(source === 'camera' ? 'addService.cameraAccess' : 'addService.galleryAccess') })
+      )
       return
     }
     const result = source === 'camera'
@@ -679,7 +690,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const url = await api.uploadPhoto(token, compressed.uri)
       setSubPhotos(prev => [...prev, url])
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+      Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
     } finally {
       setUploadingSubPhoto(false)
     }
@@ -692,31 +703,31 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       : []
     const allItems = [...selectedItems, ...extras]
     if (allItems.length === 0) {
-      Alert.alert('Select a service', 'Please tap at least one service that was performed.')
+      Alert.alert(t('garage.selectService.title'), t('garage.selectService.message'))
       return
     }
     const isoDate = parseDMY(subDate)
     if (!isoDate) {
-      Alert.alert('Invalid date', 'Please enter the date as DD/MM/YYYY.')
+      Alert.alert(t('addService.invalidDate.title'), t('addService.invalidDate.message'))
       return
     }
 
     if (!subMileage.trim()) {
-      Alert.alert('Mileage required', 'Please enter the odometer reading from the vehicle dashboard.')
+      Alert.alert(t('addService.mileageRequired.title'), t('garage.mileageRequiredMessage'))
       return
     }
     const subMileageNum = parseInt(subMileage)
     if (isNaN(subMileageNum) || subMileageNum <= 0) {
-      Alert.alert('Invalid mileage', 'Please enter a valid mileage in km.')
+      Alert.alert(t('addService.invalidMileage.title'), t('addService.invalidMileage.message'))
       return
     }
 
     if (!subCost.trim()) {
-      Alert.alert('Cost required', 'Please enter the total cost for this service.')
+      Alert.alert(t('addService.costRequired.title'), t('addService.costRequired.message'))
       return
     }
     if (isNaN(parseFloat(subCost)) || parseFloat(subCost) <= 0) {
-      Alert.alert('Invalid cost', 'Please enter a valid cost greater than 0.')
+      Alert.alert(t('addService.invalidCost.title'), t('addService.invalidCost.message'))
       return
     }
 
@@ -757,9 +768,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       setSubmittingShare(null)
       setSubPhotos([])
       setIsWalkIn(false)
-      Alert.alert('Submitted', 'Service record sent to the vehicle owner for acceptance.')
+      Alert.alert(t('garage.serviceSubmitted.title'), t('garage.serviceSubmitted.message'))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSubmitting(false)
     }
@@ -783,7 +794,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Submit Completed Service" onBack={() => { setSubmittingShare(null); setIsWalkIn(false) }} />
+        <ScreenHeader title={t('garage.submitCompletedService')} onBack={() => { setSubmittingShare(null); setIsWalkIn(false) }} />
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
 
         {/* Which vehicle */}
@@ -795,7 +806,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           <Text style={styles.vehicleBannerMileage}>{share.vehicle.mileage.toLocaleString()} km · {share.vehicle.fuelType}</Text>
         </View>
 
-        <Text style={styles.formSubtitle}>Tap everything that was done on this visit</Text>
+        <Text style={styles.formSubtitle}>{t('garage.tapEverythingVisit')}</Text>
 
         {getServiceCategories(submittingShare?.vehicle?.vehicleType).map(cat => (
           <View key={cat.title}>
@@ -819,18 +830,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
         ))}
 
-        <Text style={styles.catLabel}>Other (not listed above)</Text>
+        <Text style={styles.catLabel}>{t('addService.other')}</Text>
         <TextInput
           style={styles.fInput}
           value={otherText}
           onChangeText={setOtherText}
-          placeholder="Type anything else that was done..."
+          placeholder={t('addService.otherPlaceholder')}
         />
 
         {itemsNeedingBrand.length > 0 && (
           <View style={styles.brandsSection}>
-            <Text style={styles.brandsSectionTitle}>Parts Brand (optional)</Text>
-            <Text style={styles.brandsSectionSub}>Select brand for each replaced part</Text>
+            <Text style={styles.brandsSectionTitle}>{t('addService.partsBrand')}</Text>
+            <Text style={styles.brandsSectionSub}>{t('addService.selectBrandSub')}</Text>
             {itemsNeedingBrand.map(item => {
               const brands = ITEM_BRANDS[item.name] || CATEGORY_BRANDS[item.category] || CATEGORY_BRANDS['General & Other']
               return (
@@ -852,7 +863,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     style={[styles.fInput, { marginTop: 6 }]}
                     value={customBrands[item.name] || ''}
                     onChangeText={v => setCustomBrandForItem(item.name, v)}
-                    placeholder="Or type brand..."
+                    placeholder={t('addService.orTypeBrand')}
                   />
                 </View>
               )
@@ -862,11 +873,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <View style={styles.row}>
           <View style={styles.half}>
-            <DateField label="Service Date" value={subDate} onChange={setSubDate} maximumDate={new Date()} />
+            <DateField label={t('garage.serviceDate')} value={subDate} onChange={setSubDate} maximumDate={new Date()} />
           </View>
           <View style={styles.half}>
             <FormField
-              label="Mileage (km)"
+              label={t('addService.mileage')}
               required
               value={subMileage}
               onChangeText={setSubMileage}
@@ -877,7 +888,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </View>
 
         <FormField
-          label="Total Cost (LKR)"
+          label={t('addService.totalCost')}
           required
           value={subCost}
           onChangeText={setSubCost}
@@ -886,16 +897,16 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         />
 
         <FormField
-          label="Notes for Owner (optional)"
+          label={t('garage.notesForOwner')}
           style={styles.multiline}
           value={subNotes}
           onChangeText={setSubNotes}
-          placeholder="Any observations, recommendations, or notes..."
+          placeholder={t('garage.notesForOwnerPlaceholder')}
           multiline
           numberOfLines={3}
         />
 
-        <Text style={styles.fieldLabel}>Photos (optional, max 5)</Text>
+        <Text style={styles.fieldLabel}>{t('addService.photos')}</Text>
         <View style={styles.photoRow}>
           {subPhotos.map((url) => (
             <View key={url} style={styles.photoThumb}>
@@ -917,7 +928,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               >
                 {uploadingSubPhoto
                   ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.photoBtnText}>📷 Camera</Text>
+                  : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
                 }
               </TouchableOpacity>
               <TouchableOpacity
@@ -925,7 +936,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 onPress={() => pickSubPhoto('gallery')}
                 disabled={uploadingSubPhoto}
               >
-                <Text style={styles.photoBtnText}>🖼 Gallery</Text>
+                <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -933,7 +944,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         {selectedItems.length > 0 && (
           <View style={styles.summary}>
-            <Text style={styles.summaryLabel}>{selectedItems.length} service{selectedItems.length > 1 ? 's' : ''} to submit</Text>
+            <Text style={styles.summaryLabel}>{t('garage.servicesToSubmit', { count: selectedItems.length, s: selectedItems.length > 1 ? 's' : '' })}</Text>
             {selectedItems.map(i => (
               <Text key={i.name} style={styles.summaryLine}>
                 • {i.name}{i.brand ? ` — ${i.brand}` : ''}
@@ -943,7 +954,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         )}
 
         <View style={{ marginTop: 24 }}>
-          <Button title="Submit to Owner" onPress={handleSubmitService} loading={submitting} />
+          <Button title={t('garage.submitToOwner')} onPress={handleSubmitService} loading={submitting} />
         </View>
         </ScrollView>
       </View>
@@ -962,13 +973,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Set Day Override" onBack={() => setEditingOverride(null)} />
+        <ScreenHeader title={t('garage.setDayOverride')} onBack={() => setEditingOverride(null)} />
         <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
         <View style={styles.overrideDateBanner}>
           <Text style={styles.overrideDateText}>{editingOverride.displayDate}</Text>
         </View>
 
-        <Text style={styles.fieldLabel}>Day Status</Text>
+        <Text style={styles.fieldLabel}>{t('garage.dayStatus')}</Text>
         <View style={styles.statusRow}>
           {(['open', 'closed', 'holiday'] as const).map(s => (
             <TouchableOpacity
@@ -977,7 +988,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               onPress={() => setOvStatus(s)}
             >
               <Text style={[styles.statusBtnText, ovStatus === s && styles.statusBtnTextActive]}>
-                {s === 'open' ? '✅ Open' : s === 'closed' ? '🔒 Closed' : '🎉 Holiday'}
+                {s === 'open' ? `✅ ${t('garage.status.open')}` : s === 'closed' ? `🔒 ${t('garage.status.closed')}` : `🎉 ${t('garage.status.holiday')}`}
               </Text>
             </TouchableOpacity>
           ))}
@@ -985,16 +996,16 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         {ovStatus === 'open' && (
           <FormField
-            label="Max Vehicles This Day (optional)"
+            label={t('garage.maxVehiclesThisDay')}
             value={ovMaxSlots}
             onChangeText={setOvMaxSlots}
-            placeholder={`Leave blank to use default (${schedMaxPerDay})`}
+            placeholder={t('garage.leaveBlankDefault', { max: schedMaxPerDay })}
             keyboardType="number-pad"
           />
         )}
 
         <FormField
-          label="Notice Message (optional)"
+          label={t('garage.noticeMessage')}
           style={styles.multiline}
           value={ovMessage}
           onChangeText={setOvMessage}
@@ -1005,7 +1016,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         {ovMessage.length > 0 && (
           <>
-            <Text style={styles.fieldLabel}>Message Colour</Text>
+            <Text style={styles.fieldLabel}>{t('garage.messageColour')}</Text>
             <View style={styles.colorRow}>
               {colorOptions.map(opt => (
                 <TouchableOpacity
@@ -1020,12 +1031,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </>
         )}
 
-        <Button title="Save Override" onPress={handleSaveOverride} loading={savingOverride} />
+        <Button title={t('garage.saveOverride')} onPress={handleSaveOverride} loading={savingOverride} />
 
         {editingOverride.existing && (
           <View style={{ marginTop: 12 }}>
             <Button
-              title="Remove Override (use default)"
+              title={t('garage.removeOverride')}
               onPress={handleRemoveOverride}
               disabled={savingOverride}
               variant="destructive"
@@ -1046,7 +1057,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     <View style={styles.container}>
       {(tab === 'customers' || tab === 'history') && garage && !editing ? (
         <ScreenHeader
-          title={tab === 'customers' ? 'Customers' : 'Revenue'}
+          title={tab === 'customers' ? t('garage.customers') : t('garage.revenue')}
           onBack={() => setTab('profile')}
         />
       ) : (
@@ -1055,10 +1066,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <View style={styles.headerLeft}>
               {!garage && onBack && (
                 <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={styles.backText}>← Back</Text>
+                  <Text style={styles.backText}>← {t('common.back')}</Text>
                 </TouchableOpacity>
               )}
-              <Text style={styles.headerTitle}>{garage ? garage.name : 'Garage'}</Text>
+              <Text style={styles.headerTitle}>{garage ? garage.name : t('garage.title')}</Text>
             </View>
             <View style={styles.headerRight}>
               {garage && onOpenLedger && (
@@ -1088,28 +1099,28 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 onPress={() => setTab('profile')}
                 onLayout={e => { tabLayouts.current.profile = e.nativeEvent.layout }}
               >
-                <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>Profile</Text>
+                <Text style={[styles.tabText, tab === 'profile' && styles.tabTextActive]}>{t('garage.tab.profile')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, tab === 'schedule' && styles.tabActive]}
                 onPress={() => setTab('schedule')}
                 onLayout={e => { tabLayouts.current.schedule = e.nativeEvent.layout }}
               >
-                <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
+                <Text style={[styles.tabText, tab === 'schedule' && styles.tabTextActive]}>{t('garage.tab.schedule')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, tab === 'bookings' && styles.tabActive]}
                 onPress={() => setTab('bookings')}
                 onLayout={e => { tabLayouts.current.bookings = e.nativeEvent.layout }}
               >
-                <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>Bookings</Text>
+                <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>{t('garage.tab.bookings')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, tab === 'calendar' && styles.tabActive]}
                 onPress={() => setTab('calendar')}
                 onLayout={e => { tabLayouts.current.calendar = e.nativeEvent.layout }}
               >
-                <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>Calendar</Text>
+                <Text style={[styles.tabText, tab === 'calendar' && styles.tabTextActive]}>{t('garage.tab.calendar')}</Text>
               </TouchableOpacity>
             </ScrollView>
           )}
@@ -1120,22 +1131,22 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         <TouchableOpacity style={styles.moreSheetOverlay} activeOpacity={1} onPress={() => setMoreMenuOpen(false)}>
           <TouchableOpacity style={styles.moreSheetCard} activeOpacity={1} onPress={() => {}}>
             <View style={styles.moreSheetHeaderRow}>
-              <Text style={styles.moreSheetTitle}>More for this garage</Text>
+              <Text style={styles.moreSheetTitle}>{t('garage.moreForGarage')}</Text>
               <TouchableOpacity onPress={() => setMoreMenuOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.moreSheetClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('customers') }}>
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
-              <Text style={styles.moreSheetItemText}>Customers</Text>
+              <Text style={styles.moreSheetItemText}>{t('garage.customers')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('history') }}>
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
-              <Text style={styles.moreSheetItemText}>Revenue</Text>
+              <Text style={styles.moreSheetItemText}>{t('garage.revenue')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); onOpenLedger?.() }}>
               <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📒</Text></View>
-              <Text style={styles.moreSheetItemText}>Customer Ledger</Text>
+              <Text style={styles.moreSheetItemText}>{t('garage.customerLedger')}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -1150,7 +1161,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <View style={styles.badgeRow}>
                   <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
                     <Text style={styles.badgeText}>
-                      {garage.verified ? '✅ Verified Garage' : '⚠️ Unverified'}
+                      {garage.verified ? `✅ ${t('garage.verifiedGarage')}` : `⚠️ ${t('garage.unverified')}`}
                     </Text>
                   </View>
                   {garage.ratingCount != null && garage.ratingCount > 0 && (
@@ -1161,20 +1172,19 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </View>
                 {garage.address && <Text style={styles.detail}>📍 {garage.address}</Text>}
                 {garage.brNumber
-                  ? <Text style={styles.detail}>🏢 BR: {garage.brNumber}</Text>
-                  : <Text style={styles.detailMuted}>No BR number added — add one to get verified</Text>
+                  ? <Text style={styles.detail}>🏢 {t('garage.brLabel', { br: garage.brNumber })}</Text>
+                  : <Text style={styles.detailMuted}>{t('garage.noBrNumber')}</Text>
                 }
                 <Text style={styles.detail}>
-                  💰 {garage.priceList && garage.priceList.length > 0 ? `${garage.priceList.length} price(s) listed` : 'No price list added yet'}
+                  💰 {garage.priceList && garage.priceList.length > 0 ? t('garage.pricesListed', { count: garage.priceList.length }) : t('garage.noPriceList')}
                 </Text>
               </View>
 
               {!garage.verified && (
                 <View style={styles.infoBox}>
-                  <Text style={styles.infoTitle}>How to get Verified</Text>
+                  <Text style={styles.infoTitle}>{t('garage.howToGetVerified')}</Text>
                   <Text style={styles.infoText}>
-                    Add your Business Registration (BR) number and our team will verify your garage.
-                    Verified garages earn more trust from vehicle owners.
+                    {t('garage.verifiedInfoText')}
                   </Text>
                 </View>
               )}
@@ -1189,31 +1199,31 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   setEditing(true)
                 }}
               >
-                <Text style={styles.editBtnText}>Edit Garage Details</Text>
+                <Text style={styles.editBtnText}>{t('garage.editGarageDetails')}</Text>
               </TouchableOpacity>
             </>
           )}
 
           {showForm && (
             <>
-              <Text style={styles.formTitle}>{garage ? 'Edit Garage' : 'Register Your Garage'}</Text>
+              <Text style={styles.formTitle}>{garage ? t('garage.editGarage') : t('garage.registerYourGarage')}</Text>
               <Text style={styles.formSubtitleSmall}>
                 {garage
-                  ? 'Update your garage details below.'
-                  : 'Set up your garage profile so vehicle owners can find and share records with you.'}
+                  ? t('garage.updateDetailsBelow')
+                  : t('garage.setupProfileNote')}
               </Text>
 
-              <Text style={styles.label}>Garage Name *</Text>
+              <Text style={styles.label}>{t('garage.garageName')}</Text>
               <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Silva Auto Service" />
 
-              <Text style={styles.label}>Address (optional)</Text>
+              <Text style={styles.label}>{t('garage.addressOptional')}</Text>
               <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="e.g. 45/A Kandy Road, Kelaniya" />
 
-              <Text style={styles.label}>BR Number (optional)</Text>
+              <Text style={styles.label}>{t('garage.brNumberOptional')}</Text>
               <TextInput style={styles.input} value={brNumber} onChangeText={setBrNumber} placeholder="e.g. PV 00123456" autoCapitalize="characters" />
 
-              <Text style={[styles.label, { marginTop: 20 }]}>Price List (optional)</Text>
-              <Text style={styles.formSubtitleSmall}>Let owners see estimated costs before they book.</Text>
+              <Text style={[styles.label, { marginTop: 20 }]}>{t('garage.priceListOptional')}</Text>
+              <Text style={styles.formSubtitleSmall}>{t('garage.priceListNote')}</Text>
               {priceListRows.map((row, i) => (
                 <View key={i} style={styles.priceRow}>
                   <TextInput
@@ -1241,18 +1251,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 style={styles.priceAddBtn}
                 onPress={() => setPriceListRows(prev => [...prev, { service: '', price: '' }])}
               >
-                <Text style={styles.priceAddBtnText}>+ Add a service price</Text>
+                <Text style={styles.priceAddBtnText}>{t('garage.addServicePrice')}</Text>
               </TouchableOpacity>
 
               <View style={styles.brNote}>
                 <Text style={styles.brNoteText}>
-                  Adding your BR number earns a ✅ Verified badge, building trust with vehicle owners.
+                  {t('garage.brNoteText')}
                 </Text>
               </View>
 
               {editing && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -1263,7 +1273,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               >
                 {saving
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.saveBtnText}>{garage ? 'Save Changes' : 'Register Garage'}</Text>
+                  : <Text style={styles.saveBtnText}>{garage ? t('history.saveChanges') : t('garage.registerGarage')}</Text>
                 }
               </TouchableOpacity>
             </>
@@ -1274,12 +1284,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {tab === 'schedule' && garage && (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {/* ── Work days ── */}
-          <Text style={styles.schedSection}>Working Days</Text>
+          <Text style={styles.schedSection}>{t('garage.workingDays')}</Text>
           <View style={styles.dayRow}>
             {[
-              { d: 1, label: 'Mon' }, { d: 2, label: 'Tue' }, { d: 3, label: 'Wed' },
-              { d: 4, label: 'Thu' }, { d: 5, label: 'Fri' }, { d: 6, label: 'Sat' }, { d: 0, label: 'Sun' },
-            ].map(({ d, label }) => {
+              { d: 1, labelKey: 'garage.dow.mon' as const }, { d: 2, labelKey: 'garage.dow.tue' as const }, { d: 3, labelKey: 'garage.dow.wed' as const },
+              { d: 4, labelKey: 'garage.dow.thu' as const }, { d: 5, labelKey: 'garage.dow.fri' as const }, { d: 6, labelKey: 'garage.dow.sat' as const }, { d: 0, labelKey: 'garage.dow.sun' as const },
+            ].map(({ d, labelKey }) => {
               const on = schedWorkDays.includes(d)
               return (
                 <TouchableOpacity
@@ -1289,14 +1299,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     on ? prev.filter(x => x !== d) : [...prev, d]
                   )}
                 >
-                  <Text style={[styles.dayBtnText, on && styles.dayBtnTextOn]}>{label}</Text>
+                  <Text style={[styles.dayBtnText, on && styles.dayBtnTextOn]}>{t(labelKey)}</Text>
                 </TouchableOpacity>
               )
             })}
           </View>
 
           {/* ── Max per day ── */}
-          <Text style={styles.schedSection}>Max Vehicles Per Day</Text>
+          <Text style={styles.schedSection}>{t('garage.maxVehiclesPerDay')}</Text>
           <View style={styles.counterRow}>
             <TouchableOpacity
               style={styles.counterBtn}
@@ -1314,7 +1324,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
 
           {/* ── Time slots ── */}
-          <Text style={styles.schedSection}>Time Slots</Text>
+          <Text style={styles.schedSection}>{t('garage.timeSlots')}</Text>
           <View style={styles.chipRow}>
             {schedSlots.map(slot => (
               <TouchableOpacity
@@ -1341,7 +1351,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 setNewSlot('')
               }}
             >
-              <Text style={styles.addSlotBtnText}>Add</Text>
+              <Text style={styles.addSlotBtnText}>{t('garage.add')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -1352,7 +1362,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           >
             {savingSchedule
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.saveBtnText}>Save Schedule Settings</Text>
+              : <Text style={styles.saveBtnText}>{t('garage.saveScheduleSettings')}</Text>
             }
           </TouchableOpacity>
 
@@ -1387,8 +1397,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
           {/* Day-of-week header */}
           <View style={styles.calDowRow}>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <Text key={d} style={styles.calDow}>{d}</Text>
+            {DOW_KEYS.map(d => (
+              <Text key={d} style={styles.calDow}>{t(d)}</Text>
             ))}
           </View>
 
@@ -1447,18 +1457,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           <View style={styles.calLegend}>
             <View style={styles.calLegendItem}>
               <View style={[styles.calLegendDot, { backgroundColor: '#FF9800' }]} />
-              <Text style={styles.calLegendText}>Custom notice</Text>
+              <Text style={styles.calLegendText}>{t('garage.customNotice')}</Text>
             </View>
             <View style={styles.calLegendItem}>
               <Text style={styles.calLegendIcon}>✕</Text>
-              <Text style={styles.calLegendText}>Closed</Text>
+              <Text style={styles.calLegendText}>{t('garage.status.closed')}</Text>
             </View>
             <View style={styles.calLegendItem}>
               <Text style={styles.calLegendIcon}>★</Text>
-              <Text style={styles.calLegendText}>Holiday</Text>
+              <Text style={styles.calLegendText}>{t('garage.status.holiday')}</Text>
             </View>
           </View>
-          <Text style={styles.calTip}>Tap any future date to set or edit an override.</Text>
+          <Text style={styles.calTip}>{t('garage.tapFutureDateTip')}</Text>
         </ScrollView>
       )}
 
