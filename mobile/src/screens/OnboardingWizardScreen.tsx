@@ -6,6 +6,8 @@ import {
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Vehicle = {
   id: string
@@ -28,19 +30,19 @@ type Props = {
 
 type Milestone = {
   id: string
-  label: string
-  question: string
+  labelKey: TranslationKey
+  questionKey: TranslationKey
   serviceCategory: string
   icon: string
 }
 
 const MILESTONES: Milestone[] = [
-  { id: 'oil',       icon: '🛢️', label: 'Engine Oil Change',      question: 'When did you last change your engine oil?',                      serviceCategory: 'Oil & Filter Change' },
-  { id: 'timing',    icon: '⚙️', label: 'Timing Belt / Cam Belt', question: 'Has your timing belt or cam belt ever been replaced?',           serviceCategory: 'Timing Belt / Chain' },
-  { id: 'brakes',    icon: '🛑', label: 'Brake Pads',             question: 'When were your brake pads last replaced?',                       serviceCategory: 'Brake Pads' },
-  { id: 'battery',   icon: '🔋', label: 'Battery',                question: 'Has your battery been replaced?',                                serviceCategory: 'Battery' },
-  { id: 'chain',     icon: '⛓️', label: 'Chain & Sprocket',       question: 'When was your chain and sprocket last replaced?',                serviceCategory: 'Chain & Sprocket' },
-  { id: 'hydraulic', icon: '💧', label: 'Hydraulic Oil',          question: 'When was the hydraulic oil last changed?',                       serviceCategory: 'Hydraulic Oil' },
+  { id: 'oil',       icon: '🛢️', labelKey: 'onboarding.milestone.oil.label',       questionKey: 'onboarding.milestone.oil.question',       serviceCategory: 'Oil & Filter Change' },
+  { id: 'timing',    icon: '⚙️', labelKey: 'onboarding.milestone.timing.label',    questionKey: 'onboarding.milestone.timing.question',    serviceCategory: 'Timing Belt / Chain' },
+  { id: 'brakes',    icon: '🛑', labelKey: 'onboarding.milestone.brakes.label',    questionKey: 'onboarding.milestone.brakes.question',    serviceCategory: 'Brake Pads' },
+  { id: 'battery',   icon: '🔋', labelKey: 'onboarding.milestone.battery.label',   questionKey: 'onboarding.milestone.battery.question',   serviceCategory: 'Battery' },
+  { id: 'chain',     icon: '⛓️', labelKey: 'onboarding.milestone.chain.label',     questionKey: 'onboarding.milestone.chain.question',     serviceCategory: 'Chain & Sprocket' },
+  { id: 'hydraulic', icon: '💧', labelKey: 'onboarding.milestone.hydraulic.label', questionKey: 'onboarding.milestone.hydraulic.question', serviceCategory: 'Hydraulic Oil' },
 ]
 
 const MILESTONE_FOR: Record<string, string[]> = {
@@ -73,6 +75,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   const [saving, setSaving] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const visibleMilestones = vehicle.vehicleType
     ? MILESTONES.filter(m => MILESTONE_FOR[m.id]?.includes(vehicle.vehicleType!))
@@ -88,7 +91,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
 
   const handleAddQuickRecord = () => {
     if (!newRecord.description.trim()) {
-      Alert.alert('Required', 'Please describe what was done.')
+      Alert.alert(t('history.quickAdd.required.title'), t('history.quickAdd.required.message'))
       return
     }
     setQuickRecords(prev => [...prev, { ...newRecord }])
@@ -131,7 +134,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
       await Promise.all(allRecords.map(r => api.addServiceRecord(token, vehicle.id, r)))
       onDone()
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to save records.')
+      Alert.alert(t('common.error'), e.message || t('onboarding.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -147,15 +150,13 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
         <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
         <View style={[styles.stepDot, step >= 2 && styles.stepDotActive]} />
       </View>
-      <Text style={styles.stepLabel}>Step {step} of 2</Text>
+      <Text style={styles.stepLabel}>{t('onboarding.stepLabel', { step })}</Text>
 
       <View style={styles.header}>
-        <Text style={styles.title}>{step === 1 ? 'Key Service History' : 'Any Other Past Records?'}</Text>
+        <Text style={styles.title}>{step === 1 ? t('onboarding.title1') : t('onboarding.title2')}</Text>
         <Text style={styles.subtitle}>{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.registrationNo}</Text>
         <Text style={styles.intro}>
-          {step === 1
-            ? 'Tick what you know. All fields are approximate — skip anything you\'re unsure about.'
-            : 'Optionally add other services you remember. These help the prediction engine and give you a complete history from day one.'}
+          {step === 1 ? t('onboarding.intro1') : t('onboarding.intro2')}
         </Text>
       </View>
 
@@ -169,27 +170,27 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               <View style={styles.cardLeft}>
                 <Text style={styles.cardIcon}>{m.icon}</Text>
                 <View style={styles.cardTextWrap}>
-                  <Text style={styles.cardLabel}>{m.label}</Text>
-                  <Text style={styles.cardQuestion}>{m.question}</Text>
+                  <Text style={styles.cardLabel}>{t(m.labelKey)}</Text>
+                  <Text style={styles.cardQuestion}>{t(m.questionKey)}</Text>
                 </View>
               </View>
               <View style={[styles.toggle, s.added && styles.toggleActive, hasData && styles.toggleDone]}>
-                <Text style={[styles.toggleText, s.added && styles.toggleTextActive]}>{s.added ? 'Yes ✓' : '+ Add'}</Text>
+                <Text style={[styles.toggleText, s.added && styles.toggleTextActive]}>{s.added ? t('onboarding.yesAdded') : t('onboarding.addToggle')}</Text>
               </View>
             </TouchableOpacity>
             {s.added && (
               <View style={styles.cardFields}>
                 <View style={styles.fieldRow}>
                   <View style={styles.fieldHalf}>
-                    <Text style={styles.fieldLabel}>Approximate year</Text>
+                    <Text style={styles.fieldLabel}>{t('onboarding.approxYear')}</Text>
                     <TextInput style={styles.input} value={s.year} onChangeText={v => updateMilestone(m.id, 'year', v)} placeholder="e.g. 2022" keyboardType="number-pad" maxLength={4} placeholderTextColor="#bbb" />
                   </View>
                   <View style={styles.fieldHalf}>
-                    <Text style={styles.fieldLabel}>Mileage at the time (km)</Text>
+                    <Text style={styles.fieldLabel}>{t('history.quickAdd.mileageAtTime')}</Text>
                     <TextInput style={styles.input} value={s.mileage} onChangeText={v => updateMilestone(m.id, 'mileage', v)} placeholder="e.g. 40000" keyboardType="number-pad" placeholderTextColor="#bbb" />
                   </View>
                 </View>
-                <Text style={styles.fieldHint}>Both fields are optional — leave blank if unsure</Text>
+                <Text style={styles.fieldHint}>{t('onboarding.fieldHint')}</Text>
               </View>
             )}
           </View>
@@ -200,8 +201,8 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
         <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(2)}>
           <Text style={styles.nextBtnText}>
             {addedMilestones.length > 0
-              ? `Continue — ${addedMilestones.length} record${addedMilestones.length !== 1 ? 's' : ''} added →`
-              : 'Continue — Nothing to Add →'}
+              ? t('onboarding.continueWithRecords', { count: addedMilestones.length, s: addedMilestones.length !== 1 ? 's' : '' })
+              : t('onboarding.continueNothing')}
           </Text>
         </TouchableOpacity>
       )}
@@ -218,7 +219,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                 </TouchableOpacity>
               </View>
               <Text style={styles.quickCardMeta}>
-                {r.year ? `${r.year}` : 'Year unknown'}
+                {r.year ? `${r.year}` : t('onboarding.yearUnknown')}
                 {r.mileage ? ` · ${parseInt(r.mileage).toLocaleString()} km` : ''}
                 {r.cost ? ` · LKR ${parseFloat(r.cost).toLocaleString()}` : ''}
               </Text>
@@ -227,14 +228,14 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
 
           {!showAddForm && (
             <TouchableOpacity style={styles.addRecordBtn} onPress={() => { setNewRecord(emptyQR()); setShowAddForm(true) }}>
-              <Text style={styles.addRecordBtnText}>+ Add a past record</Text>
+              <Text style={styles.addRecordBtnText}>{t('onboarding.addPastRecord')}</Text>
             </TouchableOpacity>
           )}
 
           {showAddForm && (
             <View style={styles.addForm}>
-              <Text style={styles.addFormTitle}>Add past record</Text>
-              <Text style={styles.fieldLabel}>What was done? *</Text>
+              <Text style={styles.addFormTitle}>{t('onboarding.addPastRecordTitle')}</Text>
+              <Text style={styles.fieldLabel}>{t('history.quickAdd.whatWasDone')}</Text>
               <TextInput
                 style={styles.input}
                 value={newRecord.description}
@@ -245,22 +246,22 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               />
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Year (approx)</Text>
+                  <Text style={styles.fieldLabel}>{t('onboarding.yearApprox')}</Text>
                   <TextInput style={styles.input} value={newRecord.year} onChangeText={v => setNewRecord(p => ({ ...p, year: v }))} placeholder="e.g. 2021" keyboardType="number-pad" maxLength={4} placeholderTextColor="#bbb" />
                 </View>
                 <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Mileage (km)</Text>
-                  <TextInput style={styles.input} value={newRecord.mileage} onChangeText={v => setNewRecord(p => ({ ...p, mileage: v }))} placeholder="Optional" keyboardType="number-pad" placeholderTextColor="#bbb" />
+                  <Text style={styles.fieldLabel}>{t('addService.mileage')}</Text>
+                  <TextInput style={styles.input} value={newRecord.mileage} onChangeText={v => setNewRecord(p => ({ ...p, mileage: v }))} placeholder={t('history.optional')} keyboardType="number-pad" placeholderTextColor="#bbb" />
                 </View>
               </View>
-              <Text style={styles.fieldLabel}>Cost (LKR)</Text>
-              <TextInput style={styles.input} value={newRecord.cost} onChangeText={v => setNewRecord(p => ({ ...p, cost: v }))} placeholder="Optional" keyboardType="number-pad" placeholderTextColor="#bbb" />
+              <Text style={styles.fieldLabel}>{t('history.costLkr')}</Text>
+              <TextInput style={styles.input} value={newRecord.cost} onChangeText={v => setNewRecord(p => ({ ...p, cost: v }))} placeholder={t('history.optional')} keyboardType="number-pad" placeholderTextColor="#bbb" />
               <View style={styles.addFormActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddForm(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.confirmBtn} onPress={handleAddQuickRecord}>
-                  <Text style={styles.confirmBtnText}>Add Record</Text>
+                  <Text style={styles.confirmBtnText}>{t('onboarding.addRecordConfirm')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -275,19 +276,19 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.doneBtnText}>
                   {(addedMilestones.length + quickRecords.length) > 0
-                    ? `Save ${addedMilestones.length + quickRecords.length} Record${addedMilestones.length + quickRecords.length !== 1 ? 's' : ''} & Go to Dashboard →`
-                    : 'Go to Dashboard →'}
+                    ? t('onboarding.saveAndGoToDashboard', { count: addedMilestones.length + quickRecords.length, s: (addedMilestones.length + quickRecords.length) !== 1 ? 's' : '' })
+                    : t('onboarding.goToDashboard')}
                 </Text>
             }
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setStep(1)} style={styles.backLink}>
-            <Text style={styles.backLinkText}>← Back to Step 1</Text>
+            <Text style={styles.backLinkText}>{t('onboarding.backToStep1')}</Text>
           </TouchableOpacity>
         </>
       )}
 
-      <Text style={styles.footer}>You can always add more history from the vehicle dashboard at any time.</Text>
+      <Text style={styles.footer}>{t('onboarding.footer')}</Text>
     </ScrollView>
     </KeyboardAvoidingView>
   )
