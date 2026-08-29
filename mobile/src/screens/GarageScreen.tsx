@@ -1478,9 +1478,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
           ) : bookings.length === 0 ? (
             <View style={styles.emptyShares}>
-              <Text style={styles.emptySharesTitle}>No bookings yet</Text>
+              <Text style={styles.emptySharesTitle}>{t('garage.noBookingsYet')}</Text>
               <Text style={styles.emptySharesText}>
-                When vehicle owners book a service appointment, they will appear here.
+                {t('garage.noBookingsYetSub')}
               </Text>
             </View>
           ) : bookings.map(booking => {
@@ -1527,11 +1527,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                         styles.bookingBadgeText,
                         isPending ? styles.bookingBadgeTextPending : isCounter ? styles.bookingBadgeTextCounter : styles.bookingBadgeTextConfirmed,
                       ]}>
-                        {isPending ? 'Pending' : isCounter ? '🔄 Counter Sent' : 'Confirmed'}
+                        {isPending ? t('garage.pending') : isCounter ? `🔄 ${t('garage.counterSent')}` : t('garage.confirmed')}
                       </Text>
                     </View>
                     {attachedShare && (
-                      <Text style={styles.shareAttachedTag}>📎 History attached</Text>
+                      <Text style={styles.shareAttachedTag}>📎 {t('garage.historyAttached')}</Text>
                     )}
                   </View>
                 </View>
@@ -1541,7 +1541,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   {bAny.slotLabel && (
                     <Text style={styles.bookingSlot}>⏰ {bAny.slotLabel}</Text>
                   )}
-                  <Text style={styles.bookingOwner}>Owner: {booking.ownerPhone}</Text>
+                  <Text style={styles.bookingOwner}>{t('garage.ownerLabel', { phone: booking.ownerPhone })}</Text>
                   <Text style={styles.bookingMileage}>{booking.vehicle.mileage.toLocaleString()} km</Text>
                 </View>
 
@@ -1563,33 +1563,33 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     >
                       {confirmingId === booking.id
                         ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.confirmBookingBtnText}>✓ Confirm</Text>
+                        : <Text style={styles.confirmBookingBtnText}>✓ {t('garage.confirm')}</Text>
                       }
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.counterSuggestBtn}
                       onPress={(e) => { e.stopPropagation?.(); setCounterDate(''); setCounterSlot(''); setCounterNote(''); setCounterModal({ bookingId: booking.id }) }}
                     >
-                      <Text style={styles.counterSuggestBtnText}>🔄 Suggest Slot</Text>
+                      <Text style={styles.counterSuggestBtnText}>🔄 {t('garage.suggestSlot')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
                 {isCounter && (
                   <View style={styles.counterSentNote}>
-                    <Text style={styles.counterSentText}>🔄 Counter suggestion sent — awaiting owner response</Text>
+                    <Text style={styles.counterSentText}>🔄 {t('garage.counterSentAwaiting')}</Text>
                   </View>
                 )}
 
                 {isConfirmed && !attachedShare && !isExpanded && (
                   <View style={styles.confirmedBadge}>
-                    <Text style={styles.confirmedText}>✓ Confirmed — tap to submit service</Text>
+                    <Text style={styles.confirmedText}>✓ {t('garage.confirmedTapToSubmit')}</Text>
                   </View>
                 )}
 
                 {isConfirmed && attachedShare && !isExpanded && (
                   <View style={styles.confirmedBadge}>
                     <Text style={styles.confirmedText}>
-                      {alreadySubmitted ? '✓ Service submitted — awaiting owner approval' : '📋 Confirmed — tap to view history & submit service'}
+                      {alreadySubmitted ? `✓ ${t('garage.serviceSubmittedAwaiting')}` : `📋 ${t('garage.confirmedTapToViewHistory')}`}
                     </Text>
                   </View>
                 )}
@@ -1597,17 +1597,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {/* ── Expanded: confirmed without share → show submit button ── */}
                 {isExpanded && isConfirmed && !attachedShare && (
                   <View style={styles.inlineShareSection}>
-                    <Text style={styles.inlineShareTitle}>No service history was attached to this booking.</Text>
+                    <Text style={styles.inlineShareTitle}>{t('garage.noHistoryAttached')}</Text>
                     {alreadySubmitted ? (
                       <View style={styles.submittedBadge}>
-                        <Text style={styles.submittedText}>✓ Service submitted — awaiting owner approval</Text>
+                        <Text style={styles.submittedText}>✓ {t('garage.serviceSubmittedAwaiting')}</Text>
                       </View>
                     ) : (
                       <TouchableOpacity
                         style={styles.openSubmitBtn}
                         onPress={(e) => { e.stopPropagation?.(); openSubmitFormFromBooking(booking) }}
                       >
-                        <Text style={styles.openSubmitBtnText}>Submit Completed Service</Text>
+                        <Text style={styles.openSubmitBtnText}>{t('garage.submitCompletedService')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1617,22 +1617,22 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {isExpanded && attachedShare && (
                   <View style={styles.inlineShareSection}>
                     <Text style={styles.inlineShareTitle}>
-                      📋 Shared Service History ({attachedShare.records.length} records)
+                      📋 {t('garage.sharedServiceHistory', { count: attachedShare.records.length })}
                     </Text>
 
                     {/* Vehicle profile */}
                     <View style={styles.inlineVehicleRow}>
                       <View style={styles.inlineVehicleItem}>
-                        <Text style={styles.inlineVehicleLabel}>Fuel Type</Text>
+                        <Text style={styles.inlineVehicleLabel}>{t('garage.fuelTypeLabel')}</Text>
                         <Text style={styles.inlineVehicleValue}>{attachedShare.vehicle.fuelType}</Text>
                       </View>
                       <View style={styles.inlineVehicleItem}>
-                        <Text style={styles.inlineVehicleLabel}>Mileage</Text>
+                        <Text style={styles.inlineVehicleLabel}>{t('addService.mileage')}</Text>
                         <Text style={styles.inlineVehicleValue}>{attachedShare.vehicle.mileage.toLocaleString()} km</Text>
                       </View>
                       {attachedShare.avgFuelEfficiency != null && (
                         <View style={styles.inlineVehicleItem}>
-                          <Text style={styles.inlineVehicleLabel}>Avg Economy</Text>
+                          <Text style={styles.inlineVehicleLabel}>{t('garage.avgEconomy')}</Text>
                           <Text style={styles.inlineVehicleValue}>{attachedShare.avgFuelEfficiency} km/L</Text>
                         </View>
                       )}
@@ -1662,14 +1662,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <View style={styles.submitArea}>
                       {alreadySubmitted ? (
                         <View style={styles.submittedBadge}>
-                          <Text style={styles.submittedText}>✓ Service submitted — awaiting owner approval</Text>
+                          <Text style={styles.submittedText}>✓ {t('garage.serviceSubmittedAwaiting')}</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
                           style={styles.openSubmitBtn}
                           onPress={() => openSubmitForm(attachedShare)}
                         >
-                          <Text style={styles.openSubmitBtnText}>Submit Completed Service</Text>
+                          <Text style={styles.openSubmitBtnText}>{t('garage.submitCompletedService')}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -1682,7 +1682,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   onPress={(e) => { e.stopPropagation?.(); toggleMessages(booking.id) }}
                 >
                   <Text style={styles.messagesToggleBtnText}>
-                    💬 Messages with Owner {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
+                    💬 {t('garage.messagesWithOwner')} {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                   </Text>
                   {(() => {
                     const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
@@ -1698,7 +1698,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     ) : (
                       <>
                         {(bookingNotesMap[booking.id] || []).length === 0 ? (
-                          <Text style={styles.noNotes}>No messages yet — start the conversation below</Text>
+                          <Text style={styles.noNotes}>{t('garage.noMessagesYet')}</Text>
                         ) : (bookingNotesMap[booking.id] || []).map(note => (
                           <View
                             key={note.id}
@@ -1708,7 +1708,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                             ]}
                           >
                             <Text style={styles.noteSender}>
-                              {note.senderPhone === booking.ownerPhone ? 'Owner' : 'You (Garage)'}
+                              {note.senderPhone === booking.ownerPhone ? t('garage.owner') : t('garage.youGarage')}
                             </Text>
                             <Text style={styles.noteText}>{note.message}</Text>
                             <Text style={styles.noteTime}>
@@ -1721,7 +1721,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                             style={styles.noteInput}
                             value={noteInputs[booking.id] || ''}
                             onChangeText={v => setNoteInputs(prev => ({ ...prev, [booking.id]: v }))}
-                            placeholder="Type a message to the owner..."
+                            placeholder={t('garage.typeMessageToOwner')}
                           />
                           <TouchableOpacity
                             style={[
@@ -1743,7 +1743,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 )}
 
                 {!isExpanded && !isConfirmed && (
-                  <Text style={styles.expandHint}>Tap to expand</Text>
+                  <Text style={styles.expandHint}>{t('garage.tapToExpand')}</Text>
                 )}
               </TouchableOpacity>
             )
@@ -1779,8 +1779,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </View>
 
           <View style={styles.calDowRow}>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <Text key={d} style={styles.calDow}>{d}</Text>
+            {DOW_KEYS.map(d => (
+              <Text key={d} style={styles.calDow}>{t(d)}</Text>
             ))}
           </View>
 
@@ -1865,18 +1865,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           <View style={styles.calLegend}>
             <View style={styles.calLegendItem}>
               <View style={[styles.calLegendDot, { backgroundColor: '#fff3e0', borderWidth: 1, borderColor: '#ffe0b2' }]} />
-              <Text style={styles.calLegendText}>Partial</Text>
+              <Text style={styles.calLegendText}>{t('garage.partial')}</Text>
             </View>
             <View style={styles.calLegendItem}>
               <View style={[styles.calLegendDot, { backgroundColor: '#ffebee', borderWidth: 1, borderColor: '#ffcdd2' }]} />
-              <Text style={styles.calLegendText}>Full</Text>
+              <Text style={styles.calLegendText}>{t('booking.full')}</Text>
             </View>
             <View style={styles.calLegendItem}>
               <View style={[styles.calLegendDot, { backgroundColor: '#e53935' }]} />
-              <Text style={styles.calLegendText}>Notice</Text>
+              <Text style={styles.calLegendText}>{t('garage.notice')}</Text>
             </View>
           </View>
-          <Text style={styles.calTip}>Tap a date to see bookings for that day.</Text>
+          <Text style={styles.calTip}>{t('garage.tapDateForBookings')}</Text>
 
           {/* Selected date detail */}
           {selectedCalDate && (() => {
@@ -1895,14 +1895,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   <Text style={styles.calDayMessage}>⚠️ {override.message}</Text>
                 )}
                 {override?.status === 'closed' && (
-                  <Text style={styles.calDayClosedMsg}>Closed this day</Text>
+                  <Text style={styles.calDayClosedMsg}>{t('garage.closedThisDay')}</Text>
                 )}
                 {override?.status === 'holiday' && (
-                  <Text style={styles.calDayClosedMsg}>Holiday — {override.message || 'no description'}</Text>
+                  <Text style={styles.calDayClosedMsg}>{t('garage.holidayDash', { desc: override.message || t('garage.noDescription') })}</Text>
                 )}
 
                 {dayBookings.length === 0 ? (
-                  <Text style={styles.calDayEmpty}>No bookings on this day.</Text>
+                  <Text style={styles.calDayEmpty}>{t('garage.noBookingsThisDay')}</Text>
                 ) : (
                   dayBookings.map((b: any) => (
                     <View key={b.id} style={[
@@ -1917,7 +1917,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                           styles.bookingBadge,
                           b.status === 'pending' ? styles.bookingBadgePending : styles.bookingBadgeConfirmed,
                         ]}>
-                          <Text style={[styles.bookingBadgeText, b.status === 'pending' ? styles.bookingBadgeTextPending : styles.bookingBadgeTextConfirmed]}>{b.status}</Text>
+                          <Text style={[styles.bookingBadgeText, b.status === 'pending' ? styles.bookingBadgeTextPending : styles.bookingBadgeTextConfirmed]}>{b.status === 'pending' ? t('garage.pending') : t('garage.confirmed')}</Text>
                         </View>
                       </View>
                       {b.slotLabel && <Text style={styles.calDaySlot}>⏰ {b.slotLabel}</Text>}
@@ -1939,14 +1939,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {tab === 'customers' && (
         <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity style={styles.walkinBtn} onPress={() => setWalkinOpen(true)}>
-            <Text style={styles.walkinBtnText}>🚶 Log a Walk-in Service</Text>
+            <Text style={styles.walkinBtnText}>🚶 {t('garage.logWalkinService')}</Text>
           </TouchableOpacity>
 
           <FormField
-            label="Search"
+            label={t('garage.search')}
             value={customerSearch}
             onChangeText={setCustomerSearch}
-            placeholder="Search by registration number"
+            placeholder={t('garage.searchByRegNo')}
           />
 
           {customersLoading ? (
@@ -1958,8 +1958,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               return (
                 <View style={styles.empty}>
                   <Text style={styles.emptyIcon}>👥</Text>
-                  <Text style={styles.emptyText}>No customers yet</Text>
-                  <Text style={styles.emptySub}>Vehicles you've serviced through bookings or shares will appear here</Text>
+                  <Text style={styles.emptyText}>{t('garage.noCustomersYet')}</Text>
+                  <Text style={styles.emptySub}>{t('garage.noCustomersYetSub')}</Text>
                 </View>
               )
             }
@@ -1976,17 +1976,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <Text style={styles.custReg}>{cust.registrationNo}</Text>
                     {(isOverdue || isDueSoon) && (
                       <View style={[styles.custBadge, isOverdue ? styles.custBadgeOverdue : styles.custBadgeDueSoon]}>
-                        <Text style={styles.custBadgeText}>{isOverdue ? '🚨 Overdue' : '⚠ Due Soon'}</Text>
+                        <Text style={styles.custBadgeText}>{isOverdue ? `🚨 ${t('predictions.status.overdue')}` : `⚠ ${t('predictions.status.dueSoon')}`}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.custVehicle}>{cust.year} {cust.make} {cust.model}</Text>
                   <View style={styles.custStatsRow}>
-                    <Text style={styles.custStat}>{cust.jobCount} job{cust.jobCount !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.custStat}>{t('garage.jobCount', { count: cust.jobCount, s: cust.jobCount !== 1 ? 's' : '' })}</Text>
                     <Text style={styles.custStat}>LKR {cust.totalRevenue.toLocaleString()}</Text>
                     {cust.lastServiceDate && (
                       <Text style={styles.custStat}>
-                        Last: {new Date(cust.lastServiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {t('garage.lastLabel', { date: new Date(cust.lastServiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })}
                       </Text>
                     )}
                   </View>
@@ -2003,14 +2003,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
                         <Text style={styles.custRemindBtnText}>
-                          {cooldownActive ? `Sent ${daysSinceReminder}d ago` : '🔔 Send Reminder'}
+                          {cooldownActive ? t('garage.sentDaysAgo', { days: daysSinceReminder ?? 0 }) : `🔔 ${t('garage.sendReminder')}`}
                         </Text>
                       )}
                     </TouchableOpacity>
                   )}
                   {onOpenLedger && (
                     <TouchableOpacity onPress={() => onOpenLedger(cust.vehicleId)}>
-                      <Text style={styles.viewHistoryLink}>View Full History →</Text>
+                      <Text style={styles.viewHistoryLink}>{t('garage.viewFullHistory')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -2062,7 +2062,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
             const catRevenue = new Map<string, number>()
             completed.forEach(j => {
-              const cats = j.categories && j.categories.length > 0 ? j.categories : ['Uncategorized']
+              const cats = j.categories && j.categories.length > 0 ? j.categories : [t('garage.uncategorized')]
               cats.forEach(cat => catRevenue.set(cat, (catRevenue.get(cat) ?? 0) + (j.cost ?? 0)))
             })
             const catBreakdown = Array.from(catRevenue.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6)
@@ -2074,32 +2074,32 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {/* Summary cards */}
                 <View style={styles.revSummaryRow}>
                   <View style={styles.revCard}>
-                    <Text style={styles.revCardLabel}>Total Revenue</Text>
+                    <Text style={styles.revCardLabel}>{t('garage.totalRevenue')}</Text>
                     <Text style={styles.revCardValue}>LKR {totalRevenue.toLocaleString()}</Text>
-                    <Text style={styles.revCardSub}>{completed.length} completed job{completed.length !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.revCardSub}>{t('garage.completedJobsCount', { count: completed.length, s: completed.length !== 1 ? 's' : '' })}</Text>
                   </View>
                   <View style={styles.revCard}>
-                    <Text style={styles.revCardLabel}>This Month</Text>
+                    <Text style={styles.revCardLabel}>{t('garage.thisMonth')}</Text>
                     <Text style={styles.revCardValue}>LKR {thisMonthRevenue.toLocaleString()}</Text>
-                    <Text style={styles.revCardSub}>{thisMonthJobs.length} job{thisMonthJobs.length !== 1 ? 's' : ''}</Text>
+                    <Text style={styles.revCardSub}>{t('garage.jobCount', { count: thisMonthJobs.length, s: thisMonthJobs.length !== 1 ? 's' : '' })}</Text>
                   </View>
                 </View>
                 <View style={styles.revSummaryRow}>
                   <View style={styles.revCard}>
-                    <Text style={styles.revCardLabel}>Avg Job Value</Text>
+                    <Text style={styles.revCardLabel}>{t('garage.avgJobValue')}</Text>
                     <Text style={styles.revCardValue}>LKR {avgJobValue.toLocaleString()}</Text>
                   </View>
                   <View style={styles.revCard}>
-                    <Text style={styles.revCardLabel}>Repeat Customers</Text>
+                    <Text style={styles.revCardLabel}>{t('garage.repeatCustomers')}</Text>
                     <Text style={styles.revCardValue}>{repeatPct}%</Text>
-                    <Text style={styles.revCardSub}>{repeatVehicles} of {distinctVehicles} vehicles</Text>
+                    <Text style={styles.revCardSub}>{t('garage.ofVehicles', { repeat: repeatVehicles, total: distinctVehicles })}</Text>
                   </View>
                 </View>
 
                 {/* Revenue by category */}
                 {catBreakdown.length > 0 && (
                   <View style={styles.revChartCard}>
-                    <Text style={styles.revChartTitle}>Revenue by Category</Text>
+                    <Text style={styles.revChartTitle}>{t('garage.revenueByCategory')}</Text>
                     {catBreakdown.map(([cat, rev], i) => (
                       <View key={cat} style={styles.revCatRow}>
                         <Text style={styles.revCatLabel} numberOfLines={1}>{cat}</Text>
@@ -2114,7 +2114,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
                 {/* Monthly bar chart */}
                 <View style={styles.revChartCard}>
-                  <Text style={styles.revChartTitle}>Revenue — Last 6 Months</Text>
+                  <Text style={styles.revChartTitle}>{t('garage.revenueLast6Months')}</Text>
                   <View style={styles.revBars}>
                     {months.map((m, i) => (
                       <View key={i} style={styles.revBarCol}>
@@ -2131,12 +2131,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </View>
 
                 {/* Completed jobs list */}
-                <Text style={styles.revSectionTitle}>Completed Jobs</Text>
+                <Text style={styles.revSectionTitle}>{t('garage.completedJobs')}</Text>
                 {completed.length === 0 ? (
                   <View style={styles.empty}>
                     <Text style={styles.emptyIcon}>🔧</Text>
-                    <Text style={styles.emptyText}>No completed jobs yet</Text>
-                    <Text style={styles.emptySub}>Accepted service submissions will appear here</Text>
+                    <Text style={styles.emptyText}>{t('garage.noCompletedJobsYet')}</Text>
+                    <Text style={styles.emptySub}>{t('garage.acceptedSubmissionsAppearHere')}</Text>
                   </View>
                 ) : (
                   completed.map(job => (
