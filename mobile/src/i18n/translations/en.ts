@@ -1067,6 +1067,17 @@ const en = {
   'garage.completedJobs': 'Completed Jobs',
   'garage.noCompletedJobsYet': 'No completed jobs yet',
   'garage.acceptedSubmissionsAppearHere': 'Accepted service submissions will appear here',
+  'garage.ratingCount': '{count} rating{s}',
+  'garage.writtenReviews': 'Written Reviews',
+  'garage.noWrittenReviews': 'No written reviews yet.',
+  'garage.walkinIntro': "Enter the vehicle's registration number to look it up, then log the completed service. The owner will still need to Accept it before it's added to their history.",
+  'garage.find': 'Find',
+  'garage.logServiceForVehicle': 'Log Service for this Vehicle',
+  'garage.suggestDifferentSlot': 'Suggest Different Slot',
+  'garage.selectNewDate': 'Select a new date',
+  'garage.selectTimeSlotOptional': 'Select a time slot (optional)',
+  'garage.addNoteForOwner': 'Add a note for the owner (optional)',
+  'garage.sendSuggestionToOwner': 'Send Suggestion to Owner',
 }
 
 export default en

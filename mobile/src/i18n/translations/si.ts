@@ -1069,6 +1069,17 @@ const si: Record<TranslationKey, string> = {
   'garage.completedJobs': 'සම්පූර්ණ කළ රැකියා',
   'garage.noCompletedJobsYet': 'තවම සම්පූර්ණ කළ රැකියා නැත',
   'garage.acceptedSubmissionsAppearHere': 'පිළිගත් සේවා ඉදිරිපත් කිරීම් මෙහි දිස්වනු ඇත',
+  'garage.ratingCount': 'ශ්‍රේණිගත කිරීම් {count}',
+  'garage.writtenReviews': 'ලිඛිත සමාලෝචන',
+  'garage.noWrittenReviews': 'තවම ලිඛිත සමාලෝචන නැත.',
+  'garage.walkinIntro': 'සොයා ගැනීමට වාහනයේ ලියාපදිංචි අංකය ඇතුළත් කර, පසුව සම්පූර්ණ කළ සේවාව සටහන් කරන්න. එය හිමිකරුගේ ඉතිහාසයට එකතු වීමට පෙර ඔවුන් තවමත් එය පිළිගත යුතුය.',
+  'garage.find': 'සොයන්න',
+  'garage.logServiceForVehicle': 'මෙම වාහනය සඳහා සේවාව සටහන් කරන්න',
+  'garage.suggestDifferentSlot': 'වෙනත් වේලාවක් යෝජනා කරන්න',
+  'garage.selectNewDate': 'නව දිනයක් තෝරන්න',
+  'garage.selectTimeSlotOptional': 'වේලා පරාසයක් තෝරන්න (විකල්ප)',
+  'garage.addNoteForOwner': 'හිමිකරු සඳහා සටහනක් එකතු කරන්න (විකල්ප)',
+  'garage.sendSuggestionToOwner': 'හිමිකරුට යෝජනාව යවන්න',
 }
 
 export default si

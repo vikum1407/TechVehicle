@@ -2172,7 +2172,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {ratingsModalOpen && (
         <Modal visible animationType="slide" transparent={false} onRequestClose={() => setRatingsModalOpen(false)}>
           <View style={styles.container}>
-            <ScreenHeader title="Reviews" onBack={() => setRatingsModalOpen(false)} />
+            <ScreenHeader title={t('booking.reviews')} onBack={() => setRatingsModalOpen(false)} />
             <ScrollView contentContainerStyle={styles.content}>
               {ratingsLoading ? (
                 <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
@@ -2183,7 +2183,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <View>
                       <Text style={styles.ratingsAvgStars}>{'⭐'.repeat(Math.round(ratingsDetail.avgRating ?? 0))}</Text>
                       <Text style={styles.ratingsCountText}>
-                        {ratingsDetail.ratingCount} rating{ratingsDetail.ratingCount !== 1 ? 's' : ''}
+                        {t('garage.ratingCount', { count: ratingsDetail.ratingCount, s: ratingsDetail.ratingCount !== 1 ? 's' : '' })}
                       </Text>
                     </View>
                   </View>
@@ -2204,9 +2204,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     })}
                   </View>
 
-                  <Text style={styles.ratingsReviewsTitle}>Written Reviews</Text>
+                  <Text style={styles.ratingsReviewsTitle}>{t('garage.writtenReviews')}</Text>
                   {ratingsDetail.reviews.length === 0 ? (
-                    <Text style={styles.emptySub}>No written reviews yet.</Text>
+                    <Text style={styles.emptySub}>{t('garage.noWrittenReviews')}</Text>
                   ) : (
                     ratingsDetail.reviews.map((r, i) => (
                       <View key={i} style={styles.reviewCard}>
@@ -2230,10 +2230,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         <Modal visible animationType="slide" transparent={false} onRequestClose={() => setWalkinOpen(false)}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.container}>
-            <ScreenHeader title="Log a Walk-in Service" onBack={() => { setWalkinOpen(false); setWalkinRegNo(''); setWalkinResult(null) }} />
+            <ScreenHeader title={t('garage.logWalkinService')} onBack={() => { setWalkinOpen(false); setWalkinRegNo(''); setWalkinResult(null) }} />
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
               <Text style={styles.walkinIntro}>
-                Enter the vehicle's registration number to look it up, then log the completed service. The owner will still need to Accept it before it's added to their history.
+                {t('garage.walkinIntro')}
               </Text>
               <View style={styles.walkinSearchRow}>
                 <TextInput
@@ -2246,7 +2246,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <TouchableOpacity style={styles.walkinFindBtn} onPress={handleWalkinLookup} disabled={walkinLookupLoading}>
                   {walkinLookupLoading
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.walkinFindBtnText}>Find</Text>
+                    : <Text style={styles.walkinFindBtnText}>{t('garage.find')}</Text>
                   }
                 </TouchableOpacity>
               </View>
@@ -2259,7 +2259,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </Text>
                   <Text style={styles.walkinResultMeta}>{walkinResult.mileage.toLocaleString()} km · {walkinResult.fuelType}</Text>
                   <TouchableOpacity style={styles.walkinConfirmBtn} onPress={openSubmitFormFromWalkin}>
-                    <Text style={styles.walkinConfirmBtnText}>Log Service for this Vehicle</Text>
+                    <Text style={styles.walkinConfirmBtnText}>{t('garage.logServiceForVehicle')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -2281,14 +2281,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <View style={styles.counterModalContainer}>
               <View style={styles.counterModalHeader}>
                 <TouchableOpacity onPress={() => setCounterModal(null)}>
-                  <Text style={styles.counterModalBack}>✕ Cancel</Text>
+                  <Text style={styles.counterModalBack}>✕ {t('common.cancel')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.counterModalTitle}>Suggest Different Slot</Text>
+                <Text style={styles.counterModalTitle}>{t('garage.suggestDifferentSlot')}</Text>
                 <View style={{ width: 60 }} />
               </View>
 
               <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
-                <Text style={styles.counterLabel}>Select a new date</Text>
+                <Text style={styles.counterLabel}>{t('garage.selectNewDate')}</Text>
                 <View style={styles.counterDateGrid}>
                   {next14.map(d => {
                     const iso = d.toISOString().split('T')[0]
@@ -2313,7 +2313,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   })}
                 </View>
 
-                <Text style={[styles.counterLabel, { marginTop: 20 }]}>Select a time slot (optional)</Text>
+                <Text style={[styles.counterLabel, { marginTop: 20 }]}>{t('garage.selectTimeSlotOptional')}</Text>
                 <View style={styles.counterSlotRow}>
                   {slots.map(s => (
                     <TouchableOpacity
@@ -2328,7 +2328,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
                 <View style={styles.counterNoteWrap}>
                   <FormField
-                    label="Add a note for the owner (optional)"
+                    label={t('garage.addNoteForOwner')}
                     value={counterNote}
                     onChangeText={setCounterNote}
                     placeholder="e.g. Sorry, we're fully booked that slot — this time works better for us"
@@ -2345,7 +2345,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 >
                   {submittingCounter
                     ? <ActivityIndicator color="#fff" />
-                    : <Text style={styles.counterSubmitBtnText}>Send Suggestion to Owner</Text>
+                    : <Text style={styles.counterSubmitBtnText}>{t('garage.sendSuggestionToOwner')}</Text>
                   }
                 </TouchableOpacity>
               </ScrollView>
