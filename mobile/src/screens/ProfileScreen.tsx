@@ -9,6 +9,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -28,6 +29,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [garageName, setGarageName] = useState<string | null>(null)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.getAccountStats(token)
@@ -43,7 +45,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      Alert.alert(t('addVehicle.permissionNeeded.title'), t('addVehicle.permissionNeeded.message'))
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
@@ -59,7 +61,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       await api.updateProfilePhoto(token, url)
       setPhotoUrl(url)
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+      Alert.alert(t('addVehicle.uploadFailed.title'), e.message || t('addVehicle.uploadFailed.message'))
     } finally {
       setUploadingPhoto(false)
     }
@@ -68,15 +70,15 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const initials = phoneNumber.slice(-4)
 
   const confirmLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: onLogout },
+    Alert.alert(t('profile.logOut'), t('profile.logOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.logOut'), style: 'destructive', onPress: onLogout },
     ])
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="Profile" onBack={onBack} />
+      <ScreenHeader title={t('profile.title')} onBack={onBack} />
 
       <View style={styles.avatarSection}>
         <TouchableOpacity style={styles.avatar} onPress={pickPhoto} activeOpacity={0.8} disabled={uploadingPhoto}>
@@ -94,20 +96,20 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <Text style={styles.phone}>{phoneNumber}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleBadgeText}>
-            {userType === 'garage' ? '🔧 Garage / Service Center' : '🚗 Vehicle Owner'}
+            {userType === 'garage' ? `🔧 ${t('profile.garageServiceCenter')}` : `🚗 ${t('profile.vehicleOwner')}`}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Account Summary</Text>
+      <Text style={styles.sectionTitle}>{t('profile.accountSummary')}</Text>
       {loadingStats ? (
         <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
       ) : stats ? (
         <View style={styles.statsGrid}>
-          <StatCard value={stats.vehicleCount} label="Vehicles" icon="🚗" colors={colors} />
-          <StatCard value={stats.serviceCount} label="Service Records" icon="🔧" colors={colors} />
-          <StatCard value={stats.fuelCount}    label="Fuel Logs" icon="⛽" colors={colors} />
-          <StatCard value={stats.expenseCount} label="Expenses" icon="💰" colors={colors} />
+          <StatCard value={stats.vehicleCount} label={t('profile.vehicles')} icon="🚗" colors={colors} />
+          <StatCard value={stats.serviceCount} label={t('profile.serviceRecords')} icon="🔧" colors={colors} />
+          <StatCard value={stats.fuelCount}    label={t('analytics.fuelLogsLabel')} icon="⛽" colors={colors} />
+          <StatCard value={stats.expenseCount} label={t('analytics.expensesLabel')} icon="💰" colors={colors} />
         </View>
       ) : null}
 
@@ -115,24 +117,24 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowLive]} onPress={onOpenGarage} activeOpacity={0.7}>
           <Text style={styles.settingsRowIcon}>🏭</Text>
           <Text style={styles.settingsRowLabel}>{garageName}</Text>
-          <Text style={styles.garageLiveBadge}>✓ Live</Text>
+          <Text style={styles.garageLiveBadge}>✓ {t('profile.live')}</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowNew]} onPress={onOpenGarage} activeOpacity={0.7}>
           <Text style={styles.settingsRowIcon}>🏭</Text>
-          <Text style={styles.settingsRowLabel}>Register a Garage / Service Center</Text>
-          <Text style={styles.garageNewBadge}>New</Text>
+          <Text style={styles.settingsRowLabel}>{t('profile.registerGarage')}</Text>
+          <Text style={styles.garageNewBadge}>{t('profile.new')}</Text>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity style={styles.settingsRow} onPress={onSettings} activeOpacity={0.7}>
         <Text style={styles.settingsRowIcon}>⚙️</Text>
-        <Text style={styles.settingsRowLabel}>Settings</Text>
+        <Text style={styles.settingsRowLabel}>{t('settings.title')}</Text>
         <Text style={styles.settingsRowChevron}>›</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
-        <Text style={styles.logoutBtnText}>Log out</Text>
+        <Text style={styles.logoutBtnText}>{t('profile.logOut')}</Text>
       </TouchableOpacity>
     </ScrollView>
   )

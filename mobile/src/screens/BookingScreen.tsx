@@ -8,6 +8,8 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Vehicle = {
   id: string
@@ -59,6 +61,12 @@ type ServiceRecord = {
 
 type Step = 'search' | 'dates' | 'slots' | 'confirm'
 
+const SERVICE_TYPE_BTN_OPTIONS: { key: 'full' | 'between' | 'third_party'; labelKey: TranslationKey; icon: string }[] = [
+  { key: 'full', labelKey: 'share.serviceType.full.label', icon: '🔧' },
+  { key: 'between', labelKey: 'share.serviceType.between.label', icon: '⚡' },
+  { key: 'third_party', labelKey: 'booking.serviceType.thirdParty', icon: '🏭' },
+]
+
 export default function BookingScreen({ token, vehicle, onBack, onBooked }: Props) {
   const [step, setStep] = useState<Step>('search')
 
@@ -94,6 +102,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set())
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   // Load service records when entering confirm step
   useEffect(() => {
@@ -128,7 +137,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       const results = await api.searchGarages(token, searchQuery.trim())
       setSearchResults(results)
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setSearching(false)
     }
@@ -143,7 +152,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       const data = await api.getGarageRatings(token, garageId)
       setReviewsCache(prev => ({ ...prev, [garageId]: data }))
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setReviewsLoadingId(null)
     }
@@ -158,7 +167,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       setDates(data.dates)
       setTimeSlots(data.timeSlots || [])
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
     } finally {
       setDatesLoading(false)
     }
@@ -207,12 +216,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         serviceType: serviceType || undefined,
       })
       Alert.alert(
-        'Booking Sent',
-        `Your booking request has been sent to ${selectedGarage.name}. They will confirm shortly.`,
+        t('booking.bookingSent.title'),
+        t('booking.bookingSent.message', { name: selectedGarage.name }),
         [{ text: 'OK', onPress: onBooked }]
       )
     } catch (e: any) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('common.error'), e.message)
       setBooking(false)
     }
   }
@@ -222,7 +231,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Book Service" onBack={onBack} />
+        <ScreenHeader title={t('booking.title')} onBack={onBack} />
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.vehicleBanner}>
             <Text style={styles.vehicleBannerReg}>{vehicle.registrationNo}</Text>
@@ -230,13 +239,13 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             <Text style={styles.vehicleBannerMileage}>{vehicle.mileage.toLocaleString()} km</Text>
           </View>
 
-          <Text style={styles.sectionLabel}>Find a Garage</Text>
+          <Text style={styles.sectionLabel}>{t('share.findGarage')}</Text>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search by garage name..."
+              placeholder={t('booking.searchPlaceholder')}
               onSubmitEditing={handleSearch}
               returnKeyType="search"
             />
@@ -247,15 +256,15 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             >
               {searching
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.searchBtnText}>Search</Text>
+                : <Text style={styles.searchBtnText}>{t('booking.search')}</Text>
               }
             </TouchableOpacity>
           </View>
 
           {searchResults.length === 0 && !searching && searchQuery.length > 0 && (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>No garages found</Text>
-              <Text style={styles.emptyText}>Try a different name or check the spelling.</Text>
+              <Text style={styles.emptyTitle}>{t('booking.noGaragesFound.title')}</Text>
+              <Text style={styles.emptyText}>{t('booking.noGaragesFound.text')}</Text>
             </View>
           )}
 
@@ -277,9 +286,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   </View>
                   <View style={styles.garageCardRight}>
                     <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
-                      <Text style={styles.badgeText}>{garage.verified ? '✅ Verified' : '⚠️ Unverified'}</Text>
+                      <Text style={styles.badgeText}>{garage.verified ? t('booking.verifiedFull') : t('booking.unverifiedFull')}</Text>
                     </View>
-                    <Text style={styles.selectText}>Select →</Text>
+                    <Text style={styles.selectText}>{t('booking.selectArrow')}</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -290,7 +299,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     <>
                       <TouchableOpacity style={styles.priceToggle} onPress={() => handleToggleReviews(garage.id)}>
                         <Text style={styles.garageRating}>
-                          ⭐ {garage.avgRating} ({garage.ratingCount}) — Reviews {reviewsExpanded ? '▲' : '▼'}
+                          ⭐ {garage.avgRating} ({garage.ratingCount}) — {t('booking.reviews')} {reviewsExpanded ? '▲' : '▼'}
                         </Text>
                       </TouchableOpacity>
                       {reviewsExpanded && (
@@ -330,7 +339,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     onPress={() => setExpandedPriceGarageId(isExpanded ? null : garage.id)}
                   >
                     <Text style={styles.priceToggleText}>
-                      💰 From LKR {cheapest.toLocaleString()} — Price List {isExpanded ? '▲' : '▼'}
+                      💰 {t('booking.fromLkr', { amount: cheapest.toLocaleString() })} — {t('booking.priceList')} {isExpanded ? '▲' : '▼'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -358,14 +367,14 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Pick a Date" onBack={() => setStep('search')} />
+        <ScreenHeader title={t('booking.pickDate')} onBack={() => setStep('search')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
-            {selectedGarage?.verified && <Text style={styles.verifiedLabel}>✅ Verified</Text>}
+            {selectedGarage?.verified && <Text style={styles.verifiedLabel}>{t('booking.verifiedFull')}</Text>}
           </View>
 
-          <Text style={styles.sectionLabel}>Available in the next 14 days</Text>
+          <Text style={styles.sectionLabel}>{t('booking.availableNext14Days')}</Text>
 
           {datesLoading ? (
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
@@ -410,12 +419,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       {slot.month}
                     </Text>
                     {slot.available && (
-                      <Text style={styles.dateSlotsAvail}>{slot.remaining} left</Text>
+                      <Text style={styles.dateSlotsAvail}>{t('booking.remainingLeft', { count: slot.remaining })}</Text>
                     )}
-                    {slot.status === 'closed' && <Text style={styles.dateClosedText}>Closed</Text>}
-                    {slot.status === 'holiday' && <Text style={styles.dateHolidayText}>Holiday</Text>}
+                    {slot.status === 'closed' && <Text style={styles.dateClosedText}>{t('booking.closed')}</Text>}
+                    {slot.status === 'holiday' && <Text style={styles.dateHolidayText}>{t('booking.holiday')}</Text>}
                     {slot.isWorkDay && slot.status === 'open' && !slot.available && (
-                      <Text style={styles.dateFullText}>Full</Text>
+                      <Text style={styles.dateFullText}>{t('booking.full')}</Text>
                     )}
                     {hasMsg && (
                       <View style={[styles.msgDot, { backgroundColor: msgColor }]} />
@@ -430,15 +439,15 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             <View style={styles.legend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
-                <Text style={styles.legendText}>Available</Text>
+                <Text style={styles.legendText}>{t('booking.legendAvailable')}</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.error }]} />
-                <Text style={styles.legendText}>Full / Closed</Text>
+                <Text style={styles.legendText}>{t('booking.legendFullClosed')}</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: colors.orange }]} />
-                <Text style={styles.legendText}>Special notice</Text>
+                <Text style={styles.legendText}>{t('booking.legendSpecialNotice')}</Text>
               </View>
             </View>
           )}
@@ -453,7 +462,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <ScreenHeader title="Pick a Time Slot" onBack={() => setStep('dates')} />
+        <ScreenHeader title={t('booking.pickTimeSlot')} onBack={() => setStep('dates')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
@@ -470,7 +479,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             </View>
           )}
 
-          <Text style={styles.sectionLabel}>Select a time slot</Text>
+          <Text style={styles.sectionLabel}>{t('booking.selectTimeSlot')}</Text>
           {(selectedDate?.slots || []).map(slot => (
             <TouchableOpacity
               key={slot.label}
@@ -492,12 +501,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   {slot.label}
                 </Text>
                 {slot.available && slot.booked > 0 && (
-                  <Text style={styles.slotBookedWarning}>Already Booked</Text>
+                  <Text style={styles.slotBookedWarning}>{t('booking.alreadyBooked')}</Text>
                 )}
               </View>
               {slot.available
-                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: colors.orange }]}>Select →</Text>
-                : <Text style={styles.slotFullText}>Already Booked</Text>
+                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: colors.orange }]}>{t('booking.selectArrow')}</Text>
+                : <Text style={styles.slotFullText}>{t('booking.alreadyBooked')}</Text>
               }
             </TouchableOpacity>
           ))}
@@ -512,7 +521,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader
-        title="Confirm Booking"
+        title={t('booking.confirmBooking')}
         onBack={() => setStep(timeSlots.length > 0 ? 'slots' : 'dates')}
       />
 
@@ -526,10 +535,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         )}
 
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Booking Summary</Text>
+          <Text style={styles.summaryTitle}>{t('booking.summaryTitle')}</Text>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Vehicle</Text>
+            <Text style={styles.summaryLabel}>{t('booking.vehicle')}</Text>
             <Text style={styles.summaryValue}>{vehicle.registrationNo}</Text>
           </View>
           <View style={styles.summaryRow}>
@@ -540,7 +549,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           <View style={styles.divider} />
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Garage</Text>
+            <Text style={styles.summaryLabel}>{t('booking.garage')}</Text>
             <Text style={styles.summaryValue}>{selectedGarage?.name}</Text>
           </View>
           {selectedGarage?.address && (
@@ -553,27 +562,23 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           <View style={styles.divider} />
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Date</Text>
+            <Text style={styles.summaryLabel}>{t('common.date')}</Text>
             <Text style={styles.summaryValue}>
               {selectedDate?.dayName} {selectedDate?.dayNum} {selectedDate?.month}
             </Text>
           </View>
           {selectedSlot && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Time Slot</Text>
+              <Text style={styles.summaryLabel}>{t('booking.timeSlot')}</Text>
               <Text style={styles.summaryValue}>{selectedSlot}</Text>
             </View>
           )}
         </View>
 
         {/* ── Service type ── */}
-        <Text style={styles.sectionLabel}>Type of Visit</Text>
+        <Text style={styles.sectionLabel}>{t('share.typeOfVisit')}</Text>
         <View style={styles.serviceTypeRow}>
-          {([
-            { key: 'full', label: 'Full Service', icon: '🔧' },
-            { key: 'between', label: 'Between Service', icon: '⚡' },
-            { key: 'third_party', label: 'Third-Party', icon: '🏭' },
-          ] as const).map(opt => (
+          {(SERVICE_TYPE_BTN_OPTIONS).map(opt => (
             <TouchableOpacity
               key={opt.key}
               style={[styles.serviceTypeBtn, serviceType === opt.key && styles.serviceTypeBtnActive]}
@@ -582,14 +587,14 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             >
               <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
               <Text style={[styles.serviceTypeBtnText, serviceType === opt.key && styles.serviceTypeBtnTextActive]}>
-                {opt.label}
+                {t(opt.labelKey)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ── Share history section ── */}
-        <Text style={styles.sectionLabel}>Share History with Garage</Text>
+        <Text style={styles.sectionLabel}>{t('booking.shareHistoryTitle')}</Text>
 
         <TouchableOpacity
           style={[styles.shareToggleCard, shareEnabled && styles.shareToggleCardOn]}
@@ -600,15 +605,15 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             <Text style={styles.shareToggleIcon}>📋</Text>
             <View style={styles.shareToggleText}>
               <Text style={[styles.shareToggleTitle, shareEnabled && styles.shareToggleTitleOn]}>
-                Attach recent service records
+                {t('booking.attachRecords')}
               </Text>
               <Text style={[styles.shareToggleDesc, shareEnabled && styles.shareToggleDescOn]}>
-                Let the garage see your vehicle's service history
+                {t('booking.attachRecordsDesc')}
               </Text>
             </View>
           </View>
           <View style={[styles.togglePill, shareEnabled && styles.togglePillOn]}>
-            <Text style={[styles.togglePillText, shareEnabled && styles.togglePillTextOn]}>{shareEnabled ? 'ON' : 'OFF'}</Text>
+            <Text style={[styles.togglePillText, shareEnabled && styles.togglePillTextOn]}>{shareEnabled ? t('booking.on') : t('booking.off')}</Text>
           </View>
         </TouchableOpacity>
 
@@ -618,12 +623,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
             ) : serviceRecords.length === 0 ? (
               <View style={styles.noRecordsBox}>
-                <Text style={styles.noRecordsText}>No service records found for this vehicle.</Text>
+                <Text style={styles.noRecordsText}>{t('booking.noRecordsForVehicle')}</Text>
               </View>
             ) : (
               <>
                 <Text style={styles.recordHint}>
-                  Select records to share ({selectedRecordIds.size} selected):
+                  {t('booking.selectRecordsHint', { count: selectedRecordIds.size })}
                 </Text>
                 {serviceRecords.map(record => {
                   const selected = selectedRecordIds.has(record.id)
@@ -660,7 +665,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         )}
 
         {/* ── Notes section ── */}
-        <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Notes for Garage (optional)</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 8 }]}>{t('booking.notesForGarage')}</Text>
 
         <View style={styles.noteTypeRow}>
           <TouchableOpacity
@@ -668,7 +673,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             onPress={() => setNoteType('normal')}
           >
             <Text style={[styles.noteTypeBtnText, noteType === 'normal' && styles.noteTypeBtnTextActive]}>
-              Normal
+              {t('booking.normal')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -676,7 +681,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             onPress={() => setNoteType('urgent')}
           >
             <Text style={[styles.noteTypeBtnText, noteType === 'urgent' && styles.noteTypeBtnTextActive]}>
-              🚨 Urgent
+              🚨 {t('booking.urgent')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -690,7 +695,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           onChangeText={setNotes}
           placeholder={
             noteType === 'urgent'
-              ? 'Describe the urgent issue...'
+              ? t('booking.urgentPlaceholder')
               : 'e.g. Oil change + brake check, please call before starting...'
           }
           multiline
@@ -698,11 +703,11 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         />
 
         <View style={styles.confirmBtnWrap}>
-          <Button title="Confirm Booking" onPress={handleConfirmBooking} loading={booking} />
+          <Button title={t('booking.confirmBooking')} onPress={handleConfirmBooking} loading={booking} />
         </View>
 
         <Text style={styles.confirmNote}>
-          Your request will be sent to the garage. They'll confirm or suggest an alternative.
+          {t('booking.confirmNoteText')}
         </Text>
       </ScrollView>
     </View>
