@@ -10,6 +10,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
   token: string
@@ -62,16 +63,17 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const s = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
 
   const handleSave = async () => {
-    if (!result) { Alert.alert('Required', 'Please select Pass or Fail'); return }
+    if (!result) { Alert.alert(t('logEmissionTest.required.title'), t('logEmissionTest.required.message')); return }
     const isoDate = parseDMY(date)
-    if (!isoDate) { Alert.alert('Invalid date', 'Use DD/MM/YYYY format'); return }
+    if (!isoDate) { Alert.alert(t('logEmissionTest.invalidDate.title'), t('logEmissionTest.invalidDate.message')); return }
 
     let nextExpiryISO: string | undefined
     if (nextExpiry.trim()) {
       const parsed = parseMMYYYY(nextExpiry.trim())
-      if (!parsed) { Alert.alert('Invalid expiry date', 'Use MM/YYYY format (e.g. 06/2026)'); return }
+      if (!parsed) { Alert.alert(t('addExpense.invalidExpiry.title'), t('addExpense.invalidExpiry.message')); return }
       nextExpiryISO = parsed
     }
 
@@ -95,10 +97,10 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
         if (nextExpiryISO) {
           await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
         }
-        Alert.alert('Saved', 'Emission test recorded.')
+        Alert.alert(t('logEmissionTest.saved.title'), t('logEmissionTest.saved.message'))
         onSaved()
       } catch (e: any) {
-        Alert.alert('Error', e.message)
+        Alert.alert(t('common.error'), e.message)
       } finally {
         setLoading(false)
       }
@@ -106,11 +108,11 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
 
     if (mileageNum !== null && mileageNum > currentMileage + 500) {
       Alert.alert(
-        'Check mileage',
-        `The mileage entered (${mileageNum.toLocaleString()} km) is higher than the vehicle's current recorded mileage of ${currentMileage.toLocaleString()} km. Is this correct?`,
+        t('addService.checkMileage.title'),
+        t('logEmissionTest.checkMileageMessage', { entered: mileageNum.toLocaleString(), current: currentMileage.toLocaleString() }),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes, save', onPress: performSave },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('addService.yesSave'), onPress: performSave },
         ]
       )
       return
@@ -122,10 +124,10 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={s.container}>
-    <ScreenHeader title="Log Emission Test" subtitle="Carbon / emission test results and renewal date" onBack={onBack} />
+    <ScreenHeader title={t('logEmissionTest.title')} subtitle={t('logEmissionTest.subtitle')} onBack={onBack} />
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
 
-      <Text style={s.label}>Test Result <Text style={s.req}>*</Text></Text>
+      <Text style={s.label}>{t('logEmissionTest.testResult')} <Text style={s.req}>*</Text></Text>
       <View style={s.chipRow}>
         {(['Pass', 'Fail'] as const).map(opt => (
           <TouchableOpacity
@@ -143,40 +145,40 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
 
       <View style={s.row}>
         <View style={s.half}>
-          <DateField label="Test Date" value={date} onChange={setDate} maximumDate={new Date()} />
+          <DateField label={t('logEmissionTest.testDate')} value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={s.half}>
-          <FormField label="Mileage (km)" value={mileage} onChangeText={setMileage} placeholder="e.g. 45000" keyboardType="number-pad" />
+          <FormField label={t('addService.mileage')} value={mileage} onChangeText={setMileage} placeholder="e.g. 45000" keyboardType="number-pad" />
         </View>
       </View>
 
-      <Text style={s.sectionLabel}>Readings (optional — from test certificate)</Text>
+      <Text style={s.sectionLabel}>{t('logEmissionTest.readingsSection')}</Text>
       <View style={s.row}>
         <View style={s.half}>
-          <FormField label="CO %" value={co} onChangeText={setCo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
+          <FormField label={t('addService.field.co')} value={co} onChangeText={setCo} placeholder="e.g. 0.8" keyboardType="decimal-pad" />
         </View>
         <View style={s.half}>
-          <FormField label="HC ppm" value={hc} onChangeText={setHc} placeholder="e.g. 120" keyboardType="number-pad" />
+          <FormField label={t('addService.field.hc')} value={hc} onChangeText={setHc} placeholder="e.g. 120" keyboardType="number-pad" />
         </View>
       </View>
       <View style={s.row}>
         <View style={s.half}>
-          <FormField label="CO₂ %" value={co2} onChangeText={setCo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
+          <FormField label={t('addService.field.co2')} value={co2} onChangeText={setCo2} placeholder="e.g. 14.2" keyboardType="decimal-pad" />
         </View>
         <View style={s.half}>
-          <FormField label="Lambda" value={lambda} onChangeText={setLambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
+          <FormField label={t('addService.field.lambda')} value={lambda} onChangeText={setLambda} placeholder="e.g. 1.01" keyboardType="decimal-pad" />
         </View>
       </View>
 
-      <FormField label="Testing Station (optional)" value={station} onChangeText={setStation} placeholder="e.g. Werahera Testing Station" />
+      <FormField label={t('logEmissionTest.testingStation')} value={station} onChangeText={setStation} placeholder="e.g. Werahera Testing Station" />
 
-      <FormField label="Cost (LKR, optional)" value={cost} onChangeText={setCost} placeholder="e.g. 2500" keyboardType="number-pad" />
+      <FormField label={t('logEmissionTest.costOptional')} value={cost} onChangeText={setCost} placeholder="e.g. 2500" keyboardType="number-pad" />
 
       <View style={s.reminderCard}>
-        <Text style={s.reminderTitle}>Set Renewal Reminder</Text>
-        <Text style={s.reminderSub}>We'll remind you 1 month before expiry, every 3 days until renewed.</Text>
+        <Text style={s.reminderTitle}>{t('addExpense.setRenewalReminder')}</Text>
+        <Text style={s.reminderSub}>{t('addExpense.reminderSub')}</Text>
         <FormField
-          label="Next Expiry Date (MM/YYYY)"
+          label={t('logEmissionTest.nextExpiryDate')}
           value={nextExpiry}
           onChangeText={setNextExpiry}
           placeholder="e.g. 06/2027"
@@ -185,7 +187,7 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
       </View>
 
       <View style={s.saveBtnWrap}>
-        <Button title="Save Emission Test" onPress={handleSave} loading={loading} />
+        <Button title={t('logEmissionTest.saveEmissionTest')} onPress={handleSave} loading={loading} />
       </View>
     </ScrollView>
     </View>

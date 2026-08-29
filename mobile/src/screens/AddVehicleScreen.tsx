@@ -17,6 +17,8 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import Chip from '../components/Chip'
+import { useTranslation } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
   token: string
@@ -25,10 +27,10 @@ type Props = {
 }
 
 const FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric']
-const OWNER_COUNT_OPTIONS = [
-  { label: '1st Owner', value: 1 },
-  { label: '2nd Owner', value: 2 },
-  { label: '3rd+ Owner', value: 3 },
+const OWNER_COUNT_OPTIONS: { labelKey: TranslationKey; value: number }[] = [
+  { labelKey: 'addVehicle.owner1st', value: 1 },
+  { labelKey: 'addVehicle.owner2nd', value: 2 },
+  { labelKey: 'addVehicle.owner3rdPlus', value: 3 },
 ]
 const CURRENT_YEAR = new Date().getFullYear()
 const OTHER = 'Other'
@@ -57,6 +59,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const m = useMemo(() => makeModalStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -87,7 +90,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
         <View style={m.searchWrap}>
           <TextInput
             style={m.search}
-            placeholder={`Search ${title.toLowerCase()}...`}
+            placeholder={t('addVehicle.searchFor', { title })}
             value={search}
             onChangeText={setSearch}
             autoFocus
@@ -112,7 +115,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
           )}
           ItemSeparatorComponent={() => <View style={m.sep} />}
           ListEmptyComponent={
-            <Text style={m.empty}>No results for "{search}"</Text>
+            <Text style={m.empty}>{t('addVehicle.noResultsFor', { query: search })}</Text>
           }
         />
       </View>
@@ -143,6 +146,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const colors = useColors()
   const styles = useMemo(() => makeMainStyles(colors), [colors])
   const ms = useMemo(() => makeModalStyles(colors, 0), [colors])
+  const { t } = useTranslation()
 
   const brandIsOther = brand === OTHER
   const modelItems   = brand && !brandIsOther ? [...(BRAND_MODELS[brand] ?? []), OTHER] : []
@@ -165,7 +169,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow photo library access in your device settings.')
+      Alert.alert(t('addVehicle.permissionNeeded.title'), t('addVehicle.permissionNeeded.message'))
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
@@ -180,7 +184,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       const url = await api.uploadPhoto(token, compressed.uri)
       setPhotoUrl(url)
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Could not upload photo.')
+      Alert.alert(t('addVehicle.uploadFailed.title'), e.message || t('addVehicle.uploadFailed.message'))
     } finally {
       setUploadingPhoto(false)
     }
@@ -191,18 +195,18 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
     const actualModel = (brandIsOther || modelIsOther) ? modelCustom.trim() : model
 
     if (!registrationNo.trim() || !actualBrand || !actualModel || !year || !fuelType || !vehicleType || !mileage) {
-      Alert.alert('Missing fields', 'Please fill in all required fields including Brand, Model and Vehicle Type.')
+      Alert.alert(t('addVehicle.missingFields.title'), t('addVehicle.missingFields.message'))
       return
     }
     const yearNum = parseInt(year)
     if (yearNum < 1960 || yearNum > CURRENT_YEAR) {
-      Alert.alert('Invalid year', `Year must be between 1960 and ${CURRENT_YEAR}.`)
+      Alert.alert(t('addVehicle.invalidYear.title'), t('addVehicle.invalidYear.message', { year: CURRENT_YEAR }))
       return
     }
     let parsedPurchaseDate: string | undefined
     if (purchaseDate.trim()) {
       const iso = parseDate(purchaseDate.trim())
-      if (!iso) { Alert.alert('Invalid date', 'Purchase date must be DD/MM/YYYY.'); return }
+      if (!iso) { Alert.alert(t('addVehicle.invalidDate.title'), t('addVehicle.invalidDate.message')); return }
       parsedPurchaseDate = iso
     }
 
@@ -223,7 +227,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       })
       onVehicleAdded({ ...newVehicle, vehicleType: vehicleType || null })
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } finally {
       setLoading(false)
     }
@@ -240,13 +244,13 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title="Add Vehicle" onBack={onBack} />
+      <ScreenHeader title={t('addVehicle.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.subtitle}>Fields marked * are required</Text>
+      <Text style={styles.subtitle}>{t('addVehicle.requiredNote')}</Text>
 
       {/* Registration */}
       <FormField
-        label="Registration Number"
+        label={t('addVehicle.registrationNumber')}
         required
         placeholder="e.g. WP CAB-1234"
         value={registrationNo}
@@ -255,17 +259,17 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       />
 
       {/* Brand */}
-      <Text style={styles.label}>Brand *</Text>
+      <Text style={styles.label}>{t('addVehicle.brandLabel')}</Text>
       <TouchableOpacity style={styles.selectorRow} onPress={() => setShowBrandPicker(true)} activeOpacity={0.7}>
         <Text style={[styles.selectorText, !brand && styles.placeholder]}>
-          {brandDisplay || 'Select brand'}
+          {brandDisplay || t('addVehicle.selectBrand')}
         </Text>
         <Text style={styles.chevron}>›</Text>
       </TouchableOpacity>
       {brandIsOther && (
         <TextInput
           style={[styles.input, styles.customInput]}
-          placeholder="Type brand name..."
+          placeholder={t('addVehicle.typeBrandName')}
           value={brandCustom}
           onChangeText={setBrandCustom}
           autoCapitalize="words"
@@ -273,10 +277,10 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       )}
 
       {/* Model */}
-      <Text style={styles.label}>Model *</Text>
+      <Text style={styles.label}>{t('addVehicle.modelLabel')}</Text>
       {!brand ? (
         <View style={[styles.selectorRow, styles.disabled]}>
-          <Text style={styles.placeholder}>Select a brand first</Text>
+          <Text style={styles.placeholder}>{t('addVehicle.selectBrandFirst')}</Text>
           <Text style={styles.chevron}>›</Text>
         </View>
       ) : brandIsOther ? (
@@ -291,14 +295,14 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         <>
           <TouchableOpacity style={styles.selectorRow} onPress={() => setShowModelPicker(true)} activeOpacity={0.7}>
             <Text style={[styles.selectorText, !model && styles.placeholder]}>
-              {modelDisplay || 'Select model'}
+              {modelDisplay || t('addVehicle.selectModel')}
             </Text>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
           {modelIsOther && (
             <TextInput
               style={[styles.input, styles.customInput]}
-              placeholder="Type model name..."
+              placeholder={t('addVehicle.typeModelName')}
               value={modelCustom}
               onChangeText={setModelCustom}
               autoCapitalize="words"
@@ -310,7 +314,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
 
       {/* Year */}
       <FormField
-        label="Year"
+        label={t('addVehicle.year')}
         required
         placeholder={`e.g. ${CURRENT_YEAR - 5}`}
         keyboardType="number-pad"
@@ -320,7 +324,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       />
 
       {/* Fuel Type */}
-      <Text style={styles.label}>Fuel Type *</Text>
+      <Text style={styles.label}>{t('addVehicle.fuelTypeLabel')}</Text>
       <View style={styles.chipRow}>
         {FUEL_TYPES.map(f => (
           <Chip key={f} label={f} selected={fuelType === f} onPress={() => setFuelType(f)} />
@@ -328,7 +332,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       </View>
 
       {/* Vehicle Type */}
-      <Text style={styles.label}>Vehicle Type *</Text>
+      <Text style={styles.label}>{t('addVehicle.vehicleTypeLabel')}</Text>
       <View style={styles.chipRow}>
         {VEHICLE_TYPE_OPTIONS.map(opt => (
           <Chip
@@ -342,7 +346,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
 
       {/* Mileage */}
       <FormField
-        label="Current Mileage (km)"
+        label={t('addVehicle.currentMileage')}
         required
         placeholder="e.g. 45000"
         keyboardType="number-pad"
@@ -351,21 +355,21 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       />
 
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>Optional Details</Text>
+      <Text style={styles.sectionLabel}>{t('addVehicle.optionalDetails')}</Text>
 
-      <DateField label="Purchase Date" value={purchaseDate} onChange={setPurchaseDate} maximumDate={new Date()} />
+      <DateField label={t('addVehicle.purchaseDate')} value={purchaseDate} onChange={setPurchaseDate} maximumDate={new Date()} />
 
-      <Text style={styles.label}>Owner History</Text>
+      <Text style={styles.label}>{t('addVehicle.ownerHistory')}</Text>
       <View style={styles.chipRow}>
         {OWNER_COUNT_OPTIONS.map(o => (
-          <Chip key={o.value} label={o.label} selected={ownerCount === o.value} onPress={() => setOwnerCount(o.value)} />
+          <Chip key={o.value} label={t(o.labelKey)} selected={ownerCount === o.value} onPress={() => setOwnerCount(o.value)} />
         ))}
       </View>
 
       <FormField
-        label="Notes about this vehicle"
+        label={t('addVehicle.notesLabel')}
         style={styles.textArea}
-        placeholder="Any notes about condition, modifications, known issues..."
+        placeholder={t('addVehicle.notesPlaceholder')}
         value={vehicleNotes}
         onChangeText={setVehicleNotes}
         multiline
@@ -373,7 +377,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         textAlignVertical="top"
       />
 
-      <Text style={styles.label}>Vehicle Photo <Text style={styles.optional}>(optional)</Text></Text>
+      <Text style={styles.label}>{t('addVehicle.vehiclePhoto')} <Text style={styles.optional}>{t('addVehicle.optionalParen')}</Text></Text>
       <TouchableOpacity style={styles.photoPicker} onPress={pickPhoto} disabled={uploadingPhoto} activeOpacity={0.8}>
         {uploadingPhoto ? (
           <ActivityIndicator color={colors.primary} />
@@ -382,22 +386,22 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         ) : (
           <View style={styles.photoPlaceholder}>
             <Text style={styles.photoIcon}>📷</Text>
-            <Text style={styles.photoHint}>Tap to add a photo of your vehicle</Text>
+            <Text style={styles.photoHint}>{t('addVehicle.tapToAddPhoto')}</Text>
           </View>
         )}
       </TouchableOpacity>
       {photoUrl && (
         <TouchableOpacity onPress={() => setPhotoUrl(null)} style={styles.removePhoto}>
-          <Text style={styles.removePhotoText}>Remove photo</Text>
+          <Text style={styles.removePhotoText}>{t('addVehicle.removePhoto')}</Text>
         </TouchableOpacity>
       )}
 
-      <Button title="Save Vehicle" onPress={handleSubmit} loading={loading} />
+      <Button title={t('addVehicle.saveVehicle')} onPress={handleSubmit} loading={loading} />
 
       {/* Pickers */}
       <PickerModal
         visible={showBrandPicker}
-        title="Brand"
+        title={t('addVehicle.brand')}
         items={BRANDS_LIST}
         selected={brand}
         onSelect={handleBrandSelect}
@@ -405,7 +409,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       />
       <PickerModal
         visible={showModelPicker}
-        title="Model"
+        title={t('addVehicle.model')}
         items={modelItems}
         selected={model}
         onSelect={handleModelSelect}
