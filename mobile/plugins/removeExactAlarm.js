@@ -1,11 +1,20 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest } = require('expo/config-plugins');
 
-module.exports = withAndroidManifest(config => {
-  const manifest = config.modResults;
-  const permissions = manifest.manifest['uses-permission'] || [];
-  manifest.manifest['uses-permission'] = permissions.filter(p => {
-    const name = p.$?.['android:name'] || '';
-    return !name.includes('EXACT_ALARM');
+/**
+ * Remove USE_EXACT_ALARM and SCHEDULE_EXACT_ALARM permissions from AndroidManifest.
+ * expo-notifications adds these automatically; we don't need them.
+ */
+function removeExactAlarmPlugin(config) {
+  return withAndroidManifest(config, (modConfig) => {
+    const manifest = modConfig.modResults.manifest;
+    if (manifest['uses-permission']) {
+      manifest['uses-permission'] = manifest['uses-permission'].filter((perm) => {
+        const name = (perm.$ && perm.$['android:name']) || '';
+        return !name.includes('EXACT_ALARM');
+      });
+    }
+    return modConfig;
   });
-  return config;
-});
+}
+
+module.exports = removeExactAlarmPlugin;
