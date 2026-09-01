@@ -22,7 +22,7 @@
         "backgroundColor": "#012362"
       },
       "package": "com.vocksy.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
@@ -44,6 +44,7 @@
       "expo-asset",
       "expo-font",
       "expo-notifications",
+      "./plugins/removeExactAlarm",
       [
         "expo-image-picker",
         {
