@@ -426,7 +426,7 @@ router.post('/:id/rate', async (req: AuthRequest, res) => {
         ownerPhone: req.phoneNumber!,
         submissionId: id,
         rating: ratingNum,
-        comment: comment?.trim() || null,
+        comment: comment?.trim() ? capText(comment, LONG_TEXT_LEN) : null,
       },
     })
     res.status(201).json(created)

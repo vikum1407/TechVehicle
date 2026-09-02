@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { computePredictions } from '../utils/predictionEngine'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -40,9 +41,9 @@ router.post('/register', async (req: AuthRequest, res) => {
     const garage = await prisma.garage.create({
       data: {
         ownerPhone: req.phoneNumber!,
-        name: name.trim(),
-        address: address?.trim() || null,
-        brNumber: brNumber?.trim() || null,
+        name: capText(name.trim(), SHORT_TEXT_LEN),
+        address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null,
+        brNumber: brNumber?.trim() ? capText(brNumber, SHORT_TEXT_LEN) : null,
         verified: false,
       },
     })
@@ -59,13 +60,18 @@ router.put('/me', async (req: AuthRequest, res) => {
   if (!name?.trim()) {
     res.status(400).json({ error: 'Garage name is required' }); return
   }
+  if (priceList !== undefined && priceList !== null) {
+    if (!Array.isArray(priceList) || priceList.length > 200) {
+      res.status(400).json({ error: 'priceList must be an array of at most 200 items' }); return
+    }
+  }
   try {
     const garage = await prisma.garage.update({
       where: { ownerPhone: req.phoneNumber! },
       data: {
-        name: name.trim(),
-        address: address?.trim() || null,
-        brNumber: brNumber?.trim() || null,
+        name: capText(name.trim(), SHORT_TEXT_LEN),
+        address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null,
+        brNumber: brNumber?.trim() ? capText(brNumber, SHORT_TEXT_LEN) : null,
         ...(priceList !== undefined
           ? { priceList: Array.isArray(priceList) ? priceList : Prisma.JsonNull }
           : {}),

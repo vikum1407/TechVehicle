@@ -3,17 +3,12 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { normalizePhone, isValidPhone } from '../utils/phone'
 
 const router = express.Router()
 const prisma = new PrismaClient()
 
 router.use(authMiddleware)
-
-// Strips formatting characters only — the caller must type the full
-// international format (e.g. +94771234567), since we support any country.
-function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-\(\)]/g, '')
-}
 
 // POST /vehicle-shares — owner shares a vehicle with another phone number
 router.post('/', async (req: AuthRequest, res) => {
@@ -23,7 +18,7 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId and sharedWithPhone are required' })
     return
   }
-  if (!sharedWithPhone.startsWith('+')) {
+  if (!isValidPhone(sharedWithPhone)) {
     res.status(400).json({ error: 'Please enter the phone number in international format, e.g. +94771234567' })
     return
   }

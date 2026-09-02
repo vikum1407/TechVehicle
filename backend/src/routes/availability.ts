@@ -1,6 +1,9 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { isValidNumber, capText, SHORT_TEXT_LEN } from '../utils/validate'
+
+const VALID_OVERRIDE_STATUSES = ['open', 'closed', 'holiday']
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -14,6 +17,12 @@ router.post('/override', authMiddleware, async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'date and status are required' })
     return
   }
+  if (!VALID_OVERRIDE_STATUSES.includes(status)) {
+    res.status(400).json({ error: 'status must be open, closed, or holiday' }); return
+  }
+  if (maxSlots !== undefined && maxSlots !== null && !isValidNumber(maxSlots, { min: 0, max: 200 })) {
+    res.status(400).json({ error: 'maxSlots must be a valid, non-negative number' }); return
+  }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'Garage not found' }); return }
@@ -23,16 +32,16 @@ router.post('/override', authMiddleware, async (req: AuthRequest, res) => {
       update: {
         status,
         maxSlots: maxSlots ?? null,
-        message: message || null,
-        messageColor: messageColor || null,
+        message: message ? capText(message, SHORT_TEXT_LEN) : null,
+        messageColor: messageColor ? capText(messageColor, 20) : null,
       },
       create: {
         garageId: garage.id,
         date,
         status,
         maxSlots: maxSlots ?? null,
-        message: message || null,
-        messageColor: messageColor || null,
+        message: message ? capText(message, SHORT_TEXT_LEN) : null,
+        messageColor: messageColor ? capText(messageColor, 20) : null,
       },
     })
     res.json(override)
@@ -64,12 +73,21 @@ router.put('/', authMiddleware, async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'workDays (array) and maxPerDay (number) are required' })
     return
   }
+  if (!workDays.every((d: unknown) => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6)) {
+    res.status(400).json({ error: 'workDays must contain integers 0-6' }); return
+  }
+  if (!isValidNumber(maxPerDay, { min: 1, max: 200 })) {
+    res.status(400).json({ error: 'maxPerDay must be between 1 and 200' }); return
+  }
+  if (timeSlots !== undefined && (!Array.isArray(timeSlots) || timeSlots.length > 20 || !timeSlots.every((s: unknown) => typeof s === 'string'))) {
+    res.status(400).json({ error: 'timeSlots must be an array of at most 20 strings' }); return
+  }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'Garage not found' }); return }
 
     const slots = Array.isArray(timeSlots) && timeSlots.length > 0
-      ? timeSlots
+      ? timeSlots.map((s: string) => capText(s, SHORT_TEXT_LEN))
       : ['Morning', 'Afternoon']
 
     const availability = await prisma.garageAvailability.upsert({

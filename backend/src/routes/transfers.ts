@@ -3,17 +3,12 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { createNotification } from '../utils/appNotifications'
 import { sendPush } from '../utils/push'
+import { normalizePhone, isValidPhone } from '../utils/phone'
 
 const router = express.Router()
 const prisma = new PrismaClient()
 
 router.use(authMiddleware)
-
-// Strips formatting characters only — the caller must type the full
-// international format (e.g. +94771234567), since we support any country.
-function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-\(\)]/g, '')
-}
 
 // POST /transfers — seller initiates a transfer
 router.post('/', async (req: AuthRequest, res) => {
@@ -26,7 +21,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
   const normalizedBuyer = normalizePhone(buyerPhone.trim())
 
-  if (!normalizedBuyer.startsWith('+')) {
+  if (!isValidPhone(normalizedBuyer)) {
     res.status(400).json({ error: 'Please enter the buyer\'s phone number in international format, e.g. +94771234567' })
     return
   }

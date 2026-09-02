@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { capText, SHORT_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -42,7 +43,7 @@ router.post('/', async (req: AuthRequest, res) => {
         garageId,
         ownerPhone: req.phoneNumber!,
         sharedRecordIds: JSON.stringify(validRecordIds),
-        serviceType: serviceType || null,
+        serviceType: serviceType ? capText(serviceType, SHORT_TEXT_LEN) : null,
         status: 'active',
       },
       include: { garage: true, vehicle: true },

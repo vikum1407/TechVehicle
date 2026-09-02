@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { isValidDateInput, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -15,6 +16,10 @@ router.post('/', async (req: AuthRequest, res) => {
   if (!vehicleId || !garageId || !date) {
     res.status(400).json({ error: 'vehicleId, garageId and date are required' })
     return
+  }
+  if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (noteType !== undefined && !['normal', 'urgent'].includes(noteType)) {
+    res.status(400).json({ error: 'Invalid noteType' }); return
   }
   try {
     const vehicle = await prisma.vehicle.findFirst({
@@ -47,10 +52,10 @@ router.post('/', async (req: AuthRequest, res) => {
         garageId,
         ownerPhone: req.phoneNumber!,
         date: bookingDate,
-        slotLabel: slotLabel || null,
-        notes: notes || null,
+        slotLabel: slotLabel ? capText(slotLabel, SHORT_TEXT_LEN) : null,
+        notes: notes ? capText(notes, LONG_TEXT_LEN) : null,
         noteType: noteType || 'normal',
-        serviceType: serviceType || null,
+        serviceType: serviceType ? capText(serviceType, SHORT_TEXT_LEN) : null,
         shareSessionId: shareSessionId || null,
       },
       include: { vehicle: true, garage: true },
@@ -199,6 +204,7 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
   const id = req.params.id as string
   const { counterDate, counterSlot, note } = req.body
   if (!counterDate) { res.status(400).json({ error: 'counterDate is required' }); return }
+  if (!isValidDateInput(counterDate)) { res.status(400).json({ error: 'Invalid counterDate' }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'No garage account' }); return }
@@ -211,13 +217,13 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
 
     const updated = await prisma.booking.update({
       where: { id },
-      data: { status: 'counter_suggested', counterDate: new Date(counterDate), counterSlot: counterSlot || null },
+      data: { status: 'counter_suggested', counterDate: new Date(counterDate), counterSlot: counterSlot ? capText(counterSlot, SHORT_TEXT_LEN) : null },
     })
 
     const dateStr = new Date(counterDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    const slotPart = counterSlot ? ` · ${counterSlot}` : ''
+    const slotPart = counterSlot ? ` · ${capText(counterSlot, SHORT_TEXT_LEN)}` : ''
     let noteMessage = `Garage suggested a new slot: ${dateStr}${slotPart}.`
-    if (note?.trim()) noteMessage += ` ${note.trim()}`
+    if (note?.trim()) noteMessage += ` ${capText(note.trim(), LONG_TEXT_LEN)}`
     await prisma.bookingNote.create({
       data: { bookingId: id, senderPhone: req.phoneNumber!, message: noteMessage },
     })
@@ -338,6 +344,7 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
   const id = req.params.id as string
   const { message } = req.body
   if (!message?.trim()) { res.status(400).json({ error: 'message is required' }); return }
+  const trimmedMessage = capText(message.trim(), LONG_TEXT_LEN)
 
   try {
     const booking = await prisma.booking.findUnique({ where: { id }, include: { garage: true, vehicle: true } })
@@ -349,7 +356,7 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
     if (!isOwner && !isGarage) { res.status(403).json({ error: 'Access denied' }); return }
 
     const note = await prisma.bookingNote.create({
-      data: { bookingId: id, senderPhone: req.phoneNumber!, message: message.trim() },
+      data: { bookingId: id, senderPhone: req.phoneNumber!, message: trimmedMessage },
     })
 
     // Notify the other party
@@ -357,26 +364,26 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
       const garageOwner = await prisma.user.findUnique({ where: { phoneNumber: booking.garage.ownerPhone } })
       const prefs = parsePrefs(garageOwner?.notificationPrefs)
       if (prefs.booking) {
-        await sendPush(garageOwner?.pushToken, 'New Message from Owner', message.trim(), { bookingId: id, screen: 'garage' })
+        await sendPush(garageOwner?.pushToken, 'New Message from Owner', trimmedMessage, { bookingId: id, screen: 'garage' })
       }
       await createNotification(
         prisma, booking.garage.ownerPhone,
         'message',
         booking.vehicle.registrationNo,
-        `Owner: ${message.trim()}`,
+        `Owner: ${trimmedMessage}`,
         { screen: 'garage', bookingId: id }
       )
     } else {
       const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
       const prefs = parsePrefs(owner?.notificationPrefs)
       if (prefs.booking) {
-        await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, message.trim(), { bookingId: id, vehicleId: booking.vehicleId, screen: 'vehicles' })
+        await sendPush(owner?.pushToken, `Message from ${booking.garage.name}`, trimmedMessage, { bookingId: id, vehicleId: booking.vehicleId, screen: 'vehicles' })
       }
       await createNotification(
         prisma, booking.ownerPhone,
         'message',
         booking.vehicle.registrationNo,
-        `${booking.garage.name}: ${message.trim()}`,
+        `${booking.garage.name}: ${trimmedMessage}`,
         { screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: id }
       )
     }
