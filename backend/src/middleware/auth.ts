@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import { getJwtSecret } from '../utils/jwtSecret'
 
 export interface AuthRequest extends Request {
   phoneNumber?: string
@@ -16,10 +17,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(' ')[1]
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'dev-secret-change-in-production'
-    ) as { phoneNumber: string }
+    const decoded = jwt.verify(token, getJwtSecret()) as { phoneNumber: string }
 
     req.phoneNumber = decoded.phoneNumber
     next()

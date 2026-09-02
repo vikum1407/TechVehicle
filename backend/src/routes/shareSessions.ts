@@ -23,12 +23,25 @@ router.post('/', async (req: AuthRequest, res) => {
     const garage = await prisma.garage.findUnique({ where: { id: garageId } })
     if (!garage) { res.status(404).json({ error: 'Garage not found' }); return }
 
+    // Only allow sharing records that actually belong to this vehicle — otherwise a
+    // caller could pass another vehicle's record IDs and leak that data to a garage
+    // via this session (GET /share-sessions/incoming trusts these IDs as-is).
+    const ownedRecords = await prisma.serviceRecord.findMany({
+      where: { id: { in: recordIds }, vehicleId },
+      select: { id: true },
+    })
+    if (ownedRecords.length === 0) {
+      res.status(400).json({ error: 'None of the selected records belong to this vehicle' })
+      return
+    }
+    const validRecordIds = ownedRecords.map(r => r.id)
+
     const session = await prisma.shareSession.create({
       data: {
         vehicleId,
         garageId,
         ownerPhone: req.phoneNumber!,
-        sharedRecordIds: JSON.stringify(recordIds),
+        sharedRecordIds: JSON.stringify(validRecordIds),
         serviceType: serviceType || null,
         status: 'active',
       },
@@ -80,7 +93,7 @@ router.get('/incoming', async (req: AuthRequest, res) => {
     const withRecords = await Promise.all(sessions.map(async session => {
       const recordIds: string[] = JSON.parse(session.sharedRecordIds)
       const records = await prisma.serviceRecord.findMany({
-        where: { id: { in: recordIds } },
+        where: { id: { in: recordIds }, vehicleId: session.vehicleId },
         orderBy: { date: 'desc' },
       })
 

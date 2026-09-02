@@ -23,8 +23,13 @@ import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
 import { startMileageReminderJob } from './jobs/mileageReminders'
+import { getJwtSecret } from './utils/jwtSecret'
 
 dotenv.config()
+
+// Fail fast and loud at boot if JWT_SECRET is missing/weak, rather than only
+// discovering it the first time someone logs in.
+getJwtSecret()
 
 const app = express()
 const PORT = process.env.PORT || 3001

@@ -83,12 +83,12 @@ Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. **
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git. Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
 
-**IMPORTANT — Start of every Codespace session:** The `.env` file is wiped on Codespace restart. Run this before `npm run dev`:
+**IMPORTANT — Start of every Codespace session:** The `.env` file is wiped on Codespace restart. Run this before `npm run dev`, filling in your own real values (never commit real secrets to this file — see security note below):
 ```bash
 cat > /workspaces/TechVehicle/backend/.env << 'EOF'
 PORT=3001
-JWT_SECRET=dev-secret-change-in-production
-DATABASE_URL="postgresql://neondb_owner:npg_rTfoMUK98SFD@ep-falling-salad-ao50kj3h-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+JWT_SECRET=your-jwt-secret-here
+DATABASE_URL="your-neon-connection-string-here"
 R2_ACCOUNT_ID=your-r2-account-id
 R2_ACCESS_KEY_ID=your-r2-access-key-id
 R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
@@ -96,7 +96,9 @@ R2_BUCKET_NAME=your-bucket-name
 R2_PUBLIC_URL=https://your-public-domain.r2.dev
 EOF
 ```
-Replace the R2 values with your actual Cloudflare R2 credentials (found in the Cloudflare dashboard → R2 → your bucket → Settings).
+Get the real `DATABASE_URL` from your Neon dashboard and `JWT_SECRET` from wherever you generated it (a long random string — never the literal word "secret"). Get the R2 values from the Cloudflare dashboard → R2 → your bucket → Settings.
+
+**Security note (2026-09-02):** A real Neon `DATABASE_URL` password was committed to this file while this repo was public on GitHub, exposing it publicly. It has been removed from this file — but if you have not yet rotated that password in the Neon dashboard, do that now; removing it here does not undo the exposure since it remains in git history. Never paste real credentials into CLAUDE.md, commit messages, or any other tracked file — use placeholders here and keep real secrets only in the untracked `.env` file (already gitignored).
 
 ---
 

@@ -2,6 +2,8 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { getJwtSecret } from '../utils/jwtSecret'
+import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -13,6 +15,12 @@ router.post('/send-otp', (req, res) => {
   const { phoneNumber } = req.body
   if (!phoneNumber) {
     res.status(400).json({ error: 'Phone number is required' })
+    return
+  }
+
+  const rateLimit = checkOtpSendRateLimit(phoneNumber, req.ip || 'unknown')
+  if (!rateLimit.allowed) {
+    res.status(429).json({ error: `Too many OTP requests. Please try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
     return
   }
 
@@ -36,6 +44,12 @@ router.post('/verify-otp', async (req, res) => {
     return
   }
 
+  const verifyLimit = checkOtpVerifyRateLimit(phoneNumber)
+  if (!verifyLimit.allowed) {
+    res.status(429).json({ error: `Too many attempts. Please try again in ${Math.ceil((verifyLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
+    return
+  }
+
   const stored = otpStore.get(phoneNumber)
   if (!stored) { res.status(400).json({ error: 'OTP not found. Please request a new one.' }); return }
   if (Date.now() > stored.expires) {
@@ -45,6 +59,7 @@ router.post('/verify-otp', async (req, res) => {
   if (stored.otp !== otp) { res.status(400).json({ error: 'Invalid OTP. Please try again.' }); return }
 
   otpStore.delete(phoneNumber)
+  resetOtpVerifyRateLimit(phoneNumber)
 
   try {
     let user = await prisma.user.findUnique({
@@ -72,7 +87,7 @@ router.post('/verify-otp', async (req, res) => {
 
     const token = jwt.sign(
       { phoneNumber },
-      process.env.JWT_SECRET || 'dev-secret-change-in-production',
+      getJwtSecret(),
       { expiresIn: '30d' }
     )
 
