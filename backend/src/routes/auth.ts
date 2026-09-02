@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { getJwtSecret } from '../utils/jwtSecret'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
+import { normalizePhone, isValidPhone } from '../utils/phone'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -12,9 +13,14 @@ const otpStore = new Map<string, { otp: string; expires: number }>()
 
 // POST /auth/send-otp
 router.post('/send-otp', (req, res) => {
-  const { phoneNumber } = req.body
-  if (!phoneNumber) {
+  const rawPhone = req.body.phoneNumber
+  if (!rawPhone) {
     res.status(400).json({ error: 'Phone number is required' })
+    return
+  }
+  const phoneNumber = normalizePhone(String(rawPhone).trim())
+  if (!isValidPhone(phoneNumber)) {
+    res.status(400).json({ error: 'Please enter a valid phone number in international format, e.g. +94771234567' })
     return
   }
 
@@ -38,9 +44,15 @@ router.post('/send-otp', (req, res) => {
 
 // POST /auth/verify-otp
 router.post('/verify-otp', async (req, res) => {
-  const { phoneNumber, otp } = req.body
-  if (!phoneNumber || !otp) {
+  const { otp } = req.body
+  const rawPhone = req.body.phoneNumber
+  if (!rawPhone || !otp) {
     res.status(400).json({ error: 'Phone number and OTP are required' })
+    return
+  }
+  const phoneNumber = normalizePhone(String(rawPhone).trim())
+  if (!isValidPhone(phoneNumber)) {
+    res.status(400).json({ error: 'Please enter a valid phone number in international format, e.g. +94771234567' })
     return
   }
 
