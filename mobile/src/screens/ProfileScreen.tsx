@@ -27,6 +27,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [garageName, setGarageName] = useState<string | null>(null)
+  const [loggingOutAllDevices, setLoggingOutAllDevices] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -73,6 +74,27 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
     Alert.alert(t('profile.logOut'), t('profile.logOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('profile.logOut'), style: 'destructive', onPress: onLogout },
+    ])
+  }
+
+  const confirmLogoutAllDevices = () => {
+    Alert.alert(t('profile.logOutAllDevices'), t('profile.logOutAllDevicesConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('profile.logOutAllDevices'),
+        style: 'destructive',
+        onPress: async () => {
+          setLoggingOutAllDevices(true)
+          try {
+            await api.logoutEverywhere(token)
+            onLogout()
+          } catch (e: any) {
+            Alert.alert(t('common.error'), e.message || t('profile.logOutAllDevicesFailed'))
+          } finally {
+            setLoggingOutAllDevices(false)
+          }
+        },
+      },
     ])
   }
 
@@ -131,6 +153,19 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <Text style={styles.settingsRowIcon}>⚙️</Text>
         <Text style={styles.settingsRowLabel}>{t('settings.title')}</Text>
         <Text style={styles.settingsRowChevron}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.settingsRow}
+        onPress={confirmLogoutAllDevices}
+        activeOpacity={0.7}
+        disabled={loggingOutAllDevices}
+      >
+        <Text style={styles.settingsRowIcon}>🔒</Text>
+        <Text style={styles.settingsRowLabel}>{t('profile.logOutAllDevices')}</Text>
+        {loggingOutAllDevices
+          ? <ActivityIndicator size="small" color={colors.primary} />
+          : <Text style={styles.settingsRowChevron}>›</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>

@@ -865,6 +865,9 @@ const en = {
   'profile.new': 'New',
   'profile.logOut': 'Log out',
   'profile.logOutConfirm': 'Are you sure you want to log out?',
+  'profile.logOutAllDevices': 'Log out of all devices',
+  'profile.logOutAllDevicesConfirm': 'This will sign you out everywhere — this phone and any other device where you\'re logged in. You\'ll need to verify your phone number with a new OTP to log back in. Use this if your phone was lost or stolen.',
+  'profile.logOutAllDevicesFailed': 'Could not log out of all devices. Please check your connection and try again.',
 
   'knowledgeHub.title': 'Knowledge Hub',
   'knowledgeHub.myVehicle': 'My Vehicle',

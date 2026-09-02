@@ -653,6 +653,16 @@ export const api = {
     return data
   },
 
+  logoutEverywhere: async (token: string) => {
+    const res = await fetch(`${API_URL}/auth/logout-everywhere`, {
+      method: 'POST',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to log out of all devices')
+    return data
+  },
+
   savePushToken: async (token: string, pushToken: string) => {
     const res = await fetch(`${API_URL}/auth/push-token`, {
       method: 'POST',
