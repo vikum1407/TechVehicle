@@ -24,6 +24,7 @@ import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
 import { startMileageReminderJob } from './jobs/mileageReminders'
 import { getJwtSecret } from './utils/jwtSecret'
+import { globalRateLimit } from './middleware/globalRateLimit'
 
 dotenv.config()
 
@@ -34,8 +35,17 @@ getJwtSecret()
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Render (and most PaaS hosts) sit behind a reverse proxy — without this, req.ip
+// resolves to the proxy's address for every request, so any IP-based rate limit
+// (this file's global one, and the OTP send limiter in routes/auth.ts) would key
+// off one shared address instead of the real caller and could lock out everyone
+// at once. Trusting one hop tells Express to read the real client IP from
+// X-Forwarded-For as set by Render's proxy.
+app.set('trust proxy', 1)
+
 app.use(cors())
 app.use(express.json())
+app.use(globalRateLimit)
 
 app.get('/health', (req, res) => {
   res.json({
