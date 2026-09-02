@@ -98,7 +98,7 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { phoneNumber },
+      { phoneNumber, tokenVersion: user.tokenVersion ?? 0 },
       getJwtSecret(),
       { expiresIn: '30d' }
     )
@@ -107,6 +107,22 @@ router.post('/verify-otp', async (req, res) => {
   } catch (error) {
     console.error('verify-otp error:', error)
     res.status(500).json({ error: 'Authentication failed' })
+  }
+})
+
+// POST /auth/logout-everywhere — invalidate every previously issued token for this
+// user (e.g. lost/stolen phone). Bumps tokenVersion so all existing JWTs fail the
+// check in authMiddleware; this device must log in again with a fresh OTP too.
+router.post('/logout-everywhere', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.update({
+      where: { phoneNumber: req.phoneNumber! },
+      data: { tokenVersion: { increment: 1 } },
+    })
+    res.json({ ok: true, tokenVersion: user.tokenVersion })
+  } catch (error) {
+    console.error('logout-everywhere error:', error)
+    res.status(500).json({ error: 'Failed to revoke sessions' })
   }
 })
 

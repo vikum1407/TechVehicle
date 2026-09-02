@@ -72,7 +72,7 @@
 `User` (with `userType` column), `Vehicle` (with `vehicleType`, `purchaseDate`, `ownerCount`, `vehicleNotes`, `emissionTestExpiry`, `revenueLicenceExpiry`, `lastEmissionReminderSent`, `lastLicenceReminderSent`, `intervalOverrides Json?`), `ServiceRecord` (with `structuredData Json?`), `FuelLog`, `Expense`, `Garage`, `ShareSession`, `ServiceSubmission`, `VehicleTransfer`, `GarageAvailability`, `GarageCalendarOverride`, `Booking` (with `shareSessionId`, `slotLabel`, `noteType`), `BookingNote`, `AppNotification`
 
 ### IMPORTANT — `prisma db push` required on first Codespace session
-Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. **Schema has `intervalOverrides Json?` added to Vehicle — must run `prisma db push` before testing predictions.**
+Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. **Schema has `intervalOverrides Json?` added to Vehicle — must run `prisma db push` before testing predictions.** **Schema also has `tokenVersion Int @default(0)` added to User (2026-09-02, for the logout-everywhere/token-revocation feature) — must run `prisma db push` before logging in, or every login will fail auth checks.**
 
 ### Next Session — Start Here
 **Test the new features together:**
