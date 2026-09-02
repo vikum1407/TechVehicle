@@ -74,11 +74,17 @@
 ### IMPORTANT — `prisma db push` required on first Codespace session
 Run `prisma db push` before `npm run dev` to ensure the DB schema is in sync. **Schema has `intervalOverrides Json?` added to Vehicle — must run `prisma db push` before testing predictions.** **Schema also has `tokenVersion Int @default(0)` added to User (2026-09-02, for the logout-everywhere/token-revocation feature) — must run `prisma db push` before logging in, or every login will fail auth checks.**
 
-### Next Session — Start Here
-**Test the new features together:**
-1. Vehicle profile card — tap Edit, add purchase date (YYYY-MM-DD), owner count, notes, save → confirm profile card appears on dashboard
-2. Daily Trip Log — three-wheeler only; tap "Daily Trip Log" button on dashboard → log a trip → check it persists as a fuel log
-3. Service interval personalisation — open Predictions screen, tap any prediction card, tap "✏️ Customize" at the bottom of the detail sheet → enter a km override → Save → confirm the card reloads showing "Your custom interval"
+### Next Session — Start Here (updated 2026-09-02)
+
+**Security hardening pass — fully complete, all shipped to `main`, nothing pending:**
+JWT secret fail-closed + boot-time check, OTP send/verify rate limiting, phone number normalisation/validation (`utils/phone.ts`), IDOR fix in share sessions, real magic-byte file validation on photo uploads, strict input validation (cost/mileage/date/text-length) across every write endpoint, rate limiting on notification-spam-prone endpoints (transfers, vehicle-share invites, booking creation/messages), a global per-IP rate limit backstop (`trust proxy` set for Render), the `qs` dependency bump (fixed a moderate DoS advisory), and full token revocation — `User.tokenVersion`, checked in `authMiddleware`, with a working **Profile → "Log out of all devices"** button in the app. All tested end-to-end (including a live curl-based revocation test) and confirmed working on-device.
+
+Left alone on purpose (not gaps, just judgement calls — see reasoning already in this file's security note and prior discussion if picked back up): CORS wildcard, `helmet()`, the remaining `npm audit` high-severity findings (Prisma CLI dev-tooling only, no stable fix yet), and data retention/deletion policy (a product decision, not code).
+
+**First thing next session:**
+1. Check whether the Google Play Store review of the submitted build has concluded (separate, independent process from the security work above).
+2. Decide what to pick up next — before this security detour, the Counter-Offer Message Feature (connecting the garage's "Suggest Different Slot" dialog to the existing booking message thread) and the `feature/vehicle-marketplace` branch work were both flagged as "next up." Ask Vikum which to resume, rather than assuming.
+3. If resuming mobile work, remember: `npx expo start --clear` must be run from `/workspaces/TechVehicle/mobile`, not the repo root — running it from the repo root tries to install a fresh `expo` package instead of using the existing project.
 
 ### Known Workflow Note
 Write files locally with Claude tools, commit and push from `c:\Vikum\TechVehicle` using git. Codespace does `git pull` to get the changes. This is the correct workflow — do NOT use heredocs or Python file-write commands in the Codespace terminal for new files.
