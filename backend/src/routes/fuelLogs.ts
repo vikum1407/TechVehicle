@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { canReadVehicle } from '../utils/vehicleAccess'
+import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, MAX_LITRES, SHORT_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -36,6 +37,16 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'Date and mileage are required' })
     return
   }
+  if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (!isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (litres !== undefined && litres !== null && litres !== '' && !isValidNumber(litres, { min: 0, max: MAX_LITRES })) {
+    res.status(400).json({ error: 'Litres must be a valid, non-negative number' }); return
+  }
+  if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
+    res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
+  }
 
   try {
     const vehicle = await prisma.vehicle.findFirst({
@@ -51,7 +62,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
         litres: litres ? Number(litres) : null,
         cost: cost ? Number(cost) : null,
         fullTank: fullTank !== false,
-        station: station?.trim() || null,
+        station: station?.trim() ? capText(station, SHORT_TEXT_LEN) : null,
       },
     })
 
@@ -74,6 +85,16 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
 router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { date, mileage, litres, cost, station } = req.body
+  if (date !== undefined && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (mileage !== undefined && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (litres !== undefined && litres !== null && litres !== '' && !isValidNumber(litres, { min: 0, max: MAX_LITRES })) {
+    res.status(400).json({ error: 'Litres must be a valid, non-negative number' }); return
+  }
+  if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
+    res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
+  }
   try {
     const log = await prisma.fuelLog.findFirst({
       where: { id },
@@ -89,7 +110,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         ...(mileage !== undefined && { mileage: Number(mileage) }),
         ...(litres !== undefined && { litres: litres ? Number(litres) : null }),
         ...(cost !== undefined && { cost: cost ? Number(cost) : null }),
-        ...(station !== undefined && { station: station?.trim() || null }),
+        ...(station !== undefined && { station: station?.trim() ? capText(station, SHORT_TEXT_LEN) : null }),
       },
     })
     res.json(updated)

@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { isValidNumber, isValidDateInput, capText, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -47,6 +48,17 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'All fields are required' })
     return
   }
+  const currentYear = new Date().getFullYear()
+  if (!isValidNumber(year, { min: 1900, max: currentYear + 1 })) {
+    res.status(400).json({ error: 'Year must be a valid year' }); return
+  }
+  if (!isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (purchaseDate && !isValidDateInput(purchaseDate)) { res.status(400).json({ error: 'Invalid purchase date' }); return }
+  if (ownerCount !== undefined && ownerCount !== null && ownerCount !== '' && !isValidNumber(ownerCount, { min: 1, max: 100 })) {
+    res.status(400).json({ error: 'Owner count must be a valid positive number' }); return
+  }
 
   try {
     // Ensure user exists in DB
@@ -58,9 +70,9 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const vehicle = await prisma.vehicle.create({
       data: {
-        registrationNo: registrationNo.toUpperCase().trim(),
-        make,
-        model,
+        registrationNo: capText(registrationNo.toUpperCase().trim(), SHORT_TEXT_LEN),
+        make: capText(make, SHORT_TEXT_LEN),
+        model: capText(model, SHORT_TEXT_LEN),
         year: Number(year),
         fuelType,
         vehicleType: vehicleType?.trim() || null,
@@ -68,7 +80,7 @@ router.post('/', async (req: AuthRequest, res) => {
         ownerPhone: req.phoneNumber!,
         purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
         ownerCount: ownerCount ? Number(ownerCount) : 1,
-        vehicleNotes: vehicleNotes?.trim() || null,
+        vehicleNotes: vehicleNotes?.trim() ? capText(vehicleNotes, LONG_TEXT_LEN) : null,
         photoUrl: photoUrl || null,
       },
     })
@@ -210,18 +222,26 @@ router.get('/:id/progress', async (req: AuthRequest, res) => {
 router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { make, model, year, fuelType, vehicleType, vehicleNotes, purchaseDate, ownerCount } = req.body
+  const currentYear = new Date().getFullYear()
+  if (year !== undefined && !isValidNumber(year, { min: 1900, max: currentYear + 1 })) {
+    res.status(400).json({ error: 'Year must be a valid year' }); return
+  }
+  if (purchaseDate && !isValidDateInput(purchaseDate)) { res.status(400).json({ error: 'Invalid purchase date' }); return }
+  if (ownerCount !== undefined && ownerCount !== null && ownerCount !== '' && !isValidNumber(ownerCount, { min: 1, max: 100 })) {
+    res.status(400).json({ error: 'Owner count must be a valid positive number' }); return
+  }
   try {
     const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
     const updated = await prisma.vehicle.update({
       where: { id },
       data: {
-        ...(make !== undefined && { make: make.trim() }),
-        ...(model !== undefined && { model: model.trim() }),
+        ...(make !== undefined && { make: capText(make.trim(), SHORT_TEXT_LEN) }),
+        ...(model !== undefined && { model: capText(model.trim(), SHORT_TEXT_LEN) }),
         ...(year !== undefined && { year: Number(year) }),
         ...(fuelType !== undefined && { fuelType }),
         ...(vehicleType !== undefined && { vehicleType: vehicleType || null }),
-        ...(vehicleNotes !== undefined && { vehicleNotes: vehicleNotes?.trim() || null }),
+        ...(vehicleNotes !== undefined && { vehicleNotes: vehicleNotes?.trim() ? capText(vehicleNotes, LONG_TEXT_LEN) : null }),
         ...(purchaseDate !== undefined && { purchaseDate: purchaseDate ? new Date(purchaseDate) : null }),
         ...(ownerCount !== undefined && { ownerCount: ownerCount ? Number(ownerCount) : null }),
       },
@@ -269,8 +289,8 @@ router.patch('/:id/overrides', async (req: AuthRequest, res) => {
 router.patch('/:id/mileage', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { mileage } = req.body
-  if (mileage === undefined || isNaN(Number(mileage))) {
-    res.status(400).json({ error: 'mileage is required' }); return
+  if (mileage === undefined || !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'mileage is required and must be a valid, non-negative number' }); return
   }
   try {
     const vehicle = await prisma.vehicle.findFirst({

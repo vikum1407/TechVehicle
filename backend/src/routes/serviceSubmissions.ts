@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -21,9 +22,12 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'shareSessionId or bookingId is required' })
     return
   }
-  if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
+  if (!cost || !isValidNumber(cost, { min: 0.01, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'cost is required and must be greater than 0' })
     return
+  }
+  if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
@@ -54,12 +58,12 @@ router.post('/', async (req: AuthRequest, res) => {
         vehicleId,
         garageId: garage.id,
         ownerPhone,
-        description: description.trim(),
-        parts: parts?.trim() || null,
-        brand: brand?.trim() || null,
+        description: capText(description.trim(), LONG_TEXT_LEN),
+        parts: parts?.trim() ? capText(parts, LONG_TEXT_LEN) : null,
+        brand: brand?.trim() ? capText(brand, SHORT_TEXT_LEN) : null,
         mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
-        notes: notes?.trim() || null,
+        notes: notes?.trim() ? capText(notes, LONG_TEXT_LEN) : null,
         photos: Array.isArray(photos) ? photos : [],
         categories: Array.isArray(categories) ? categories : [],
         status: 'pending',
@@ -103,9 +107,12 @@ router.post('/walkin', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
   }
-  if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
+  if (!cost || !isValidNumber(cost, { min: 0.01, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'cost is required and must be greater than 0' })
     return
+  }
+  if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
@@ -119,12 +126,12 @@ router.post('/walkin', async (req: AuthRequest, res) => {
         vehicleId,
         garageId: garage.id,
         ownerPhone: vehicle.ownerPhone,
-        description: description.trim(),
-        parts: parts?.trim() || null,
-        brand: brand?.trim() || null,
+        description: capText(description.trim(), LONG_TEXT_LEN),
+        parts: parts?.trim() ? capText(parts, LONG_TEXT_LEN) : null,
+        brand: brand?.trim() ? capText(brand, SHORT_TEXT_LEN) : null,
         mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
-        notes: notes?.trim() || null,
+        notes: notes?.trim() ? capText(notes, LONG_TEXT_LEN) : null,
         photos: Array.isArray(photos) ? photos : [],
         categories: Array.isArray(categories) ? categories : [],
         status: 'pending',
@@ -164,6 +171,13 @@ router.post('/shared', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
   }
+  if (date && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
+    res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
+  }
   try {
     const share = await prisma.vehicleShare.findFirst({
       where: { vehicleId, sharedWithPhone: req.phoneNumber!, status: 'active' },
@@ -178,11 +192,11 @@ router.post('/shared', async (req: AuthRequest, res) => {
         garageId: null,
         submittedByPhone: req.phoneNumber!,
         ownerPhone,
-        description: description.trim(),
+        description: capText(description.trim(), LONG_TEXT_LEN),
         serviceDate: date ? new Date(date) : null,
         mileage: mileage ? Number(mileage) : null,
         cost: cost ? Number(cost) : null,
-        notes: notes?.trim() || null,
+        notes: notes?.trim() ? capText(notes, LONG_TEXT_LEN) : null,
         structuredData: structuredData ?? null,
         photos: [],
         status: 'pending',

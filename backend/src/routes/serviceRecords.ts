@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { canReadVehicle } from '../utils/vehicleAccess'
+import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -37,6 +38,13 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'Date and description are required' })
     return
   }
+  if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
+    res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
+  }
 
   try {
     const vehicle = await prisma.vehicle.findFirst({
@@ -51,12 +59,12 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
       data: {
         vehicleId,
         date: new Date(date),
-        description,
+        description: capText(description, LONG_TEXT_LEN),
         mileage: mileage ? Number(mileage) : null,
-        parts: parts || null,
-        brand: brand || null,
+        parts: parts ? capText(parts, LONG_TEXT_LEN) : null,
+        brand: brand ? capText(brand, SHORT_TEXT_LEN) : null,
         cost: cost ? Number(cost) : null,
-        notes: notes || null,
+        notes: notes ? capText(notes, LONG_TEXT_LEN) : null,
         photos: Array.isArray(photos) ? photos : [],
         structuredData: structuredData || null,
       },
@@ -81,6 +89,13 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
 router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { date, description, mileage, parts, brand, cost, notes } = req.body
+  if (date !== undefined && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
+    res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
+  }
+  if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
+    res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
+  }
   try {
     const record = await prisma.serviceRecord.findFirst({
       where: { id },
@@ -93,12 +108,12 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       where: { id },
       data: {
         ...(date && { date: new Date(date) }),
-        ...(description !== undefined && { description }),
+        ...(description !== undefined && { description: capText(description, LONG_TEXT_LEN) }),
         ...(mileage !== undefined && { mileage: mileage ? Number(mileage) : null }),
-        ...(parts !== undefined && { parts: parts || null }),
-        ...(brand !== undefined && { brand: brand || null }),
+        ...(parts !== undefined && { parts: parts ? capText(parts, LONG_TEXT_LEN) : null }),
+        ...(brand !== undefined && { brand: brand ? capText(brand, SHORT_TEXT_LEN) : null }),
         ...(cost !== undefined && { cost: cost !== '' && cost != null ? Number(cost) : null }),
-        ...(notes !== undefined && { notes: notes || null }),
+        ...(notes !== undefined && { notes: notes ? capText(notes, LONG_TEXT_LEN) : null }),
       },
     })
     res.json(updated)
