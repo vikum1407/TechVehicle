@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { createNotification } from '../utils/appNotifications'
 import { sendPush } from '../utils/push'
 import { normalizePhone, isValidPhone } from '../utils/phone'
+import { checkRateLimit } from '../utils/rateLimit'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -28,6 +29,12 @@ router.post('/', async (req: AuthRequest, res) => {
 
   if (normalizedBuyer === sellerPhone) {
     res.status(400).json({ error: 'You cannot transfer a vehicle to yourself' })
+    return
+  }
+
+  const rateLimit = checkRateLimit('transfer-create', sellerPhone, 10, 60 * 60 * 1000)
+  if (!rateLimit.allowed) {
+    res.status(429).json({ error: `Too many transfer requests. Please try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
     return
   }
 

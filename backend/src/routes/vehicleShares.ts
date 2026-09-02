@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { normalizePhone, isValidPhone } from '../utils/phone'
+import { checkRateLimit } from '../utils/rateLimit'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -20,6 +21,11 @@ router.post('/', async (req: AuthRequest, res) => {
   }
   if (!isValidPhone(sharedWithPhone)) {
     res.status(400).json({ error: 'Please enter the phone number in international format, e.g. +94771234567' })
+    return
+  }
+  const rateLimit = checkRateLimit('vehicle-share-create', req.phoneNumber!, 20, 60 * 60 * 1000)
+  if (!rateLimit.allowed) {
+    res.status(429).json({ error: `Too many share requests. Please try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
     return
   }
   try {

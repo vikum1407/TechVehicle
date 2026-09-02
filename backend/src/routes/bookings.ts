@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { isValidDateInput, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
+import { checkRateLimit } from '../utils/rateLimit'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -20,6 +21,11 @@ router.post('/', async (req: AuthRequest, res) => {
   if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
   if (noteType !== undefined && !['normal', 'urgent'].includes(noteType)) {
     res.status(400).json({ error: 'Invalid noteType' }); return
+  }
+  const rateLimit = checkRateLimit('booking-create', req.phoneNumber!, 30, 60 * 60 * 1000)
+  if (!rateLimit.allowed) {
+    res.status(429).json({ error: `Too many booking requests. Please try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
+    return
   }
   try {
     const vehicle = await prisma.vehicle.findFirst({
@@ -345,6 +351,12 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
   const { message } = req.body
   if (!message?.trim()) { res.status(400).json({ error: 'message is required' }); return }
   const trimmedMessage = capText(message.trim(), LONG_TEXT_LEN)
+
+  const rateLimit = checkRateLimit('booking-note-create', req.phoneNumber!, 60, 60 * 60 * 1000)
+  if (!rateLimit.allowed) {
+    res.status(429).json({ error: `Too many messages. Please try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).` })
+    return
+  }
 
   try {
     const booking = await prisma.booking.findUnique({ where: { id }, include: { garage: true, vehicle: true } })
