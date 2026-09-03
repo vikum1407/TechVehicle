@@ -48,6 +48,15 @@ export default function SettingsScreen({ onBack, onNotificationPrefs }: Props) {
               {t('settings.language.sinhala')}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langOption, language === 'ta' && styles.langOptionActive]}
+            onPress={() => setLanguage('ta')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.langOptionText, language === 'ta' && styles.langOptionTextActive]}>
+              {t('settings.language.tamil')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 

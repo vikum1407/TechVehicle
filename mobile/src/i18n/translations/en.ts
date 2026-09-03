@@ -27,6 +27,7 @@ const en = {
   'settings.language': 'Language',
   'settings.language.english': 'English',
   'settings.language.sinhala': 'Sinhala',
+  'settings.language.tamil': 'Tamil',
 
   'login.tagline': "Your vehicle's digital service file",
   'login.signIn': 'Sign In',

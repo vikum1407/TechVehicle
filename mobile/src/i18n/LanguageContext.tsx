@@ -2,11 +2,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { storage } from '../utils/storage'
 import en from './translations/en'
 import si from './translations/si'
+import ta from './translations/ta'
 import type { TranslationKey } from './translations/en'
 
-export type Language = 'en' | 'si'
+export type Language = 'en' | 'si' | 'ta'
 
-const dictionaries: Record<Language, Record<TranslationKey, string>> = { en, si }
+const dictionaries: Record<Language, Partial<Record<TranslationKey, string>>> = { en, si, ta }
 
 type LanguageContextValue = {
   language: Language
@@ -25,7 +26,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     storage.getItemAsync('language').then(saved => {
-      if (saved === 'en' || saved === 'si') setLanguageState(saved)
+      if (saved === 'en' || saved === 'si' || saved === 'ta') setLanguageState(saved)
     }).catch(() => {})
   }, [])
 

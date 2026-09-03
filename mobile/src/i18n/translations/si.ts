@@ -29,6 +29,7 @@ const si: Record<TranslationKey, string> = {
   'settings.language': 'භාෂාව',
   'settings.language.english': 'ඉංග්‍රීසි',
   'settings.language.sinhala': 'සිංහල',
+  'settings.language.tamil': 'දෙමළ',
 
   'login.tagline': 'ඔබේ වාහනයේ ඩිජිටල් සේවා ලේඛනය',
   'login.signIn': 'පුරන්න',
