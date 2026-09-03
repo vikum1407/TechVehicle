@@ -104,11 +104,17 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
 
-  // Load all garages on mount
+  // Auto-search: debounce 500ms on searchQuery change; empty query loads all garages
   useEffect(() => {
     setSearching(true)
-    api.searchGarages(token, '').then(setSearchResults).catch(() => {}).finally(() => setSearching(false))
-  }, [])
+    const timer = setTimeout(() => {
+      api.searchGarages(token, searchQuery.trim())
+        .then(setSearchResults)
+        .catch(() => {})
+        .finally(() => setSearching(false))
+    }, searchQuery.trim() ? 500 : 0)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Load service records when entering confirm step
   useEffect(() => {
@@ -133,19 +139,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       else next.add(id)
       return next
     })
-  }
-
-  const handleSearch = async () => {
-    setSearching(true)
-    setSearchResults([])
-    try {
-      const results = await api.searchGarages(token, searchQuery.trim())
-      setSearchResults(results)
-    } catch (e: any) {
-      Alert.alert(t('common.error'), e.message)
-    } finally {
-      setSearching(false)
-    }
   }
 
   const handleToggleReviews = async (garageId: string) => {
@@ -251,19 +244,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={t('booking.searchPlaceholder')}
-              onSubmitEditing={handleSearch}
               returnKeyType="search"
             />
-            <TouchableOpacity
-              style={[styles.searchBtn, searching && styles.btnDisabled]}
-              onPress={handleSearch}
-              disabled={searching}
-            >
-              {searching
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.searchBtnText}>{t('booking.search')}</Text>
-              }
-            </TouchableOpacity>
+            {searching && <ActivityIndicator style={styles.searchSpinner} color="#666" size="small" />}
           </View>
 
           {searchResults.length === 0 && !searching && (
@@ -290,9 +273,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     {garage.address && <Text style={styles.garageAddress}>{garage.address}</Text>}
                   </View>
                   <View style={styles.garageCardRight}>
-                    <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
-                      <Text style={styles.badgeText}>{garage.verified ? t('booking.verifiedFull') : t('booking.unverifiedFull')}</Text>
-                    </View>
                     <Text style={styles.selectText}>{t('booking.selectArrow')}</Text>
                   </View>
                 </TouchableOpacity>
@@ -376,7 +356,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
-            {selectedGarage?.verified && <Text style={styles.verifiedLabel}>{t('booking.verifiedFull')}</Text>}
           </View>
 
           <Text style={styles.sectionLabel}>{t('booking.availableNext14Days')}</Text>
@@ -737,19 +716,14 @@ function makeStyles(c: Colors) {
       marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6,
     },
 
-    searchRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
     searchInput: {
       flex: 1, backgroundColor: c.surface, borderRadius: 10,
       borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 12,
       fontSize: 15, color: c.text, letterSpacing: 0,
     },
-    searchBtn: {
-      backgroundColor: c.primary, borderRadius: 10,
-      paddingHorizontal: 18, justifyContent: 'center',
-    },
-    btnDisabled: { opacity: 0.6 },
-    searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    searchSpinner: { position: 'absolute', right: 14 },
 
     emptyBox: { alignItems: 'center', marginTop: 40 },
     emptyTitle: { fontSize: 16, fontWeight: '600', color: c.textBody, marginBottom: 6 },

@@ -63,11 +63,17 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
       .finally(() => setLoading(false))
   }, [])
 
-  // Load all garages on mount
+  // Auto-search with 500ms debounce; empty query loads all garages
   useEffect(() => {
     setSearching(true)
-    api.searchGarages(token, '').then(setGarageResults).catch(() => {}).finally(() => setSearching(false))
-  }, [])
+    const timer = setTimeout(() => {
+      api.searchGarages(token, searchText.trim())
+        .then(setGarageResults)
+        .catch(() => setGarageResults([]))
+        .finally(() => setSearching(false))
+    }, searchText.trim() ? 500 : 0)
+    return () => clearTimeout(timer)
+  }, [searchText])
 
   const toggleRecord = (id: string) => {
     setSelectedIds(prev => {
@@ -77,17 +83,8 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
     })
   }
 
-  const handleSearch = async (text: string) => {
+  const handleSearch = (text: string) => {
     setSearchText(text)
-    setSearching(true)
-    try {
-      const results = await api.searchGarages(token, text)
-      setGarageResults(results)
-    } catch {
-      setGarageResults([])
-    } finally {
-      setSearching(false)
-    }
   }
 
   const handleShare = async () => {
@@ -261,7 +258,6 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
             >
               <View style={styles.garageRow}>
                 <Text style={[styles.garageName, selectedGarage?.id === g.id && styles.garageNameSelected]}>{g.name}</Text>
-                {g.verified && <Text style={styles.verifiedBadge}>✅</Text>}
               </View>
               {g.address && (
                 <Text style={[styles.garageAddress, selectedGarage?.id === g.id && styles.garageAddressSelected]}>{g.address}</Text>
@@ -289,7 +285,6 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
           <View style={styles.confirmCard}>
             <Text style={styles.confirmLabel}>{t('share.sharingWith')}</Text>
             <Text style={styles.confirmGarage}>{selectedGarage.name}</Text>
-            {selectedGarage.verified && <Text style={styles.verifiedText}>✅ {t('share.verifiedGarage')}</Text>}
             {selectedGarage.address && (
               <Text style={styles.confirmAddress}>📍 {selectedGarage.address}</Text>
             )}
