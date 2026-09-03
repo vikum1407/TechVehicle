@@ -63,6 +63,12 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
       .finally(() => setLoading(false))
   }, [])
 
+  // Load all garages on mount
+  useEffect(() => {
+    setSearching(true)
+    api.searchGarages(token, '').then(setGarageResults).catch(() => {}).finally(() => setSearching(false))
+  }, [])
+
   const toggleRecord = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -73,7 +79,6 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
 
   const handleSearch = async (text: string) => {
     setSearchText(text)
-    if (text.length < 2) { setGarageResults([]); return }
     setSearching(true)
     try {
       const results = await api.searchGarages(token, text)

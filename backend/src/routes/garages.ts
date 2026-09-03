@@ -85,16 +85,15 @@ router.put('/me', async (req: AuthRequest, res) => {
 })
 
 // GET /garages/search?name=xxx — search garages by name (public-ish, still requires auth)
+// name is optional — omit or leave blank to return all garages
 router.get('/search', async (req: AuthRequest, res) => {
   const name = (req.query.name as string || '').trim()
-  if (name.length < 2) {
-    res.status(400).json({ error: 'Search term must be at least 2 characters' }); return
-  }
   try {
     const garages = await prisma.garage.findMany({
-      where: { name: { contains: name, mode: 'insensitive' } },
+      where: name.length >= 2 ? { name: { contains: name, mode: 'insensitive' } } : undefined,
       select: { id: true, name: true, address: true, verified: true, priceList: true },
-      take: 10,
+      take: 50,
+      orderBy: { verified: 'desc' },
     })
     const withRatings = await Promise.all(garages.map(async g => ({ ...g, ...(await getRatingStats(g.id)) })))
     res.json(withRatings)

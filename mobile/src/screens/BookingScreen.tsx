@@ -104,6 +104,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
 
+  // Load all garages on mount
+  useEffect(() => {
+    setSearching(true)
+    api.searchGarages(token, '').then(setSearchResults).catch(() => {}).finally(() => setSearching(false))
+  }, [])
+
   // Load service records when entering confirm step
   useEffect(() => {
     if (step === 'confirm') {
@@ -130,7 +136,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   }
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return
     setSearching(true)
     setSearchResults([])
     try {
@@ -261,7 +266,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             </TouchableOpacity>
           </View>
 
-          {searchResults.length === 0 && !searching && searchQuery.length > 0 && (
+          {searchResults.length === 0 && !searching && (
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>{t('booking.noGaragesFound.title')}</Text>
               <Text style={styles.emptyText}>{t('booking.noGaragesFound.text')}</Text>
