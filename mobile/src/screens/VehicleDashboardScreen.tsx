@@ -972,7 +972,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                   <View style={styles.appointmentHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.appointmentGarage}>
-                        {bk.garage.name}{bk.garage.verified ? ' ✅' : ''}
+                        {bk.garage.name}
                       </Text>
                       <Text style={styles.appointmentDateTime}>
                         {new Date(bk.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
@@ -1153,7 +1153,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <View key={sub.id} style={styles.submissionCard}>
                 <View style={styles.submissionHeader}>
                   <Text style={styles.submissionGarage}>
-                    {sub.garage ? `${sub.garage.name}${sub.garage.verified ? ' ✅' : ''}` : sub.submittedByPhone ?? t('dashboard.sharedUser')}
+                    {sub.garage ? sub.garage.name : sub.submittedByPhone ?? t('dashboard.sharedUser')}
                   </Text>
                   <Text style={styles.submissionDate}>
                     {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}

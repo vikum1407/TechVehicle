@@ -1159,11 +1159,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               <View style={styles.profileCard}>
                 <Text style={styles.garageName}>{garage.name}</Text>
                 <View style={styles.badgeRow}>
-                  <View style={[styles.badge, garage.verified ? styles.badgeVerified : styles.badgeUnverified]}>
-                    <Text style={styles.badgeText}>
-                      {garage.verified ? `✅ ${t('garage.verifiedGarage')}` : `⚠️ ${t('garage.unverified')}`}
-                    </Text>
-                  </View>
                   {garage.ratingCount != null && garage.ratingCount > 0 && (
                     <TouchableOpacity style={styles.ratingBadge} onPress={openRatingsModal}>
                       <Text style={styles.ratingBadgeText}>⭐ {garage.avgRating} ({garage.ratingCount}) ›</Text>
@@ -1179,15 +1174,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   💰 {garage.priceList && garage.priceList.length > 0 ? t('garage.pricesListed', { count: garage.priceList.length }) : t('garage.noPriceList')}
                 </Text>
               </View>
-
-              {!garage.verified && (
-                <View style={styles.infoBox}>
-                  <Text style={styles.infoTitle}>{t('garage.howToGetVerified')}</Text>
-                  <Text style={styles.infoText}>
-                    {t('garage.verifiedInfoText')}
-                  </Text>
-                </View>
-              )}
 
               <TouchableOpacity
                 style={styles.editBtn}

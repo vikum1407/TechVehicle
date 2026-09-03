@@ -178,6 +178,18 @@ Only one touchpoint planned between them: each Customers-tab row gets a "View Fu
 
 ---
 
+## Garage Verification Badge — Temporarily Removed (2026-09-03), Needs a Real Solution
+
+The original design (see `CLAUDE.md` — "Garage BR verification") called for garages that provide a Business Registration (BR) number to show a "✅ Verified" badge, and garages without one to show "⚠️ Unverified" — a trust signal for owners choosing a garage.
+
+**Found while testing:** the backend never actually implements this. `POST /garages/register` hardcodes `verified: false` on every new garage regardless of whether a BR number was entered, and no code anywhere ever sets it to `true` — no admin review step, no automatic check. The result: every garage in the system permanently shows "Unverified," and the garage-facing "How to get Verified" info box was actively telling garage owners *"our team will verify your garage"* after adding a BR number — a promise nothing in the codebase fulfills.
+
+**Fix applied for now:** removed the verified/unverified badge and the "How to get Verified" info box from every screen that showed them (`BookingScreen.tsx`, `GarageScreen.tsx`, `ShareScreen.tsx`, `VehicleDashboardScreen.tsx`) so the app doesn't show a permanently-wrong status or make a false promise. The `verified` field, its DB column, and the BR number field/storage are all left in place — nothing about the underlying capability was removed, only its current, non-functional UI surface.
+
+**Still needed — a real verification mechanism:** there's no public Sri Lankan BR-number registry API to check against automatically, so the realistic options are (1) manual admin review of submitted BR numbers (needs an admin UI/flow — doesn't exist yet), or (2) mark `verified: true` automatically whenever a BR number is present, with no real validation that it's genuine (weakest option, but honest about what it actually checks). Needs a decision before the badge UI comes back.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
