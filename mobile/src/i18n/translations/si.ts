@@ -878,6 +878,14 @@ const si: Record<TranslationKey, string> = {
   'profile.emailBanner': 'ගිණුම් ප්‍රතිසාධනය සඳහා ඔබේ විද්‍යුත් තැපෑල එකතු කරන්න',
   'profile.emailSaving': 'සුරකිමින්...',
 
+  'emailSetup.title': 'ඔබේ ඊමේල් එක එකතු කරන්න',
+  'emailSetup.subtitle': 'අවශ්‍ය නොවුණත් නිර්දේශිතයි. ඔබේ ගිණුම ආරක්ෂා කිරීමට සහ වාහන මතක් කිරීම් යැවීමට උපකාර වේ.',
+  'emailSetup.reason1': 'ප්‍රවේශය නැති වුවහොත් ගිණුම් ප්‍රතිලාභ',
+  'emailSetup.reason2': 'ඊමේල් හරහා සේවා හා අලුත් කිරීමේ මතක් කිරීම්',
+  'emailSetup.reason3': 'ඔබේ වාහන ගැන වැදගත් යාවත්කාලීන',
+  'emailSetup.save': 'සුරකා ඉදිරියට යන්න',
+  'emailSetup.skip': 'මේ වේලාවේ මඟ හරින්න',
+
   'knowledgeHub.title': 'දැනුම් මධ්‍යස්ථානය',
   'knowledgeHub.myVehicle': 'මගේ වාහනය',
   'knowledgeHub.myVehicleWarn': 'මගේ වාහනය ({count})',

@@ -25,6 +25,7 @@ import ShareScreen from './src/screens/ShareScreen'
 import SellScreen from './src/screens/SellScreen'
 import BookingScreen from './src/screens/BookingScreen'
 import RoleSelectScreen from './src/screens/RoleSelectScreen'
+import EmailSetupScreen from './src/screens/EmailSetupScreen'
 import PredictionsScreen from './src/screens/PredictionsScreen'
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen'
 import NotificationsScreen from './src/screens/NotificationsScreen'
@@ -37,7 +38,7 @@ import BottomTabBar from './src/components/BottomTabBar'
 import FloatingHomeButton from './src/components/FloatingHomeButton'
 
 type Screen =
-  | 'loading' | 'login' | 'otp' | 'roleSelect'
+  | 'loading' | 'login' | 'otp' | 'roleSelect' | 'emailSetup'
   | 'vehicles' | 'garage' | 'garageLedger'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
@@ -69,7 +70,7 @@ type Vehicle = {
 const TAB_SCREENS: Screen[] = ['vehicles', 'garage']
 
 // Screens where a floating Home shortcut doesn't make sense (auth flow, or already home)
-const NO_HOME_SCREENS: Screen[] = ['loading', 'login', 'otp', 'roleSelect', 'vehicles', 'garage']
+const NO_HOME_SCREENS: Screen[] = ['loading', 'login', 'otp', 'roleSelect', 'emailSetup', 'vehicles', 'garage']
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
@@ -89,6 +90,7 @@ export default function App() {
   const [notifUnreadCount, setNotifUnreadCount] = useState(0)
   const [notifPrefsReturnTo, setNotifPrefsReturnTo] = useState<'notifications' | 'settings'>('notifications')
   const [hasGarage, setHasGarage] = useState(false)
+  const [postEmailScreen, setPostEmailScreen] = useState<'vehicles' | 'garage'>('vehicles')
   const [addServiceReturnTo, setAddServiceReturnTo] = useState<'vehicleDashboard' | 'predictions' | 'costForecast'>('vehicleDashboard')
   const [historyEditRecordId, setHistoryEditRecordId] = useState('')
   const [historyReturnTo, setHistoryReturnTo] = useState<'vehicleDashboard' | 'predictions'>('vehicleDashboard')
@@ -278,9 +280,15 @@ export default function App() {
   const handleRoleSelected = async (uType: 'owner' | 'garage') => {
     await storage.setItemAsync('userType', uType)
     setUserType(uType)
-    setScreen(uType === 'garage' ? 'garage' : 'vehicles')
+    const dest = uType === 'garage' ? 'garage' : 'vehicles'
+    setPostEmailScreen(dest)
+    setScreen('emailSetup')
     registerPush(token)
     loadNotifCount(token)
+  }
+
+  const handleEmailDone = () => {
+    setScreen(postEmailScreen)
   }
 
   const registerPush = async (authToken: string) => {
@@ -348,6 +356,12 @@ export default function App() {
           token={token}
           onSelected={handleRoleSelected}
           onCancel={handleLogout}
+        />
+      )}
+      {screen === 'emailSetup' && (
+        <EmailSetupScreen
+          token={token}
+          onDone={handleEmailDone}
         />
       )}
 
