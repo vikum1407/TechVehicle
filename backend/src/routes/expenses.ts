@@ -62,6 +62,14 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
         notes: notes?.trim() ? capText(notes, LONG_TEXT_LEN) : null,
       },
     })
+
+    if (mileage && Number(mileage) > vehicle.mileage) {
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { mileage: Number(mileage) },
+      })
+    }
+
     res.status(201).json(expense)
   } catch (error) {
     console.error('POST /expenses error:', error)
