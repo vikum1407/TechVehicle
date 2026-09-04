@@ -213,9 +213,33 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
       prisma.expense.count({ where: { vehicle: { ownerPhone: phone } } }),
       prisma.user.findUnique({ where: { phoneNumber: phone } }),
     ])
-    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null })
+    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null })
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stats' })
+  }
+})
+
+// PATCH /auth/email — save or update the user's email address
+router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
+  const { email } = req.body
+  if (!email || typeof email !== 'string') {
+    res.status(400).json({ error: 'email is required' }); return
+  }
+  const normalised = email.trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised) || normalised.length > 254) {
+    res.status(400).json({ error: 'Please enter a valid email address' }); return
+  }
+  try {
+    await prisma.user.update({
+      where: { phoneNumber: req.phoneNumber! },
+      data: { email: normalised },
+    })
+    res.json({ ok: true, email: normalised })
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      res.status(409).json({ error: 'This email is already linked to another account' }); return
+    }
+    res.status(500).json({ error: 'Failed to save email' })
   }
 })
 

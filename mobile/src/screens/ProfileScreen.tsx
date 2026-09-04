@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image,
+  ScrollView, ActivityIndicator, Alert, Image, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -28,13 +28,20 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [garageName, setGarageName] = useState<string | null>(null)
   const [loggingOutAllDevices, setLoggingOutAllDevices] = useState(false)
+  const [email, setEmail] = useState('')
+  const [savedEmail, setSavedEmail] = useState<string | null>(null)
+  const [savingEmail, setSavingEmail] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
 
   useEffect(() => {
     api.getAccountStats(token)
-      .then(data => { setStats(data); setPhotoUrl(data.profilePhotoUrl) })
+      .then(data => {
+        setStats(data)
+        setPhotoUrl(data.profilePhotoUrl)
+        if (data.email) { setSavedEmail(data.email); setEmail(data.email) }
+      })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
 
@@ -65,6 +72,20 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       Alert.alert(t('addVehicle.uploadFailed.title'), e.message || t('addVehicle.uploadFailed.message'))
     } finally {
       setUploadingPhoto(false)
+    }
+  }
+
+  const saveEmail = async () => {
+    if (!email.trim()) return
+    setSavingEmail(true)
+    try {
+      await api.saveEmail(token, email.trim())
+      setSavedEmail(email.trim().toLowerCase())
+      Alert.alert('', t('profile.emailSaved'))
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message)
+    } finally {
+      setSavingEmail(false)
     }
   }
 
@@ -99,6 +120,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScreenHeader title={t('profile.title')} onBack={onBack} />
 
@@ -168,10 +190,42 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
           : <Text style={styles.settingsRowChevron}>›</Text>}
       </TouchableOpacity>
 
+      {/* Email section */}
+      {!savedEmail && (
+        <View style={styles.emailBanner}>
+          <Text style={styles.emailBannerIcon}>📧</Text>
+          <Text style={styles.emailBannerText}>{t('profile.emailBanner')}</Text>
+        </View>
+      )}
+      <Text style={styles.sectionTitle}>{t('profile.email')}</Text>
+      <View style={styles.emailCard}>
+        <TextInput
+          style={styles.emailInput}
+          value={email}
+          onChangeText={setEmail}
+          placeholder={t('profile.emailPlaceholder')}
+          placeholderTextColor={colors.textFaint}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <TouchableOpacity
+          style={[styles.emailSaveBtn, savingEmail && { opacity: 0.6 }]}
+          onPress={saveEmail}
+          disabled={savingEmail || !email.trim() || email.trim().toLowerCase() === savedEmail}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.emailSaveBtnText}>
+            {savingEmail ? t('profile.emailSaving') : t('profile.emailSave')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
         <Text style={styles.logoutBtnText}>{t('profile.logOut')}</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -249,6 +303,31 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
     },
     garageLiveBadge: { fontSize: 12, fontWeight: '700', color: c.primary },
+
+    emailBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: c.primaryTint, borderRadius: 12,
+      marginHorizontal: 16, marginTop: 16, padding: 14,
+    },
+    emailBannerIcon: { fontSize: 20 },
+    emailBannerText: { flex: 1, fontSize: 13, color: c.primaryTintText, fontWeight: '600' },
+
+    emailCard: {
+      backgroundColor: c.surface, borderRadius: 14,
+      marginHorizontal: 16, marginTop: 8, padding: 12,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+      gap: 10,
+    },
+    emailInput: {
+      borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: c.text,
+    },
+    emailSaveBtn: {
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingVertical: 13, alignItems: 'center',
+    },
+    emailSaveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
     logoutBtn: {
       marginHorizontal: 16, marginTop: 12, borderRadius: 12,

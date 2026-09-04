@@ -869,6 +869,12 @@ const en = {
   'profile.logOutAllDevices': 'Log out of all devices',
   'profile.logOutAllDevicesConfirm': 'This will sign you out everywhere — this phone and any other device where you\'re logged in. You\'ll need to verify your phone number with a new OTP to log back in. Use this if your phone was lost or stolen.',
   'profile.logOutAllDevicesFailed': 'Could not log out of all devices. Please check your connection and try again.',
+  'profile.email': 'Email Address',
+  'profile.emailPlaceholder': 'yourname@example.com',
+  'profile.emailSave': 'Save Email',
+  'profile.emailSaved': 'Email saved successfully',
+  'profile.emailBanner': 'Add your email for account recovery & reports',
+  'profile.emailSaving': 'Saving...',
 
   'knowledgeHub.title': 'Knowledge Hub',
   'knowledgeHub.myVehicle': 'My Vehicle',

@@ -653,6 +653,17 @@ export const api = {
     return data
   },
 
+  saveEmail: async (token: string, email: string) => {
+    const res = await fetch(`${API_URL}/auth/email`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ email }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save email')
+    return data
+  },
+
   logoutEverywhere: async (token: string) => {
     const res = await fetch(`${API_URL}/auth/logout-everywhere`, {
       method: 'POST',

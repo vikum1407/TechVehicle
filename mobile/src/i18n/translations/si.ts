@@ -871,6 +871,12 @@ const si: Record<TranslationKey, string> = {
   'profile.logOutAllDevices': 'සියලුම උපාංගවලින් ලොග් අවුට් වන්න',
   'profile.logOutAllDevicesConfirm': 'මෙය ඔබව සෑම තැනකින්ම — මෙම දුරකථනයෙන් සහ ඔබ ලොග් වී ඇති වෙනත් ඕනෑම උපාංගයකින් ලොග් අවුට් කරයි. නැවත ලොග් වීමට ඔබට නව OTP එකකින් දුරකථන අංකය තහවුරු කිරීමට සිදුවේ. ඔබේ දුරකථනය නැති වුවහොත් හෝ සොරකම් කළහොත් මෙය භාවිත කරන්න.',
   'profile.logOutAllDevicesFailed': 'සියලුම උපාංගවලින් ලොග් අවුට් කළ නොහැක. කරුණාකර ඔබේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.',
+  'profile.email': 'විද්‍යුත් තැපෑල',
+  'profile.emailPlaceholder': 'yourname@example.com',
+  'profile.emailSave': 'සුරකින්න',
+  'profile.emailSaved': 'විද්‍යුත් තැපෑල සුරකින ලදී',
+  'profile.emailBanner': 'ගිණුම් ප්‍රතිසාධනය සඳහා ඔබේ විද්‍යුත් තැපෑල එකතු කරන්න',
+  'profile.emailSaving': 'සුරකිමින්...',
 
   'knowledgeHub.title': 'දැනුම් මධ්‍යස්ථානය',
   'knowledgeHub.myVehicle': 'මගේ වාහනය',
