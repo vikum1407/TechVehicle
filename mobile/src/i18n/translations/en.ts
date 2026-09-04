@@ -164,6 +164,7 @@ const en = {
   'dashboard.dueIn': 'Due in{extra}',
   'dashboard.dueInKm': ' {km} km',
   'dashboard.dueInDays': ' {days} days',
+  'dashboard.actionRequired': 'Action Required ({count})',
   'dashboard.pendingApproval': '⚠️ Pending for Approval ({count})',
   'dashboard.sharedUser': 'Shared user',
   'dashboard.parts': 'Parts: {parts}',

@@ -166,6 +166,7 @@ const si: Record<TranslationKey, string> = {
   'dashboard.dueIn': 'නියමිතයි{extra}',
   'dashboard.dueInKm': ' කිලෝමීටර් {km}කින්',
   'dashboard.dueInDays': ' දින {days}කින්',
+  'dashboard.actionRequired': 'ක්‍රියාව අවශ්‍යයි ({count})',
   'dashboard.pendingApproval': '⚠️ අනුමැතිය අපේක්ෂිතයි ({count})',
   'dashboard.sharedUser': 'බෙදාගත් පරිශීලක',
   'dashboard.parts': 'අමතර කොටස්: {parts}',

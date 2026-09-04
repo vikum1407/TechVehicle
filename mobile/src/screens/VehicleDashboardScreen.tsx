@@ -957,6 +957,179 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           )
         })()}
 
+        {/* ── Action Required — submissions + pending transfer ── */}
+        {(submissions.length > 0 || pendingTransfer) && (
+          <View style={styles.actionRequiredSection}>
+            <Text style={styles.actionRequiredTitle}>
+              ⚡ {t('dashboard.actionRequired', { count: submissions.length + (pendingTransfer ? 1 : 0) })}
+            </Text>
+
+            {/* Pending submissions */}
+            {submissions.length > 0 && (
+              <View style={styles.submissionsSection}>
+                <Text style={styles.submissionsSectionTitle}>
+                  {t('dashboard.pendingApproval', { count: submissions.length })}
+                </Text>
+                {submissions.map(sub => (
+                  <View key={sub.id} style={styles.submissionCard}>
+                    <View style={styles.submissionHeader}>
+                      <Text style={styles.submissionGarage}>
+                        {sub.garage ? sub.garage.name : sub.submittedByPhone ?? t('dashboard.sharedUser')}
+                      </Text>
+                      <Text style={styles.submissionDate}>
+                        {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.tagRow}>
+                      {sub.description.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => (
+                        <View key={i} style={styles.tag}>
+                          <Text style={styles.tagText}>{s}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    {sub.parts && <Text style={styles.submissionMeta}>{t('dashboard.parts', { parts: sub.parts })}</Text>}
+                    {sub.brand && <Text style={styles.submissionMeta}>{t('dashboard.brand', { brand: sub.brand })}</Text>}
+                    {sub.cost != null && (
+                      <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
+                    )}
+                    {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
+                    {sub.photos && sub.photos.length > 0 && (
+                      <View style={styles.photoStrip}>
+                        {sub.photos.map((url, i) => (
+                          <TouchableOpacity key={i} onPress={() => openPhotos(sub.photos, i, sub.description || 'Service submission')} activeOpacity={0.8}>
+                            <Image source={{ uri: url }} style={styles.recordThumb} />
+                            {sub.photos.length > 1 && i === 0 && (
+                              <View style={styles.thumbCountBadge}>
+                                <Text style={styles.thumbCountText}>{sub.photos.length}</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                    {!sub.garage && (
+                      <View style={styles.submissionActions}>
+                        <TouchableOpacity
+                          style={[styles.rejectBtn, rejecting === sub.id && styles.acceptBtnDisabled]}
+                          onPress={() => handleReject(sub.id)}
+                          disabled={rejecting === sub.id || accepting === sub.id}
+                        >
+                          {rejecting === sub.id
+                            ? <ActivityIndicator color="#c62828" size="small" />
+                            : <Text style={styles.rejectBtnText}>{t('dashboard.rejectShort')}</Text>
+                          }
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.acceptBtn, styles.acceptBtnFlex, accepting === sub.id && styles.acceptBtnDisabled]}
+                          onPress={() => handleAccept(sub)}
+                          disabled={accepting === sub.id || rejecting === sub.id}
+                        >
+                          {accepting === sub.id
+                            ? <ActivityIndicator color="#fff" size="small" />
+                            : <Text style={styles.acceptBtnText}>{t('dashboard.acceptShort')}</Text>
+                          }
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {sub.garage && (
+                      <TouchableOpacity
+                        style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
+                        onPress={() => handleAccept(sub)}
+                        disabled={accepting === sub.id}
+                      >
+                        {accepting === sub.id
+                          ? <ActivityIndicator color="#fff" size="small" />
+                          : <Text style={styles.acceptBtnText}>{t('dashboard.acceptAddToHistory')}</Text>
+                        }
+                      </TouchableOpacity>
+                    )}
+
+                    {sub.bookingId && (
+                      <TouchableOpacity
+                        style={styles.messagesToggle}
+                        onPress={() => toggleMessages(sub)}
+                      >
+                        <Text style={styles.messagesToggleText}>
+                          {t('dashboard.messages')} {expandedMessages.has(sub.id) ? '▲' : '▼'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {sub.bookingId && expandedMessages.has(sub.id) && (
+                      <View style={styles.messagesSection}>
+                        {loadingNotes.has(sub.id) ? (
+                          <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />
+                        ) : (
+                          <>
+                            {(bookingNotes[sub.bookingId] || []).length === 0 ? (
+                              <Text style={styles.noMessages}>{t('dashboard.noMessagesYet')}</Text>
+                            ) : (bookingNotes[sub.bookingId] || []).map(note => (
+                              <View
+                                key={note.id}
+                                style={[
+                                  styles.messageItem,
+                                  note.senderPhone !== phoneNumber ? styles.messageItemThem : undefined,
+                                ]}
+                              >
+                                <Text style={styles.messageSender}>
+                                  {note.senderPhone !== phoneNumber ? t('dashboard.garage') : t('dashboard.you')}
+                                </Text>
+                                <Text style={styles.messageText}>{note.message}</Text>
+                                <Text style={styles.messageTime}>
+                                  {new Date(note.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                              </View>
+                            ))}
+                            <View style={styles.messageInputRow}>
+                              <TextInput
+                                style={styles.messageInput}
+                                value={messageInputs[sub.id] || ''}
+                                onChangeText={v => setMessageInputs(prev => ({ ...prev, [sub.id]: v }))}
+                                placeholder={t('dashboard.typeMessage')}
+                                multiline={false}
+                              />
+                              <TouchableOpacity
+                                style={[styles.messageSendBtn, (!messageInputs[sub.id]?.trim() || sendingMessage === sub.id) && styles.messageSendBtnDisabled]}
+                                onPress={() => handleSendMessage(sub)}
+                                disabled={!messageInputs[sub.id]?.trim() || sendingMessage === sub.id}
+                              >
+                                {sendingMessage === sub.id
+                                  ? <ActivityIndicator size="small" color="#fff" />
+                                  : <Text style={styles.messageSendBtnText}>→</Text>
+                                }
+                              </TouchableOpacity>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Pending transfer */}
+            {pendingTransfer && (
+              <View style={styles.transferBanner}>
+                <View style={styles.transferBannerLeft}>
+                  <Text style={styles.transferBannerTitle}>{t('dashboard.transferPending')}</Text>
+                  <Text style={styles.transferBannerSub}>{t('dashboard.waitingForBuyer', { phone: pendingTransfer.buyerPhone })}</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
+                  onPress={handleCancelTransfer}
+                  disabled={cancellingTransfer}
+                >
+                  {cancellingTransfer
+                    ? <ActivityIndicator color="#c62828" size="small" />
+                    : <Text style={styles.cancelTransferBtnText}>{t('dashboard.cancel')}</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* My Appointments — owner's booked service slots */}
         {myBookings.length > 0 && (
           <View style={styles.appointmentsSection}>
@@ -1142,170 +1315,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             })
           )}
         </TouchableOpacity>
-
-        {/* Pending submissions — shown prominently right after vehicle card */}
-        {submissions.length > 0 && (
-          <View style={styles.submissionsSection}>
-            <Text style={styles.submissionsSectionTitle}>
-              {t('dashboard.pendingApproval', { count: submissions.length })}
-            </Text>
-            {submissions.map(sub => (
-              <View key={sub.id} style={styles.submissionCard}>
-                <View style={styles.submissionHeader}>
-                  <Text style={styles.submissionGarage}>
-                    {sub.garage ? sub.garage.name : sub.submittedByPhone ?? t('dashboard.sharedUser')}
-                  </Text>
-                  <Text style={styles.submissionDate}>
-                    {new Date(sub.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </Text>
-                </View>
-                <View style={styles.tagRow}>
-                  {sub.description.split(',').map(s => s.trim()).filter(Boolean).map((s, i) => (
-                    <View key={i} style={styles.tag}>
-                      <Text style={styles.tagText}>{s}</Text>
-                    </View>
-                  ))}
-                </View>
-                {sub.parts && <Text style={styles.submissionMeta}>{t('dashboard.parts', { parts: sub.parts })}</Text>}
-                {sub.brand && <Text style={styles.submissionMeta}>{t('dashboard.brand', { brand: sub.brand })}</Text>}
-                {sub.cost != null && (
-                  <Text style={styles.submissionCost}>LKR {sub.cost.toLocaleString()}</Text>
-                )}
-                {sub.notes && <Text style={styles.submissionNotes}>{sub.notes}</Text>}
-                {sub.photos && sub.photos.length > 0 && (
-                  <View style={styles.photoStrip}>
-                    {sub.photos.map((url, i) => (
-                      <TouchableOpacity key={i} onPress={() => openPhotos(sub.photos, i, sub.description || 'Service submission')} activeOpacity={0.8}>
-                        <Image source={{ uri: url }} style={styles.recordThumb} />
-                        {sub.photos.length > 1 && i === 0 && (
-                          <View style={styles.thumbCountBadge}>
-                            <Text style={styles.thumbCountText}>{sub.photos.length}</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-                {!sub.garage && (
-                  <View style={styles.submissionActions}>
-                    <TouchableOpacity
-                      style={[styles.rejectBtn, rejecting === sub.id && styles.acceptBtnDisabled]}
-                      onPress={() => handleReject(sub.id)}
-                      disabled={rejecting === sub.id || accepting === sub.id}
-                    >
-                      {rejecting === sub.id
-                        ? <ActivityIndicator color="#c62828" size="small" />
-                        : <Text style={styles.rejectBtnText}>{t('dashboard.rejectShort')}</Text>
-                      }
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.acceptBtn, styles.acceptBtnFlex, accepting === sub.id && styles.acceptBtnDisabled]}
-                      onPress={() => handleAccept(sub)}
-                      disabled={accepting === sub.id || rejecting === sub.id}
-                    >
-                      {accepting === sub.id
-                        ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.acceptBtnText}>{t('dashboard.acceptShort')}</Text>
-                      }
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {sub.garage && (
-                  <TouchableOpacity
-                    style={[styles.acceptBtn, accepting === sub.id && styles.acceptBtnDisabled]}
-                    onPress={() => handleAccept(sub)}
-                    disabled={accepting === sub.id}
-                  >
-                    {accepting === sub.id
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={styles.acceptBtnText}>{t('dashboard.acceptAddToHistory')}</Text>
-                    }
-                  </TouchableOpacity>
-                )}
-
-                {/* Booking notes thread (only if linked to a booking) */}
-                {sub.bookingId && (
-                  <TouchableOpacity
-                    style={styles.messagesToggle}
-                    onPress={() => toggleMessages(sub)}
-                  >
-                    <Text style={styles.messagesToggleText}>
-                      {t('dashboard.messages')} {expandedMessages.has(sub.id) ? '▲' : '▼'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {sub.bookingId && expandedMessages.has(sub.id) && (
-                  <View style={styles.messagesSection}>
-                    {loadingNotes.has(sub.id) ? (
-                      <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />
-                    ) : (
-                      <>
-                        {(bookingNotes[sub.bookingId] || []).length === 0 ? (
-                          <Text style={styles.noMessages}>{t('dashboard.noMessagesYet')}</Text>
-                        ) : (bookingNotes[sub.bookingId] || []).map(note => (
-                          <View
-                            key={note.id}
-                            style={[
-                              styles.messageItem,
-                              note.senderPhone !== phoneNumber ? styles.messageItemThem : undefined,
-                            ]}
-                          >
-                            <Text style={styles.messageSender}>
-                              {note.senderPhone !== phoneNumber ? t('dashboard.garage') : t('dashboard.you')}
-                            </Text>
-                            <Text style={styles.messageText}>{note.message}</Text>
-                            <Text style={styles.messageTime}>
-                              {new Date(note.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                            </Text>
-                          </View>
-                        ))}
-                        <View style={styles.messageInputRow}>
-                          <TextInput
-                            style={styles.messageInput}
-                            value={messageInputs[sub.id] || ''}
-                            onChangeText={v => setMessageInputs(prev => ({ ...prev, [sub.id]: v }))}
-                            placeholder={t('dashboard.typeMessage')}
-                            multiline={false}
-                          />
-                          <TouchableOpacity
-                            style={[styles.messageSendBtn, (!messageInputs[sub.id]?.trim() || sendingMessage === sub.id) && styles.messageSendBtnDisabled]}
-                            onPress={() => handleSendMessage(sub)}
-                            disabled={!messageInputs[sub.id]?.trim() || sendingMessage === sub.id}
-                          >
-                            {sendingMessage === sub.id
-                              ? <ActivityIndicator size="small" color="#fff" />
-                              : <Text style={styles.messageSendBtnText}>→</Text>
-                            }
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {pendingTransfer && (
-          <View style={styles.transferBanner}>
-            <View style={styles.transferBannerLeft}>
-              <Text style={styles.transferBannerTitle}>{t('dashboard.transferPending')}</Text>
-              <Text style={styles.transferBannerSub}>{t('dashboard.waitingForBuyer', { phone: pendingTransfer.buyerPhone })}</Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.cancelTransferBtn, cancellingTransfer && styles.cancelTransferBtnDisabled]}
-              onPress={handleCancelTransfer}
-              disabled={cancellingTransfer}
-            >
-              {cancellingTransfer
-                ? <ActivityIndicator color="#c62828" size="small" />
-                : <Text style={styles.cancelTransferBtnText}>{t('dashboard.cancel')}</Text>
-              }
-            </TouchableOpacity>
-          </View>
-        )}
 
         <TouchableOpacity style={styles.historyBtn} onPress={onViewHistory} activeOpacity={0.8}>
           <Text style={styles.historyBtnText}>{t('dashboard.fullHistoryExpenses')}</Text>
@@ -1792,7 +1801,12 @@ function makeStyles(c: Colors, topInset: number) {
     predItemBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
     predItemBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-    submissionsSection: { marginHorizontal: 16, marginTop: 10, marginBottom: 8 },
+    actionRequiredSection: { marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
+    actionRequiredTitle: {
+      fontSize: 16, fontWeight: '800', color: c.error,
+      marginBottom: 10,
+    },
+    submissionsSection: { marginTop: 4, marginBottom: 8 },
     submissionsSectionTitle: {
       fontSize: 14, fontWeight: '800', color: '#c62828',
       marginBottom: 10, letterSpacing: 0.3,
