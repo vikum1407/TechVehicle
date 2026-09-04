@@ -45,6 +45,17 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
   }
+  if (Array.isArray(photos)) {
+    if (photos.length > 10) { res.status(400).json({ error: 'Maximum 10 photos allowed' }); return }
+    if (!photos.every((p: unknown) => typeof p === 'string' && p.length <= 2048)) {
+      res.status(400).json({ error: 'Each photo must be a URL under 2048 characters' }); return
+    }
+  }
+  if (structuredData !== undefined && structuredData !== null) {
+    if (JSON.stringify(structuredData).length > 10240) {
+      res.status(400).json({ error: 'structuredData exceeds maximum allowed size' }); return
+    }
+  }
 
   try {
     const vehicle = await prisma.vehicle.findFirst({

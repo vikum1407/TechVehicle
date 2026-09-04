@@ -12,10 +12,14 @@ export function isValidNumber(value: unknown, opts: { min?: number; max?: number
   return true
 }
 
-export function isValidDateInput(value: unknown): boolean {
+export function isValidDateInput(value: unknown, opts: { allowFuture?: boolean } = {}): boolean {
   if (value === undefined || value === null || value === '') return false
   const d = new Date(value as any)
-  return !isNaN(d.getTime())
+  if (isNaN(d.getTime())) return false
+  const year = d.getFullYear()
+  const maxYear = new Date().getFullYear() + (opts.allowFuture ? 2 : 0)
+  if (year < 1900 || year > maxYear) return false
+  return true
 }
 
 // Sri Lankan LKR amounts and km readings don't legitimately need more than this —

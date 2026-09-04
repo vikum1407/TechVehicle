@@ -24,7 +24,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
   const token = authHeader.split(' ')[1]
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { phoneNumber: string; tokenVersion?: number }
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] }) as { phoneNumber: string; tokenVersion?: number }
 
     const user = await prisma.user.findUnique({ where: { phoneNumber: decoded.phoneNumber } })
     if (!user || (decoded.tokenVersion ?? 0) !== user.tokenVersion) {

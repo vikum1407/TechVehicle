@@ -100,7 +100,7 @@ router.post('/verify-otp', async (req, res) => {
     const token = jwt.sign(
       { phoneNumber, tokenVersion: user.tokenVersion ?? 0 },
       getJwtSecret(),
-      { expiresIn: '30d' }
+      { expiresIn: '30d', algorithm: 'HS256' }
     )
 
     res.json({ token, phoneNumber, userType: user.userType, isNewUser })
@@ -129,7 +129,9 @@ router.post('/logout-everywhere', authMiddleware, async (req: AuthRequest, res) 
 // POST /auth/push-token — save Expo push token for this user
 router.post('/push-token', authMiddleware, async (req: AuthRequest, res) => {
   const { pushToken } = req.body
-  if (!pushToken) { res.status(400).json({ error: 'pushToken is required' }); return }
+  if (!pushToken || typeof pushToken !== 'string' || !/^ExponentPushToken\[.{1,200}\]$/.test(pushToken)) {
+    res.status(400).json({ error: 'Invalid push token format' }); return
+  }
   try {
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },
@@ -220,6 +222,11 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
 // PATCH /auth/profile-photo — update the user's profile photo
 router.patch('/profile-photo', authMiddleware, async (req: AuthRequest, res) => {
   const { photoUrl } = req.body
+  if (photoUrl !== null && photoUrl !== undefined && photoUrl !== '') {
+    if (typeof photoUrl !== 'string' || !photoUrl.startsWith('https://') || photoUrl.length > 2048) {
+      res.status(400).json({ error: 'Invalid photo URL' }); return
+    }
+  }
   try {
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },

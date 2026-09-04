@@ -19,7 +19,7 @@ export function getJwtSecret(): string {
   if (cachedSecret) return cachedSecret
 
   const secret = process.env.JWT_SECRET?.trim()
-  if (!secret || secret.length < 16 || KNOWN_WEAK_VALUES.includes(secret.toLowerCase())) {
+  if (!secret || secret.length < 32 || KNOWN_WEAK_VALUES.includes(secret.toLowerCase())) {
     throw new Error(
       'JWT_SECRET is missing, too short, or set to a known placeholder value. Set a ' +
       'long, random JWT_SECRET in your .env (or deployment environment variables) ' +

@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { isValidNumber, isValidDateInput, capText, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
+const ALLOWED_FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid', 'petrol-hybrid', 'diesel-hybrid']
+const ALLOWED_VEHICLE_TYPES = ['motorcycle', 'e-cycle', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'three-wheeler', 'van', 'pickup', 'electric-vehicle', 'truck', 'heavy']
+
 const router = express.Router()
 const prisma = new PrismaClient()
 
@@ -59,6 +62,12 @@ router.post('/', async (req: AuthRequest, res) => {
   if (ownerCount !== undefined && ownerCount !== null && ownerCount !== '' && !isValidNumber(ownerCount, { min: 1, max: 100 })) {
     res.status(400).json({ error: 'Owner count must be a valid positive number' }); return
   }
+  if (!ALLOWED_FUEL_TYPES.includes(fuelType)) {
+    res.status(400).json({ error: `Invalid fuelType. Allowed: ${ALLOWED_FUEL_TYPES.join(', ')}` }); return
+  }
+  if (vehicleType && !ALLOWED_VEHICLE_TYPES.includes(vehicleType.trim())) {
+    res.status(400).json({ error: `Invalid vehicleType. Allowed: ${ALLOWED_VEHICLE_TYPES.join(', ')}` }); return
+  }
 
   try {
     // Ensure user exists in DB
@@ -105,6 +114,15 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
 
+    if (emissionTestExpiry && !isValidDateInput(emissionTestExpiry, { allowFuture: true })) {
+      res.status(400).json({ error: 'Invalid emission test expiry date' }); return
+    }
+    if (revenueLicenceExpiry && !isValidDateInput(revenueLicenceExpiry, { allowFuture: true })) {
+      res.status(400).json({ error: 'Invalid revenue licence expiry date' }); return
+    }
+    if (insuranceExpiry && !isValidDateInput(insuranceExpiry, { allowFuture: true })) {
+      res.status(400).json({ error: 'Invalid insurance expiry date' }); return
+    }
     const data: Record<string, any> = {}
     if (emissionTestExpiry !== undefined) {
       data.emissionTestExpiry = emissionTestExpiry ? new Date(emissionTestExpiry) : null
@@ -260,7 +278,15 @@ router.patch('/:id/overrides', async (req: AuthRequest, res) => {
     kmInterval?: number | null
     daysInterval?: number | null
   }
-  if (!group) { res.status(400).json({ error: 'group is required' }); return }
+  if (!group || typeof group !== 'string' || group.length > 100) {
+    res.status(400).json({ error: 'group is required and must be a string under 100 characters' }); return
+  }
+  if (kmInterval != null && !isValidNumber(kmInterval, { min: 100, max: 500_000 })) {
+    res.status(400).json({ error: 'kmInterval must be between 100 and 500,000' }); return
+  }
+  if (daysInterval != null && !isValidNumber(daysInterval, { min: 1, max: 3650 })) {
+    res.status(400).json({ error: 'daysInterval must be between 1 and 3,650' }); return
+  }
   try {
     const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }

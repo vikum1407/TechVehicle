@@ -88,7 +88,9 @@ router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
     return
   }
 
-  const key = `service-photos/${req.phoneNumber}/${crypto.randomUUID()}.${detected.ext}`
+  // Hash the phone number so the owner's PII is not embedded in the public URL path.
+  const phoneHash = crypto.createHash('sha256').update(req.phoneNumber!).digest('hex').slice(0, 16)
+  const key = `service-photos/${phoneHash}/${crypto.randomUUID()}.${detected.ext}`
 
   try {
     const r2 = makeR2Client()

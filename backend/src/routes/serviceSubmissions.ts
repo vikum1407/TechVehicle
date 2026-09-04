@@ -4,6 +4,27 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
+import { checkRateLimit } from '../utils/rateLimit'
+
+function validatePhotos(photos: unknown): string | null {
+  if (!Array.isArray(photos)) return null
+  if (photos.length > 10) return 'Maximum 10 photos allowed'
+  if (!photos.every((p: unknown) => typeof p === 'string' && p.length <= 2048)) return 'Each photo must be a URL under 2048 characters'
+  return null
+}
+
+function validateStructuredData(data: unknown): string | null {
+  if (data === undefined || data === null) return null
+  if (JSON.stringify(data).length > 10240) return 'structuredData exceeds maximum allowed size'
+  return null
+}
+
+function validateCategories(categories: unknown): string | null {
+  if (!Array.isArray(categories)) return null
+  if (categories.length > 20) return 'Maximum 20 categories allowed'
+  if (!categories.every((c: unknown) => typeof c === 'string' && c.length <= 100)) return 'Each category must be a string under 100 characters'
+  return null
+}
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -29,6 +50,10 @@ router.post('/', async (req: AuthRequest, res) => {
   if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
     res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }
+  const photosErr = validatePhotos(photos)
+  if (photosErr) { res.status(400).json({ error: photosErr }); return }
+  const catsErr = validateCategories(categories)
+  if (catsErr) { res.status(400).json({ error: catsErr }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }
@@ -114,9 +139,19 @@ router.post('/walkin', async (req: AuthRequest, res) => {
   if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
     res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }
+  const walkinPhotosErr = validatePhotos(photos)
+  if (walkinPhotosErr) { res.status(400).json({ error: walkinPhotosErr }); return }
+  const walkinCatsErr = validateCategories(categories)
+  if (walkinCatsErr) { res.status(400).json({ error: walkinCatsErr }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(403).json({ error: 'Not a garage account' }); return }
+
+    // Rate limit: a garage can send at most 3 walk-in submissions per vehicle per 24 hours
+    const walkinLimit = checkRateLimit('walkin-submission', `${garage.id}:${vehicleId}`, 3, 24 * 60 * 60 * 1000)
+    if (!walkinLimit.allowed) {
+      res.status(429).json({ error: `Too many submissions for this vehicle. Try again in ${Math.ceil((walkinLimit.retryAfterSeconds ?? 3600) / 3600)} hour(s).` }); return
+    }
 
     const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
@@ -178,6 +213,8 @@ router.post('/shared', async (req: AuthRequest, res) => {
   if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
   }
+  const sharedStructuredErr = validateStructuredData(structuredData)
+  if (sharedStructuredErr) { res.status(400).json({ error: sharedStructuredErr }); return }
   try {
     const share = await prisma.vehicleShare.findFirst({
       where: { vehicleId, sharedWithPhone: req.phoneNumber!, status: 'active' },
