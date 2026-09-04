@@ -2,6 +2,22 @@
 
 ---
 
+## ⚠️ HIGH PRIORITY — Infrastructure Upgrade Needed Before Scale
+
+**Current database (Neon free tier) has only 7-day backup window and no off-platform backup.**
+As user count grows this becomes a critical risk — a Neon account issue or data corruption means potential permanent data loss.
+
+**Recommended production infrastructure (target: before 500 active users):**
+- **Database:** DigitalOcean Managed PostgreSQL — $15/month. Daily automatic backups, 7-day point-in-time restore, one-click recovery. Zero code changes needed (Prisma works identically).
+- **Backend hosting:** Render paid plan — $7/month. Eliminates free-tier sleep, always-on for real users.
+- **Total: $22/month** — handles up to ~8,000–10,000 active Vocksy users comfortably.
+
+**Interim fix (free, do soon):** Add a daily `pg_dump` → Cloudflare R2 backup job so there is an off-platform copy of all customer data even while still on Neon.
+
+*Noted 2026-09-04. Vikum to arrange budget before user count climbs.*
+
+---
+
 ## Current Development State (updated 2026-06-29)
 
 ### Completed & Working ✅
