@@ -89,6 +89,28 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       // fallback to local data already set in initial state
     })
   }, [vehicleType])
+
+  useEffect(() => {
+    api.getServiceRecords(token, vehicleId).then((records: { description: string }[]) => {
+      const allCategoryItems = new Set(
+        getServiceCategories(vehicleType).flatMap(c => c.items)
+      )
+      const seen = new Set<string>()
+      const recent: string[] = []
+      // Walk the 3 most recent records (already sorted newest-first from API)
+      for (const rec of records.slice(0, 3)) {
+        for (const part of rec.description.split(', ')) {
+          const name = part.replace(/\s*\(.*\)$/, '').trim()
+          if (name && allCategoryItems.has(name) && !seen.has(name)) {
+            seen.add(name)
+            recent.push(name)
+          }
+        }
+      }
+      if (recent.length > 0) setRecentItems(recent)
+    }).catch(() => {})
+  }, [vehicleId])
+  const [recentItems, setRecentItems] = useState<string[]>([])
   const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const colors = useColors()
@@ -276,6 +298,29 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       </Text>
       {saveAttempted && selectedItems.length === 0 && !otherText.trim() && (
         <Text style={styles.fieldError}>{t('addService.selectAtLeastOne')}</Text>
+      )}
+
+      {recentItems.length > 0 && (
+        <View style={styles.recentSection}>
+          <Text style={styles.recentLabel}>⏱ {t('addService.lastTime')}</Text>
+          <View style={styles.chipRow}>
+            {recentItems.map(item => {
+              const sel = isSelected(item)
+              const cat = categories.find(c => c.items.includes(item))
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.chip, sel && styles.chipSelected]}
+                  onPress={() => cat && toggleService(item, cat.title)}
+                  activeOpacity={0.7}
+                >
+                  {sel && <Text style={styles.check}>✓ </Text>}
+                  <Text style={[styles.chipText, sel && styles.chipTextSelected]}>{item}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
       )}
 
       {categories.map(cat => (
@@ -571,6 +616,12 @@ function makeStyles(c: Colors) {
       width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
     },
     photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    recentSection: {
+      backgroundColor: c.surface, borderRadius: 14,
+      padding: 14, marginBottom: 8,
+      borderWidth: 1.5, borderColor: c.accent + '88',
+    },
+    recentLabel: { fontSize: 12, fontWeight: '700', color: c.accent, marginBottom: 10, letterSpacing: 0.4 },
     photoActions: { flexDirection: 'row', gap: 8 },
     photoBtn: {
       flex: 1, paddingVertical: 10, borderRadius: 10,

@@ -297,6 +297,7 @@ const si: Record<TranslationKey, string> = {
   'addService.notes': 'සටහන් (විකල්ප)',
   'addService.notesPlaceholder': 'වෙනත් සටහන් ඕනෑම...',
   'addService.servicesSelected': 'සේවා {count}ක් තෝරා ඇත',
+  'addService.lastTime': 'මෙම වාහනයේ පෙර සේවා',
   'addService.saveRecord': 'සටහන සුරකින්න',
   'addService.limitReached.title': 'සීමාව ඉක්මවා ඇත',
   'addService.limitReached.message': 'එක් සේවා සටහනකට ඡායාරූප 5ක් දක්වා අමුණා ගත හැක.',

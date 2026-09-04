@@ -295,6 +295,7 @@ const en = {
   'addService.notes': 'Notes (optional)',
   'addService.notesPlaceholder': 'Any additional notes...',
   'addService.servicesSelected': '{count} service{s} selected',
+  'addService.lastTime': 'Last time on this vehicle',
   'addService.saveRecord': 'Save Record',
   'addService.limitReached.title': 'Limit reached',
   'addService.limitReached.message': 'You can attach up to 5 photos per service record.',
