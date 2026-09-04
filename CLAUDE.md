@@ -18,6 +18,36 @@ As user count grows this becomes a critical risk — a Neon account issue or dat
 
 ---
 
+## ⚠️ HIGH PRIORITY — Scalability Fixes Needed Before Multi-Instance Deploy
+
+Two specific things in the current backend **will break** when the app runs on more than one server instance (e.g. Render auto-scales, or process restarts):
+
+**1. In-memory OTP store (`auth.ts`) — breaks at 2+ instances**
+- `otpStore` is a plain JavaScript `Map` inside the Node process
+- If Render spins up a second instance, OTPs issued by instance A are invisible to instance B → users get "invalid OTP" errors randomly
+- **Fix:** Replace with Redis (Upstash free tier). One-line change per call site.
+
+**2. In-memory rate limiter (`utils/rateLimit.ts`) — resets on every restart**
+- Same problem — the rate limit counters live in memory, reset on deploy/restart, and don't sync across instances
+- A bad actor can bypass rate limits simply by timing requests around restarts
+- **Fix:** Same Redis instance as above. Swap the in-memory store for Redis `INCR` + `EXPIRE`.
+
+**Scale ceiling by setup:**
+| Setup | Safe active users |
+|---|---|
+| Current (free tiers) | ~200–500 |
+| Neon + Render paid ($22/mo) | ~5,000–10,000 |
+| + Redis for OTP/rate limits (Upstash ~$0) | removes the instance-count ceiling |
+| + Shared PrismaClient (one instance, not 18) | removes the DB connection pool ceiling |
+
+**Also fix before scaling:** Currently each of the 18 route files creates its own `new PrismaClient()`. At scale this exhausts the Neon connection pool. Move to a single shared instance exported from `lib/prisma.ts` and imported everywhere.
+
+**Target:** Fix OTP store + rate limiter before going multi-instance. Fix shared Prisma before ~1,000 concurrent users. Both are small code changes — the blockers are timing, not complexity.
+
+*Noted 2026-09-04.*
+
+---
+
 ## Current Development State (updated 2026-06-29)
 
 ### Completed & Working ✅
