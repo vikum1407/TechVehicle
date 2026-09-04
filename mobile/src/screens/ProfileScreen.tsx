@@ -31,6 +31,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [email, setEmail] = useState('')
   const [savedEmail, setSavedEmail] = useState<string | null>(null)
   const [savingEmail, setSavingEmail] = useState(false)
+  const [editingEmail, setEditingEmail] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -81,7 +82,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
     try {
       await api.saveEmail(token, email.trim())
       setSavedEmail(email.trim().toLowerCase())
-      Alert.alert('', t('profile.emailSaved'))
+      setEditingEmail(false)
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
@@ -199,26 +200,48 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       )}
       <Text style={styles.sectionTitle}>{t('profile.email')}</Text>
       <View style={styles.emailCard}>
-        <TextInput
-          style={styles.emailInput}
-          value={email}
-          onChangeText={setEmail}
-          placeholder={t('profile.emailPlaceholder')}
-          placeholderTextColor={colors.textFaint}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TouchableOpacity
-          style={[styles.emailSaveBtn, savingEmail && { opacity: 0.6 }]}
-          onPress={saveEmail}
-          disabled={savingEmail || !email.trim() || email.trim().toLowerCase() === savedEmail}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.emailSaveBtnText}>
-            {savingEmail ? t('profile.emailSaving') : t('profile.emailSave')}
-          </Text>
-        </TouchableOpacity>
+        {savedEmail && !editingEmail ? (
+          <View style={styles.emailSavedRow}>
+            <View style={styles.emailSavedLeft}>
+              <Text style={styles.emailSavedIcon}>✓</Text>
+              <Text style={styles.emailSavedText}>{savedEmail}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setEditingEmail(true)} activeOpacity={0.7}>
+              <Text style={styles.emailEditLink}>{t('common.edit')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={styles.emailInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={t('profile.emailPlaceholder')}
+              placeholderTextColor={colors.textFaint}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus={editingEmail}
+            />
+            <View style={styles.emailActions}>
+              {savedEmail ? (
+                <TouchableOpacity style={styles.emailCancelBtn} onPress={() => { setEmail(savedEmail); setEditingEmail(false) }} activeOpacity={0.7}>
+                  <Text style={styles.emailCancelBtnText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.emailSaveBtn, (savingEmail || !email.trim() || email.trim().toLowerCase() === savedEmail) && { opacity: 0.4 }, savedEmail ? styles.emailSaveBtnFlex : null]}
+                onPress={saveEmail}
+                disabled={savingEmail || !email.trim() || email.trim().toLowerCase() === savedEmail}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emailSaveBtnText}>
+                  {savingEmail ? t('profile.emailSaving') : t('profile.emailSave')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
@@ -318,6 +341,20 @@ function makeStyles(c: Colors) {
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
       gap: 10,
     },
+    emailSavedRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: 4,
+    },
+    emailSavedLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+    emailSavedIcon: { fontSize: 16, color: '#22a06b', fontWeight: '700' },
+    emailSavedText: { fontSize: 15, color: c.text, fontWeight: '500', flex: 1 },
+    emailEditLink: { fontSize: 14, color: c.primary, fontWeight: '700', paddingLeft: 12 },
+    emailActions: { flexDirection: 'row', gap: 8 },
+    emailCancelBtn: {
+      borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 10,
+      paddingVertical: 13, paddingHorizontal: 16, alignItems: 'center',
+    },
+    emailCancelBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
     emailInput: {
       borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 12,
@@ -327,6 +364,7 @@ function makeStyles(c: Colors) {
       backgroundColor: c.primary, borderRadius: 10,
       paddingVertical: 13, alignItems: 'center',
     },
+    emailSaveBtnFlex: { flex: 1 },
     emailSaveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
     logoutBtn: {
