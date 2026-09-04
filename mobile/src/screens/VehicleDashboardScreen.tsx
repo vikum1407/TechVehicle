@@ -338,7 +338,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       Alert.alert(t('dashboard.permissionNeeded.title'), t('dashboard.permissionNeeded.message'))
       return
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
     if (result.canceled || !result.assets[0]) return
     setUploadingVehiclePhoto(true)
     try {

@@ -172,7 +172,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
       Alert.alert(t('addVehicle.permissionNeeded.title'), t('addVehicle.permissionNeeded.message'))
       return
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
     if (result.canceled || !result.assets[0]) return
     setUploadingPhoto(true)
     try {

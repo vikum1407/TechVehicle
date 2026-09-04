@@ -677,8 +677,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       return
     }
     const result = source === 'camera'
-      ? await ImagePicker.launchCameraAsync({ quality: 1 })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] })
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
     if (result.canceled || !result.assets[0]) return
     setUploadingSubPhoto(true)
     try {
