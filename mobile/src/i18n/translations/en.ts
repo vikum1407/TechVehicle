@@ -38,6 +38,7 @@ const en = {
   'login.perk.verifiedTransfer': 'Verified\ntransfer',
   'login.invalidNumber.title': 'Invalid number',
   'login.invalidNumber.message': 'Please enter a valid mobile number.',
+  'login.invalidSLNumber': 'Sri Lanka numbers must start with 07X or 7X and be 9 digits (e.g. 0771234567).',
   'login.selectCountry': 'Select Country',
   'login.searchCountry': 'Search country or code...',
   'login.noResultsFor': 'No results for "{query}"',

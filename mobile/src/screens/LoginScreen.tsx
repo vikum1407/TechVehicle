@@ -38,7 +38,14 @@ export default function LoginScreen({ onOTPSent }: Props) {
       return
     }
 
-    const fullNumber = `${country.dial}${digits.startsWith('0') ? digits.slice(1) : digits}`
+    const normalised = digits.startsWith('0') ? digits.slice(1) : digits
+    const fullNumber = `${country.dial}${normalised}`
+
+    // Sri Lanka: must be +947XXXXXXXX (9 digits after +94, starting with 7)
+    if (country.dial === '+94' && !/^7\d{8}$/.test(normalised)) {
+      Alert.alert(t('login.invalidNumber.title'), t('login.invalidSLNumber'))
+      return
+    }
 
     setLoading(true)
     try {

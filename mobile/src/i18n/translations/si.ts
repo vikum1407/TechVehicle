@@ -40,6 +40,7 @@ const si: Record<TranslationKey, string> = {
   'login.perk.verifiedTransfer': 'සත්‍යාපිත\nහුවමාරුව',
   'login.invalidNumber.title': 'වලංගු නොවන අංකය',
   'login.invalidNumber.message': 'කරුණාකර වලංගු ජංගම දුරකථන අංකයක් ඇතුළත් කරන්න.',
+  'login.invalidSLNumber': 'ශ්‍රී ලංකා අංක 07X හෝ 7X වලින් ආරම්භ වී අංක 9ක් විය යුතුය (උදා: 0771234567).',
   'login.selectCountry': 'රට තෝරන්න',
   'login.searchCountry': 'රට හෝ කේතය සොයන්න...',
   'login.noResultsFor': '"{query}" සඳහා ප්‍රතිඵල නොමැත',
