@@ -363,6 +363,7 @@ function makeStyles(c: Colors) {
     emailSaveBtn: {
       backgroundColor: c.primary, borderRadius: 10,
       paddingVertical: 13, alignItems: 'center',
+      flex: 1,
     },
     emailSaveBtnFlex: { flex: 1 },
     emailSaveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
