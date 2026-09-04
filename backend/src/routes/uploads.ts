@@ -3,6 +3,7 @@ import multer, { FileFilterCallback } from 'multer'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { NodeHttpHandler } from '@smithy/node-http-handler'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { checkRateLimit } from '../utils/rateLimit'
 import crypto from 'crypto'
 import https from 'https'
 
@@ -66,6 +67,9 @@ function makeR2Client() {
 
 // POST /uploads/photo — upload a single photo, returns { url }
 router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
+  const uploadLimit = checkRateLimit('photo-upload', req.phoneNumber!, 60, 60 * 60 * 1000)
+  if (!uploadLimit.allowed) { res.status(429).json({ error: 'Too many uploads. Try again later.' }); return }
+
   const file = (req as any).file as Express.Multer.File | undefined
 
   if (!file) {

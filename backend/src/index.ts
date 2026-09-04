@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth'
 import vehicleRoutes from './routes/vehicles'
@@ -43,6 +44,7 @@ const PORT = process.env.PORT || 3001
 // X-Forwarded-For as set by Render's proxy.
 app.set('trust proxy', 1)
 
+app.use(helmet())
 app.use(cors())
 app.use(express.json())
 app.use(globalRateLimit)

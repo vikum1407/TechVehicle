@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { checkRateLimit } from '../utils/rateLimit'
 import { computePredictions, urgencyScore } from '../utils/predictionEngine'
 import { sendPush } from '../utils/push'
 import { canReadVehicle } from '../utils/vehicleAccess'
@@ -33,6 +34,8 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
 
 // POST /predictions/notify — manual trigger (kept for testing)
 router.post('/notify', async (req: AuthRequest, res) => {
+  const notifyLimit = checkRateLimit('predictions-notify', req.phoneNumber!, 5, 60 * 60 * 1000)
+  if (!notifyLimit.allowed) { res.status(429).json({ error: 'Too many notification requests. Try again later.' }); return }
   try {
     const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
     if (!user?.pushToken) { res.json({ sent: 0, reason: 'no push token' }); return }

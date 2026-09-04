@@ -1,6 +1,7 @@
 import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { checkRateLimit } from '../utils/rateLimit'
 import { isValidNumber, isValidDateInput, capText, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const ALLOWED_FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid', 'petrol-hybrid', 'diesel-hybrid']
@@ -45,6 +46,9 @@ router.get('/', async (req: AuthRequest, res) => {
 
 // POST /vehicles — add a new vehicle
 router.post('/', async (req: AuthRequest, res) => {
+  const vehicleCreateLimit = checkRateLimit('vehicle-create', req.phoneNumber!, 10, 60 * 60 * 1000)
+  if (!vehicleCreateLimit.allowed) { res.status(429).json({ error: 'Too many vehicle creation attempts. Try again later.' }); return }
+
   const { registrationNo, make, model, year, fuelType, vehicleType, mileage, purchaseDate, ownerCount, vehicleNotes, photoUrl } = req.body
 
   if (!registrationNo || !make || !model || !year || !fuelType || mileage === undefined) {

@@ -117,6 +117,10 @@ router.put('/', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/:garageId', authMiddleware, async (req: AuthRequest, res) => {
   const garageId = req.params.garageId as string
   try {
+    const garage = await prisma.garage.findUnique({ where: { id: garageId } })
+    if (!garage || garage.ownerPhone !== req.phoneNumber!) {
+      res.status(403).json({ error: 'Forbidden' }); return
+    }
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
     res.json(availability || { workDays: '[1,2,3,4,5]', maxPerDay: 5, timeSlots: '["Morning","Afternoon"]' })
   } catch (error) {
@@ -132,9 +136,15 @@ router.get('/:garageId/overrides', authMiddleware, async (req: AuthRequest, res)
     res.status(400).json({ error: 'month must be in YYYY-MM format' }); return
   }
   try {
+    const garage = await prisma.garage.findUnique({ where: { id: garageId } })
+    if (!garage || garage.ownerPhone !== req.phoneNumber!) {
+      res.status(403).json({ error: 'Forbidden' }); return
+    }
     const where: any = { garageId }
     if (month) {
-      where.date = { gte: `${month}-01`, lte: `${month}-31` }
+      const [y, m] = month.split('-').map(Number)
+      const lastDay = new Date(y, m, 0).getDate()
+      where.date = { gte: `${month}-01`, lte: `${month}-${String(lastDay).padStart(2, '0')}` }
     }
     const overrides = await prisma.garageCalendarOverride.findMany({
       where,

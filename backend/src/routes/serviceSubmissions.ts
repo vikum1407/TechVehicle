@@ -43,6 +43,9 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'shareSessionId or bookingId is required' })
     return
   }
+  const submissionLimit = checkRateLimit('garage-submission', req.phoneNumber!, 30, 60 * 60 * 1000)
+  if (!submissionLimit.allowed) { res.status(429).json({ error: 'Too many submissions. Try again later.' }); return
+  }
   if (!cost || !isValidNumber(cost, { min: 0.01, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'cost is required and must be greater than 0' })
     return
@@ -206,6 +209,8 @@ router.post('/shared', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId and description are required' })
     return
   }
+  const sharedLimit = checkRateLimit('shared-submission', req.phoneNumber!, 20, 60 * 60 * 1000)
+  if (!sharedLimit.allowed) { res.status(429).json({ error: 'Too many submissions. Try again later.' }); return }
   if (date && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
   if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
     res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
@@ -247,7 +252,7 @@ router.post('/shared', async (req: AuthRequest, res) => {
       await sendPush(
         ownerUser?.pushToken,
         'Test Result Submitted for Approval',
-        `${req.phoneNumber} logged ${description} for ${vReg} — tap to review`,
+        `A shared user logged ${description} for ${vReg} — tap to review`,
         { screen: 'vehicleDashboard', vehicleId }
       )
     }
@@ -255,7 +260,7 @@ router.post('/shared', async (req: AuthRequest, res) => {
       prisma, ownerPhone,
       'submission',
       vReg,
-      `${req.phoneNumber} submitted ${description} for your approval`,
+      `A shared user submitted ${description} for your approval`,
       { screen: 'vehicleDashboard', vehicleId }
     )
 

@@ -1,4 +1,5 @@
 import express from 'express'
+import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
@@ -30,14 +31,16 @@ router.post('/send-otp', (req, res) => {
     return
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString()
+  const otp = crypto.randomInt(100000, 1000000).toString()
   const expires = Date.now() + 5 * 60 * 1000
 
   otpStore.set(phoneNumber, { otp, expires })
 
-  console.log(`\n=============================`)
-  console.log(`OTP for ${phoneNumber}: ${otp}`)
-  console.log(`=============================\n`)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n=============================`)
+    console.log(`OTP for ${phoneNumber}: ${otp}`)
+    console.log(`=============================\n`)
+  }
 
   res.json({ message: 'OTP sent', phoneNumber })
 })

@@ -214,6 +214,8 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
   const { counterDate, counterSlot, note } = req.body
   if (!counterDate) { res.status(400).json({ error: 'counterDate is required' }); return }
   if (!isValidDateInput(counterDate, { allowFuture: true })) { res.status(400).json({ error: 'Invalid counterDate' }); return }
+  const counterLimit = checkRateLimit('booking-counter', req.phoneNumber!, 10, 60 * 60 * 1000)
+  if (!counterLimit.allowed) { res.status(429).json({ error: 'Too many counter-offer attempts. Try again later.' }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'No garage account' }); return }
