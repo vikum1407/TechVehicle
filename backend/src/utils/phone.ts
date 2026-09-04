@@ -17,6 +17,11 @@ export function normalizePhone(raw: string): string {
 // digits including country code). Deliberately simple — we're not trying to validate
 // that a specific country's numbering plan is followed, just that this looks like a
 // real international phone number rather than arbitrary text.
+// Exception: Sri Lanka (+94) numbers must be +947X followed by exactly 7 digits
+// (E.164: +94 + 9 digits, mobile prefix always 7X).
 export function isValidPhone(phone: string): boolean {
+  if (phone.startsWith('+94')) {
+    return /^\+947\d{8}$/.test(phone)
+  }
   return /^\+[1-9]\d{7,14}$/.test(phone)
 }
