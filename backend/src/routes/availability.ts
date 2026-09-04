@@ -17,11 +17,17 @@ router.post('/override', authMiddleware, async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'date and status are required' })
     return
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ error: 'date must be in YYYY-MM-DD format' }); return
+  }
   if (!VALID_OVERRIDE_STATUSES.includes(status)) {
     res.status(400).json({ error: 'status must be open, closed, or holiday' }); return
   }
   if (maxSlots !== undefined && maxSlots !== null && !isValidNumber(maxSlots, { min: 0, max: 200 })) {
     res.status(400).json({ error: 'maxSlots must be a valid, non-negative number' }); return
+  }
+  if (messageColor && !/^#[0-9a-fA-F]{3,8}$/.test(messageColor) && !['red', 'green', 'orange', 'blue', 'yellow'].includes(messageColor)) {
+    res.status(400).json({ error: 'messageColor must be a hex color (e.g. #FF0000) or a named color' }); return
   }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
@@ -55,6 +61,9 @@ router.post('/override', authMiddleware, async (req: AuthRequest, res) => {
 router.delete('/override', authMiddleware, async (req: AuthRequest, res) => {
   const { date } = req.body
   if (!date) { res.status(400).json({ error: 'date is required' }); return }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ error: 'date must be in YYYY-MM-DD format' }); return
+  }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'Garage not found' }); return }
@@ -119,6 +128,9 @@ router.get('/:garageId', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/:garageId/overrides', authMiddleware, async (req: AuthRequest, res) => {
   const garageId = req.params.garageId as string
   const month = req.query.month as string // YYYY-MM
+  if (month && !/^\d{4}-\d{2}$/.test(month)) {
+    res.status(400).json({ error: 'month must be in YYYY-MM format' }); return
+  }
   try {
     const where: any = { garageId }
     if (month) {

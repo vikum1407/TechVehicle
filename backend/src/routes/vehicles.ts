@@ -68,6 +68,11 @@ router.post('/', async (req: AuthRequest, res) => {
   if (vehicleType && !ALLOWED_VEHICLE_TYPES.includes(vehicleType.trim())) {
     res.status(400).json({ error: `Invalid vehicleType. Allowed: ${ALLOWED_VEHICLE_TYPES.join(', ')}` }); return
   }
+  if (photoUrl !== null && photoUrl !== undefined && photoUrl !== '') {
+    if (typeof photoUrl !== 'string' || !photoUrl.startsWith('https://') || photoUrl.length > 2048) {
+      res.status(400).json({ error: 'Invalid photo URL' }); return
+    }
+  }
 
   try {
     // Ensure user exists in DB
@@ -136,8 +141,8 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
       data.insuranceExpiry = insuranceExpiry ? new Date(insuranceExpiry) : null
       data.lastInsuranceReminderSent = null
     }
-    if (insuranceCompany !== undefined) data.insuranceCompany = insuranceCompany?.trim() || null
-    if (insurancePolicyNo !== undefined) data.insurancePolicyNo = insurancePolicyNo?.trim() || null
+    if (insuranceCompany !== undefined) data.insuranceCompany = insuranceCompany?.trim() ? capText(insuranceCompany.trim(), SHORT_TEXT_LEN) : null
+    if (insurancePolicyNo !== undefined) data.insurancePolicyNo = insurancePolicyNo?.trim() ? capText(insurancePolicyNo.trim(), SHORT_TEXT_LEN) : null
 
     const updated = await prisma.vehicle.update({ where: { id }, data })
     res.json(updated)
@@ -153,6 +158,11 @@ router.patch('/:id/photo', async (req: AuthRequest, res) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
     if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+    if (photoUrl !== null && photoUrl !== undefined && photoUrl !== '') {
+      if (typeof photoUrl !== 'string' || !photoUrl.startsWith('https://') || photoUrl.length > 2048) {
+        res.status(400).json({ error: 'Invalid photo URL' }); return
+      }
+    }
     const updated = await prisma.vehicle.update({ where: { id }, data: { photoUrl: photoUrl || null } })
     res.json(updated)
   } catch (error) {
@@ -241,6 +251,12 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { make, model, year, fuelType, vehicleType, vehicleNotes, purchaseDate, ownerCount } = req.body
   const currentYear = new Date().getFullYear()
+  if (fuelType !== undefined && !ALLOWED_FUEL_TYPES.includes(fuelType)) {
+    res.status(400).json({ error: `Invalid fuelType. Allowed: ${ALLOWED_FUEL_TYPES.join(', ')}` }); return
+  }
+  if (vehicleType !== undefined && vehicleType !== null && vehicleType !== '' && !ALLOWED_VEHICLE_TYPES.includes(vehicleType.trim())) {
+    res.status(400).json({ error: `Invalid vehicleType. Allowed: ${ALLOWED_VEHICLE_TYPES.join(', ')}` }); return
+  }
   if (year !== undefined && !isValidNumber(year, { min: 1900, max: currentYear + 1 })) {
     res.status(400).json({ error: 'Year must be a valid year' }); return
   }

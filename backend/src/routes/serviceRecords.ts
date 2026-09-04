@@ -101,6 +101,9 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { date, description, mileage, parts, brand, cost, notes } = req.body
   if (date !== undefined && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (description !== undefined && !description.trim()) {
+    res.status(400).json({ error: 'description cannot be empty' }); return
+  }
   if (mileage !== undefined && mileage !== null && mileage !== '' && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
     res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }

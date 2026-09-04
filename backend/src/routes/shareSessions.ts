@@ -15,6 +15,9 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId, garageId and at least one recordId are required' })
     return
   }
+  if (recordIds.length > 50) {
+    res.status(400).json({ error: 'Maximum 50 records can be shared at once' }); return
+  }
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: vehicleId, ownerPhone: req.phoneNumber! },

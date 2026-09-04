@@ -87,6 +87,9 @@ router.get('/received', async (req: AuthRequest, res) => {
 router.get('/sent', async (req: AuthRequest, res) => {
   try {
     const { vehicleId } = req.query
+    if (vehicleId !== undefined && (typeof vehicleId !== 'string' || vehicleId.length > 100)) {
+      res.status(400).json({ error: 'Invalid vehicleId' }); return
+    }
     const shares = await prisma.vehicleShare.findMany({
       where: {
         ownerPhone: req.phoneNumber,

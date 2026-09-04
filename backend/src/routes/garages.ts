@@ -64,6 +64,9 @@ router.put('/me', async (req: AuthRequest, res) => {
     if (!Array.isArray(priceList) || priceList.length > 200) {
       res.status(400).json({ error: 'priceList must be an array of at most 200 items' }); return
     }
+    if (!priceList.every((item: unknown) => typeof item === 'object' && item !== null && JSON.stringify(item).length <= 500)) {
+      res.status(400).json({ error: 'Each price list item must be an object under 500 characters' }); return
+    }
   }
   try {
     const garage = await prisma.garage.update({

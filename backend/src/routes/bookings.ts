@@ -18,7 +18,10 @@ router.post('/', async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'vehicleId, garageId and date are required' })
     return
   }
-  if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (!isValidDateInput(date, { allowFuture: true })) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (serviceType !== undefined && !['full', 'between', 'third_party'].includes(serviceType)) {
+    res.status(400).json({ error: 'Invalid serviceType' }); return
+  }
   if (noteType !== undefined && !['normal', 'urgent'].includes(noteType)) {
     res.status(400).json({ error: 'Invalid noteType' }); return
   }
@@ -210,7 +213,7 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
   const id = req.params.id as string
   const { counterDate, counterSlot, note } = req.body
   if (!counterDate) { res.status(400).json({ error: 'counterDate is required' }); return }
-  if (!isValidDateInput(counterDate)) { res.status(400).json({ error: 'Invalid counterDate' }); return }
+  if (!isValidDateInput(counterDate, { allowFuture: true })) { res.status(400).json({ error: 'Invalid counterDate' }); return }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'No garage account' }); return }

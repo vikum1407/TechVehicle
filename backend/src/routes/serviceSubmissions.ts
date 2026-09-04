@@ -443,8 +443,8 @@ router.post('/:id/rate', async (req: AuthRequest, res) => {
   const id = req.params.id as string
   const { rating, comment } = req.body
   const ratingNum = Number(rating)
-  if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
-    res.status(400).json({ error: 'rating must be between 1 and 5' }); return
+  if (!ratingNum || !Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    res.status(400).json({ error: 'rating must be a whole number between 1 and 5' }); return
   }
   try {
     const submission = await prisma.serviceSubmission.findFirst({
