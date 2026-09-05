@@ -36,11 +36,15 @@ router.post('/send-otp', (req, res) => {
 
   otpStore.set(phoneNumber, { otp, expires })
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`\n=============================`)
-    console.log(`OTP for ${phoneNumber}: ${otp}`)
-    console.log(`=============================\n`)
-  }
+  // There is no real SMS provider wired up yet — this log line is the ONLY way
+  // anyone (dev, tester, or real user) can currently receive their OTP. Gating
+  // it behind NODE_ENV !== 'production' made login completely impossible on
+  // Render (which sets NODE_ENV=production), since testers have no other way
+  // to see the code. Once a real SMS provider is integrated, delivery moves
+  // there and this log line should be removed for real.
+  console.log(`\n=============================`)
+  console.log(`OTP for ${phoneNumber}: ${otp}`)
+  console.log(`=============================\n`)
 
   res.json({ message: 'OTP sent', phoneNumber })
 })
