@@ -26,6 +26,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [loadingStats, setLoadingStats] = useState(true)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [isPicking, setIsPicking] = useState(false)
   const [garageName, setGarageName] = useState<string | null>(null)
   const [loggingOutAllDevices, setLoggingOutAllDevices] = useState(false)
   const [email, setEmail] = useState('')
@@ -52,27 +53,36 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   }, [])
 
   const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (!permission.granted) {
-      Alert.alert(t('addVehicle.permissionNeeded.title'), t('addVehicle.permissionNeeded.message'))
-      return
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
-    if (result.canceled || !result.assets[0]) return
-    setUploadingPhoto(true)
+    // Guards the whole window from tap to picker-closing, not just the upload phase
+    // afterward — without this, a second tap while the picker is still open/closing
+    // re-invokes this function and launches the gallery a second time.
+    if (isPicking || uploadingPhoto) return
+    setIsPicking(true)
     try {
-      const compressed = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 400 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      )
-      const url = await api.uploadPhoto(token, compressed.uri)
-      await api.updateProfilePhoto(token, url)
-      setPhotoUrl(url)
-    } catch (e: any) {
-      Alert.alert(t('addVehicle.uploadFailed.title'), e.message || t('addVehicle.uploadFailed.message'))
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!permission.granted) {
+        Alert.alert(t('addVehicle.permissionNeeded.title'), t('addVehicle.permissionNeeded.message'))
+        return
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
+      if (result.canceled || !result.assets[0]) return
+      setUploadingPhoto(true)
+      try {
+        const compressed = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          [{ resize: { width: 400 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        )
+        const url = await api.uploadPhoto(token, compressed.uri)
+        await api.updateProfilePhoto(token, url)
+        setPhotoUrl(url)
+      } catch (e: any) {
+        Alert.alert(t('addVehicle.uploadFailed.title'), e.message || t('addVehicle.uploadFailed.message'))
+      } finally {
+        setUploadingPhoto(false)
+      }
     } finally {
-      setUploadingPhoto(false)
+      setIsPicking(false)
     }
   }
 
@@ -147,7 +157,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       <ScreenHeader title={t('profile.title')} onBack={onBack} />
 
       <View style={styles.avatarSection}>
-        <TouchableOpacity style={styles.avatar} onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingPhoto}>
+        <TouchableOpacity style={styles.avatar} onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingPhoto || isPicking}>
           {uploadingPhoto ? (
             <ActivityIndicator color="#fff" />
           ) : photoUrl ? (
