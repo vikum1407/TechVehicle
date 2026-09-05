@@ -813,6 +813,16 @@ Each entry needs: recommended oil grade + type, tyre size (front/rear), timing b
 
 ## Backlog Ideas (Vikum's Notes)
 
+### Vehicle Type / Fuel Type consistency (discussed 2026-09-05, not yet built)
+
+**Problem:** In Add/Edit Vehicle, Fuel Type (Petrol 92, Petrol 95, Diesel, Electric, Petrol Hybrid, Diesel Hybrid) is a separate field from Vehicle Type — but `Car — Petrol`/`Car — Diesel` and `SUV — Petrol`/`SUV — Diesel` already bake fuel into the vehicle type itself, while every other vehicle type (Motorcycle, Three-Wheeler, Van, Pickup, Truck, Heavy) doesn't. Nothing currently stops a contradictory combination like Fuel Type "Diesel" + Vehicle Type "Car — Petrol". Fuel Type is picked first in the form, so filtering Vehicle Type based on it is the natural direction.
+
+**Two options discussed:**
+1. **Quick filter** — hide mismatched Car/SUV vehicle type options based on the selected fuel. Fast, but doesn't cleanly handle Hybrid (is a Prius "Car — Petrol"?) or Electric vans/three-wheelers/trucks (a real, growing Sri Lankan segment) which have no fuel-specific vehicle type variant to filter against.
+2. **Fix the real inconsistency** — drop the fuel suffix from Car/SUV entirely (just "Car" and "SUV", matching every other vehicle type), making Fuel Type the single source of truth everywhere. Cleaner long-term, but existing vehicles in the database already store `car-petrol`/`car-diesel`/`suv-petrol`/`suv-diesel`, and category-filtering logic elsewhere (`serviceData.ts`) is keyed to those exact values — needs a data migration, not just a form tweak.
+
+**Status:** Discussion only — Vikum wants to revisit after current tester round. Leaning toward option 2 as the right fix, scoped as its own deliberate piece of work rather than a quick patch.
+
 ### Service Record Engine — Vehicle-Type-Aware Categories
 
 **Idea (noted 2026-06-21):** The service category list should be filtered by vehicle type so users only see categories relevant to their vehicle. A motorcycle doesn't have AC or a transmission fluid option the same way a car does; a three-wheeler has very different service needs to an SUV.
