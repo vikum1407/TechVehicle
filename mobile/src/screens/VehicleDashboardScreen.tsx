@@ -1343,7 +1343,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <TextInput style={styles.editVehicleInput} value={draftVehicle.year} onChangeText={v => setDraftVehicle(p => ({ ...p, year: v }))} keyboardType="number-pad" placeholder="e.g. 2018" placeholderTextColor={colors.textFaint} />
             <Text style={styles.editVehicleLabel}>{t('dashboard.fuelType')}</Text>
             <View style={styles.fuelTypeRow}>
-              {['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Hybrid'].map(ft => (
+              {['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Petrol Hybrid', 'Diesel Hybrid'].map(ft => (
                 <TouchableOpacity key={ft} style={[styles.fuelTypeChip, draftVehicle.fuelType === ft && styles.fuelTypeChipActive]} onPress={() => setDraftVehicle(p => ({ ...p, fuelType: ft }))}>
                   <Text style={[styles.fuelTypeChipText, draftVehicle.fuelType === ft && styles.fuelTypeChipTextActive]}>{ft}</Text>
                 </TouchableOpacity>

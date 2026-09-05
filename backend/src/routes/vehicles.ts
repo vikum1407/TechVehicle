@@ -4,9 +4,10 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { checkRateLimit } from '../utils/rateLimit'
 import { isValidNumber, isValidDateInput, capText, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
-// Must match FUEL_TYPES in mobile/src/screens/AddVehicleScreen.tsx exactly — the
-// mobile app sends these values as-is, not a normalized/lowercased form.
-const ALLOWED_FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric']
+// Must match FUEL_TYPES in mobile/src/screens/AddVehicleScreen.tsx (and the Edit
+// Vehicle fuel type chips in VehicleDashboardScreen.tsx) exactly — the mobile app
+// sends these values as-is, not a normalized/lowercased form.
+const ALLOWED_FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Petrol Hybrid', 'Diesel Hybrid']
 const ALLOWED_VEHICLE_TYPES = ['motorcycle', 'e-cycle', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'three-wheeler', 'van', 'pickup', 'electric-vehicle', 'truck', 'heavy']
 
 const router = express.Router()

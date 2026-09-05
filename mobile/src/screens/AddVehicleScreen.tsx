@@ -26,7 +26,7 @@ type Props = {
   onBack: () => void
 }
 
-const FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric']
+const FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Petrol Hybrid', 'Diesel Hybrid']
 const OWNER_COUNT_OPTIONS: { labelKey: TranslationKey; value: number }[] = [
   { labelKey: 'addVehicle.owner1st', value: 1 },
   { labelKey: 'addVehicle.owner2nd', value: 2 },
