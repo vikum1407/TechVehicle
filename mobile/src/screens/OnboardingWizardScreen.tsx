@@ -71,6 +71,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   )
   const [quickRecords, setQuickRecords] = useState<QuickRecord[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [newRecord, setNewRecord] = useState<QuickRecord>(emptyQR())
   const [saving, setSaving] = useState(false)
   const colors = useColors()
@@ -89,14 +90,31 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
 
   const addedMilestones = visibleMilestones.filter(m => milestones[m.id].added)
 
-  const handleAddQuickRecord = () => {
+  const handleSaveQuickRecord = () => {
     if (!newRecord.description.trim()) {
       Alert.alert(t('history.quickAdd.required.title'), t('history.quickAdd.required.message'))
       return
     }
-    setQuickRecords(prev => [...prev, { ...newRecord }])
+    if (editingId) {
+      setQuickRecords(prev => prev.map(r => (r.id === editingId ? { ...newRecord, id: editingId } : r)))
+    } else {
+      setQuickRecords(prev => [...prev, { ...newRecord }])
+    }
     setNewRecord(emptyQR())
+    setEditingId(null)
     setShowAddForm(false)
+  }
+
+  const startAddQuickRecord = () => {
+    setNewRecord(emptyQR())
+    setEditingId(null)
+    setShowAddForm(true)
+  }
+
+  const startEditQuickRecord = (r: QuickRecord) => {
+    setNewRecord({ ...r })
+    setEditingId(r.id)
+    setShowAddForm(true)
   }
 
   const removeQuickRecord = (id: string) =>
@@ -211,7 +229,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
       {step === 2 && (
         <>
           {quickRecords.map(r => (
-            <View key={r.id} style={styles.quickCard}>
+            <TouchableOpacity key={r.id} style={styles.quickCard} onPress={() => startEditQuickRecord(r)} activeOpacity={0.7}>
               <View style={styles.quickCardTop}>
                 <Text style={styles.quickCardDesc} numberOfLines={1}>{r.description}</Text>
                 <TouchableOpacity onPress={() => removeQuickRecord(r.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -223,18 +241,18 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                 {r.mileage ? ` · ${parseInt(r.mileage).toLocaleString()} km` : ''}
                 {r.cost ? ` · LKR ${parseFloat(r.cost).toLocaleString()}` : ''}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
 
           {!showAddForm && (
-            <TouchableOpacity style={styles.addRecordBtn} onPress={() => { setNewRecord(emptyQR()); setShowAddForm(true) }}>
+            <TouchableOpacity style={styles.addRecordBtn} onPress={startAddQuickRecord}>
               <Text style={styles.addRecordBtnText}>{t('onboarding.addPastRecord')}</Text>
             </TouchableOpacity>
           )}
 
           {showAddForm && (
             <View style={styles.addForm}>
-              <Text style={styles.addFormTitle}>{t('onboarding.addPastRecordTitle')}</Text>
+              <Text style={styles.addFormTitle}>{editingId ? t('onboarding.editPastRecordTitle') : t('onboarding.addPastRecordTitle')}</Text>
               <Text style={styles.fieldLabel}>{t('history.quickAdd.whatWasDone')}</Text>
               <TextInput
                 style={styles.input}
@@ -257,11 +275,11 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               <Text style={styles.fieldLabel}>{t('history.costLkr')}</Text>
               <TextInput style={styles.input} value={newRecord.cost} onChangeText={v => setNewRecord(p => ({ ...p, cost: v }))} placeholder={t('history.optional')} keyboardType="number-pad" placeholderTextColor="#bbb" />
               <View style={styles.addFormActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddForm(false)}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowAddForm(false); setEditingId(null) }}>
                   <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmBtn} onPress={handleAddQuickRecord}>
-                  <Text style={styles.confirmBtnText}>{t('onboarding.addRecordConfirm')}</Text>
+                <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveQuickRecord}>
+                  <Text style={styles.confirmBtnText}>{editingId ? t('onboarding.saveRecordConfirm') : t('onboarding.addRecordConfirm')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
