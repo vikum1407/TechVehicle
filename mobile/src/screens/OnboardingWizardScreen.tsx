@@ -62,6 +62,16 @@ const emptyMS = (): MilestoneState => ({ added: false, year: '', mileage: '' })
 type QuickRecord = { id: string; description: string; year: string; mileage: string; cost: string }
 const emptyQR = (): QuickRecord => ({ id: Math.random().toString(36).slice(2), description: '', year: '', mileage: '', cost: '' })
 
+// A blank year is fine (the record falls back to today's date) — this only flags a
+// year that was actually typed but is out of a plausible past-service range, so the
+// mistake is caught right where it was made instead of only surfacing later, bundled
+// with every other record, when the backend rejects the save as a whole.
+const isPlausibleYear = (yearStr: string): boolean => {
+  if (!yearStr.trim()) return true
+  const y = parseInt(yearStr, 10)
+  return !isNaN(y) && y >= 1900 && y <= new Date().getFullYear()
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props) {
@@ -90,9 +100,25 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
 
   const addedMilestones = visibleMilestones.filter(m => milestones[m.id].added)
 
+  const handleContinueFromStep1 = () => {
+    const badMilestone = addedMilestones.find(m => !isPlausibleYear(milestones[m.id].year))
+    if (badMilestone) {
+      Alert.alert(
+        t('onboarding.invalidYear.title'),
+        t('onboarding.invalidYear.message', { name: t(badMilestone.labelKey) })
+      )
+      return
+    }
+    setStep(2)
+  }
+
   const handleSaveQuickRecord = () => {
     if (!newRecord.description.trim()) {
       Alert.alert(t('history.quickAdd.required.title'), t('history.quickAdd.required.message'))
+      return
+    }
+    if (!isPlausibleYear(newRecord.year)) {
+      Alert.alert(t('onboarding.invalidYear.title'), t('onboarding.invalidYear.messageGeneric'))
       return
     }
     if (editingId) {
@@ -216,7 +242,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
       })}
 
       {step === 1 && (
-        <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(2)}>
+        <TouchableOpacity style={styles.nextBtn} onPress={handleContinueFromStep1}>
           <Text style={styles.nextBtnText}>
             {addedMilestones.length > 0
               ? t('onboarding.continueWithRecords', { count: addedMilestones.length, s: addedMilestones.length !== 1 ? 's' : '' })
