@@ -31,7 +31,11 @@ export const VEHICLE_TYPE_OPTIONS: VehicleTypeOption[] = [
   { icon: '🚗',  label: 'Car — Diesel',   value: 'car-diesel' },
   { icon: '🚙',  label: 'SUV — Petrol',   value: 'suv-petrol' },
   { icon: '🚙',  label: 'SUV — Diesel',   value: 'suv-diesel' },
-  { icon: '🛺',  label: 'Three-Wheeler',  value: 'three-wheeler' },
+  // 🛺 (auto rickshaw) is a newer emoji (Unicode 11, 2018) with poor glyph
+  // support on older Android devices — on a Samsung J7 it silently broke
+  // rendering of this entire chip's label, not just the icon. 🛵 (scooter,
+  // Unicode 9, 2016) is far more broadly supported.
+  { icon: '🛵',  label: 'Three-Wheeler',  value: 'three-wheeler' },
   { icon: '🚐',  label: 'Van / Minivan',  value: 'van' },
   { icon: '🛻',  label: 'Pickup Truck',   value: 'pickup' },
   { icon: '🔋',  label: 'Electric Car',   value: 'electric' },

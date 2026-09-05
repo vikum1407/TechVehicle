@@ -100,7 +100,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title={`🛺 ${t('tripLog.title')}`} onBack={onBack} />
+      <ScreenHeader title={`🛵 ${t('tripLog.title')}`} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{t('tripLog.subtitle')}</Text>
 

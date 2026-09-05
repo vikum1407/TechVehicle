@@ -1478,7 +1478,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             )}
             {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onTripLog() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🛺</Text></View>
+                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🛵</Text></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.dailyTripLog')}</Text>
               </TouchableOpacity>
             )}
