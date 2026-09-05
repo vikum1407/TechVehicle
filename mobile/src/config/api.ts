@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy'
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'
 
 const authHeaders = (token: string) => ({
@@ -935,19 +937,28 @@ export const api = {
   },
 
   uploadPhoto: async (token: string, uri: string): Promise<string> => {
-    const formData = new FormData()
+    // Manual FormData + fetch fails with "Unsupported FormDataPart implementation"
+    // on some Android devices/versions under React Native's New Architecture.
+    // expo-file-system's native multipart uploader sidesteps that bridge entirely.
     const filename = uri.split('/').pop() || 'photo.jpg'
     const match = /\.(\w+)$/.exec(filename)
-    const type = match ? `image/${match[1]}` : 'image/jpeg'
-    formData.append('photo', { uri, name: filename, type } as any)
+    const mimeType = match ? `image/${match[1]}` : 'image/jpeg'
 
-    const res = await fetch(`${API_URL}/uploads/photo`, {
-      method: 'POST',
+    const result = await FileSystem.uploadAsync(`${API_URL}/uploads/photo`, uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'photo',
+      mimeType,
       headers: { Authorization: `Bearer ${token}` },
-      body: formData,
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Upload failed')
+
+    let data: any
+    try {
+      data = JSON.parse(result.body)
+    } catch {
+      throw new Error('Upload failed')
+    }
+    if (result.status < 200 || result.status >= 300) throw new Error(data.error || 'Upload failed')
     return data.url as string
   },
 
