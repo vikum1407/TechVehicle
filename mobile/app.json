@@ -22,7 +22,7 @@
         "backgroundColor": "#012362"
       },
       "package": "com.vocksy.app",
-      "versionCode": 9,
+      "versionCode": 10,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
