@@ -18,6 +18,34 @@ As user count grows this becomes a critical risk — a Neon account issue or dat
 
 ---
 
+## ⚠️ Incident Log — "Cannot find native module 'ExponentImagePicker'" blank-screen crash (2026-09-05)
+
+**Symptom:** App installed and opened fine on some devices (Samsung J7) but showed a blank white screen and never rendered on others (Motorola, then reproduced on the J7 too on a later build) — no crash dialog, just nothing loading.
+
+**Root cause, confirmed via live `adb logcat` capture on real hardware:** `Error: Cannot find native module 'ExponentImagePicker'` thrown at JS bundle startup → `AppRegistry.registerComponent` never runs → `Invariant Violation: "main" has not been registered` → blank screen. This is NOT a crash Android reports as a hard native crash in most cases (shows as a "soft exception" + `expo-updates-error-recovery` FATAL EXCEPTION), so it's easy to miss without full-level logcat.
+
+**Wrong hypotheses chased first (in order, each cost a ~10-20 min EAS build to rule out):**
+1. Device-specific issue (32-bit ARM) → ruled out by reproducing on a second, different device (Samsung J7).
+2. React Native New Architecture / Fabric incompatibility with `react-native-svg` → this WAS a real, separate bug (confirmed via logcat: a genuine `SIGABRT` crash during Fabric's `RNSVGTextProps` component registration), fixed by upgrading `react-native-svg` 15.8.0 → 15.12.1. But fixing it did not fix the image-picker blank-screen issue — it was a second, unrelated bug.
+3. Stale OTA update via `expo-updates` serving a JS bundle mismatched with the native build (since `runtimeVersion` policy `"appVersion"` never changed while native deps did) → real risk in general (fixed by bumping `version` in `app.json`, which every native-dependency change should do going forward), but NOT the cause of this specific bug — confirmed by reproducing the identical error on a full uninstall + fresh install (no cache possible).
+4. New Architecture on/off toggle → ruled out by reproducing the identical error with New Architecture fully disabled too.
+
+**Actual root cause:** `npx expo install --check` (run only after the above red herrings were exhausted) revealed **10 packages were outdated for the installed Expo SDK version** — `expo-image-picker` was on `16.0.6` when the SDK expected `~17.0.11`, plus `expo`, `expo-image-manipulator`, `expo-notifications`, `expo-print`, `expo-secure-store`, `expo-sharing`, `expo-updates`, `react-native-safe-area-context`, and `@types/react`. An outdated native module version's JS wrapper didn't match what the actual compiled native side registered, causing the "module not found" error — reproducible regardless of architecture setting, SVG version, or update cache state, which is exactly why those four hypotheses all failed to fix it.
+
+**Fix:** `npx expo install --fix` (fixes all outdated packages against the SDK in one command).
+
+**Lesson for next time — check this FIRST, before any deep architectural debugging:**
+```bash
+npx expo install --check
+```
+This single command would have found the real cause immediately, before any of the four wrong hypotheses were tried. Run it any time a "Cannot find native module" error appears, or after any manual `npm install <package>@<version>` that might have pinned something outside Expo's compatibility matrix (this incident's underlying cause was exactly that — package versions had drifted from an earlier, unrelated SDK-upgrade experiment).
+
+**Also fixed as part of this incident:**
+- `eas.json` was missing `cli.appVersionSource: "local"` — without it, EAS silently manages its own server-side `versionCode` counter instead of reading `app.json`, which is why manually bumping `versionCode` kept producing builds still tagged with the old version. Always confirm `versionCode`/`version` in `app.json` **after** a `git pull` and **immediately before** running `eas build` — several builds today were wasted on stale code because the pull hadn't actually succeeded (blocked by an unrelated local file conflict) but the build was started anyway.
+- Established habit: bump `version` (not just `versionCode`) whenever a change touches native dependencies, so stale OTA updates (published via `eas update` for pure-JS changes) can't get served to a build with different native code.
+
+---
+
 ## ⚠️ HIGH PRIORITY — Scalability Fixes Needed Before Multi-Instance Deploy
 
 Two specific things in the current backend **will break** when the app runs on more than one server instance (e.g. Render auto-scales, or process restarts):
