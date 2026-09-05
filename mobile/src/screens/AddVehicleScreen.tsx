@@ -233,13 +233,13 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
     }
   }
 
-  const brandDisplay = brandIsOther
-    ? (brandCustom || OTHER)
-    : (brand || '')
+  // While in "Other" mode, the selector row's job is just to let the user reopen
+  // the picker (e.g. to pick from the list instead) — it should show a static
+  // "Other" label, not mirror the live-typed value, or it duplicates the text
+  // box right below it.
+  const brandDisplay = brandIsOther ? OTHER : (brand || '')
 
-  const modelDisplay = modelIsOther
-    ? (modelCustom || OTHER)
-    : (model || '')
+  const modelDisplay = modelIsOther ? OTHER : (model || '')
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
