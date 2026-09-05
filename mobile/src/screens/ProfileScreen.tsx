@@ -76,6 +76,27 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
     }
   }
 
+  const removePhoto = async () => {
+    setUploadingPhoto(true)
+    try {
+      await api.updateProfilePhoto(token, null)
+      setPhotoUrl(null)
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message || t('addVehicle.uploadFailed.message'))
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const handleAvatarPress = () => {
+    if (!photoUrl) { pickPhoto(); return }
+    Alert.alert(t('profile.changePhoto'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.changePhoto'), onPress: pickPhoto },
+      { text: t('profile.removePhoto'), style: 'destructive', onPress: removePhoto },
+    ])
+  }
+
   const saveEmail = async () => {
     if (!email.trim()) return
     setSavingEmail(true)
@@ -126,7 +147,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       <ScreenHeader title={t('profile.title')} onBack={onBack} />
 
       <View style={styles.avatarSection}>
-        <TouchableOpacity style={styles.avatar} onPress={pickPhoto} activeOpacity={0.8} disabled={uploadingPhoto}>
+        <TouchableOpacity style={styles.avatar} onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingPhoto}>
           {uploadingPhoto ? (
             <ActivityIndicator color="#fff" />
           ) : photoUrl ? (

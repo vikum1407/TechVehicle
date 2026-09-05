@@ -302,6 +302,8 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'profile.live': 'நேரடி',
   'profile.registerGarage': 'கேரேஜ் / சேவை மையம் பதிவு செய்க',
   'profile.new': 'புதியது',
+  'profile.changePhoto': 'புகைப்படத்தை மாற்று',
+  'profile.removePhoto': 'புகைப்படத்தை அகற்று',
   'profile.logOut': 'வெளியேறு',
   'profile.logOutConfirm': 'வெளியேற விரும்புகிறீர்களா?',
   'profile.logOutAllDevices': 'அனைத்து சாதனங்களிலும் வெளியேறு',

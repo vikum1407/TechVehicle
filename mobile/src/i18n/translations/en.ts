@@ -867,6 +867,8 @@ const en = {
   'profile.live': 'Live',
   'profile.registerGarage': 'Register a Garage / Service Center',
   'profile.new': 'New',
+  'profile.changePhoto': 'Change Photo',
+  'profile.removePhoto': 'Remove Photo',
   'profile.logOut': 'Log out',
   'profile.logOutConfirm': 'Are you sure you want to log out?',
   'profile.logOutAllDevices': 'Log out of all devices',

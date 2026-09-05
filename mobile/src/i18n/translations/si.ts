@@ -869,6 +869,8 @@ const si: Record<TranslationKey, string> = {
   'profile.live': 'සක්‍රියයි',
   'profile.registerGarage': 'ගරාජයක් / සේවා මධ්‍යස්ථානයක් ලියාපදිංචි කරන්න',
   'profile.new': 'නව',
+  'profile.changePhoto': 'ඡායාරූපය වෙනස් කරන්න',
+  'profile.removePhoto': 'ඡායාරූපය ඉවත් කරන්න',
   'profile.logOut': 'ලොග් අවුට් වන්න',
   'profile.logOutConfirm': 'ඔබට ලොග් අවුට් වීමට අවශ්‍ය බව විශ්වාසද?',
   'profile.logOutAllDevices': 'සියලුම උපාංගවලින් ලොග් අවුට් වන්න',
