@@ -46,9 +46,9 @@ This single command would have found the real cause immediately, before any of t
 
 ---
 
-## Known Issue — Profile photo picker can open twice (not yet fixed, 2026-09-05)
+## Fixed — Profile photo picker opening twice (2026-09-05)
 
-Reported by Vikum: tapping the avatar on the Profile screen to change the photo can open the gallery picker a second time while the first pick is still resolving. Root cause identified in `ProfileScreen.tsx`'s `pickPhoto()`: the avatar button is `disabled={uploadingPhoto}`, but `uploadingPhoto` isn't set to `true` until *after* `ImagePicker.launchImageLibraryAsync()` already resolves (line ~62) — so there's a window between the tap and the picker actually closing where a second tap re-invokes `pickPhoto()` and launches the picker again. Fix (not yet applied): add a separate guard state (e.g. `isPicking`) set to `true` at the very start of `pickPhoto()`, before requesting permissions, and disable the button on `isPicking || uploadingPhoto`.
+Was: tapping the avatar on the Profile screen could open the gallery picker a second time while the first pick was still resolving, because `uploadingPhoto` (used to disable the button) wasn't set `true` until *after* `ImagePicker.launchImageLibraryAsync()` already resolved. Fixed by adding a separate `isPicking` guard set immediately at the start of `pickPhoto()`, before requesting permissions, disabling the avatar button on `isPicking || uploadingPhoto`.
 
 ---
 
