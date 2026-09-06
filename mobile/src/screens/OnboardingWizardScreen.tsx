@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native'
 import { api } from '../config/api'
+import { getServiceCategories } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
@@ -83,6 +84,8 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newRecord, setNewRecord] = useState<QuickRecord>(emptyQR())
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
+  const serviceCategories = useMemo(() => getServiceCategories(vehicle.vehicleType), [vehicle.vehicleType])
   const [saving, setSaving] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
@@ -288,6 +291,9 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                 placeholderTextColor="#bbb"
                 autoFocus
               />
+              <TouchableOpacity style={styles.browseServicesBtn} onPress={() => setShowCategoryPicker(true)}>
+                <Text style={styles.browseServicesBtnText}>{t('onboarding.browseServices')}</Text>
+              </TouchableOpacity>
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
                   <Text style={styles.fieldLabel}>{t('onboarding.yearApprox')}</Text>
@@ -310,6 +316,37 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
               </View>
             </View>
           )}
+
+          <Modal visible={showCategoryPicker} animationType="slide" transparent={false} onRequestClose={() => setShowCategoryPicker(false)}>
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerHeader}>
+                <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                  <Text style={styles.pickerCancel}>✕ {t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <Text style={styles.pickerTitle}>{t('onboarding.selectService')}</Text>
+                <View style={{ width: 60 }} />
+              </View>
+              <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
+                {serviceCategories.map(cat => (
+                  <View key={cat.title} style={{ marginBottom: 20 }}>
+                    <Text style={styles.pickerCategoryTitle}>{cat.title}</Text>
+                    {cat.items.map(item => (
+                      <TouchableOpacity
+                        key={item}
+                        style={styles.pickerItemRow}
+                        onPress={() => {
+                          setNewRecord(p => ({ ...p, description: item }))
+                          setShowCategoryPicker(false)
+                        }}
+                      >
+                        <Text style={styles.pickerItemText}>{item}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </Modal>
 
           <TouchableOpacity
             style={[styles.doneBtn, saving && styles.doneBtnDisabled]}
@@ -382,6 +419,25 @@ function makeStyles(c: Colors) {
     addRecordBtnText: { fontSize: 15, color: c.primary, fontWeight: '700' },
     addForm: { backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: c.borderMid },
     addFormTitle: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 12 },
+    browseServicesBtn: { alignSelf: 'flex-start', marginTop: 8 },
+    browseServicesBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    pickerContainer: { flex: 1, backgroundColor: c.background },
+    pickerHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: 54, paddingBottom: 16,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    pickerCancel: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
+    pickerTitle: { fontSize: 16, fontWeight: '800', color: c.text },
+    pickerCategoryTitle: {
+      fontSize: 12, fontWeight: '700', color: c.textSub, marginBottom: 8,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+    },
+    pickerItemRow: {
+      paddingVertical: 12, paddingHorizontal: 14, backgroundColor: c.surface,
+      borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: c.borderMid,
+    },
+    pickerItemText: { fontSize: 14, color: c.text, fontWeight: '600' },
     addFormActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
     cancelBtn: { flex: 1, borderWidth: 1, borderColor: c.borderMid, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
     cancelBtnText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },

@@ -173,6 +173,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [newSlot, setNewSlot] = useState('')
   const [savingSchedule, setSavingSchedule] = useState(false)
   const [scheduleLoaded, setScheduleLoaded] = useState(false)
+  const [savingPriceList, setSavingPriceList] = useState(false)
 
   // Calendar override state
   const [calMonth, setCalMonth] = useState(() => {
@@ -522,7 +523,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   useEffect(() => {
     if (tab === 'bookings' && garage) { loadBookings(); loadShares() }
-    if (tab === 'schedule' && garage) { loadSchedule(); loadOverrides(calMonth) }
+    if (tab === 'schedule' && garage) {
+      loadSchedule()
+      loadOverrides(calMonth)
+      setPriceListRows((garage.priceList || []).map(p => ({ service: p.service, price: String(p.price) })))
+    }
     if (tab === 'calendar' && garage) { loadBookings(); loadSchedule(); loadOverrides(calMonth) }
     if (tab === 'history' && garage) { loadHistory() }
     if (tab === 'customers' && garage) { loadCustomers() }
@@ -556,16 +561,30 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     if (!name.trim()) { Alert.alert(t('garage.nameRequired.title'), t('garage.nameRequired.message')); return }
     setSaving(true)
     try {
-      const priceList = priceListRows
-        .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
-        .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
-      const data = await api.updateGarage(token, { name, address, brNumber, priceList })
+      const data = await api.updateGarage(token, { name, address, brNumber })
       setGarage(data)
       setEditing(false)
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSavePriceList = async () => {
+    if (!garage) return
+    setSavingPriceList(true)
+    try {
+      const priceList = priceListRows
+        .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
+        .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
+      const data = await api.updateGarage(token, { name: garage.name, address: garage.address ?? undefined, brNumber: garage.brNumber ?? undefined, priceList })
+      setGarage(data)
+      Alert.alert(t('logEmissionTest.saved.title'), t('garage.priceListSaved'))
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message)
+    } finally {
+      setSavingPriceList(false)
     }
   }
 
@@ -1198,7 +1217,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   setName(garage.name)
                   setAddress(garage.address || '')
                   setBrNumber(garage.brNumber || '')
-                  setPriceListRows((garage.priceList || []).map(p => ({ service: p.service, price: String(p.price) })))
                   setEditing(true)
                 }}
               >
@@ -1224,38 +1242,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
               <Text style={styles.label}>{t('garage.brNumberOptional')}</Text>
               <TextInput style={styles.input} value={brNumber} onChangeText={setBrNumber} placeholder="e.g. PV 00123456" autoCapitalize="characters" />
-
-              <Text style={[styles.label, { marginTop: 20 }]}>{t('garage.priceListOptional')}</Text>
-              <Text style={styles.formSubtitleSmall}>{t('garage.priceListNote')}</Text>
-              {priceListRows.map((row, i) => (
-                <View key={i} style={styles.priceRow}>
-                  <TextInput
-                    style={[styles.input, styles.priceServiceInput]}
-                    value={row.service}
-                    onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, service: v } : r))}
-                    placeholder="e.g. Oil Change"
-                  />
-                  <TextInput
-                    style={[styles.input, styles.pricePriceInput]}
-                    value={row.price}
-                    onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, price: v } : r))}
-                    placeholder="LKR"
-                    keyboardType="number-pad"
-                  />
-                  <TouchableOpacity
-                    style={styles.priceRemoveBtn}
-                    onPress={() => setPriceListRows(prev => prev.filter((_, idx) => idx !== i))}
-                  >
-                    <Text style={styles.priceRemoveBtnText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity
-                style={styles.priceAddBtn}
-                onPress={() => setPriceListRows(prev => [...prev, { service: '', price: '' }])}
-              >
-                <Text style={styles.priceAddBtnText}>{t('garage.addServicePrice')}</Text>
-              </TouchableOpacity>
 
               <View style={styles.brNote}>
                 <Text style={styles.brNoteText}>
@@ -1374,6 +1360,50 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             {savingSchedule
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.saveBtnText}>{t('garage.saveScheduleSettings')}</Text>
+            }
+          </TouchableOpacity>
+
+          {/* ── Price list ── */}
+          <Text style={styles.schedSection}>{t('garage.priceListOptional')}</Text>
+          <Text style={styles.formSubtitleSmall}>{t('garage.priceListNote')}</Text>
+          {priceListRows.map((row, i) => (
+            <View key={i} style={styles.priceRow}>
+              <TextInput
+                style={[styles.input, styles.priceServiceInput]}
+                value={row.service}
+                onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, service: v } : r))}
+                placeholder="e.g. Oil Change"
+              />
+              <TextInput
+                style={[styles.input, styles.pricePriceInput]}
+                value={row.price}
+                onChangeText={v => setPriceListRows(prev => prev.map((r, idx) => idx === i ? { ...r, price: v } : r))}
+                placeholder="LKR"
+                keyboardType="number-pad"
+              />
+              <TouchableOpacity
+                style={styles.priceRemoveBtn}
+                onPress={() => setPriceListRows(prev => prev.filter((_, idx) => idx !== i))}
+              >
+                <Text style={styles.priceRemoveBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity
+            style={styles.priceAddBtn}
+            onPress={() => setPriceListRows(prev => [...prev, { service: '', price: '' }])}
+          >
+            <Text style={styles.priceAddBtnText}>{t('garage.addServicePrice')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, savingPriceList && styles.saveBtnDisabled]}
+            onPress={handleSavePriceList}
+            disabled={savingPriceList}
+          >
+            {savingPriceList
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.saveBtnText}>{t('garage.savePriceList')}</Text>
             }
           </TouchableOpacity>
 
