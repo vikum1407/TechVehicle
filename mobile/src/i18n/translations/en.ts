@@ -1040,6 +1040,7 @@ const en = {
   'garage.maxVehiclesPerDay': 'Max Vehicles Per Day',
   'garage.timeSlots': 'Time Slots — set how many vehicles each can take',
   'garage.totalPerDay': 'Total per day: {max}',
+  'garage.currentSlots': 'Current slots: {list}',
   'garage.add': 'Add',
   'garage.saveScheduleSettings': 'Save Schedule Settings',
   'garage.customNotice': 'Custom notice',

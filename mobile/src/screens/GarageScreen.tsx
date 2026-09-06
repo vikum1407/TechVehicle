@@ -172,6 +172,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const schedMaxPerDay = schedSlots.reduce((sum, s) => sum + s.capacity, 0)
   const [newSlot, setNewSlot] = useState('')
   const [savingSchedule, setSavingSchedule] = useState(false)
+  const [scheduleLoaded, setScheduleLoaded] = useState(false)
 
   // Calendar override state
   const [calMonth, setCalMonth] = useState(() => {
@@ -378,7 +379,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       } else {
         setSchedSlots([{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }])
       }
-    } catch {}
+    } catch {
+    } finally {
+      setScheduleLoaded(true)
+    }
   }
 
   const loadOverrides = async (month: Date) => {
@@ -1306,52 +1310,61 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
           {/* ── Time slots, each with its own vehicle capacity ── */}
           <Text style={styles.schedSection}>{t('garage.timeSlots')}</Text>
-          {schedSlots.map((slot, idx) => (
-            <View key={`${slot.label}-${idx}`} style={styles.slotCapacityRow}>
-              <Text style={styles.slotCapacityLabel} numberOfLines={1}>{slot.label}</Text>
-              <View style={styles.slotCounterRow}>
+          {!scheduleLoaded ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+          ) : (
+            <>
+              {schedSlots.map((slot, idx) => (
+                <View key={`${slot.label}-${idx}`} style={styles.slotCapacityRow}>
+                  <Text style={styles.slotCapacityLabel} numberOfLines={1}>{slot.label}</Text>
+                  <View style={styles.slotCounterRow}>
+                    <TouchableOpacity
+                      style={styles.slotCounterBtn}
+                      onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: Math.max(1, s.capacity - 1) } : s))}
+                    >
+                      <Text style={styles.slotCounterBtnText}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.slotCounterValue}>{slot.capacity}</Text>
+                    <TouchableOpacity
+                      style={styles.slotCounterBtn}
+                      onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: s.capacity + 1 } : s))}
+                    >
+                      <Text style={styles.slotCounterBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.slotRemoveBtn}
+                    onPress={() => setSchedSlots(prev => prev.filter((_, i) => i !== idx))}
+                    disabled={schedSlots.length <= 1}
+                  >
+                    <Text style={[styles.slotRemoveBtnText, schedSlots.length <= 1 && { opacity: 0.3 }]}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View style={styles.addSlotRow}>
+                <TextInput
+                  style={styles.addSlotInput}
+                  value={newSlot}
+                  onChangeText={setNewSlot}
+                  placeholder="e.g. 9:00 AM or Morning"
+                />
                 <TouchableOpacity
-                  style={styles.slotCounterBtn}
-                  onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: Math.max(1, s.capacity - 1) } : s))}
+                  style={styles.addSlotBtn}
+                  onPress={() => {
+                    const s = newSlot.trim()
+                    if (s && !schedSlots.some(x => x.label === s)) setSchedSlots(prev => [...prev, { label: s, capacity: 2 }])
+                    setNewSlot('')
+                  }}
                 >
-                  <Text style={styles.slotCounterBtnText}>−</Text>
-                </TouchableOpacity>
-                <Text style={styles.slotCounterValue}>{slot.capacity}</Text>
-                <TouchableOpacity
-                  style={styles.slotCounterBtn}
-                  onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: s.capacity + 1 } : s))}
-                >
-                  <Text style={styles.slotCounterBtnText}>+</Text>
+                  <Text style={styles.addSlotBtnText}>{t('garage.add')}</Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.slotRemoveBtn}
-                onPress={() => setSchedSlots(prev => prev.filter((_, i) => i !== idx))}
-                disabled={schedSlots.length <= 1}
-              >
-                <Text style={[styles.slotRemoveBtnText, schedSlots.length <= 1 && { opacity: 0.3 }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <View style={styles.addSlotRow}>
-            <TextInput
-              style={styles.addSlotInput}
-              value={newSlot}
-              onChangeText={setNewSlot}
-              placeholder="e.g. 9:00 AM or Morning"
-            />
-            <TouchableOpacity
-              style={styles.addSlotBtn}
-              onPress={() => {
-                const s = newSlot.trim()
-                if (s && !schedSlots.some(x => x.label === s)) setSchedSlots(prev => [...prev, { label: s, capacity: 2 }])
-                setNewSlot('')
-              }}
-            >
-              <Text style={styles.addSlotBtnText}>{t('garage.add')}</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.schedTotalCapacity}>{t('garage.totalPerDay', { max: schedMaxPerDay })}</Text>
+              <Text style={styles.schedCurrentSlots}>
+                {t('garage.currentSlots', { list: schedSlots.map(s => s.label).join(', ') })}
+              </Text>
+              <Text style={styles.schedTotalCapacity}>{t('garage.totalPerDay', { max: schedMaxPerDay })}</Text>
+            </>
+          )}
 
           <TouchableOpacity
             style={[styles.saveBtn, savingSchedule && styles.saveBtnDisabled]}
@@ -2655,6 +2668,7 @@ function makeStyles(c: Colors, topInset: number) {
     slotCounterValue: { fontSize: 16, fontWeight: '800', color: c.text, minWidth: 22, textAlign: 'center' },
     slotRemoveBtn: { paddingLeft: 6 },
     slotRemoveBtnText: { fontSize: 16, color: c.textMuted, fontWeight: '700' },
+    schedCurrentSlots: { fontSize: 12, color: c.textMuted, marginTop: 10, lineHeight: 17 },
     schedTotalCapacity: { fontSize: 13, color: c.textSub, marginTop: 12, fontWeight: '600' },
     addSlotRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
     addSlotInput: {
