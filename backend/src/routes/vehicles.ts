@@ -8,7 +8,10 @@ import { isValidNumber, isValidDateInput, capText, MAX_MILEAGE, SHORT_TEXT_LEN, 
 // Vehicle fuel type chips in VehicleDashboardScreen.tsx) exactly — the mobile app
 // sends these values as-is, not a normalized/lowercased form.
 const ALLOWED_FUEL_TYPES = ['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Petrol Hybrid', 'Diesel Hybrid']
-const ALLOWED_VEHICLE_TYPES = ['motorcycle', 'e-cycle', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'three-wheeler', 'van', 'pickup', 'electric-vehicle', 'truck', 'heavy']
+// Must match VEHICLE_TYPE_OPTIONS in mobile/src/constants/serviceData.ts exactly —
+// note the mobile app uses 'electric-cycle' and 'electric', not 'e-cycle' or
+// 'electric-vehicle'.
+const ALLOWED_VEHICLE_TYPES = ['motorcycle', 'electric-cycle', 'car-petrol', 'car-diesel', 'suv-petrol', 'suv-diesel', 'three-wheeler', 'van', 'pickup', 'electric', 'truck', 'heavy']
 
 const router = express.Router()
 const prisma = new PrismaClient()
