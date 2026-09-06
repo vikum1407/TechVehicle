@@ -841,6 +841,14 @@ Each entry needs: recommended oil grade + type, tyre size (front/rear), timing b
 
 **Status:** Discussion only — Vikum wants to revisit after current tester round. Leaning toward option 2 as the right fix, scoped as its own deliberate piece of work rather than a quick patch.
 
+**Update (2026-09-06):** Fixed the equivalent (and more clearly wrong) version of this bug for Van/Pickup/Truck — those three had no fuel-specific vehicle type variant at all, so they used a fixed guess (Van/Pickup assumed Petrol, Truck assumed Diesel) instead of ever checking the vehicle's real Fuel Type field. Most Sri Lankan vans (e.g. KDH) are actually diesel, so this was silently showing the wrong spark-plug/glow-plug item to real users. Category filtering for these three types now reads the actual Fuel Type field (`fuelExclusions()` in both `mobile/src/constants/serviceData.ts` and `backend/src/routes/serviceCategories.ts`). Car/SUV's own inconsistency (fuel baked into the vehicle type string) is unchanged and still pending the decision above — this fix only covered the types with no fuel-specific variant to begin with.
+
+### Remove `expo-dev-client` before public launch (noted 2026-09-06)
+
+Added `expo-dev-client` to enable live local testing via a reusable dev-client build (connects to Metro, no rebuild needed per JS change) — this is what let the Schedule-page crash, mileage-conflict bug, and several other issues get caught and fixed before reaching real testers, instead of after. Google Play flagged the resulting app-size increase as a warning (not blocking) on the build 11 submission.
+
+**Not urgent to remove** — keep it while still in active bug-fixing/testing rounds, since it's what makes fast local verification possible at all. **Do remove it before the real public launch build** (once past the heavy fix-and-verify phase), since Sri Lankan users are often on budget/storage-constrained Android phones where a smaller app matters. Removal is a small, five-minute task (drop the dependency, since `developmentClient: true` is only set on the `development` eas.json profile already) — just don't forget it before the final release.
+
 ### Service Record Engine — Vehicle-Type-Aware Categories
 
 **Idea (noted 2026-06-21):** The service category list should be filtered by vehicle type so users only see categories relevant to their vehicle. A motorcycle doesn't have AC or a transmission fluid option the same way a car does; a three-wheeler has very different service needs to an SUV.
