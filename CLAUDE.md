@@ -18,6 +18,24 @@ As user count grows this becomes a critical risk — a Neon account issue or dat
 
 ---
 
+## ⚠️ Incident Log — OTA updates were structurally impossible for build 10 (2026-09-06)
+
+**Symptom:** `eas update --branch preview` published successfully every time (no CLI error), but the change never reached the actual installed app (build 10) on real devices, no matter how many times it was reopened. `adb logcat` showed `dev.expo.updates` logging `"Failed to download remote update"` / `UpdateFailedToLoad`.
+
+**Root cause, confirmed two ways:**
+1. Downloaded build 10's actual AAB artifact and inspected its `AndroidManifest.xml` directly — it has `EXPO_UPDATE_URL`, `EXPO_RUNTIME_VERSION`, `EXPO_UPDATES_CHECK_ON_LAUNCH` embedded, but **no `EXPO_UPDATES_CHANNEL_NAME` at all**.
+2. Replicated the exact manifest request the app makes (`curl` to the `updates.url` with matching headers, omitting channel) — the server returns **400: `"channel-name": Required`**.
+
+`eas.json` never had a `channel` field set on any build profile, so no build ever compiled with one — this was true of every prior build, not something today's changes broke. Separately, `eas-cli channel:list` was completely empty — no channel had ever been created on the EAS project either, so even a build that *did* send a channel name would have gotten a 404 ("no channel named X"). Both halves of the wiring (client embeds a channel name; server has a channel by that name mapped to a branch) were missing.
+
+**Practical consequence:** any device already running build 10 (or any earlier build) can never receive an OTA update — this is unrecoverable for that binary. Confirmed the crash-fix workaround: a **backend-only** fix reaches everyone immediately regardless (no app involvement needed), but any mobile-only (pure JS) fix requires a brand new build to reach real devices from here on.
+
+**Fix:** Added `"channel": "preview"` / `"channel": "production"` to the matching profiles in `mobile/eas.json`, and ran `eas channel:create preview` / `eas channel:create production` to create the channels and link them to the existing branches. This makes OTA work correctly for **any build compiled from now on** — it does not and cannot retroactively fix already-shipped builds.
+
+**Lesson for next time:** before relying on `eas update` to test whether OTA reaches a real device, verify the channel wiring exists end-to-end: `eas channel:list` should show a channel, and the build's own `eas.json` profile should have a matching `channel` field. If either is missing, no amount of publishing will ever reach that build — check this first instead of assuming a publish failure is transient.
+
+---
+
 ## ⚠️ Incident Log — "Cannot find native module 'ExponentImagePicker'" blank-screen crash (2026-09-05)
 
 **Symptom:** App installed and opened fine on some devices (Samsung J7) but showed a blank white screen and never rendered on others (Motorola, then reproduced on the J7 too on a later build) — no crash dialog, just nothing loading.
