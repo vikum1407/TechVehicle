@@ -866,8 +866,11 @@ export const api = {
     return d
   },
 
-  getServiceCategoriesRemote: async (vehicleType?: string | null) => {
-    const q = vehicleType ? `?vehicleType=${encodeURIComponent(vehicleType)}` : ''
+  getServiceCategoriesRemote: async (vehicleType?: string | null, fuelType?: string | null) => {
+    const params = new URLSearchParams()
+    if (vehicleType) params.set('vehicleType', vehicleType)
+    if (fuelType) params.set('fuelType', fuelType)
+    const q = params.toString() ? `?${params.toString()}` : ''
     const res = await fetch(`${API_URL}/service-categories${q}`)
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to fetch categories')

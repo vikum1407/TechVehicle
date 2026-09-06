@@ -23,6 +23,7 @@ type Props = {
   token: string
   vehicleId: string
   vehicleType?: string | null
+  fuelType?: string | null
   currentMileage: number
   onRecordAdded: () => void
   onBack: () => void
@@ -69,9 +70,9 @@ const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
   ],
 }
 
-export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, currentMileage, onRecordAdded, onBack }: Props) {
+export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, fuelType, currentMileage, onRecordAdded, onBack }: Props) {
   const [categories, setCategories] = useState<{ title: string; items: string[] }[]>(
-    () => getServiceCategories(vehicleType)
+    () => getServiceCategories(vehicleType, fuelType)
   )
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [otherText, setOtherText] = useState('')
@@ -85,15 +86,15 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const [saveAttempted, setSaveAttempted] = useState(false)
 
   useEffect(() => {
-    api.getServiceCategoriesRemote(vehicleType).then(setCategories).catch(() => {
+    api.getServiceCategoriesRemote(vehicleType, fuelType).then(setCategories).catch(() => {
       // fallback to local data already set in initial state
     })
-  }, [vehicleType])
+  }, [vehicleType, fuelType])
 
   useEffect(() => {
     api.getServiceRecords(token, vehicleId).then((records: { description: string }[]) => {
       const allCategoryItems = new Set(
-        getServiceCategories(vehicleType).flatMap(c => c.items)
+        getServiceCategories(vehicleType, fuelType).flatMap(c => c.items)
       )
       const seen = new Set<string>()
       const recent: string[] = []

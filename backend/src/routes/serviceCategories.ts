@@ -91,14 +91,24 @@ const BASE_CATEGORIES = [
   },
 ]
 
+// Vehicle types below don't bake fuel into the type itself (unlike car-petrol/
+// car-diesel etc.) — their spark-plug-vs-glow-plug exclusion must come from the
+// vehicle's actual fuelType field instead of a fixed guess. See fuelExclusions().
+const FUEL_BASED_TYPES = new Set(['van', 'pickup', 'truck'])
+
+function fuelExclusions(fuelType?: string): Set<string> {
+  if (!fuelType) return new Set()
+  if (fuelType === 'Electric') return new Set(['Spark Plugs', 'Glow Plugs (Diesel)'])
+  if (fuelType === 'Diesel' || fuelType === 'Diesel Hybrid') return new Set(['Spark Plugs'])
+  if (fuelType === 'Petrol 92' || fuelType === 'Petrol 95' || fuelType === 'Petrol Hybrid') return new Set(['Glow Plugs (Diesel)'])
+  return new Set()
+}
+
 const EXCLUDE_BY_TYPE: Record<string, Set<string>> = {
   'car-petrol': new Set(['Glow Plugs (Diesel)']),
   'car-diesel': new Set(['Spark Plugs']),
   'suv-petrol': new Set(['Glow Plugs (Diesel)']),
   'suv-diesel': new Set(['Spark Plugs']),
-  'van':        new Set(['Glow Plugs (Diesel)']),
-  'pickup':     new Set(['Glow Plugs (Diesel)']),
-  'truck':      new Set(['Spark Plugs']),
   'motorcycle': new Set([
     'Glow Plugs (Diesel)',
     'AC Gas Refill', 'AC Service', 'AC Filter', 'Cabin Filter',
@@ -199,8 +209,10 @@ const EXTRA_BY_TYPE: Partial<Record<string, ExtraItem[]>> = {
   ],
 }
 
-function getFilteredCategories(vehicleType?: string) {
-  const excludeSet = vehicleType ? (EXCLUDE_BY_TYPE[vehicleType] ?? new Set<string>()) : new Set<string>()
+function getFilteredCategories(vehicleType?: string, fuelType?: string) {
+  const excludeSet = vehicleType
+    ? (FUEL_BASED_TYPES.has(vehicleType) ? fuelExclusions(fuelType) : (EXCLUDE_BY_TYPE[vehicleType] ?? new Set<string>()))
+    : new Set<string>()
   const extraItems = vehicleType ? (EXTRA_BY_TYPE[vehicleType] ?? []) : []
 
   return BASE_CATEGORIES
@@ -213,11 +225,12 @@ function getFilteredCategories(vehicleType?: string) {
     .filter(cat => cat.items.length > 0)
 }
 
-// GET /service-categories?vehicleType=car-petrol
+// GET /service-categories?vehicleType=car-petrol&fuelType=Diesel
 // Public — no auth required (static config data)
 router.get('/', (req, res) => {
   const vehicleType = req.query.vehicleType as string | undefined
-  const categories = getFilteredCategories(vehicleType)
+  const fuelType = req.query.fuelType as string | undefined
+  const categories = getFilteredCategories(vehicleType, fuelType)
   res.json({ categories })
 })
 

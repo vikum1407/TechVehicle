@@ -85,7 +85,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newRecord, setNewRecord] = useState<QuickRecord>(emptyQR())
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
-  const serviceCategories = useMemo(() => getServiceCategories(vehicle.vehicleType), [vehicle.vehicleType])
+  const serviceCategories = useMemo(() => getServiceCategories(vehicle.vehicleType, vehicle.fuelType), [vehicle.vehicleType, vehicle.fuelType])
   const [saving, setSaving] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])

@@ -234,15 +234,25 @@ export const CATEGORY_BRANDS: Record<string, string[]> = {
   'General & Other':       ['Toyota OEM', 'Honda OEM', 'Genuine Parts'],
 }
 
+// Vehicle types below don't bake fuel into the type itself (unlike car-petrol/
+// car-diesel etc.) — their spark-plug-vs-glow-plug exclusion must come from the
+// vehicle's actual fuelType field instead of a fixed guess. See fuelExclusions().
+const FUEL_BASED_TYPES = new Set(['van', 'pickup', 'truck'])
+
+function fuelExclusions(fuelType?: string | null): Set<string> {
+  if (!fuelType) return new Set()
+  if (fuelType === 'Electric') return new Set(['Spark Plugs', 'Glow Plugs (Diesel)'])
+  if (fuelType === 'Diesel' || fuelType === 'Diesel Hybrid') return new Set(['Spark Plugs'])
+  if (fuelType === 'Petrol 92' || fuelType === 'Petrol 95' || fuelType === 'Petrol Hybrid') return new Set(['Glow Plugs (Diesel)'])
+  return new Set()
+}
+
 // Items to exclude per vehicle type
 const EXCLUDE_BY_TYPE: Record<string, Set<string>> = {
   'car-petrol': new Set(['Glow Plugs (Diesel)']),
   'car-diesel': new Set(['Spark Plugs']),
   'suv-petrol': new Set(['Glow Plugs (Diesel)']),
   'suv-diesel': new Set(['Spark Plugs']),
-  'van':        new Set(['Glow Plugs (Diesel)']),
-  'pickup':     new Set(['Glow Plugs (Diesel)']),
-  'truck':      new Set(['Spark Plugs']),
 
   'motorcycle': new Set([
     'Glow Plugs (Diesel)',
@@ -353,8 +363,10 @@ const EXTRA_BY_TYPE: Partial<Record<string, ExtraItems>> = {
   ],
 }
 
-export function getServiceCategories(vehicleType?: string | null) {
-  const excludeSet = vehicleType ? (EXCLUDE_BY_TYPE[vehicleType] ?? new Set<string>()) : new Set<string>()
+export function getServiceCategories(vehicleType?: string | null, fuelType?: string | null) {
+  const excludeSet = vehicleType
+    ? (FUEL_BASED_TYPES.has(vehicleType) ? fuelExclusions(fuelType) : (EXCLUDE_BY_TYPE[vehicleType] ?? new Set<string>()))
+    : new Set<string>()
   const extraItems = vehicleType ? (EXTRA_BY_TYPE[vehicleType] ?? []) : []
 
   return SERVICE_CATEGORIES

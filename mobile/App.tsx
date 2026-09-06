@@ -483,6 +483,7 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           vehicleType={selectedVehicle.vehicleType}
+          fuelType={selectedVehicle.fuelType}
           currentMileage={selectedVehicle.mileage}
           onRecordAdded={() => setScreen(addServiceReturnTo)}
           onBack={() => setScreen(addServiceReturnTo)}
