@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -21,17 +22,28 @@ type Props = {
   onBack: () => void
 }
 
-const CATEGORIES: { value: string; labelKey: TranslationKey; icon: string }[] = [
-  { value: 'Insurance', labelKey: 'expenseCategory.insurance', icon: '🛡️' },
-  { value: 'Revenue Licence', labelKey: 'expenseCategory.revenueLicence', icon: '📋' },
-  { value: 'Emission Test', labelKey: 'expenseCategory.emissionTest', icon: '💨' },
-  { value: 'Fine / Penalty', labelKey: 'expenseCategory.fine', icon: '🚨' },
-  { value: 'Parking', labelKey: 'expenseCategory.parking', icon: '🅿️' },
-  { value: 'Toll', labelKey: 'expenseCategory.toll', icon: '🛣️' },
-  { value: 'Accessories', labelKey: 'expenseCategory.accessories', icon: '🔩' },
-  { value: 'Washing', labelKey: 'expenseCategory.washing', icon: '🚿' },
-  { value: 'Other', labelKey: 'expenseCategory.other', icon: '📝' },
+type CategoryIcon =
+  | { lib: 'ion'; name: React.ComponentProps<typeof Ionicons>['name'] }
+  | { lib: 'material'; name: React.ComponentProps<typeof MaterialIcons>['name'] }
+  | { lib: 'mci'; name: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }
+
+const CATEGORIES: { value: string; labelKey: TranslationKey; icon: CategoryIcon; color: string }[] = [
+  { value: 'Insurance', labelKey: 'expenseCategory.insurance', icon: { lib: 'ion', name: 'shield-checkmark' }, color: '#2f6fed' },
+  { value: 'Revenue Licence', labelKey: 'expenseCategory.revenueLicence', icon: { lib: 'ion', name: 'document-text' }, color: '#8b5cf6' },
+  { value: 'Emission Test', labelKey: 'expenseCategory.emissionTest', icon: { lib: 'ion', name: 'cloud' }, color: '#06b6d4' },
+  { value: 'Fine / Penalty', labelKey: 'expenseCategory.fine', icon: { lib: 'ion', name: 'warning' }, color: '#ef4444' },
+  { value: 'Parking', labelKey: 'expenseCategory.parking', icon: { lib: 'material', name: 'local-parking' }, color: '#6366f1' },
+  { value: 'Toll', labelKey: 'expenseCategory.toll', icon: { lib: 'mci', name: 'highway' }, color: '#f97316' },
+  { value: 'Accessories', labelKey: 'expenseCategory.accessories', icon: { lib: 'ion', name: 'build' }, color: '#64748b' },
+  { value: 'Washing', labelKey: 'expenseCategory.washing', icon: { lib: 'ion', name: 'water' }, color: '#0ea5e9' },
+  { value: 'Other', labelKey: 'expenseCategory.other', icon: { lib: 'ion', name: 'create-outline' }, color: '#6b7280' },
 ]
+
+function CategoryIconView({ icon, color, size }: { icon: CategoryIcon; color: string; size: number }) {
+  if (icon.lib === 'ion') return <Ionicons name={icon.name} size={size} color={color} />
+  if (icon.lib === 'material') return <MaterialIcons name={icon.name} size={size} color={color} />
+  return <MaterialCommunityIcons name={icon.name} size={size} color={color} />
+}
 
 const today = () => {
   const d = new Date()
@@ -168,7 +180,9 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
             onPress={() => setCategory(cat.value)}
             activeOpacity={0.7}
           >
-            <Text style={styles.categoryIcon}>{cat.icon}</Text>
+            <View style={styles.categoryIcon}>
+              <CategoryIconView icon={cat.icon} color={category === cat.value ? '#fff' : cat.color} size={24} />
+            </View>
             <Text style={[styles.categoryLabel, category === cat.value && styles.categoryLabelSelected]}>
               {t(cat.labelKey)}
             </Text>
@@ -279,7 +293,7 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.borderMid,
     },
     categoryCardSelected: { backgroundColor: c.primary, borderColor: c.primary },
-    categoryIcon: { fontSize: 24, marginBottom: 6 },
+    categoryIcon: { marginBottom: 6 },
     categoryLabel: { fontSize: 11, color: c.textSub, fontWeight: '600', textAlign: 'center' },
     categoryLabelSelected: { color: '#fff' },
     multiline: { height: 80, textAlignVertical: 'top' },
