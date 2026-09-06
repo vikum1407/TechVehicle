@@ -166,8 +166,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
-  const [schedMaxPerDay, setSchedMaxPerDay] = useState(5)
-  const [schedSlots, setSchedSlots] = useState<string[]>(['Morning', 'Afternoon'])
+  const [schedSlots, setSchedSlots] = useState<{ label: string; capacity: number }[]>([
+    { label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 },
+  ])
+  const schedMaxPerDay = schedSlots.reduce((sum, s) => sum + s.capacity, 0)
   const [newSlot, setNewSlot] = useState('')
   const [savingSchedule, setSavingSchedule] = useState(false)
 
@@ -363,8 +365,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     try {
       const data = await api.getGarageAvailability(token, garage.id)
       setSchedWorkDays(JSON.parse(data.workDays || '[1,2,3,4,5]'))
-      setSchedMaxPerDay(data.maxPerDay ?? 5)
-      setSchedSlots(JSON.parse(data.timeSlots || '["Morning","Afternoon"]'))
+      const parsedSlots = JSON.parse(data.timeSlots || '[]')
+      setSchedSlots(
+        Array.isArray(parsedSlots) && parsedSlots.length > 0 && typeof parsedSlots[0] === 'object'
+          ? parsedSlots
+          : [{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }]
+      )
     } catch {}
   }
 
@@ -418,7 +424,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const handleSaveSchedule = async () => {
     setSavingSchedule(true)
     try {
-      await api.setAvailability(token, schedWorkDays, schedMaxPerDay, schedSlots)
+      await api.setAvailability(token, schedWorkDays, schedSlots)
       Alert.alert(t('logEmissionTest.saved.title'), t('garage.scheduleSaved'))
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
@@ -1291,37 +1297,35 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             })}
           </View>
 
-          {/* ── Max per day ── */}
-          <Text style={styles.schedSection}>{t('garage.maxVehiclesPerDay')}</Text>
-          <View style={styles.counterRow}>
-            <TouchableOpacity
-              style={styles.counterBtn}
-              onPress={() => setSchedMaxPerDay(v => Math.max(1, v - 1))}
-            >
-              <Text style={styles.counterBtnText}>−</Text>
-            </TouchableOpacity>
-            <Text style={styles.counterValue}>{schedMaxPerDay}</Text>
-            <TouchableOpacity
-              style={styles.counterBtn}
-              onPress={() => setSchedMaxPerDay(v => v + 1)}
-            >
-              <Text style={styles.counterBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ── Time slots ── */}
+          {/* ── Time slots, each with its own vehicle capacity ── */}
           <Text style={styles.schedSection}>{t('garage.timeSlots')}</Text>
-          <View style={styles.chipRow}>
-            {schedSlots.map(slot => (
+          {schedSlots.map((slot, idx) => (
+            <View key={`${slot.label}-${idx}`} style={styles.slotCapacityRow}>
+              <Text style={styles.slotCapacityLabel} numberOfLines={1}>{slot.label}</Text>
+              <View style={styles.slotCounterRow}>
+                <TouchableOpacity
+                  style={styles.slotCounterBtn}
+                  onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: Math.max(1, s.capacity - 1) } : s))}
+                >
+                  <Text style={styles.slotCounterBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.slotCounterValue}>{slot.capacity}</Text>
+                <TouchableOpacity
+                  style={styles.slotCounterBtn}
+                  onPress={() => setSchedSlots(prev => prev.map((s, i) => i === idx ? { ...s, capacity: s.capacity + 1 } : s))}
+                >
+                  <Text style={styles.slotCounterBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
-                key={slot}
-                style={styles.slotChip}
-                onPress={() => setSchedSlots(prev => prev.filter(s => s !== slot))}
+                style={styles.slotRemoveBtn}
+                onPress={() => setSchedSlots(prev => prev.filter((_, i) => i !== idx))}
+                disabled={schedSlots.length <= 1}
               >
-                <Text style={styles.slotChipText}>{slot}  ✕</Text>
+                <Text style={[styles.slotRemoveBtnText, schedSlots.length <= 1 && { opacity: 0.3 }]}>✕</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ))}
           <View style={styles.addSlotRow}>
             <TextInput
               style={styles.addSlotInput}
@@ -1333,13 +1337,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               style={styles.addSlotBtn}
               onPress={() => {
                 const s = newSlot.trim()
-                if (s && !schedSlots.includes(s)) setSchedSlots(prev => [...prev, s])
+                if (s && !schedSlots.some(x => x.label === s)) setSchedSlots(prev => [...prev, { label: s, capacity: 2 }])
                 setNewSlot('')
               }}
             >
               <Text style={styles.addSlotBtnText}>{t('garage.add')}</Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.schedTotalCapacity}>{t('garage.totalPerDay', { max: schedMaxPerDay })}</Text>
 
           <TouchableOpacity
             style={[styles.saveBtn, savingSchedule && styles.saveBtnDisabled]}
@@ -2260,7 +2265,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         const next14 = Array.from({ length: 14 }, (_, i) => {
           const d = new Date(); d.setDate(d.getDate() + i + 1); return d
         })
-        const slots = schedSlots.length > 0 ? schedSlots : ['Morning', 'Afternoon']
+        const slots = (schedSlots.length > 0 ? schedSlots : [{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }]).map(s => s.label)
         return (
           <Modal visible animationType="slide" transparent={false} onRequestClose={() => setCounterModal(null)}>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -2628,6 +2633,22 @@ function makeStyles(c: Colors, topInset: number) {
       paddingHorizontal: 14, paddingVertical: 8,
     },
     slotChipText: { fontSize: 13, color: c.primaryTintText, fontWeight: '600' },
+    slotCapacityRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: c.borderMid,
+      paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8,
+    },
+    slotCapacityLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: c.text },
+    slotCounterRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    slotCounterBtn: {
+      width: 30, height: 30, borderRadius: 15, backgroundColor: c.primaryTint,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    slotCounterBtnText: { fontSize: 16, fontWeight: '700', color: c.primary },
+    slotCounterValue: { fontSize: 16, fontWeight: '800', color: c.text, minWidth: 22, textAlign: 'center' },
+    slotRemoveBtn: { paddingLeft: 6 },
+    slotRemoveBtnText: { fontSize: 16, color: c.textMuted, fontWeight: '700' },
+    schedTotalCapacity: { fontSize: 13, color: c.textSub, marginTop: 12, fontWeight: '600' },
     addSlotRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
     addSlotInput: {
       flex: 1, backgroundColor: c.surface, borderRadius: 10,

@@ -5,6 +5,7 @@ import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { isValidDateInput, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 import { checkRateLimit } from '../utils/rateLimit'
+import { parseGarageSlots } from '../utils/garageSlots'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -41,18 +42,38 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
     const maxPerDay = availability?.maxPerDay ?? 5
+    const garageSlots = parseGarageSlots(availability?.timeSlots, maxPerDay)
 
     const bookingDate = new Date(date)
     const startOfDay = new Date(bookingDate)
     startOfDay.setHours(0, 0, 0, 0)
     const endOfDay = new Date(bookingDate)
     endOfDay.setHours(23, 59, 59, 999)
+    const dateKey = startOfDay.toISOString().split('T')[0]
 
-    const bookingCount = await prisma.booking.count({
-      where: { garageId, date: { gte: startOfDay, lte: endOfDay }, status: { not: 'cancelled' } },
+    const override = await prisma.garageCalendarOverride.findUnique({
+      where: { garageId_date: { garageId, date: dateKey } },
     })
-    if (bookingCount >= maxPerDay) {
+    if (override?.status === 'closed' || override?.status === 'holiday') {
+      res.status(400).json({ error: 'This date is not available' }); return
+    }
+    const effectiveMax = override?.maxSlots ?? maxPerDay
+
+    const dayBookings = await prisma.booking.findMany({
+      where: { garageId, date: { gte: startOfDay, lte: endOfDay }, status: { not: 'cancelled' } },
+      select: { slotLabel: true },
+    })
+    if (dayBookings.length >= effectiveMax) {
       res.status(400).json({ error: 'This date is fully booked' }); return
+    }
+    if (slotLabel) {
+      const slotConfig = garageSlots.find(s => s.label === slotLabel)
+      if (slotConfig) {
+        const slotBookedCount = dayBookings.filter(b => b.slotLabel === slotLabel).length
+        if (slotBookedCount >= slotConfig.capacity) {
+          res.status(400).json({ error: 'This time slot is fully booked' }); return
+        }
+      }
     }
 
     const booking = await prisma.booking.create({

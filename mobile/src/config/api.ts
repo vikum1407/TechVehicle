@@ -435,11 +435,11 @@ export const api = {
     return data
   },
 
-  setAvailability: async (token: string, workDays: number[], maxPerDay: number, timeSlots: string[]) => {
+  setAvailability: async (token: string, workDays: number[], timeSlots: { label: string; capacity: number }[]) => {
     const res = await fetch(`${API_URL}/availability`, {
       method: 'PUT',
       headers: authHeaders(token),
-      body: JSON.stringify({ workDays, maxPerDay, timeSlots }),
+      body: JSON.stringify({ workDays, timeSlots }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to set availability')

@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { isValidNumber, capText, SHORT_TEXT_LEN } from '../utils/validate'
+import { parseGarageSlots, validateGarageSlots } from '../utils/garageSlots'
 
 const VALID_OVERRIDE_STATUSES = ['open', 'closed', 'holiday']
 
@@ -77,32 +78,28 @@ router.delete('/override', authMiddleware, async (req: AuthRequest, res) => {
 
 // PUT /availability — garage updates base settings
 router.put('/', authMiddleware, async (req: AuthRequest, res) => {
-  const { workDays, maxPerDay, timeSlots } = req.body
-  if (!Array.isArray(workDays) || typeof maxPerDay !== 'number') {
-    res.status(400).json({ error: 'workDays (array) and maxPerDay (number) are required' })
+  const { workDays, timeSlots } = req.body
+  if (!Array.isArray(workDays)) {
+    res.status(400).json({ error: 'workDays (array) is required' })
     return
   }
   if (!workDays.every((d: unknown) => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6)) {
     res.status(400).json({ error: 'workDays must contain integers 0-6' }); return
   }
-  if (!isValidNumber(maxPerDay, { min: 1, max: 200 })) {
-    res.status(400).json({ error: 'maxPerDay must be between 1 and 200' }); return
-  }
-  if (timeSlots !== undefined && (!Array.isArray(timeSlots) || timeSlots.length > 20 || !timeSlots.every((s: unknown) => typeof s === 'string'))) {
-    res.status(400).json({ error: 'timeSlots must be an array of at most 20 strings' }); return
+  const slotsResult = validateGarageSlots(timeSlots)
+  if (!slotsResult.valid) {
+    res.status(400).json({ error: slotsResult.error }); return
   }
   try {
     const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
     if (!garage) { res.status(404).json({ error: 'Garage not found' }); return }
 
-    const slots = Array.isArray(timeSlots) && timeSlots.length > 0
-      ? timeSlots.map((s: string) => capText(s, SHORT_TEXT_LEN))
-      : ['Morning', 'Afternoon']
+    const maxPerDay = slotsResult.slots.reduce((sum, s) => sum + s.capacity, 0)
 
     const availability = await prisma.garageAvailability.upsert({
       where: { garageId: garage.id },
-      update: { workDays: JSON.stringify(workDays), maxPerDay, timeSlots: JSON.stringify(slots) },
-      create: { garageId: garage.id, workDays: JSON.stringify(workDays), maxPerDay, timeSlots: JSON.stringify(slots) },
+      update: { workDays: JSON.stringify(workDays), maxPerDay, timeSlots: JSON.stringify(slotsResult.slots) },
+      create: { garageId: garage.id, workDays: JSON.stringify(workDays), maxPerDay, timeSlots: JSON.stringify(slotsResult.slots) },
     })
     res.json(availability)
   } catch (error) {
@@ -122,7 +119,13 @@ router.get('/:garageId', authMiddleware, async (req: AuthRequest, res) => {
       res.status(403).json({ error: 'Forbidden' }); return
     }
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
-    res.json(availability || { workDays: '[1,2,3,4,5]', maxPerDay: 5, timeSlots: '["Morning","Afternoon"]' })
+    const maxPerDay = availability?.maxPerDay ?? 5
+    const slots = parseGarageSlots(availability?.timeSlots, maxPerDay)
+    res.json({
+      workDays: availability?.workDays ?? '[1,2,3,4,5]',
+      maxPerDay,
+      timeSlots: JSON.stringify(slots),
+    })
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch availability' })
   }
@@ -165,7 +168,9 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
     const workDays: number[] = availability ? JSON.parse(availability.workDays) : [1, 2, 3, 4, 5]
     const maxPerDay = availability?.maxPerDay ?? 5
-    const timeSlots: string[] = availability ? JSON.parse(availability.timeSlots) : ['Morning', 'Afternoon']
+    const garageSlots = parseGarageSlots(availability?.timeSlots, maxPerDay)
+    const slotCapacity = new Map(garageSlots.map(s => [s.label, s.capacity]))
+    const timeSlots: string[] = garageSlots.map(s => s.label)
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -214,11 +219,17 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
         slotCounts[key] = (slotCounts[key] || 0) + 1
       }
 
-      const slots = timeSlots.map(label => ({
-        label,
-        booked: slotCounts[label] || 0,
-        available: isOpen && totalBooked < effectiveMax && (slotCounts[label] || 0) === 0,
-      }))
+      const slots = timeSlots.map(label => {
+        const capacity = slotCapacity.get(label) ?? effectiveMax
+        const booked = slotCounts[label] || 0
+        return {
+          label,
+          booked,
+          capacity,
+          remaining: Math.max(0, capacity - booked),
+          available: isOpen && totalBooked < effectiveMax && booked < capacity,
+        }
+      })
 
       dates.push({
         date: dateStr,

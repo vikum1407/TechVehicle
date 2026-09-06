@@ -48,7 +48,7 @@ type DateSlot = {
   remaining: number
   message: string | null
   messageColor: string | null
-  slots: { label: string; booked: number; available: boolean }[]
+  slots: { label: string; booked: number; capacity: number; remaining: number; available: boolean }[]
 }
 
 type ServiceRecord = {
@@ -464,36 +464,41 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           )}
 
           <Text style={styles.sectionLabel}>{t('booking.selectTimeSlot')}</Text>
-          {(selectedDate?.slots || []).map(slot => (
-            <TouchableOpacity
-              key={slot.label}
-              style={[
-                styles.slotCard,
-                slot.available && slot.booked > 0 && styles.slotCardPartial,
-                !slot.available && styles.slotCardUnavailable,
-              ]}
-              onPress={() => slot.available && handleSelectSlot(slot.label)}
-              disabled={!slot.available}
-              activeOpacity={slot.available ? 0.8 : 1}
-            >
-              <View>
-                <Text style={[
-                  styles.slotLabel,
-                  !slot.available && styles.slotLabelDim,
-                  slot.available && slot.booked > 0 && styles.slotLabelPartial,
-                ]}>
-                  {slot.label}
-                </Text>
-                {slot.available && slot.booked > 0 && (
-                  <Text style={styles.slotBookedWarning}>{t('booking.alreadyBooked')}</Text>
-                )}
-              </View>
-              {slot.available
-                ? <Text style={[styles.slotSelectArrow, slot.booked > 0 && { color: colors.orange }]}>{t('booking.selectArrow')}</Text>
-                : <Text style={styles.slotFullText}>{t('booking.alreadyBooked')}</Text>
-              }
-            </TouchableOpacity>
-          ))}
+          {(selectedDate?.slots || []).map(slot => {
+            const lowRemaining = slot.available && slot.capacity > 0 && slot.remaining <= 1
+            return (
+              <TouchableOpacity
+                key={slot.label}
+                style={[
+                  styles.slotCard,
+                  lowRemaining && styles.slotCardPartial,
+                  !slot.available && styles.slotCardUnavailable,
+                ]}
+                onPress={() => slot.available && handleSelectSlot(slot.label)}
+                disabled={!slot.available}
+                activeOpacity={slot.available ? 0.8 : 1}
+              >
+                <View>
+                  <Text style={[
+                    styles.slotLabel,
+                    !slot.available && styles.slotLabelDim,
+                    lowRemaining && styles.slotLabelPartial,
+                  ]}>
+                    {slot.label}
+                  </Text>
+                  {slot.available && (
+                    <Text style={lowRemaining ? styles.slotBookedWarning : styles.slotBooked}>
+                      {t('booking.remainingLeft', { count: slot.remaining })}
+                    </Text>
+                  )}
+                </View>
+                {slot.available
+                  ? <Text style={[styles.slotSelectArrow, lowRemaining && { color: colors.orange }]}>{t('booking.selectArrow')}</Text>
+                  : <Text style={styles.slotFullText}>{t('booking.alreadyBooked')}</Text>
+                }
+              </TouchableOpacity>
+            )
+          })}
         </ScrollView>
       </View>
       </KeyboardAvoidingView>
