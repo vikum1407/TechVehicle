@@ -366,11 +366,18 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const data = await api.getGarageAvailability(token, garage.id)
       setSchedWorkDays(JSON.parse(data.workDays || '[1,2,3,4,5]'))
       const parsedSlots = JSON.parse(data.timeSlots || '[]')
-      setSchedSlots(
-        Array.isArray(parsedSlots) && parsedSlots.length > 0 && typeof parsedSlots[0] === 'object'
-          ? parsedSlots
-          : [{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }]
-      )
+      const maxPerDay = data.maxPerDay ?? 5
+      if (Array.isArray(parsedSlots) && parsedSlots.length > 0 && typeof parsedSlots[0] === 'object') {
+        setSchedSlots(parsedSlots)
+      } else if (Array.isArray(parsedSlots) && parsedSlots.length > 0 && typeof parsedSlots[0] === 'string') {
+        // Old format: plain label strings sharing one daily total — split it evenly
+        // across them so existing custom slot names aren't lost.
+        const base = Math.floor(maxPerDay / parsedSlots.length)
+        const remainder = maxPerDay % parsedSlots.length
+        setSchedSlots(parsedSlots.map((label: string, i: number) => ({ label, capacity: Math.max(1, base + (i < remainder ? 1 : 0)) })))
+      } else {
+        setSchedSlots([{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }])
+      }
     } catch {}
   }
 

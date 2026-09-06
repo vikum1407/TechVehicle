@@ -78,7 +78,7 @@ router.delete('/override', authMiddleware, async (req: AuthRequest, res) => {
 
 // PUT /availability — garage updates base settings
 router.put('/', authMiddleware, async (req: AuthRequest, res) => {
-  const { workDays, timeSlots } = req.body
+  const { workDays, maxPerDay: requestedMaxPerDay, timeSlots } = req.body
   if (!Array.isArray(workDays)) {
     res.status(400).json({ error: 'workDays (array) is required' })
     return
@@ -86,7 +86,13 @@ router.put('/', authMiddleware, async (req: AuthRequest, res) => {
   if (!workDays.every((d: unknown) => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6)) {
     res.status(400).json({ error: 'workDays must contain integers 0-6' }); return
   }
-  const slotsResult = validateGarageSlots(timeSlots)
+  // Old app versions (pre per-slot-capacity) send timeSlots as plain label strings
+  // with a separate maxPerDay — convert that shape into {label, capacity} before
+  // validating, so those clients keep working until they update.
+  const normalizedTimeSlots = Array.isArray(timeSlots) && timeSlots.every((s: unknown) => typeof s === 'string')
+    ? parseGarageSlots(JSON.stringify(timeSlots), isValidNumber(requestedMaxPerDay, { min: 1, max: 200 }) ? requestedMaxPerDay : 5)
+    : timeSlots
+  const slotsResult = validateGarageSlots(normalizedTimeSlots)
   if (!slotsResult.valid) {
     res.status(400).json({ error: slotsResult.error }); return
   }
@@ -119,13 +125,7 @@ router.get('/:garageId', authMiddleware, async (req: AuthRequest, res) => {
       res.status(403).json({ error: 'Forbidden' }); return
     }
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
-    const maxPerDay = availability?.maxPerDay ?? 5
-    const slots = parseGarageSlots(availability?.timeSlots, maxPerDay)
-    res.json({
-      workDays: availability?.workDays ?? '[1,2,3,4,5]',
-      maxPerDay,
-      timeSlots: JSON.stringify(slots),
-    })
+    res.json(availability || { workDays: '[1,2,3,4,5]', maxPerDay: 5, timeSlots: '["Morning","Afternoon"]' })
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch availability' })
   }
