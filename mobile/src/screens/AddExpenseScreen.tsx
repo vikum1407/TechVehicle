@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -11,6 +10,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -22,12 +22,7 @@ type Props = {
   onBack: () => void
 }
 
-type CategoryIcon =
-  | { lib: 'ion'; name: React.ComponentProps<typeof Ionicons>['name'] }
-  | { lib: 'material'; name: React.ComponentProps<typeof MaterialIcons>['name'] }
-  | { lib: 'mci'; name: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }
-
-const CATEGORIES: { value: string; labelKey: TranslationKey; icon: CategoryIcon; color: string }[] = [
+const CATEGORIES: { value: string; labelKey: TranslationKey; icon: AppIconSpec; color: string }[] = [
   { value: 'Insurance', labelKey: 'expenseCategory.insurance', icon: { lib: 'ion', name: 'shield-checkmark' }, color: '#2f6fed' },
   { value: 'Revenue Licence', labelKey: 'expenseCategory.revenueLicence', icon: { lib: 'ion', name: 'document-text' }, color: '#8b5cf6' },
   { value: 'Emission Test', labelKey: 'expenseCategory.emissionTest', icon: { lib: 'ion', name: 'cloud' }, color: '#06b6d4' },
@@ -38,12 +33,6 @@ const CATEGORIES: { value: string; labelKey: TranslationKey; icon: CategoryIcon;
   { value: 'Washing', labelKey: 'expenseCategory.washing', icon: { lib: 'ion', name: 'water' }, color: '#0ea5e9' },
   { value: 'Other', labelKey: 'expenseCategory.other', icon: { lib: 'ion', name: 'create-outline' }, color: '#6b7280' },
 ]
-
-function CategoryIconView({ icon, color, size }: { icon: CategoryIcon; color: string; size: number }) {
-  if (icon.lib === 'ion') return <Ionicons name={icon.name} size={size} color={color} />
-  if (icon.lib === 'material') return <MaterialIcons name={icon.name} size={size} color={color} />
-  return <MaterialCommunityIcons name={icon.name} size={size} color={color} />
-}
 
 const today = () => {
   const d = new Date()
@@ -181,7 +170,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
             activeOpacity={0.7}
           >
             <View style={styles.categoryIcon}>
-              <CategoryIconView icon={cat.icon} color={category === cat.value ? '#fff' : cat.color} size={24} />
+              <AppIcon icon={cat.icon} color={category === cat.value ? '#fff' : cat.color} size={24} />
             </View>
             <Text style={[styles.categoryLabel, category === cat.value && styles.categoryLabelSelected]}>
               {t(cat.labelKey)}

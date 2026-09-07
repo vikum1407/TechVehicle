@@ -14,7 +14,19 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+
+const MORE_SHEET_ICONS: Record<string, { icon: AppIconSpec; color: string }> = {
+  vehicleTests: { icon: { lib: 'ion', name: 'flask' }, color: '#06b6d4' },
+  knowYourVehicle: { icon: { lib: 'mci', name: 'brain' }, color: '#8b5cf6' },
+  costForecast: { icon: { lib: 'ion', name: 'cash' }, color: '#16a34a' },
+  bookService: { icon: { lib: 'ion', name: 'calendar' }, color: '#2f6fed' },
+  chainService: { icon: { lib: 'mci', name: 'link-variant' }, color: '#64748b' },
+  tripLog: { icon: { lib: 'mci', name: 'rickshaw' }, color: '#f97316' },
+  familyAccess: { icon: { lib: 'ion', name: 'people' }, color: '#6366f1' },
+  sellTransfer: { icon: { lib: 'ion', name: 'swap-horizontal' }, color: '#ec4899' },
+}
 
 type Vehicle = {
   id: string
@@ -1451,46 +1463,46 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onVehicleTests() }}>
-              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧪</Text></View>
+              <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.vehicleTests.icon} color={MORE_SHEET_ICONS.vehicleTests.color} size={22} /></View>
               <Text style={styles.moreSheetItemText}>{t('dashboard.vehicleTests')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onKnowledgeHub() }}>
-              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🧠</Text></View>
+              <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.knowYourVehicle.icon} color={MORE_SHEET_ICONS.knowYourVehicle.color} size={22} /></View>
               <Text style={styles.moreSheetItemText}>{t('dashboard.knowYourVehicle')}</Text>
             </TouchableOpacity>
             {!vehicle.isShared && onCostForecast && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onCostForecast() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.costForecast.icon} color={MORE_SHEET_ICONS.costForecast.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.costForecast')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onBookService() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📅</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.bookService.icon} color={MORE_SHEET_ICONS.bookService.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.bookServiceAppointment')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onChainService() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>⛓</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.chainService.icon} color={MORE_SHEET_ICONS.chainService.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.chainService')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && vehicle.vehicleType === 'three-wheeler' && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onTripLog() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🛵</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.tripLog.icon} color={MORE_SHEET_ICONS.tripLog.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.dailyTripLog')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); setFamilyShareModal(true) }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.familyAccess.icon} color={MORE_SHEET_ICONS.familyAccess.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.familySharedAccess')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && !pendingTransfer && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onSell() }}>
-                <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>🔄</Text></View>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.sellTransfer.icon} color={MORE_SHEET_ICONS.sellTransfer.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.sellTransferVehicle')}</Text>
               </TouchableOpacity>
             )}

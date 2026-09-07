@@ -143,9 +143,45 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
       data.emissionTestExpiry = emissionTestExpiry ? new Date(emissionTestExpiry) : null
       data.lastEmissionReminderSent = null
     }
+
+    // Revenue Licence: renewing (a genuinely different expiry) archives the old
+    // one into revenueLicenceHistory instead of silently overwriting it, so past
+    // renewal dates aren't lost.
     if (revenueLicenceExpiry !== undefined) {
+      const newTime = revenueLicenceExpiry ? new Date(revenueLicenceExpiry).getTime() : null
+      const oldTime = vehicle.revenueLicenceExpiry ? vehicle.revenueLicenceExpiry.getTime() : null
+      if (vehicle.revenueLicenceExpiry && newTime !== oldTime) {
+        const history = Array.isArray(vehicle.revenueLicenceHistory) ? vehicle.revenueLicenceHistory : []
+        data.revenueLicenceHistory = [
+          { expiry: vehicle.revenueLicenceExpiry.toISOString(), replacedAt: new Date().toISOString() },
+          ...history,
+        ].slice(0, 50)
+      }
       data.revenueLicenceExpiry = revenueLicenceExpiry ? new Date(revenueLicenceExpiry) : null
       data.lastLicenceReminderSent = null
+    }
+
+    // Insurance: same idea — archive the current company/policy/expiry before
+    // overwriting, if any of them are actually changing.
+    if (insuranceExpiry !== undefined || insuranceCompany !== undefined || insurancePolicyNo !== undefined) {
+      const hadOldInsurance = !!(vehicle.insuranceExpiry || vehicle.insuranceCompany || vehicle.insurancePolicyNo)
+      const newExpiryTime = insuranceExpiry ? new Date(insuranceExpiry).getTime() : null
+      const oldExpiryTime = vehicle.insuranceExpiry ? vehicle.insuranceExpiry.getTime() : null
+      const newCompany = insuranceCompany !== undefined ? (insuranceCompany?.trim() || null) : vehicle.insuranceCompany
+      const newPolicyNo = insurancePolicyNo !== undefined ? (insurancePolicyNo?.trim() || null) : vehicle.insurancePolicyNo
+      const isChanging = newExpiryTime !== oldExpiryTime || newCompany !== vehicle.insuranceCompany || newPolicyNo !== vehicle.insurancePolicyNo
+      if (hadOldInsurance && isChanging) {
+        const history = Array.isArray(vehicle.insurancePolicyHistory) ? vehicle.insurancePolicyHistory : []
+        data.insurancePolicyHistory = [
+          {
+            company: vehicle.insuranceCompany,
+            policyNo: vehicle.insurancePolicyNo,
+            expiry: vehicle.insuranceExpiry ? vehicle.insuranceExpiry.toISOString() : null,
+            replacedAt: new Date().toISOString(),
+          },
+          ...history,
+        ].slice(0, 50)
+      }
     }
     if (insuranceExpiry !== undefined) {
       data.insuranceExpiry = insuranceExpiry ? new Date(insuranceExpiry) : null

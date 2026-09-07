@@ -40,6 +40,8 @@ model Vehicle {
   insuranceExpiry           DateTime?
   insuranceCompany          String?
   insurancePolicyNo         String?
+  insurancePolicyHistory    Json?
+  revenueLicenceHistory     Json?
   lastEmissionReminderSent  DateTime?
   lastLicenceReminderSent   DateTime?
   lastInsuranceReminderSent DateTime?

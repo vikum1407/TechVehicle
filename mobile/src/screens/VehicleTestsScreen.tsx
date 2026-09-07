@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
@@ -24,7 +24,9 @@ type Props = {
   insuranceExpiry?: string | null
   insuranceCompany?: string | null
   insurancePolicyNo?: string | null
+  insurancePolicyHistory?: { company: string | null; policyNo: string | null; expiry: string | null; replacedAt: string }[] | null
   revenueLicenceExpiry?: string | null
+  revenueLicenceHistory?: { expiry: string | null; replacedAt: string }[] | null
   onBack: () => void
 }
 
@@ -73,12 +75,31 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, revenueLicenceExpiry, onBack }: Props) {
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, insurancePolicyHistory, revenueLicenceExpiry, revenueLicenceHistory, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'emission')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
+
+  // Current insurance/licence, kept as local state seeded from props so a new
+  // "Add New Policy"/"Add New Renewal" save is reflected immediately here.
+  const [curInsurance, setCurInsurance] = useState({
+    company: insuranceCompany ?? null, policyNo: insurancePolicyNo ?? null, expiry: insuranceExpiry ?? null,
+  })
+  const [pastPolicies, setPastPolicies] = useState(insurancePolicyHistory ?? [])
+  const [curLicenceExpiry, setCurLicenceExpiry] = useState(revenueLicenceExpiry ?? null)
+  const [pastLicences, setPastLicences] = useState(revenueLicenceHistory ?? [])
+
+  const [showAddPolicy, setShowAddPolicy] = useState(false)
+  const [newPolicyCompany, setNewPolicyCompany] = useState('')
+  const [newPolicyNo, setNewPolicyNo] = useState('')
+  const [newPolicyExpiry, setNewPolicyExpiry] = useState('')
+  const [savingPolicy, setSavingPolicy] = useState(false)
+
+  const [showAddLicence, setShowAddLicence] = useState(false)
+  const [newLicenceExpiry, setNewLicenceExpiry] = useState('')
+  const [savingLicence, setSavingLicence] = useState(false)
 
   // Emission form
   const [eResult, setEResult] = useState<'Pass' | 'Fail' | ''>('')
@@ -109,6 +130,48 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const colors = useColors()
   const s = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
+
+  const handleAddPolicy = async () => {
+    if (!newPolicyCompany.trim() && !newPolicyNo.trim() && !newPolicyExpiry.trim()) {
+      Alert.alert(t('common.error'), t('vehicleTests.policyDetailsRequired'))
+      return
+    }
+    setSavingPolicy(true)
+    try {
+      const updated = await api.updateVehicleExpiry(token, vehicleId, {
+        insuranceCompany: newPolicyCompany.trim() || null,
+        insurancePolicyNo: newPolicyNo.trim() || null,
+        insuranceExpiry: newPolicyExpiry.trim() || null,
+      })
+      setCurInsurance({ company: updated.insuranceCompany, policyNo: updated.insurancePolicyNo, expiry: updated.insuranceExpiry })
+      setPastPolicies(Array.isArray(updated.insurancePolicyHistory) ? updated.insurancePolicyHistory : [])
+      setShowAddPolicy(false)
+      setNewPolicyCompany(''); setNewPolicyNo(''); setNewPolicyExpiry('')
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message)
+    } finally {
+      setSavingPolicy(false)
+    }
+  }
+
+  const handleAddLicenceRenewal = async () => {
+    if (!newLicenceExpiry.trim()) {
+      Alert.alert(t('common.error'), t('vehicleTests.expiryRequired'))
+      return
+    }
+    setSavingLicence(true)
+    try {
+      const updated = await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: newLicenceExpiry.trim() })
+      setCurLicenceExpiry(updated.revenueLicenceExpiry)
+      setPastLicences(Array.isArray(updated.revenueLicenceHistory) ? updated.revenueLicenceHistory : [])
+      setShowAddLicence(false)
+      setNewLicenceExpiry('')
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message)
+    } finally {
+      setSavingLicence(false)
+    }
+  }
 
   const loadRecords = useCallback(async () => {
     try {
@@ -745,30 +808,55 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           <>
             {/* Pinned current policy card */}
             {(() => {
-              const status = getDocStatus(insuranceExpiry)
-              const hasDetails = insuranceExpiry || insuranceCompany
+              const status = getDocStatus(curInsurance.expiry)
+              const hasDetails = curInsurance.expiry || curInsurance.company
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
                   <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentPolicy')}</Text>
-                  {insuranceCompany ? (
-                    <Text style={[s.docStatusMain, { color: status.color }]}>{insuranceCompany}</Text>
+                  {curInsurance.company ? (
+                    <Text style={[s.docStatusMain, { color: status.color }]}>{curInsurance.company}</Text>
                   ) : null}
-                  {insurancePolicyNo ? (
-                    <Text style={s.docStatusMeta}>{t('vehicleTests.policyNo', { no: insurancePolicyNo })}</Text>
+                  {curInsurance.policyNo ? (
+                    <Text style={s.docStatusMeta}>{t('vehicleTests.policyNo', { no: curInsurance.policyNo })}</Text>
                   ) : null}
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
-                  {insuranceExpiry ? (
+                  {curInsurance.expiry ? (
                     <Text style={s.docStatusDate}>
-                      {t('vehicleTests.expiryDate', { date: new Date(insuranceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
+                      {t('vehicleTests.expiryDate', { date: new Date(curInsurance.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                     </Text>
                   ) : null}
                   {!hasDetails && (
                     <Text style={s.docStatusMeta}>{t('vehicleTests.noInsuranceDetails')}</Text>
                   )}
-                  <Text style={s.docStatusHint}>{t('vehicleTests.tapEditToUpdate')}</Text>
                 </View>
               )
             })()}
+
+            {!isShared && (
+              <TouchableOpacity style={s.addPolicyBtn} onPress={() => setShowAddPolicy(true)}>
+                <Text style={s.addPolicyBtnText}>{t('vehicleTests.addNewPolicy')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {pastPolicies.length > 0 && (
+              <>
+                <Text style={s.historyTitle}>{t('vehicleTests.previousPolicies')}</Text>
+                {pastPolicies.map((p, i) => (
+                  <View key={i} style={[s.histCard, { borderLeftColor: colors.textFaint }]}>
+                    <View style={s.histRow}>
+                      <Text style={s.histLabel}>{p.company || t('vehicleTests.tab.insurance')}</Text>
+                      <Text style={s.histDate}>{t('vehicleTests.replacedOn', { date: fmtDate(p.replacedAt) })}</Text>
+                    </View>
+                    {p.policyNo && <Text style={s.histMeta}>{t('vehicleTests.policyNo', { no: p.policyNo })}</Text>}
+                    {p.expiry && (
+                      <Text style={s.histMeta}>
+                        {t('vehicleTests.expiryDate', { date: new Date(p.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
 
             {insuranceHistory.length > 0 && (
               <>
@@ -793,22 +881,46 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           <>
             {/* Pinned current RL card */}
             {(() => {
-              const status = getDocStatus(revenueLicenceExpiry)
+              const status = getDocStatus(curLicenceExpiry)
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
                   <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentRevenueLicence')}</Text>
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
-                  {revenueLicenceExpiry ? (
+                  {curLicenceExpiry ? (
                     <Text style={s.docStatusDate}>
-                      {t('vehicleTests.expiryDate', { date: new Date(revenueLicenceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
+                      {t('vehicleTests.expiryDate', { date: new Date(curLicenceExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                     </Text>
                   ) : (
                     <Text style={s.docStatusMeta}>{t('vehicleTests.noExpirySaved')}</Text>
                   )}
-                  <Text style={s.docStatusHint}>{t('vehicleTests.tapEditToUpdate')}</Text>
                 </View>
               )
             })()}
+
+            {!isShared && (
+              <TouchableOpacity style={s.addPolicyBtn} onPress={() => setShowAddLicence(true)}>
+                <Text style={s.addPolicyBtnText}>{t('vehicleTests.addNewRenewal')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {pastLicences.length > 0 && (
+              <>
+                <Text style={s.historyTitle}>{t('vehicleTests.previousRenewals')}</Text>
+                {pastLicences.map((l, i) => (
+                  <View key={i} style={[s.histCard, { borderLeftColor: colors.textFaint }]}>
+                    <View style={s.histRow}>
+                      <Text style={s.histLabel}>{t('vehicleTests.tab.revLicence')}</Text>
+                      <Text style={s.histDate}>{t('vehicleTests.replacedOn', { date: fmtDate(l.replacedAt) })}</Text>
+                    </View>
+                    {l.expiry && (
+                      <Text style={s.histMeta}>
+                        {t('vehicleTests.expiryDate', { date: new Date(l.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
 
             {licenceHistory.length > 0 && (
               <>
@@ -831,6 +943,46 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           </>
         ) : null}
       </ScrollView>
+
+      <Modal visible={showAddPolicy} animationType="slide" transparent onRequestClose={() => setShowAddPolicy(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>{t('vehicleTests.addNewPolicy')}</Text>
+            <FormField label={t('vehicleTests.insuranceCompany')} value={newPolicyCompany} onChangeText={setNewPolicyCompany} placeholder="e.g. Union Assurance, AIA, Ceylinco" />
+            <FormField label={t('vehicleTests.policyNumberLabel')} value={newPolicyNo} onChangeText={setNewPolicyNo} placeholder="e.g. POL-2024-001234" />
+            <FormField label={t('vehicleTests.expiryDateLabel')} value={newPolicyExpiry} onChangeText={setNewPolicyExpiry} placeholder="e.g. 2026-08-31" />
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddPolicy(false)}>
+                <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Button title={t('common.save')} onPress={handleAddPolicy} loading={savingPolicy} />
+              </View>
+            </View>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={showAddLicence} animationType="slide" transparent onRequestClose={() => setShowAddLicence(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>{t('vehicleTests.addNewRenewal')}</Text>
+            <FormField label={t('vehicleTests.expiryDateLabel')} value={newLicenceExpiry} onChangeText={setNewLicenceExpiry} placeholder="e.g. 2026-12-31" />
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddLicence(false)}>
+                <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Button title={t('common.save')} onPress={handleAddLicenceRenewal} loading={savingLicence} />
+              </View>
+            </View>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
     </KeyboardAvoidingView>
   )
@@ -941,5 +1093,16 @@ function makeStyles(c: Colors) {
     docStatusDate: { fontSize: 13, color: '#5d4037', marginTop: 2 },
     docStatusMeta: { fontSize: 13, color: '#6d5a52', marginTop: 4, lineHeight: 18 },
     docStatusHint: { fontSize: 11, color: c.textFaint, marginTop: 10 },
+    addPolicyBtn: {
+      borderWidth: 1.5, borderColor: c.primary, borderStyle: 'dashed', borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center', marginBottom: 20,
+    },
+    addPolicyBtnText: { fontSize: 14, color: c.primary, fontWeight: '700' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 },
+    modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 12 },
+    modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, alignItems: 'center' },
+    modalCancelBtn: { paddingVertical: 14, paddingHorizontal: 16 },
+    modalCancelBtnText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
   })
 }

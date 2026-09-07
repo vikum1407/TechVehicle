@@ -85,7 +85,15 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newRecord, setNewRecord] = useState<QuickRecord>(emptyQR())
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('')
   const serviceCategories = useMemo(() => getServiceCategories(vehicle.vehicleType, vehicle.fuelType), [vehicle.vehicleType, vehicle.fuelType])
+  const filteredServiceCategories = useMemo(() => {
+    const q = serviceSearchQuery.trim().toLowerCase()
+    if (!q) return serviceCategories
+    return serviceCategories
+      .map(cat => ({ ...cat, items: cat.items.filter(item => item.toLowerCase().includes(q)) }))
+      .filter(cat => cat.items.length > 0)
+  }, [serviceCategories, serviceSearchQuery])
   const [saving, setSaving] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
@@ -317,7 +325,13 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
             </View>
           )}
 
-          <Modal visible={showCategoryPicker} animationType="slide" transparent={false} onRequestClose={() => setShowCategoryPicker(false)}>
+          <Modal
+            visible={showCategoryPicker}
+            animationType="slide"
+            transparent={false}
+            onRequestClose={() => setShowCategoryPicker(false)}
+            onShow={() => setServiceSearchQuery('')}
+          >
             <View style={styles.pickerContainer}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
@@ -326,8 +340,18 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                 <Text style={styles.pickerTitle}>{t('onboarding.selectService')}</Text>
                 <View style={{ width: 60 }} />
               </View>
-              <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
-                {serviceCategories.map(cat => (
+              <View style={styles.pickerSearchRow}>
+                <TextInput
+                  style={styles.pickerSearchInput}
+                  value={serviceSearchQuery}
+                  onChangeText={setServiceSearchQuery}
+                  placeholder={t('onboarding.searchServices')}
+                  placeholderTextColor="#999"
+                  autoFocus
+                />
+              </View>
+              <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+                {filteredServiceCategories.map(cat => (
                   <View key={cat.title} style={{ marginBottom: 20 }}>
                     <Text style={styles.pickerCategoryTitle}>{cat.title}</Text>
                     {cat.items.map(item => (
@@ -344,6 +368,9 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                     ))}
                   </View>
                 ))}
+                {filteredServiceCategories.length === 0 && (
+                  <Text style={styles.emptyNote}>{t('onboarding.noServicesFound')}</Text>
+                )}
               </ScrollView>
             </View>
           </Modal>
@@ -429,6 +456,12 @@ function makeStyles(c: Colors) {
     },
     pickerCancel: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
     pickerTitle: { fontSize: 16, fontWeight: '800', color: c.text },
+    pickerSearchRow: { paddingHorizontal: 20, paddingTop: 14 },
+    pickerSearchInput: {
+      backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11,
+      fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.borderMid,
+    },
+    emptyNote: { fontSize: 13, color: c.textMuted, textAlign: 'center', marginTop: 24 },
     pickerCategoryTitle: {
       fontSize: 12, fontWeight: '700', color: c.textSub, marginBottom: 8,
       textTransform: 'uppercase', letterSpacing: 0.6,

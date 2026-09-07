@@ -59,6 +59,8 @@ type Vehicle = {
   insuranceExpiry?: string | null
   insuranceCompany?: string | null
   insurancePolicyNo?: string | null
+  insurancePolicyHistory?: { company: string | null; policyNo: string | null; expiry: string | null; replacedAt: string }[] | null
+  revenueLicenceHistory?: { expiry: string | null; replacedAt: string }[] | null
   purchaseDate?: string | null
   ownerCount?: number | null
   vehicleNotes?: string | null
@@ -553,7 +555,9 @@ export default function App() {
           insuranceExpiry={selectedVehicle.insuranceExpiry}
           insuranceCompany={selectedVehicle.insuranceCompany}
           insurancePolicyNo={selectedVehicle.insurancePolicyNo}
+          insurancePolicyHistory={selectedVehicle.insurancePolicyHistory}
           revenueLicenceExpiry={selectedVehicle.revenueLicenceExpiry}
+          revenueLicenceHistory={selectedVehicle.revenueLicenceHistory}
           onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
         />
       )}
