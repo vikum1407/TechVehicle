@@ -9,6 +9,22 @@ const VALID_OVERRIDE_STATUSES = ['open', 'closed', 'holiday']
 const router = express.Router()
 const prisma = new PrismaClient()
 
+// Bookings are stored as a calendar date represented by UTC midnight (e.g.
+// "2026-09-14T00:00:00.000Z" *is* the 14th, not an instant to convert to local
+// time). Building "today" via `new Date(); setHours(0,0,0,0)` then
+// `.toISOString()` instead sets midnight in whatever timezone the Node process
+// happens to be running under, then converts that to UTC — which silently
+// shifts the resulting date string backward by a day on any server not
+// running in UTC (confirmed locally: this dev machine runs GMT+2, which
+// mislabelled a Monday as the previous Sunday in the generated date list).
+// Building every day directly via Date.UTC() keeps the calendar-date string
+// identical to the actual stored booking dates, regardless of server OS
+// timezone.
+function todayUTCMidnight(): Date {
+  const now = new Date()
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+}
+
 // ── Static routes first (before /:garageId to avoid conflicts) ────────────────
 
 // POST /availability/override — garage sets/updates a date override
@@ -172,10 +188,8 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
     const slotCapacity = new Map(garageSlots.map(s => [s.label, s.capacity]))
     const timeSlots: string[] = garageSlots.map(s => s.label)
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const endDate = new Date(today)
-    endDate.setDate(today.getDate() + numDays)
+    const today = todayUTCMidnight()
+    const endDate = new Date(today.getTime() + numDays * 86400000)
     const startStr = today.toISOString().split('T')[0]
     const endStr = endDate.toISOString().split('T')[0]
 
@@ -199,10 +213,9 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
 
     const dates = []
     for (let i = 0; i < numDays; i++) {
-      const d = new Date(today)
-      d.setDate(today.getDate() + i)
+      const d = new Date(today.getTime() + i * 86400000)
       const dateStr = d.toISOString().split('T')[0]
-      const dayOfWeek = d.getDay()
+      const dayOfWeek = d.getUTCDay()
 
       const override = overrideMap.get(dateStr)
       const isWorkDay = workDays.includes(dayOfWeek)
@@ -233,9 +246,9 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
 
       dates.push({
         date: dateStr,
-        dayName: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-        dayNum: d.getDate(),
-        month: d.toLocaleDateString('en-GB', { month: 'short' }),
+        dayName: d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }),
+        dayNum: d.getUTCDate(),
+        month: d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }),
         isWorkDay,
         status: effectiveStatus,
         available: isOpen && totalBooked < effectiveMax,

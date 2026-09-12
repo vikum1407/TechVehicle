@@ -67,6 +67,17 @@ type SharedRecord = {
   cost: number | null
 }
 
+type CounterDateSlot = {
+  date: string
+  dayName: string
+  dayNum: number
+  month: string
+  status: string
+  available: boolean
+  remaining: number
+  slots: { label: string; booked: number; capacity: number; remaining: number; available: boolean }[]
+}
+
 type IncomingShare = {
   id: string
   vehicleId: string
@@ -162,11 +173,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const [counterModal, setCounterModal] = useState<{ bookingId: string } | null>(null)
+  const [counterModal, setCounterModal] = useState<{ bookingId: string; originalDate: string; originalSlot: string | null } | null>(null)
   const [counterDate, setCounterDate] = useState('')
   const [counterSlot, setCounterSlot] = useState('')
   const [counterNote, setCounterNote] = useState('')
   const [submittingCounter, setSubmittingCounter] = useState(false)
+  const [counterDates, setCounterDates] = useState<CounterDateSlot[]>([])
+  const [loadingCounterDates, setLoadingCounterDates] = useState(false)
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null)
   const [bookingNotesMap, setBookingNotesMap] = useState<Record<string, BookingNote[]>>({})
@@ -338,6 +351,21 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         },
       ]
     )
+  }
+
+  const openCounterModal = async (bookingId: string, originalDate: string, originalSlot: string | null) => {
+    setCounterDate(''); setCounterSlot(''); setCounterNote('')
+    setCounterModal({ bookingId, originalDate: originalDate.split('T')[0], originalSlot })
+    if (!garage) return
+    setLoadingCounterDates(true)
+    try {
+      const data = await api.getAvailabilityDates(token, garage.id, 14)
+      setCounterDates(Array.isArray(data.dates) ? data.dates : [])
+    } catch {
+      setCounterDates([])
+    } finally {
+      setLoadingCounterDates(false)
+    }
   }
 
   const handleCounterSubmit = async () => {
@@ -1846,7 +1874,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.counterSuggestBtn}
-                      onPress={(e) => { e.stopPropagation?.(); setCounterDate(''); setCounterSlot(''); setCounterNote(''); setCounterModal({ bookingId: booking.id }) }}
+                      onPress={(e) => { e.stopPropagation?.(); openCounterModal(booking.id, booking.date, bAny.slotLabel ?? null) }}
                     >
                       <Text style={styles.counterSuggestBtnText}>🔄 {t('garage.suggestSlot')}</Text>
                     </TouchableOpacity>
@@ -2576,10 +2604,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
       {/* ── Counter-suggest modal ─────────────────────────────────────── */}
       {counterModal && (() => {
-        const next14 = Array.from({ length: 14 }, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() + i + 1); return d
-        })
-        const slots = (schedSlots.length > 0 ? schedSlots : [{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }]).map(s => s.label)
+        const selectedDateInfo = counterDates.find(d => d.date === counterDate)
+        const slotOptions = selectedDateInfo
+          ? selectedDateInfo.slots
+          : (schedSlots.length > 0 ? schedSlots : [{ label: 'Morning', capacity: 3 }, { label: 'Afternoon', capacity: 2 }])
+              .map(s => ({ label: s.label, booked: 0, capacity: s.capacity, remaining: s.capacity, available: true }))
         return (
           <Modal visible animationType="slide" transparent={false} onRequestClose={() => setCounterModal(null)}>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -2594,41 +2623,63 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
               <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
                 <Text style={styles.counterLabel}>{t('garage.selectNewDate')}</Text>
-                <View style={styles.counterDateGrid}>
-                  {next14.map(d => {
-                    const iso = d.toISOString().split('T')[0]
-                    const isSelected = counterDate === iso
+                {loadingCounterDates ? (
+                  <ActivityIndicator style={{ marginVertical: 20 }} color={colors.primary} />
+                ) : (
+                  <View style={styles.counterDateGrid}>
+                    {counterDates.map(d => {
+                      const isSelected = counterDate === d.date
+                      const isOriginal = counterModal.originalDate === d.date
+                      const disabled = !d.available
+                      return (
+                        <TouchableOpacity
+                          key={d.date}
+                          style={[styles.counterDateCell, isOriginal && styles.counterDateCellOriginal, isSelected && styles.counterDateCellActive, disabled && styles.counterDateCellDisabled]}
+                          onPress={() => { if (!disabled) { setCounterDate(d.date); setCounterSlot('') } }}
+                          disabled={disabled}
+                        >
+                          <Text style={[styles.counterDateDay, isSelected && styles.counterDateDayActive]}>
+                            {d.dayName}
+                          </Text>
+                          <Text style={[styles.counterDateNum, isSelected && styles.counterDateNumActive, disabled && styles.counterDateNumDisabled]}>
+                            {d.dayNum}
+                          </Text>
+                          <Text style={[styles.counterDateMon, isSelected && styles.counterDateMonActive]}>
+                            {d.month}
+                          </Text>
+                          <Text style={[styles.counterDateStatus, disabled ? styles.counterDateStatusFull : styles.counterDateStatusOpen, isSelected && styles.counterDateStatusActive]}>
+                            {d.available
+                              ? t('booking.remainingLeft', { count: d.remaining })
+                              : d.status === 'closed' ? t('booking.closed') : d.status === 'holiday' ? t('booking.holiday') : t('booking.full')}
+                          </Text>
+                          {isOriginal && !isSelected && (
+                            <Text style={styles.counterDateOriginalTag}>{t('garage.requestedDate')}</Text>
+                          )}
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                )}
+
+                <Text style={[styles.counterLabel, { marginTop: 20 }]}>{t('garage.selectTimeSlotOptional')}</Text>
+                <View style={styles.counterSlotRow}>
+                  {slotOptions.map(s => {
+                    const full = !s.available || s.remaining <= 0
+                    const isOriginalSlot = !!counterModal.originalSlot && counterModal.originalSlot === s.label
                     return (
                       <TouchableOpacity
-                        key={iso}
-                        style={[styles.counterDateCell, isSelected && styles.counterDateCellActive]}
-                        onPress={() => setCounterDate(iso)}
+                        key={s.label}
+                        style={[styles.counterSlotChip, isOriginalSlot && styles.counterSlotChipOriginal, counterSlot === s.label && styles.counterSlotChipActive, full && styles.counterSlotChipDisabled]}
+                        onPress={() => { if (!full) setCounterSlot(counterSlot === s.label ? '' : s.label) }}
+                        disabled={full}
                       >
-                        <Text style={[styles.counterDateDay, isSelected && styles.counterDateDayActive]}>
-                          {d.toLocaleDateString('en-GB', { weekday: 'short' })}
-                        </Text>
-                        <Text style={[styles.counterDateNum, isSelected && styles.counterDateNumActive]}>
-                          {d.getDate()}
-                        </Text>
-                        <Text style={[styles.counterDateMon, isSelected && styles.counterDateMonActive]}>
-                          {d.toLocaleDateString('en-GB', { month: 'short' })}
+                        <Text style={[styles.counterSlotChipText, counterSlot === s.label && styles.counterSlotChipTextActive, full && styles.counterSlotChipTextDisabled]}>
+                          {s.label}{selectedDateInfo ? ` · ${full ? t('booking.full') : t('booking.remainingLeft', { count: s.remaining })}` : ''}
+                          {isOriginalSlot && counterSlot !== s.label ? ` (${t('garage.requestedDate')})` : ''}
                         </Text>
                       </TouchableOpacity>
                     )
                   })}
-                </View>
-
-                <Text style={[styles.counterLabel, { marginTop: 20 }]}>{t('garage.selectTimeSlotOptional')}</Text>
-                <View style={styles.counterSlotRow}>
-                  {slots.map(s => (
-                    <TouchableOpacity
-                      key={s}
-                      style={[styles.counterSlotChip, counterSlot === s && styles.counterSlotChipActive]}
-                      onPress={() => setCounterSlot(counterSlot === s ? '' : s)}
-                    >
-                      <Text style={[styles.counterSlotChipText, counterSlot === s && styles.counterSlotChipTextActive]}>{s}</Text>
-                    </TouchableOpacity>
-                  ))}
                 </View>
 
                 <View style={styles.counterNoteWrap}>
@@ -3046,11 +3097,19 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderMid,
     },
     counterDateCellActive: { backgroundColor: c.primary, borderColor: c.primary },
+    counterDateCellDisabled: { opacity: 0.5 },
+    counterDateCellOriginal: { borderColor: c.orange, borderWidth: 2 },
+    counterDateOriginalTag: { fontSize: 8, fontWeight: '700', color: c.orange, marginTop: 2 },
     counterDateDay: { fontSize: 10, color: c.textMuted, fontWeight: '600' },
     counterDateDayActive: { color: 'rgba(255,255,255,0.8)' },
     counterDateNum: { fontSize: 20, fontWeight: '800', color: c.text, marginVertical: 2 },
     counterDateNumActive: { color: '#fff' },
+    counterDateNumDisabled: { color: c.textFaint },
     counterDateMon: { fontSize: 10, color: c.textMuted },
+    counterDateStatus: { fontSize: 9, fontWeight: '700', marginTop: 2 },
+    counterDateStatusOpen: { color: '#2e7d32' },
+    counterDateStatusFull: { color: c.error },
+    counterDateStatusActive: { color: 'rgba(255,255,255,0.9)' },
     counterDateMonActive: { color: 'rgba(255,255,255,0.8)' },
     counterSlotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     counterSlotChip: {
@@ -3058,8 +3117,11 @@ function makeStyles(c: Colors, topInset: number) {
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
     },
     counterSlotChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    counterSlotChipOriginal: { borderColor: c.orange, borderWidth: 2 },
+    counterSlotChipDisabled: { opacity: 0.4 },
     counterSlotChipText: { fontSize: 14, color: c.textSub, fontWeight: '600' },
     counterSlotChipTextActive: { color: '#fff' },
+    counterSlotChipTextDisabled: { color: c.textFaint },
     counterNoteWrap: { marginTop: 20 },
     counterNoteInput: { minHeight: 70, textAlignVertical: 'top' },
     counterSubmitBtn: {
