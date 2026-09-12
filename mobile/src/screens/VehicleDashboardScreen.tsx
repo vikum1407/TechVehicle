@@ -297,6 +297,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       })
       setEditVehicleModal(false)
       onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null, emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null, revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null })
+      loadRecords()
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message || t('dashboard.saveVehicleError'))
     } finally {
@@ -410,6 +411,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     setAccepting(sub.id)
     try {
       await api.acceptSubmission(token, sub.id)
+      if (sub.mileage != null && sub.mileage > vehicle.mileage) {
+        onMileageUpdated(sub.mileage)
+      }
       await loadRecords()
       if (sub.garage) {
         setRatingPrompt({ submissionId: sub.id, garageName: sub.garage.name })
@@ -498,6 +502,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       onMileageUpdated(newMileage)
       setEditingMileage(false)
       setMileageInput('')
+      loadRecords()
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
@@ -798,7 +803,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           ) : (
             <View style={styles.quickActions}>
               <TouchableOpacity style={[styles.quickBtn, styles.quickBtnEmphasis]} onPress={onLogFuel}>
-                <Text style={[styles.quickBtnText, styles.quickBtnTextEmphasis]}>{t('dashboard.logFuel')}</Text>
+                <Text style={[styles.quickBtnText, styles.quickBtnTextEmphasis]}>
+                  {t(vehicle.vehicleType === 'electric' ? 'dashboard.logCharging' : 'dashboard.logFuel')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onAddRecord}>
                 <Text style={styles.quickBtnText}>{t('dashboard.addService')}</Text>
@@ -829,16 +836,16 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sparkCard} onPress={onAnalytics}>
-              <Text style={styles.sparkTitle}>{t('dashboard.fuelEconomy')}</Text>
+              <Text style={styles.sparkTitle}>{t(vehicle.vehicleType === 'electric' ? 'dashboard.energyEconomy' : 'dashboard.fuelEconomy')}</Text>
               <Sparkline data={effValues.length >= 2 ? effValues : mileageValues} color="#34a853" gradId="dashEff" />
               <Text style={styles.sparkValue}>
                 {miniAnalytics?.avgFuelEfficiency != null
                   ? miniAnalytics.avgFuelEfficiency.toFixed(1)
                   : '—'}
-                <Text style={styles.sparkUnit}> km/L</Text>
+                <Text style={styles.sparkUnit}> {vehicle.vehicleType === 'electric' ? 'km/kWh' : 'km/L'}</Text>
               </Text>
               <Text style={[styles.sparkTrend, { color: effTrend.color }]}>
-                {effValues.length >= 2 ? `${effTrend.arrow} ${t(effTrend.labelKey)}` : t('dashboard.logMoreFillups')}
+                {effValues.length >= 2 ? `${effTrend.arrow} ${t(effTrend.labelKey)}` : t(vehicle.vehicleType === 'electric' ? 'dashboard.logMoreCharges' : 'dashboard.logMoreFillups')}
               </Text>
             </TouchableOpacity>
           </View>

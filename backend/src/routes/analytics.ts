@@ -30,15 +30,30 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       prisma.expense.findMany({ where: { vehicleId } }),
     ])
 
-    const serviceCost = serviceRecords.reduce((s, r) => s + (r.cost || 0), 0)
+    // Emission Test / Wheel Alignment / Chain Service records are logged from the
+    // Vehicle Tests screen, not Add Service Record — kept as their own "Vehicle
+    // Tests" category rather than lumped anonymously into Service & Repairs.
+    const isVehicleTestRecord = (description: string) => {
+      const d = description.toLowerCase()
+      return d.includes('emission test') || d.includes('wheel alignment') ||
+        d.includes('chain lubrication') || d.includes('chain & sprocket') || d.includes('chain tension')
+    }
+    const isElectric = vehicle?.vehicleType === 'electric'
+
+    const allServiceCost = serviceRecords.reduce((s, r) => s + (r.cost || 0), 0)
+    const vehicleTestCost = serviceRecords
+      .filter(r => isVehicleTestRecord(r.description))
+      .reduce((s, r) => s + (r.cost || 0), 0)
+    const serviceCost = allServiceCost - vehicleTestCost
     const fuelCost = fuelLogs.reduce((s, l) => s + (l.cost || 0), 0)
     const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0)
-    const totalSpend = serviceCost + fuelCost + expenseTotal
+    const totalSpend = allServiceCost + fuelCost + expenseTotal
 
     const categoryMap: Record<string, number> = {}
     expenses.forEach(e => { categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount })
     if (serviceCost > 0) categoryMap['Service & Repairs'] = serviceCost
-    if (fuelCost > 0) categoryMap['Fuel'] = fuelCost
+    if (vehicleTestCost > 0) categoryMap['Vehicle Tests'] = vehicleTestCost
+    if (fuelCost > 0) categoryMap[isElectric ? 'Charging' : 'Fuel'] = fuelCost
     const expenseBreakdown = Object.entries(categoryMap)
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount)
@@ -49,8 +64,9 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       for (let i = 1; i < fuelLogs.length; i++) {
         const prev = fuelLogs[i - 1]
         const curr = fuelLogs[i]
-        if (curr.litres && curr.litres > 0 && curr.mileage > prev.mileage) {
-          efficiencies.push((curr.mileage - prev.mileage) / curr.litres)
+        const amount = isElectric ? curr.kWh : curr.litres
+        if (amount && amount > 0 && curr.mileage > prev.mileage) {
+          efficiencies.push((curr.mileage - prev.mileage) / amount)
         }
       }
       if (efficiencies.length > 0)
@@ -98,9 +114,10 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     for (let i = 1; i < fuelLogs.length; i++) {
       const prev = fuelLogs[i - 1]
       const curr = fuelLogs[i]
-      if (curr.litres && curr.litres > 0 && curr.mileage > prev.mileage) {
+      const amount = isElectric ? curr.kWh : curr.litres
+      if (amount && amount > 0 && curr.mileage > prev.mileage) {
         efficiencyPoints.push({
-          kmPerL: parseFloat(((curr.mileage - prev.mileage) / curr.litres).toFixed(1)),
+          kmPerL: parseFloat(((curr.mileage - prev.mileage) / amount).toFixed(1)),
           label: new Date(curr.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         })
       }
@@ -232,7 +249,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     }
 
     res.json({
-      totalSpend, serviceCost, fuelCost, expenseTotal,
+      totalSpend, serviceCost, vehicleTestCost, fuelCost, expenseTotal,
       expenseBreakdown, avgFuelEfficiency, costPerKm, monthlySpend,
       mileageTrend, fuelEfficiencyTrend, fuelCostTrend,
       recordCounts: {

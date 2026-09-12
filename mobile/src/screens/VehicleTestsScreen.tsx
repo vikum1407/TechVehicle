@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, KeyboardAvoidingView, Platform, Modal,
@@ -27,6 +27,17 @@ type Props = {
   insurancePolicyHistory?: { company: string | null; policyNo: string | null; expiry: string | null; replacedAt: string }[] | null
   revenueLicenceExpiry?: string | null
   revenueLicenceHistory?: { expiry: string | null; replacedAt: string }[] | null
+  emissionTestExpiry?: string | null
+  onMileageUpdated?: (newMileage: number) => void
+  onInsuranceLicenceUpdated?: (fields: {
+    insuranceExpiry?: string | null
+    insuranceCompany?: string | null
+    insurancePolicyNo?: string | null
+    insurancePolicyHistory?: { company: string | null; policyNo: string | null; expiry: string | null; replacedAt: string }[] | null
+    revenueLicenceExpiry?: string | null
+    revenueLicenceHistory?: { expiry: string | null; replacedAt: string }[] | null
+    emissionTestExpiry?: string | null
+  }) => void
   onBack: () => void
 }
 
@@ -57,15 +68,6 @@ function todayDMY() {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-function parseMMYYYY(s: string): string | null {
-  const parts = s.split('/')
-  if (parts.length !== 2) return null
-  const [m, y] = parts
-  if (!m || !y || y.length !== 4) return null
-  const date = new Date(Number(y), Number(m), 0)
-  return isNaN(date.getTime()) ? null : date.toISOString()
-}
-
 function fmtDate(isoDate: string): string {
   try {
     const d = new Date(isoDate)
@@ -75,12 +77,30 @@ function fmtDate(isoDate: string): string {
   }
 }
 
-export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, insurancePolicyHistory, revenueLicenceExpiry, revenueLicenceHistory, onBack }: Props) {
+// Unlike parseDMY (serviceData.ts), expiry dates are expected to be in the
+// future, so this doesn't reject future dates or cap the year at "this year".
+function parseExpiryDMY(str: string): string | null {
+  const parts = str.trim().split('/')
+  if (parts.length !== 3) return null
+  const [dStr, mStr, yStr] = parts
+  const d = parseInt(dStr, 10), m = parseInt(mStr, 10), y = parseInt(yStr, 10)
+  if (isNaN(d) || isNaN(m) || isNaN(y) || yStr.length !== 4) return null
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null
+  const date = new Date(y, m - 1, d)
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null
+  return date.toISOString()
+}
+
+export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, insurancePolicyHistory, revenueLicenceExpiry, revenueLicenceHistory, emissionTestExpiry, onMileageUpdated, onInsuranceLicenceUpdated, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'emission')
+  const showEmissionTab = vehicleType !== 'electric'
+  const [activeTab, setActiveTab] = useState<Tab>(
+    initialTab && initialTab !== 'emission' ? initialTab : (showEmissionTab ? 'emission' : 'insurance')
+  )
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
+  const scrollRef = useRef<ScrollView>(null)
 
   // Current insurance/licence, kept as local state seeded from props so a new
   // "Add New Policy"/"Add New Renewal" save is reflected immediately here.
@@ -90,15 +110,26 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const [pastPolicies, setPastPolicies] = useState(insurancePolicyHistory ?? [])
   const [curLicenceExpiry, setCurLicenceExpiry] = useState(revenueLicenceExpiry ?? null)
   const [pastLicences, setPastLicences] = useState(revenueLicenceHistory ?? [])
+  const [curEmissionExpiry, setCurEmissionExpiry] = useState(emissionTestExpiry ?? null)
+
+  const [showEditEmissionExpiry, setShowEditEmissionExpiry] = useState(false)
+  const [editEmissionExpiryValue, setEditEmissionExpiryValue] = useState('')
+  const [savingEmissionExpiry, setSavingEmissionExpiry] = useState(false)
 
   const [showAddPolicy, setShowAddPolicy] = useState(false)
+  const [editingCurrentPolicy, setEditingCurrentPolicy] = useState(false)
   const [newPolicyCompany, setNewPolicyCompany] = useState('')
   const [newPolicyNo, setNewPolicyNo] = useState('')
   const [newPolicyExpiry, setNewPolicyExpiry] = useState('')
+  const [newPolicyAmount, setNewPolicyAmount] = useState('')
+  const [newPolicyMileage, setNewPolicyMileage] = useState('')
   const [savingPolicy, setSavingPolicy] = useState(false)
 
   const [showAddLicence, setShowAddLicence] = useState(false)
+  const [editingCurrentLicence, setEditingCurrentLicence] = useState(false)
   const [newLicenceExpiry, setNewLicenceExpiry] = useState('')
+  const [newLicenceAmount, setNewLicenceAmount] = useState('')
+  const [newLicenceMileage, setNewLicenceMileage] = useState('')
   const [savingLicence, setSavingLicence] = useState(false)
 
   // Emission form
@@ -131,22 +162,101 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const s = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
 
+  function daysUntil(dateStr: string | null | undefined): number | null {
+    if (!dateStr) return null
+    return Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
+  }
+
+  const insuranceDaysLeft = daysUntil(curInsurance.expiry)
+  const canAddNewPolicy = insuranceDaysLeft === null || insuranceDaysLeft <= 90
+  const licenceDaysLeft = daysUntil(curLicenceExpiry)
+  const canAddNewLicence = licenceDaysLeft === null || licenceDaysLeft <= 90
+  const emissionDaysLeft = daysUntil(curEmissionExpiry)
+  const canLogNewEmissionTest = emissionDaysLeft === null || emissionDaysLeft <= 90
+
+  const startEditEmissionExpiry = () => {
+    setEditEmissionExpiryValue(curEmissionExpiry ? fmtDate(curEmissionExpiry) : '')
+    setShowEditEmissionExpiry(true)
+  }
+
+  const handleSaveEmissionExpiry = async () => {
+    const expiryISO = editEmissionExpiryValue.trim() ? parseExpiryDMY(editEmissionExpiryValue.trim()) : null
+    if (editEmissionExpiryValue.trim() && !expiryISO) {
+      Alert.alert(t('vehicleTests.invalidExpiry.title'), t('vehicleTests.invalidExpiry.message'))
+      return
+    }
+    setSavingEmissionExpiry(true)
+    try {
+      const updated = await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: expiryISO, skipHistory: true })
+      setCurEmissionExpiry(updated.emissionTestExpiry)
+      onInsuranceLicenceUpdated?.({ emissionTestExpiry: updated.emissionTestExpiry })
+      setShowEditEmissionExpiry(false)
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message)
+    } finally {
+      setSavingEmissionExpiry(false)
+    }
+  }
+
+  const startAddPolicy = () => {
+    setEditingCurrentPolicy(false)
+    setNewPolicyCompany(''); setNewPolicyNo(''); setNewPolicyExpiry(''); setNewPolicyAmount(''); setNewPolicyMileage(String(currentMileage))
+    setShowAddPolicy(true)
+  }
+
+  const startEditCurrentPolicy = () => {
+    setEditingCurrentPolicy(true)
+    setNewPolicyCompany(curInsurance.company ?? '')
+    setNewPolicyNo(curInsurance.policyNo ?? '')
+    setNewPolicyExpiry(curInsurance.expiry ? fmtDate(curInsurance.expiry) : '')
+    setNewPolicyAmount(''); setNewPolicyMileage('')
+    setShowAddPolicy(true)
+  }
+
   const handleAddPolicy = async () => {
     if (!newPolicyCompany.trim() && !newPolicyNo.trim() && !newPolicyExpiry.trim()) {
       Alert.alert(t('common.error'), t('vehicleTests.policyDetailsRequired'))
       return
+    }
+    let expiryISO: string | null = null
+    if (newPolicyExpiry.trim()) {
+      expiryISO = parseExpiryDMY(newPolicyExpiry.trim())
+      if (!expiryISO) { Alert.alert(t('vehicleTests.invalidExpiry.title'), t('vehicleTests.invalidExpiry.message')); return }
     }
     setSavingPolicy(true)
     try {
       const updated = await api.updateVehicleExpiry(token, vehicleId, {
         insuranceCompany: newPolicyCompany.trim() || null,
         insurancePolicyNo: newPolicyNo.trim() || null,
-        insuranceExpiry: newPolicyExpiry.trim() || null,
+        insuranceExpiry: expiryISO,
+        skipHistory: editingCurrentPolicy,
       })
       setCurInsurance({ company: updated.insuranceCompany, policyNo: updated.insurancePolicyNo, expiry: updated.insuranceExpiry })
       setPastPolicies(Array.isArray(updated.insurancePolicyHistory) ? updated.insurancePolicyHistory : [])
+      onInsuranceLicenceUpdated?.({
+        insuranceCompany: updated.insuranceCompany,
+        insurancePolicyNo: updated.insurancePolicyNo,
+        insuranceExpiry: updated.insuranceExpiry,
+        insurancePolicyHistory: updated.insurancePolicyHistory,
+      })
+
+      if (!editingCurrentPolicy) {
+        const mileageNum = newPolicyMileage.trim() ? parseInt(newPolicyMileage) : null
+        if (mileageNum != null && mileageNum > currentMileage) onMileageUpdated?.(mileageNum)
+        if (newPolicyAmount.trim() && parseFloat(newPolicyAmount) > 0) {
+          await api.addExpense(token, vehicleId, {
+            date: new Date().toISOString(),
+            category: 'Insurance',
+            amount: parseFloat(newPolicyAmount),
+            description: newPolicyCompany.trim() || undefined,
+            mileage: mileageNum ?? undefined,
+          })
+          loadRecords()
+        }
+      }
+
       setShowAddPolicy(false)
-      setNewPolicyCompany(''); setNewPolicyNo(''); setNewPolicyExpiry('')
+      setNewPolicyCompany(''); setNewPolicyNo(''); setNewPolicyExpiry(''); setNewPolicyAmount(''); setNewPolicyMileage('')
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
@@ -154,23 +264,96 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
     }
   }
 
+  const handleDeletePastPolicy = (index: number) => {
+    Alert.alert(t('common.delete'), t('vehicleTests.confirmDeletePolicy'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'), style: 'destructive', onPress: async () => {
+          const filtered = pastPolicies.filter((_, i) => i !== index)
+          try {
+            const updated = await api.updateVehicleExpiry(token, vehicleId, { insurancePolicyHistory: filtered })
+            setPastPolicies(Array.isArray(updated.insurancePolicyHistory) ? updated.insurancePolicyHistory : [])
+            onInsuranceLicenceUpdated?.({ insurancePolicyHistory: updated.insurancePolicyHistory })
+          } catch (e: any) {
+            Alert.alert(t('common.error'), e.message)
+          }
+        },
+      },
+    ])
+  }
+
+  const startAddLicence = () => {
+    setEditingCurrentLicence(false)
+    setNewLicenceExpiry(''); setNewLicenceAmount(''); setNewLicenceMileage(String(currentMileage))
+    setShowAddLicence(true)
+  }
+
+  const startEditCurrentLicence = () => {
+    setEditingCurrentLicence(true)
+    setNewLicenceExpiry(curLicenceExpiry ? fmtDate(curLicenceExpiry) : '')
+    setNewLicenceAmount(''); setNewLicenceMileage('')
+    setShowAddLicence(true)
+  }
+
   const handleAddLicenceRenewal = async () => {
     if (!newLicenceExpiry.trim()) {
       Alert.alert(t('common.error'), t('vehicleTests.expiryRequired'))
       return
     }
+    const expiryISO = parseExpiryDMY(newLicenceExpiry.trim())
+    if (!expiryISO) { Alert.alert(t('vehicleTests.invalidExpiry.title'), t('vehicleTests.invalidExpiry.message')); return }
     setSavingLicence(true)
     try {
-      const updated = await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: newLicenceExpiry.trim() })
+      const updated = await api.updateVehicleExpiry(token, vehicleId, {
+        revenueLicenceExpiry: expiryISO,
+        skipHistory: editingCurrentLicence,
+      })
       setCurLicenceExpiry(updated.revenueLicenceExpiry)
       setPastLicences(Array.isArray(updated.revenueLicenceHistory) ? updated.revenueLicenceHistory : [])
+      onInsuranceLicenceUpdated?.({
+        revenueLicenceExpiry: updated.revenueLicenceExpiry,
+        revenueLicenceHistory: updated.revenueLicenceHistory,
+      })
+
+      if (!editingCurrentLicence) {
+        const mileageNum = newLicenceMileage.trim() ? parseInt(newLicenceMileage) : null
+        if (mileageNum != null && mileageNum > currentMileage) onMileageUpdated?.(mileageNum)
+        if (newLicenceAmount.trim() && parseFloat(newLicenceAmount) > 0) {
+          await api.addExpense(token, vehicleId, {
+            date: new Date().toISOString(),
+            category: 'Revenue Licence',
+            amount: parseFloat(newLicenceAmount),
+            mileage: mileageNum ?? undefined,
+          })
+          loadRecords()
+        }
+      }
+
       setShowAddLicence(false)
-      setNewLicenceExpiry('')
+      setNewLicenceExpiry(''); setNewLicenceAmount(''); setNewLicenceMileage('')
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingLicence(false)
     }
+  }
+
+  const handleDeletePastLicence = (index: number) => {
+    Alert.alert(t('common.delete'), t('vehicleTests.confirmDeleteLicence'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'), style: 'destructive', onPress: async () => {
+          const filtered = pastLicences.filter((_, i) => i !== index)
+          try {
+            const updated = await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceHistory: filtered })
+            setPastLicences(Array.isArray(updated.revenueLicenceHistory) ? updated.revenueLicenceHistory : [])
+            onInsuranceLicenceUpdated?.({ revenueLicenceHistory: updated.revenueLicenceHistory })
+          } catch (e: any) {
+            Alert.alert(t('common.error'), e.message)
+          }
+        },
+      },
+    ])
   }
 
   const loadRecords = useCallback(async () => {
@@ -287,13 +470,17 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   })()
 
   const saveEmissionTest = async () => {
+    if (!canLogNewEmissionTest) {
+      Alert.alert(t('vehicleTests.logEmissionTest'), t('vehicleTests.addEmissionLocked', { days: emissionDaysLeft ?? 0 }))
+      return
+    }
     if (!eResult) { Alert.alert(t('logEmissionTest.required.title'), t('logEmissionTest.required.message')); return }
     const isoDate = parseDMY(eDate)
     if (!isoDate) { Alert.alert(t('logEmissionTest.invalidDate.title'), t('logEmissionTest.invalidDate.message')); return }
 
     let nextExpiryISO: string | undefined
     if (eNextExpiry.trim()) {
-      const parsed = parseMMYYYY(eNextExpiry.trim())
+      const parsed = parseExpiryDMY(eNextExpiry.trim())
       if (!parsed) { Alert.alert(t('vehicleTests.invalidExpiry.title'), t('vehicleTests.invalidExpiry.message')); return }
       nextExpiryISO = parsed
     }
@@ -328,14 +515,18 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             nextExpiryDate: nextExpiryISO,
           })
           if (nextExpiryISO) {
-            await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+            const updated = await api.updateVehicleExpiry(token, vehicleId, { emissionTestExpiry: nextExpiryISO })
+            setCurEmissionExpiry(updated.emissionTestExpiry)
+            onInsuranceLicenceUpdated?.({ emissionTestExpiry: updated.emissionTestExpiry })
           }
+          if (mileageNum != null && mileageNum > currentMileage) onMileageUpdated?.(mileageNum)
           Alert.alert(t('logEmissionTest.saved.title'), t('logEmissionTest.saved.message'))
         }
         setEResult(''); setEDate(todayDMY()); setEMileage(String(currentMileage))
         setECo(''); setEHc(''); setECo2(''); setELambda('')
         setEStation(''); setECost(''); setENextExpiry('')
         loadRecords()
+        scrollRef.current?.scrollTo({ y: 0, animated: true })
       } catch (e: any) {
         Alert.alert(t('common.error'), e.message)
       } finally {
@@ -377,10 +568,12 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             cost: aCost ? parseFloat(aCost) : undefined,
             structuredData,
           })
+          if (mileageNum != null && mileageNum > currentMileage) onMileageUpdated?.(mileageNum)
           Alert.alert(t('logEmissionTest.saved.title'), t('vehicleTests.alignmentSaved'))
         }
         setADate(todayDMY()); setAMileage(String(currentMileage)); setAAxle(''); setACost('')
         loadRecords()
+        scrollRef.current?.scrollTo({ y: 0, animated: true })
       } catch (e: any) {
         Alert.alert(t('common.error'), e.message)
       } finally {
@@ -419,9 +612,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           cost: cCost ? parseFloat(cCost) : undefined,
           structuredData: { 'Chain Service': { serviceType: cServiceType } },
         })
+        if (mileageNum != null && mileageNum > currentMileage) onMileageUpdated?.(mileageNum)
         Alert.alert(t('logEmissionTest.saved.title'), t('vehicleTests.recorded', { desc: descMap[cServiceType] }))
         setCServiceType(''); setCDate(todayDMY()); setCMileage(String(currentMileage)); setCCost('')
         loadRecords()
+        scrollRef.current?.scrollTo({ y: 0, animated: true })
       } catch (e: any) {
         Alert.alert(t('common.error'), e.message)
       } finally {
@@ -445,9 +640,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
       <ScreenHeader title={t('vehicleTests.title')} subtitle={vehicleName} onBack={onBack} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabBarContent}>
-        <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 {t('vehicleTests.tab.emission')}</Text>
-        </TouchableOpacity>
+        {showEmissionTab && (
+          <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
+            <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 {t('vehicleTests.tab.emission')}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={[s.tab, activeTab === 'alignment' && s.tabActive]} onPress={() => setActiveTab('alignment')} activeOpacity={0.7}>
           <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 {t('vehicleTests.tab.alignment')}</Text>
         </TouchableOpacity>
@@ -465,10 +662,35 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         </TouchableOpacity>
       </ScrollView>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
 
         {activeTab === 'emission' ? (
           <>
+            {/* Pinned current emission reminder card */}
+            {(() => {
+              const status = getDocStatus(curEmissionExpiry)
+              return (
+                <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
+                  <View style={s.docStatusHeaderRow}>
+                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentEmissionReminder')}</Text>
+                    {!isShared && curEmissionExpiry && (
+                      <TouchableOpacity onPress={startEditEmissionExpiry} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
+                  {curEmissionExpiry ? (
+                    <Text style={s.docStatusDate}>
+                      {t('vehicleTests.expiryDate', { date: new Date(curEmissionExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
+                    </Text>
+                  ) : (
+                    <Text style={s.docStatusMeta}>{t('vehicleTests.noExpirySaved')}</Text>
+                  )}
+                </View>
+              )
+            })()}
+
             {emissionHistory.length > 0 && (() => {
               const last = emissionHistory[0]
               const sd = last.structuredData?.['Emission Test / Carbon Test'] || {}
@@ -548,14 +770,22 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             <View style={s.reminderCard}>
               <Text style={s.reminderTitle}>{t('addExpense.setRenewalReminder')}</Text>
               <Text style={s.reminderSub}>{t('addExpense.reminderSub')}</Text>
-              <FormField
-                label={t('logEmissionTest.nextExpiryDate')} value={eNextExpiry} onChangeText={setENextExpiry}
-                placeholder="e.g. 06/2027" keyboardType="numbers-and-punctuation"
+              <DateField
+                label={t('logEmissionTest.nextExpiryDate')} value={eNextExpiry} onChange={setENextExpiry}
               />
             </View>
 
+            {!canLogNewEmissionTest && (
+              <Text style={s.lockedNote}>{t('vehicleTests.addEmissionLocked', { days: emissionDaysLeft ?? 0 })}</Text>
+            )}
+
             <View style={s.saveBtnWrap}>
-              <Button title={isShared ? t('vehicleTests.submitForApproval') : t('logEmissionTest.saveEmissionTest')} onPress={saveEmissionTest} loading={eSaving} />
+              <Button
+                title={isShared ? t('vehicleTests.submitForApproval') : t('logEmissionTest.saveEmissionTest')}
+                onPress={saveEmissionTest}
+                loading={eSaving}
+                disabled={!canLogNewEmissionTest}
+              />
             </View>
 
             {emissionHistory.length > 1 && (
@@ -812,7 +1042,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const hasDetails = curInsurance.expiry || curInsurance.company
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
-                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentPolicy')}</Text>
+                  <View style={s.docStatusHeaderRow}>
+                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentPolicy')}</Text>
+                    {!isShared && hasDetails && (
+                      <TouchableOpacity onPress={startEditCurrentPolicy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   {curInsurance.company ? (
                     <Text style={[s.docStatusMain, { color: status.color }]}>{curInsurance.company}</Text>
                   ) : null}
@@ -833,8 +1070,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             })()}
 
             {!isShared && (
-              <TouchableOpacity style={s.addPolicyBtn} onPress={() => setShowAddPolicy(true)}>
-                <Text style={s.addPolicyBtnText}>{t('vehicleTests.addNewPolicy')}</Text>
+              <TouchableOpacity
+                style={[s.addPolicyBtn, !canAddNewPolicy && s.addPolicyBtnDisabled]}
+                onPress={canAddNewPolicy ? startAddPolicy : () => Alert.alert(t('vehicleTests.addNewPolicy'), t('vehicleTests.addPolicyLocked', { days: insuranceDaysLeft ?? 0 }))}
+              >
+                <Text style={[s.addPolicyBtnText, !canAddNewPolicy && s.addPolicyBtnTextDisabled]}>{t('vehicleTests.addNewPolicy')}</Text>
               </TouchableOpacity>
             )}
 
@@ -852,6 +1092,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                       <Text style={s.histMeta}>
                         {t('vehicleTests.expiryDate', { date: new Date(p.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                       </Text>
+                    )}
+                    {!isShared && (
+                      <TouchableOpacity style={s.histDeleteBtn} onPress={() => handleDeletePastPolicy(i)}>
+                        <Text style={s.histDeleteBtnText}>{t('common.delete')}</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 ))}
@@ -884,7 +1129,14 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               const status = getDocStatus(curLicenceExpiry)
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
-                  <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentRevenueLicence')}</Text>
+                  <View style={s.docStatusHeaderRow}>
+                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentRevenueLicence')}</Text>
+                    {!isShared && curLicenceExpiry && (
+                      <TouchableOpacity onPress={startEditCurrentLicence} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   <Text style={[s.docStatusLabel, { color: status.color }]}>{status.label}</Text>
                   {curLicenceExpiry ? (
                     <Text style={s.docStatusDate}>
@@ -898,8 +1150,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             })()}
 
             {!isShared && (
-              <TouchableOpacity style={s.addPolicyBtn} onPress={() => setShowAddLicence(true)}>
-                <Text style={s.addPolicyBtnText}>{t('vehicleTests.addNewRenewal')}</Text>
+              <TouchableOpacity
+                style={[s.addPolicyBtn, !canAddNewLicence && s.addPolicyBtnDisabled]}
+                onPress={canAddNewLicence ? startAddLicence : () => Alert.alert(t('vehicleTests.addNewRenewal'), t('vehicleTests.addLicenceLocked', { days: licenceDaysLeft ?? 0 }))}
+              >
+                <Text style={[s.addPolicyBtnText, !canAddNewLicence && s.addPolicyBtnTextDisabled]}>{t('vehicleTests.addNewRenewal')}</Text>
               </TouchableOpacity>
             )}
 
@@ -916,6 +1171,11 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                       <Text style={s.histMeta}>
                         {t('vehicleTests.expiryDate', { date: new Date(l.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                       </Text>
+                    )}
+                    {!isShared && (
+                      <TouchableOpacity style={s.histDeleteBtn} onPress={() => handleDeletePastLicence(i)}>
+                        <Text style={s.histDeleteBtnText}>{t('common.delete')}</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 ))}
@@ -946,41 +1206,86 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
 
       <Modal visible={showAddPolicy} animationType="slide" transparent onRequestClose={() => setShowAddPolicy(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>{t('vehicleTests.addNewPolicy')}</Text>
-            <FormField label={t('vehicleTests.insuranceCompany')} value={newPolicyCompany} onChangeText={setNewPolicyCompany} placeholder="e.g. Union Assurance, AIA, Ceylinco" />
-            <FormField label={t('vehicleTests.policyNumberLabel')} value={newPolicyNo} onChangeText={setNewPolicyNo} placeholder="e.g. POL-2024-001234" />
-            <FormField label={t('vehicleTests.expiryDateLabel')} value={newPolicyExpiry} onChangeText={setNewPolicyExpiry} placeholder="e.g. 2026-08-31" />
-            <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddPolicy(false)}>
-                <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <Button title={t('common.save')} onPress={handleAddPolicy} loading={savingPolicy} />
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowAddPolicy(false)}>
+          <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={s.modalTitle}>{editingCurrentPolicy ? t('common.edit') : t('vehicleTests.addNewPolicy')}</Text>
+              <FormField label={t('vehicleTests.insuranceCompany')} value={newPolicyCompany} onChangeText={setNewPolicyCompany} placeholder="e.g. Union Assurance, AIA, Ceylinco" />
+              <FormField label={t('vehicleTests.policyNumberLabel')} value={newPolicyNo} onChangeText={setNewPolicyNo} placeholder="e.g. POL-2024-001234" />
+              <DateField label={t('vehicleTests.expiryDateLabel')} value={newPolicyExpiry} onChange={setNewPolicyExpiry} />
+              {!editingCurrentPolicy && (
+                <View style={s.row}>
+                  <View style={s.half}>
+                    <FormField label={t('addExpense.amount')} value={newPolicyAmount} onChangeText={setNewPolicyAmount} keyboardType="number-pad" placeholder="e.g. 45000" />
+                  </View>
+                  <View style={s.half}>
+                    <FormField label={t('addExpense.mileage')} value={newPolicyMileage} onChangeText={setNewPolicyMileage} keyboardType="number-pad" placeholder="e.g. 45000" />
+                  </View>
+                </View>
+              )}
+              <View style={s.modalActions}>
+                <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddPolicy(false)}>
+                  <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Button title={t('common.save')} onPress={handleAddPolicy} loading={savingPolicy} />
+                </View>
               </View>
-            </View>
-          </View>
-        </View>
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showAddLicence} animationType="slide" transparent onRequestClose={() => setShowAddLicence(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>{t('vehicleTests.addNewRenewal')}</Text>
-            <FormField label={t('vehicleTests.expiryDateLabel')} value={newLicenceExpiry} onChangeText={setNewLicenceExpiry} placeholder="e.g. 2026-12-31" />
-            <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddLicence(false)}>
-                <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <Button title={t('common.save')} onPress={handleAddLicenceRenewal} loading={savingLicence} />
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowAddLicence(false)}>
+          <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={s.modalTitle}>{editingCurrentLicence ? t('common.edit') : t('vehicleTests.addNewRenewal')}</Text>
+              <DateField label={t('vehicleTests.expiryDateLabel')} value={newLicenceExpiry} onChange={setNewLicenceExpiry} />
+              {!editingCurrentLicence && (
+                <View style={s.row}>
+                  <View style={s.half}>
+                    <FormField label={t('addExpense.amount')} value={newLicenceAmount} onChangeText={setNewLicenceAmount} keyboardType="number-pad" placeholder="e.g. 7500" />
+                  </View>
+                  <View style={s.half}>
+                    <FormField label={t('addExpense.mileage')} value={newLicenceMileage} onChangeText={setNewLicenceMileage} keyboardType="number-pad" placeholder="e.g. 45000" />
+                  </View>
+                </View>
+              )}
+              <View style={s.modalActions}>
+                <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowAddLicence(false)}>
+                  <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Button title={t('common.save')} onPress={handleAddLicenceRenewal} loading={savingLicence} />
+                </View>
               </View>
-            </View>
-          </View>
-        </View>
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={showEditEmissionExpiry} animationType="slide" transparent onRequestClose={() => setShowEditEmissionExpiry(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowEditEmissionExpiry(false)}>
+          <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={s.modalTitle}>{t('common.edit')}</Text>
+              <DateField label={t('vehicleTests.expiryDateLabel')} value={editEmissionExpiryValue} onChange={setEditEmissionExpiryValue} />
+              <View style={s.modalActions}>
+                <TouchableOpacity style={s.modalCancelBtn} onPress={() => setShowEditEmissionExpiry(false)}>
+                  <Text style={s.modalCancelBtnText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Button title={t('common.save')} onPress={handleSaveEmissionExpiry} loading={savingEmissionExpiry} />
+                </View>
+              </View>
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -1010,7 +1315,7 @@ function makeStyles(c: Colors) {
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
 
-    chipRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
+    chipRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
     chip: {
       paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
       borderWidth: 1.5, borderColor: c.borderMid, backgroundColor: c.surface,
@@ -1043,6 +1348,8 @@ function makeStyles(c: Colors) {
     histMeta: { fontSize: 12, color: c.textMuted },
     histReadings: { fontSize: 12, color: c.textSub, marginTop: 2 },
     histCost: { fontSize: 12, color: c.primary, fontWeight: '600', marginTop: 4 },
+    histDeleteBtn: { alignSelf: 'flex-start', marginTop: 8 },
+    histDeleteBtnText: { fontSize: 12, color: c.error, fontWeight: '700' },
 
     predCard: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16,
@@ -1087,6 +1394,8 @@ function makeStyles(c: Colors) {
       borderLeftWidth: 4, elevation: 2,
       shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
     },
+    docStatusHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    docStatusEditLink: { fontSize: 12, fontWeight: '700', color: c.primary },
     docStatusPin: { fontSize: 11, fontWeight: '700', marginBottom: 6 },
     docStatusMain: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
     docStatusLabel: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
@@ -1098,8 +1407,14 @@ function makeStyles(c: Colors) {
       paddingVertical: 14, alignItems: 'center', marginBottom: 20,
     },
     addPolicyBtnText: { fontSize: 14, color: c.primary, fontWeight: '700' },
+    addPolicyBtnDisabled: { borderColor: c.borderMid, backgroundColor: c.surface },
+    addPolicyBtnTextDisabled: { color: c.textMuted },
+    lockedNote: {
+      fontSize: 12.5, color: c.textMuted, textAlign: 'center', marginBottom: 12,
+      paddingVertical: 10, paddingHorizontal: 12, backgroundColor: c.surface, borderRadius: 10,
+    },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-    modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 },
+    modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32, maxHeight: '85%' },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 12 },
     modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, alignItems: 'center' },
     modalCancelBtn: { paddingVertical: 14, paddingHorizontal: 16 },

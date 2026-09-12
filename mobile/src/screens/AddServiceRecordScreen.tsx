@@ -25,7 +25,7 @@ type Props = {
   vehicleType?: string | null
   fuelType?: string | null
   currentMileage: number
-  onRecordAdded: () => void
+  onRecordAdded: (newMileage?: number) => void
   onBack: () => void
 }
 
@@ -79,7 +79,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const [customBrands, setCustomBrands] = useState<Record<string, string>>({})
   const [structuredData, setStructuredData] = useState<Record<string, Record<string, string>>>({})
   const [date, setDate] = useState(todayDMY())
-  const [mileage, setMileage] = useState('')
+  const [mileage, setMileage] = useState(String(currentMileage))
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -154,7 +154,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   }
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
-    if (photos.length >= 5) {
+    const remaining = 5 - photos.length
+    if (remaining <= 0) {
       Alert.alert(t('addService.limitReached.title'), t('addService.limitReached.message'))
       return
     }
@@ -172,19 +173,24 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
 
     const result = source === 'camera'
       ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remaining })
 
-    if (result.canceled || !result.assets[0]) return
+    if (result.canceled || result.assets.length === 0) return
 
     setUploadingPhoto(true)
+    let added = 0
     try {
-      const compressed = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      )
-      const url = await api.uploadPhoto(token, compressed.uri)
-      setPhotos(prev => [...prev, url])
+      for (const asset of result.assets.slice(0, remaining)) {
+        if (photos.length + added >= 5) break
+        const compressed = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        )
+        const url = await api.uploadPhoto(token, compressed.uri)
+        setPhotos(prev => prev.length >= 5 ? prev : [...prev, url])
+        added++
+      }
     } catch (e: any) {
       Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
     } finally {
@@ -262,7 +268,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
           photos: photos.length > 0 ? photos : undefined,
           structuredData: hasStructured ? filteredStructured : undefined,
         })
-        onRecordAdded()
+        onRecordAdded(mileageNum > currentMileage ? mileageNum : undefined)
       } catch (error: any) {
         Alert.alert(t('common.error'), error.message)
       } finally {
@@ -488,7 +494,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
           </View>
         ))}
         {photos.length < 5 && (
-          <View style={styles.photoActions}>
+          <View style={styles.photoActionsFull}>
             <TouchableOpacity
               style={styles.photoBtn}
               onPress={() => pickPhoto('camera')}
@@ -623,7 +629,7 @@ function makeStyles(c: Colors) {
       borderWidth: 1.5, borderColor: c.accent + '88',
     },
     recentLabel: { fontSize: 12, fontWeight: '700', color: c.accent, marginBottom: 10, letterSpacing: 0.4 },
-    photoActions: { flexDirection: 'row', gap: 8 },
+    photoActionsFull: { flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 },
     photoBtn: {
       flex: 1, paddingVertical: 10, borderRadius: 10,
       borderWidth: 1.5, borderColor: c.primary,

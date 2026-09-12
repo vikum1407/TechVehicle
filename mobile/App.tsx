@@ -487,7 +487,12 @@ export default function App() {
           vehicleType={selectedVehicle.vehicleType}
           fuelType={selectedVehicle.fuelType}
           currentMileage={selectedVehicle.mileage}
-          onRecordAdded={() => setScreen(addServiceReturnTo)}
+          onRecordAdded={(newMileage) => {
+            if (newMileage != null && newMileage > (selectedVehicle?.mileage ?? 0)) {
+              setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
+            }
+            setScreen(addServiceReturnTo)
+          }}
           onBack={() => setScreen(addServiceReturnTo)}
         />
       )}
@@ -496,6 +501,7 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           currentMileage={selectedVehicle.mileage}
+          vehicleType={selectedVehicle.vehicleType}
           onLogged={(newMileage) => {
               if (newMileage > (selectedVehicle?.mileage ?? 0)) {
                 setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
@@ -558,6 +564,9 @@ export default function App() {
           insurancePolicyHistory={selectedVehicle.insurancePolicyHistory}
           revenueLicenceExpiry={selectedVehicle.revenueLicenceExpiry}
           revenueLicenceHistory={selectedVehicle.revenueLicenceHistory}
+          emissionTestExpiry={selectedVehicle.emissionTestExpiry}
+          onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
+          onInsuranceLicenceUpdated={(fields) => setSelectedVehicle(prev => prev ? { ...prev, ...fields } : prev)}
           onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
         />
       )}
@@ -573,6 +582,7 @@ export default function App() {
         <AnalyticsScreen
           token={token}
           vehicleId={selectedVehicle.id}
+          vehicleType={selectedVehicle.vehicleType}
           onBack={() => setScreen('vehicleDashboard')}
           onKnowledgeHub={() => { setKnowledgeHubReturnTo('analytics'); setScreen('knowledgeHub') }}
         />
@@ -611,7 +621,12 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           currentMileage={selectedVehicle.mileage}
-          onExpenseAdded={() => setScreen('vehicleDashboard')}
+          onExpenseAdded={(newMileage) => {
+            if (newMileage != null && newMileage > (selectedVehicle?.mileage ?? 0)) {
+              setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
+            }
+            setScreen('vehicleDashboard')
+          }}
           onBack={() => setScreen('vehicleDashboard')}
         />
       )}

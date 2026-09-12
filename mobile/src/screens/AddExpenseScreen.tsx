@@ -18,21 +18,20 @@ type Props = {
   token: string
   vehicleId: string
   currentMileage: number
-  onExpenseAdded: () => void
+  onExpenseAdded: (newMileage?: number) => void
   onBack: () => void
 }
 
-const CATEGORIES: { value: string; labelKey: TranslationKey; icon: AppIconSpec; color: string }[] = [
-  { value: 'Insurance', labelKey: 'expenseCategory.insurance', icon: { lib: 'ion', name: 'shield-checkmark' }, color: '#2f6fed' },
-  { value: 'Revenue Licence', labelKey: 'expenseCategory.revenueLicence', icon: { lib: 'ion', name: 'document-text' }, color: '#8b5cf6' },
-  { value: 'Emission Test', labelKey: 'expenseCategory.emissionTest', icon: { lib: 'ion', name: 'cloud' }, color: '#06b6d4' },
-  { value: 'Fine / Penalty', labelKey: 'expenseCategory.fine', icon: { lib: 'ion', name: 'warning' }, color: '#ef4444' },
-  { value: 'Parking', labelKey: 'expenseCategory.parking', icon: { lib: 'material', name: 'local-parking' }, color: '#6366f1' },
-  { value: 'Toll', labelKey: 'expenseCategory.toll', icon: { lib: 'mci', name: 'highway' }, color: '#f97316' },
-  { value: 'Accessories', labelKey: 'expenseCategory.accessories', icon: { lib: 'ion', name: 'build' }, color: '#64748b' },
-  { value: 'Washing', labelKey: 'expenseCategory.washing', icon: { lib: 'ion', name: 'water' }, color: '#0ea5e9' },
-  { value: 'Other', labelKey: 'expenseCategory.other', icon: { lib: 'ion', name: 'create-outline' }, color: '#6b7280' },
+const CATEGORIES: { value: string; labelKey: TranslationKey; icon: AppIconSpec; color: string; descPlaceholder: string }[] = [
+  { value: 'Fine / Penalty', labelKey: 'expenseCategory.fine', icon: { lib: 'ion', name: 'warning' }, color: '#ef4444', descPlaceholder: 'e.g. Speeding fine' },
+  { value: 'Parking', labelKey: 'expenseCategory.parking', icon: { lib: 'material', name: 'local-parking' }, color: '#6366f1', descPlaceholder: 'e.g. Mall parking' },
+  { value: 'Toll', labelKey: 'expenseCategory.toll', icon: { lib: 'mci', name: 'highway' }, color: '#f97316', descPlaceholder: 'e.g. Southern Expressway toll' },
+  { value: 'Accessories', labelKey: 'expenseCategory.accessories', icon: { lib: 'ion', name: 'build' }, color: '#64748b', descPlaceholder: 'e.g. Seat covers' },
+  { value: 'Washing', labelKey: 'expenseCategory.washing', icon: { lib: 'ion', name: 'water' }, color: '#0ea5e9', descPlaceholder: 'e.g. Full wash and wax' },
+  { value: 'Other', labelKey: 'expenseCategory.other', icon: { lib: 'ion', name: 'create-outline' }, color: '#6b7280', descPlaceholder: 'e.g. Roadside assistance' },
 ]
+
+const DEFAULT_DESC_PLACEHOLDER = 'e.g. Speeding fine'
 
 const today = () => {
   const d = new Date()
@@ -48,28 +47,13 @@ const parseDate = (str: string): string | null => {
   return parsed.toISOString()
 }
 
-// Parse MM/YYYY into last day of that month ISO string
-function parseMMYYYY(s: string): string | null {
-  const parts = s.split('/')
-  if (parts.length !== 2) return null
-  const [m, y] = parts
-  if (!m || !y || y.length !== 4) return null
-  const date = new Date(Number(y), Number(m), 0) // last day of month
-  return isNaN(date.getTime()) ? null : date.toISOString()
-}
-
-const RENEWAL_CATEGORIES = new Set(['Revenue Licence', 'Insurance'])
-
 export default function AddExpenseScreen({ token, vehicleId, currentMileage, onExpenseAdded, onBack }: Props) {
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(today())
-  const [mileage, setMileage] = useState('')
+  const [mileage, setMileage] = useState(String(currentMileage))
   const [notes, setNotes] = useState('')
-  const [renewalExpiry, setRenewalExpiry] = useState('')
-  const [insuranceCompany, setInsuranceCompany] = useState('')
-  const [insurancePolicyNo, setInsurancePolicyNo] = useState('')
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
@@ -87,10 +71,6 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
     const isoDate = parseDate(date)
     if (!isoDate) {
       Alert.alert(t('addExpense.invalidDate.title'), t('addExpense.invalidDate.message'))
-      return
-    }
-    if (renewalExpiry.trim() && !parseMMYYYY(renewalExpiry.trim())) {
-      Alert.alert(t('addExpense.invalidExpiry.title'), t('addExpense.invalidExpiry.message'))
       return
     }
 
@@ -116,7 +96,6 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
 
   const saveExpense = async (updateVehicleMileage: boolean) => {
     const isoDate = parseDate(date)!
-    const renewalExpiryISO = renewalExpiry.trim() ? parseMMYYYY(renewalExpiry.trim()) : null
     const mileageNum = mileage ? parseInt(mileage) : null
 
     setLoading(true)
@@ -134,18 +113,10 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
         await api.updateMileage(token, vehicleId, mileageNum)
       }
 
-      if (renewalExpiryISO && category === 'Revenue Licence') {
-        await api.updateVehicleExpiry(token, vehicleId, { revenueLicenceExpiry: renewalExpiryISO })
-      }
-      if (renewalExpiryISO && category === 'Insurance') {
-        await api.updateVehicleExpiry(token, vehicleId, {
-          insuranceExpiry: renewalExpiryISO,
-          insuranceCompany: insuranceCompany.trim() || null,
-          insurancePolicyNo: insurancePolicyNo.trim() || null,
-        })
-      }
-
-      onExpenseAdded()
+      const newMileage = updateVehicleMileage && mileageNum != null ? mileageNum : undefined
+      setCategory(''); setAmount(''); setDescription(''); setDate(today())
+      setMileage(String(newMileage ?? currentMileage)); setNotes('')
+      onExpenseAdded(newMileage)
     } catch (error: any) {
       Alert.alert(t('common.error'), error.message)
     } finally {
@@ -192,7 +163,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
         label={t('addExpense.description')}
         value={description}
         onChangeText={setDescription}
-        placeholder="e.g. Annual insurance renewal — Union Assurance"
+        placeholder={CATEGORIES.find(c => c.value === category)?.descPlaceholder ?? DEFAULT_DESC_PLACEHOLDER}
       />
 
       <View style={styles.row}>
@@ -220,48 +191,6 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
         numberOfLines={2}
       />
 
-      {/* Renewal reminder — shown for Revenue Licence */}
-      {category === 'Revenue Licence' && (
-        <View style={styles.reminderCard}>
-          <Text style={styles.reminderTitle}>{t('addExpense.setRenewalReminder')}</Text>
-          <Text style={styles.reminderSub}>{t('addExpense.reminderSub')}</Text>
-          <FormField
-            label={t('addExpense.nextRenewalDate')}
-            value={renewalExpiry}
-            onChangeText={setRenewalExpiry}
-            placeholder="e.g. 06/2026"
-            keyboardType="numbers-and-punctuation"
-          />
-        </View>
-      )}
-
-      {/* Insurance details — shown for Insurance */}
-      {category === 'Insurance' && (
-        <View style={styles.reminderCard}>
-          <Text style={styles.reminderTitle}>{t('addExpense.insuranceDetails')}</Text>
-          <Text style={styles.reminderSub}>{t('addExpense.reminderSub')}</Text>
-          <FormField
-            label={t('addExpense.policyExpiryDate')}
-            value={renewalExpiry}
-            onChangeText={setRenewalExpiry}
-            placeholder="e.g. 12/2026"
-            keyboardType="numbers-and-punctuation"
-          />
-          <FormField
-            label={t('addExpense.insuranceCompany')}
-            value={insuranceCompany}
-            onChangeText={setInsuranceCompany}
-            placeholder="e.g. Union Assurance, AIA, Ceylinco"
-          />
-          <FormField
-            label={t('addExpense.policyNumber')}
-            value={insurancePolicyNo}
-            onChangeText={setInsurancePolicyNo}
-            placeholder="e.g. UA-2024-0012345"
-          />
-        </View>
-      )}
-
       <Button title={t('addExpense.saveExpense')} onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
@@ -288,11 +217,5 @@ function makeStyles(c: Colors) {
     multiline: { height: 80, textAlignVertical: 'top' },
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
-    reminderCard: {
-      backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
-      marginTop: 20, marginBottom: 20, borderWidth: 1, borderColor: c.primaryTintText + '44',
-    },
-    reminderTitle: { fontSize: 15, fontWeight: '700', color: c.primaryTintText, marginBottom: 4 },
-    reminderSub: { fontSize: 12, color: c.textSub, marginBottom: 4 },
   })
 }

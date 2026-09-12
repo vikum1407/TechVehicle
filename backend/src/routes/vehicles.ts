@@ -119,10 +119,43 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 })
 
+// A genuine renewal (not a skipHistory correction) is rejected while the current
+// expiry still has more than 3 months left — enforced here (not just in the mobile
+// UI) so every entry point (Vehicle Tests' "+ Add New", Add Expense's renewal
+// fields, etc.) is subject to the same rule.
+const RENEWAL_LOCK_DAYS = 90
+function renewalLockError(current: Date | null, label: string): string | null {
+  if (!current) return null
+  const daysLeft = Math.floor((current.getTime() - Date.now()) / 86400000)
+  if (daysLeft > RENEWAL_LOCK_DAYS) {
+    return `Current ${label} is still valid for ${daysLeft} days — you can renew within 3 months of expiry.`
+  }
+  return null
+}
+
 // PATCH /vehicles/:id/expiry — update emission test, revenue licence, or insurance expiry dates
 router.patch('/:id/expiry', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
-  const { emissionTestExpiry, revenueLicenceExpiry, insuranceExpiry, insuranceCompany, insurancePolicyNo } = req.body
+  const {
+    emissionTestExpiry, revenueLicenceExpiry, insuranceExpiry, insuranceCompany, insurancePolicyNo,
+    skipHistory, insurancePolicyHistory, revenueLicenceHistory,
+  } = req.body
+  if (insurancePolicyHistory !== undefined) {
+    if (!Array.isArray(insurancePolicyHistory) || insurancePolicyHistory.length > 50) {
+      res.status(400).json({ error: 'insurancePolicyHistory must be an array of at most 50 items' }); return
+    }
+    if (!insurancePolicyHistory.every((item: unknown) => typeof item === 'object' && item !== null && JSON.stringify(item).length <= 500)) {
+      res.status(400).json({ error: 'Each insurance history item must be an object under 500 characters' }); return
+    }
+  }
+  if (revenueLicenceHistory !== undefined) {
+    if (!Array.isArray(revenueLicenceHistory) || revenueLicenceHistory.length > 50) {
+      res.status(400).json({ error: 'revenueLicenceHistory must be an array of at most 50 items' }); return
+    }
+    if (!revenueLicenceHistory.every((item: unknown) => typeof item === 'object' && item !== null && JSON.stringify(item).length <= 500)) {
+      res.status(400).json({ error: 'Each revenue licence history item must be an object under 500 characters' }); return
+    }
+  }
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id, ownerPhone: req.phoneNumber! },
@@ -138,6 +171,20 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     if (insuranceExpiry && !isValidDateInput(insuranceExpiry, { allowFuture: true })) {
       res.status(400).json({ error: 'Invalid insurance expiry date' }); return
     }
+
+    if (emissionTestExpiry !== undefined && !skipHistory) {
+      const lockError = renewalLockError(vehicle.emissionTestExpiry, 'emission test result')
+      if (lockError) { res.status(400).json({ error: lockError }); return }
+    }
+    if (revenueLicenceExpiry !== undefined && !skipHistory) {
+      const lockError = renewalLockError(vehicle.revenueLicenceExpiry, 'revenue licence')
+      if (lockError) { res.status(400).json({ error: lockError }); return }
+    }
+    if ((insuranceExpiry !== undefined || insuranceCompany !== undefined || insurancePolicyNo !== undefined) && !skipHistory) {
+      const lockError = renewalLockError(vehicle.insuranceExpiry, 'insurance policy')
+      if (lockError) { res.status(400).json({ error: lockError }); return }
+    }
+
     const data: Record<string, any> = {}
     if (emissionTestExpiry !== undefined) {
       data.emissionTestExpiry = emissionTestExpiry ? new Date(emissionTestExpiry) : null
@@ -146,11 +193,12 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
 
     // Revenue Licence: renewing (a genuinely different expiry) archives the old
     // one into revenueLicenceHistory instead of silently overwriting it, so past
-    // renewal dates aren't lost.
+    // renewal dates aren't lost. skipHistory lets a correction to the current
+    // entry (e.g. fixing a typo) bypass this, since that's not a real renewal.
     if (revenueLicenceExpiry !== undefined) {
       const newTime = revenueLicenceExpiry ? new Date(revenueLicenceExpiry).getTime() : null
       const oldTime = vehicle.revenueLicenceExpiry ? vehicle.revenueLicenceExpiry.getTime() : null
-      if (vehicle.revenueLicenceExpiry && newTime !== oldTime) {
+      if (!skipHistory && vehicle.revenueLicenceExpiry && newTime !== oldTime) {
         const history = Array.isArray(vehicle.revenueLicenceHistory) ? vehicle.revenueLicenceHistory : []
         data.revenueLicenceHistory = [
           { expiry: vehicle.revenueLicenceExpiry.toISOString(), replacedAt: new Date().toISOString() },
@@ -162,7 +210,7 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     }
 
     // Insurance: same idea — archive the current company/policy/expiry before
-    // overwriting, if any of them are actually changing.
+    // overwriting, if any of them are actually changing (unless skipHistory).
     if (insuranceExpiry !== undefined || insuranceCompany !== undefined || insurancePolicyNo !== undefined) {
       const hadOldInsurance = !!(vehicle.insuranceExpiry || vehicle.insuranceCompany || vehicle.insurancePolicyNo)
       const newExpiryTime = insuranceExpiry ? new Date(insuranceExpiry).getTime() : null
@@ -170,7 +218,7 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
       const newCompany = insuranceCompany !== undefined ? (insuranceCompany?.trim() || null) : vehicle.insuranceCompany
       const newPolicyNo = insurancePolicyNo !== undefined ? (insurancePolicyNo?.trim() || null) : vehicle.insurancePolicyNo
       const isChanging = newExpiryTime !== oldExpiryTime || newCompany !== vehicle.insuranceCompany || newPolicyNo !== vehicle.insurancePolicyNo
-      if (hadOldInsurance && isChanging) {
+      if (!skipHistory && hadOldInsurance && isChanging) {
         const history = Array.isArray(vehicle.insurancePolicyHistory) ? vehicle.insurancePolicyHistory : []
         data.insurancePolicyHistory = [
           {
@@ -189,6 +237,11 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     }
     if (insuranceCompany !== undefined) data.insuranceCompany = insuranceCompany?.trim() ? capText(insuranceCompany.trim(), SHORT_TEXT_LEN) : null
     if (insurancePolicyNo !== undefined) data.insurancePolicyNo = insurancePolicyNo?.trim() ? capText(insurancePolicyNo.trim(), SHORT_TEXT_LEN) : null
+
+    // Direct history array replacement — used when deleting a single past
+    // policy/renewal entry (the client sends back the array minus that entry).
+    if (insurancePolicyHistory !== undefined) data.insurancePolicyHistory = insurancePolicyHistory
+    if (revenueLicenceHistory !== undefined) data.revenueLicenceHistory = revenueLicenceHistory
 
     const updated = await prisma.vehicle.update({ where: { id }, data })
     res.json(updated)
