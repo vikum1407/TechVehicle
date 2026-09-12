@@ -2,6 +2,25 @@
 
 ---
 
+## ⚠️ HIGH PRIORITY — Analytics & Predictions Redesign (planned, not built)
+
+**Discussed and scoped 2026-09-11/12, deliberately deferred past the 2026-09-12 release — this is the first substantive task to pick up once release logistics are done.**
+
+**Trigger:** Vikum found the Analytics "Spending by Category" breakdown confusing while testing — "Vehicle Tests" (Emission Test/Wheel Alignment/Chain Service costs) overlapped with the separate "Emission Test" Add Expense category, since the same real-world cost could be logged and counted under two different labels.
+
+**Finalized category list (agreed, not yet implemented):**
+- **Service & Repairs** — Oil, Brakes, Suspension, AC, Electrical, Body, General, Tyres, Wheel Alignment, Chain Service (all mileage-driven mechanical maintenance)
+- **Legal & Compliance** (renamed from "Vehicle Tests") — Insurance, Revenue Licence, Emission Test (all three are date-driven renewals, matching the Renewal Reminder system's exact three fields — `emissionTestExpiry`, `revenueLicenceExpiry`, `insuranceExpiry`)
+- Fuel/Charging, Accessories, Fine/Penalty, Parking, Toll, Washing, Other — unchanged
+
+**Bigger finding:** Analytics (`analytics.ts`), Predictions (`predictionEngine.ts` + `serviceIntervals.ts`), and the existing Cost Forecast endpoint (`/predictions/:vehicleId/cost-forecast`) each independently guess "what kind of record is this" from the same `ServiceRecord.description` text, with **no shared classification source of truth**. This is exactly what caused the Emission Test double-counting, and will keep recurring. Before rebuilding Analytics, design one shared classifier (mileage-driven vs. date-driven, category) that all three consume.
+
+**Vikum's stated vision for the rebuild:** Analytics-driven predictions should be genuinely useful in practice — for vehicle owners deciding if their vehicle is trip-ready for a long journey, and for garage owners actually running their business (not just a Revenue/Customers tab — a real analytics page, which doesn't exist yet on the garage side at all). He wants the owner Analytics page to be "the best and eye-catching" screen in the app, not just a functional list.
+
+**Scope, once picked up:** (1) the shared classifier, (2) redesigned owner Analytics using it, (3) a new garage-side Analytics page. Don't just patch the category-overlap bug in isolation — Vikum explicitly stopped mid-session twice to ask for this to be planned properly first.
+
+---
+
 ## ⚠️ HIGH PRIORITY — Infrastructure Upgrade Needed Before Scale
 
 **Current database (Neon free tier) has only 7-day backup window and no off-platform backup.**
