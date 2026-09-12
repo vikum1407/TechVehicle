@@ -304,6 +304,12 @@ router.get('/:id/progress', async (req: AuthRequest, res) => {
       prisma.serviceRecord.count({ where: { vehicleId: id } }),
       prisma.fuelLog.count({ where: { vehicleId: id } }),
     ])
+    // A service item confirmed "Not Yet" (vehicle is new, never done) counts
+    // the same as a logged record here — the owner has accounted for it, they
+    // just have nothing to log. Otherwise a brand-new vehicle gets nagged to
+    // "log past services" that genuinely never happened.
+    const neverDoneCount = Array.isArray(vehicle.neverDoneConfirmed) ? vehicle.neverDoneConfirmed.length : 0
+    const accountedFor = serviceCount + neverDoneCount
 
     const items = [
       {
@@ -315,14 +321,14 @@ router.get('/:id/progress', async (req: AuthRequest, res) => {
       {
         id: 'service1',
         label: 'First service record',
-        done: serviceCount >= 1,
-        hint: 'Log at least one past service',
+        done: accountedFor >= 1,
+        hint: 'Log at least one past service, or confirm it hasn\'t been done yet in Predictions',
       },
       {
         id: 'service3',
         label: '3 service records',
-        done: serviceCount >= 3,
-        hint: `Add ${Math.max(0, 3 - serviceCount)} more service record${3 - serviceCount !== 1 ? 's' : ''} to improve predictions`,
+        done: accountedFor >= 3,
+        hint: `Add or confirm ${Math.max(0, 3 - accountedFor)} more service${3 - accountedFor !== 1 ? 's' : ''} to improve predictions`,
       },
       {
         id: 'fuel',
@@ -423,6 +429,47 @@ router.patch('/:id/overrides', async (req: AuthRequest, res) => {
     res.json({ intervalOverrides: updated.intervalOverrides })
   } catch (error) {
     res.status(500).json({ error: 'Failed to save interval override' })
+  }
+})
+
+// PATCH /vehicles/:id/never-done — confirm one or more service items were
+// genuinely never done (vehicle is new), rather than "unknown/skip". Lets the
+// Prediction Engine compute a real first-due date from the vehicle's purchase
+// date instead of sitting in "no_data" forever, without creating a fake
+// ServiceRecord row.
+router.patch('/:id/never-done', async (req: AuthRequest, res) => {
+  const { id } = req.params as { id: string }
+  const { groups, confirmed } = req.body as { groups?: string[]; confirmed?: boolean }
+  if (!Array.isArray(groups) || groups.length === 0 || groups.length > 50) {
+    res.status(400).json({ error: 'groups must be a non-empty array of at most 50 items' }); return
+  }
+  if (!groups.every(g => typeof g === 'string' && g.length > 0 && g.length <= 100)) {
+    res.status(400).json({ error: 'Each group must be a string under 100 characters' }); return
+  }
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id, ownerPhone: req.phoneNumber! } })
+    if (!vehicle) { res.status(404).json({ error: 'Vehicle not found' }); return }
+
+    const existing = new Set(Array.isArray(vehicle.neverDoneConfirmed) ? vehicle.neverDoneConfirmed as string[] : [])
+    if (confirmed === false) {
+      groups.forEach(g => existing.delete(g))
+    } else {
+      groups.forEach(g => existing.add(g))
+    }
+    // The 50-item cap above only bounds a single request's `groups` — without
+    // this, repeated calls with different small batches could grow the stored
+    // set unbounded over time.
+    if (existing.size > 50) {
+      res.status(400).json({ error: 'A vehicle can have at most 50 confirmed never-done items' }); return
+    }
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: { neverDoneConfirmed: Array.from(existing) },
+    })
+    res.json({ neverDoneConfirmed: updated.neverDoneConfirmed })
+  } catch (error) {
+    console.error('PATCH /vehicles/:id/never-done error:', error)
+    res.status(500).json({ error: 'Failed to save' })
   }
 })
 

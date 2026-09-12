@@ -16,6 +16,7 @@ export type PredictionRow = {
   remainingDays: number | null
   customKmInterval: number | null
   customDaysInterval: number | null
+  confirmedNeverDone?: boolean
 }
 
 export type IntervalOverride = { kmInterval?: number | null; daysInterval?: number | null }
@@ -28,6 +29,9 @@ export type VehicleInput = {
   mileage: number
   vehicleType: string | null
   intervalOverrides?: Record<string, IntervalOverride> | null
+  purchaseDate?: Date | string | null
+  createdAt?: Date | string | null
+  neverDoneConfirmed?: string[] | null
 }
 
 export function passesScope(scope: FuelScope, fuelType: string): boolean {
@@ -95,7 +99,12 @@ function computeTyrePrediction(
     .filter(r => r.description.toLowerCase().includes('tyre change'))
     .sort((a, b) => b.date.getTime() - a.date.getTime())[0] || null
 
-  if (!tyreRecord) {
+  const neverDoneSet = new Set(Array.isArray(vehicle.neverDoneConfirmed) ? vehicle.neverDoneConfirmed : [])
+  const neverDoneBaseline = vehicle.purchaseDate ?? vehicle.createdAt ?? null
+  const neverDoneBaselineDate = neverDoneBaseline ? new Date(neverDoneBaseline) : null
+  const isNeverDoneConfirmed = !tyreRecord && neverDoneBaselineDate && neverDoneSet.has('Tyre Change')
+
+  if (!tyreRecord && !isNeverDoneConfirmed) {
     return {
       id: 'tyre_change', group: 'tyre_change', name: 'Tyre Change',
       keywords: ['Tyre Change'],
@@ -107,8 +116,8 @@ function computeTyrePrediction(
     }
   }
 
-  const lastTyreKm = tyreRecord.mileage
-  const lastTyreDate = tyreRecord.date
+  const lastTyreKm = tyreRecord ? tyreRecord.mileage : 0
+  const lastTyreDate = tyreRecord ? tyreRecord.date : (neverDoneBaselineDate as Date)
 
   const alignmentsSince = records.filter(r =>
     r.description.toLowerCase().includes('wheel alignment') && r.date > lastTyreDate
@@ -141,9 +150,10 @@ function computeTyrePrediction(
     keywords: ['Tyre Change'],
     source: freqNote,
     status,
-    lastDoneKm: lastTyreKm,
-    lastDoneDate: lastTyreDate.toISOString(),
-    lastRecordId: tyreRecord.id,
+    lastDoneKm: tyreRecord ? lastTyreKm : null,
+    lastDoneDate: tyreRecord ? lastTyreDate.toISOString() : null,
+    lastRecordId: tyreRecord ? tyreRecord.id : null,
+    confirmedNeverDone: !tyreRecord && !!isNeverDoneConfirmed,
     dueAtKm, remainingKm, dueAtDate: null, remainingDays: null,
     customKmInterval: null, customDaysInterval: null,
   }
@@ -172,6 +182,13 @@ export function computePredictions(
   }
 
   const overrides = vehicle.intervalOverrides ?? {}
+  const neverDoneSet = new Set(Array.isArray(vehicle.neverDoneConfirmed) ? vehicle.neverDoneConfirmed : [])
+  // A confirmed "Not Yet" (vehicle is new, this genuinely never happened) lets
+  // us compute a real first-due date from the vehicle's purchase date at 0 km,
+  // instead of sitting in no_data forever. Falls back to createdAt if no
+  // purchase date is on file.
+  const neverDoneBaseline = vehicle.purchaseDate ?? vehicle.createdAt ?? null
+  const neverDoneBaselineDate = neverDoneBaseline ? new Date(neverDoneBaseline) : null
 
   const mainRows = Array.from(grouped.values()).map(interval => {
     const override = (overrides as Record<string, IntervalOverride>)[interval.group] ?? null
@@ -184,8 +201,9 @@ export function computePredictions(
       interval.keywords.some(kw => r.description.toLowerCase().includes(kw.toLowerCase()))
     )
     const last = matching[0] || null
+    const isNeverDoneConfirmed = !last && neverDoneBaselineDate && interval.keywords.some(kw => neverDoneSet.has(kw))
 
-    if (!last) {
+    if (!last && !isNeverDoneConfirmed) {
       return {
         id: interval.id, group: interval.group, name: interval.name, source: interval.source,
         keywords: interval.keywords,
@@ -196,8 +214,8 @@ export function computePredictions(
       }
     }
 
-    const lastKm = last.mileage
-    const lastDate = new Date(last.date)
+    const lastKm = last ? last.mileage : 0
+    const lastDate = last ? new Date(last.date) : (neverDoneBaselineDate as Date)
 
     let remainingKm: number | null = null
     let dueAtKm: number | null = null
@@ -231,7 +249,14 @@ export function computePredictions(
     return {
       id: interval.id, group: interval.group, name: interval.name, source: interval.source,
       keywords: interval.keywords,
-      status, lastDoneKm: lastKm, lastDoneDate: last.date.toISOString(), lastRecordId: last.id,
+      status,
+      // No real record exists in the never-done case — lastDoneKm/Date stay
+      // null (honest: nothing was actually logged) and confirmedNeverDone
+      // tells the UI to show "Never done — new vehicle" instead of blank.
+      lastDoneKm: last ? lastKm : null,
+      lastDoneDate: last ? last.date.toISOString() : null,
+      lastRecordId: last ? last.id : null,
+      confirmedNeverDone: !last && isNeverDoneConfirmed,
       dueAtKm, remainingKm, dueAtDate, remainingDays,
       customKmInterval, customDaysInterval,
     }

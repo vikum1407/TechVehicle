@@ -948,6 +948,17 @@ export const api = {
     return d
   },
 
+  markNeverDone: async (token: string, vehicleId: string, groups: string[], confirmed: boolean = true) => {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/never-done`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ groups, confirmed }),
+    })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error || 'Failed to save')
+    return d
+  },
+
   addServiceRecord: async (token: string, vehicleId: string, record: {
     date: string
     description: string

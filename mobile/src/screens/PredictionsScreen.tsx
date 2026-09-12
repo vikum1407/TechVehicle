@@ -51,6 +51,12 @@ const SETUP_EXTRA_FIELDS: Record<string, ExtraFieldConfig[]> = {
 // Maps the first keyword of a prediction to { structuredKey, brandLookupKey }
 // structuredKey = the field name stored in structuredData JSON
 // brandLookupKey = the key in ITEM_BRANDS to pull the chip list from
+// Below this, "nothing done yet" is still plausible for any vehicle (shortest
+// service interval — engine oil — is 3,000-5,000 km). Beyond it, every vehicle
+// should have needed at least an oil change, so the bulk "brand new" shortcut
+// no longer applies.
+const BRAND_NEW_MILEAGE_LIMIT = 4500
+
 const SETUP_BRAND_MAP: Record<string, { structuredKey: string; brandLookupKey: string }> = {
   'Oil Change':               { structuredKey: 'oilBrand',  brandLookupKey: 'Oil Change' },
   'Timing Belt':              { structuredKey: 'brandName', brandLookupKey: 'Timing Belt' },
@@ -90,6 +96,7 @@ type Prediction = {
   remainingDays: number | null
   customKmInterval: number | null
   customDaysInterval: number | null
+  confirmedNeverDone?: boolean
 }
 
 type Tab = 'services' | 'setup'
@@ -220,6 +227,19 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     }
   }
 
+  const handleMarkNeverDone = async (ids: string[], keywordSets: string[][]) => {
+    setSavingId(ids.length === 1 ? ids[0] : 'bulk')
+    try {
+      const groups = Array.from(new Set(keywordSets.map(kw => kw[0]).filter(Boolean)))
+      await api.markNeverDone(token, vehicleId, groups, true)
+      await load()
+    } catch {
+      Alert.alert(t('common.error'), t('predictions.saveFailed'))
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const renderServiceCard = (p: Prediction) => {
     const cfg = STATUS_CONFIG[p.status]
 
@@ -246,7 +266,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
     }
 
     let lastLine = ''
-    if (p.lastDoneDate && p.lastDoneKm) {
+    if (p.confirmedNeverDone) {
+      lastLine = t('predictions.neverDoneNewVehicle')
+    } else if (p.lastDoneDate && p.lastDoneKm) {
       lastLine = t('predictions.lastDoneAt', { date: formatDate(p.lastDoneDate), km: kmStr(p.lastDoneKm) })
     } else if (p.lastDoneDate) {
       lastLine = t('predictions.lastDone', { date: formatDate(p.lastDoneDate) })
@@ -360,16 +382,27 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
           </View>
         ))}
 
-        <TouchableOpacity
-          style={[styles.setupSaveBtn, isSaving && { opacity: 0.6 }]}
-          onPress={() => handleSave(p)}
-          disabled={isSaving}
-        >
-          {isSaving
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={styles.setupSaveBtnText}>{t('predictions.saveAndStartPredicting')}</Text>
-          }
-        </TouchableOpacity>
+        <View style={styles.setupBtnRow}>
+          <TouchableOpacity
+            style={[styles.setupSaveBtn, { flex: 1 }, isSaving && { opacity: 0.6 }]}
+            onPress={() => handleSave(p)}
+            disabled={isSaving}
+          >
+            {isSaving
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.setupSaveBtnText}>{t('predictions.saveAndStartPredicting')}</Text>
+            }
+          </TouchableOpacity>
+          {!readOnly && (
+            <TouchableOpacity
+              style={[styles.setupNeverDoneBtn, isSaving && { opacity: 0.6 }]}
+              onPress={() => handleMarkNeverDone([p.id], [p.keywords])}
+              disabled={isSaving}
+            >
+              <Text style={styles.setupNeverDoneBtnText}>{t('predictions.notYet')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <Text style={styles.setupSource}>{p.source}</Text>
       </View>
@@ -469,6 +502,30 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               {t('predictions.setupBanner.body')}
             </Text>
           </View>
+          {!readOnly && currentMileage < BRAND_NEW_MILEAGE_LIMIT && (
+            <TouchableOpacity
+              style={[styles.brandNewBtn, savingId === 'bulk' && { opacity: 0.6 }]}
+              onPress={() => {
+                Alert.alert(
+                  t('predictions.brandNewConfirm.title'),
+                  t('predictions.brandNewConfirm.message'),
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('predictions.brandNewConfirm.proceed'),
+                      onPress: () => handleMarkNeverDone(noData.map(p => p.id), noData.map(p => p.keywords)),
+                    },
+                  ]
+                )
+              }}
+              disabled={savingId === 'bulk'}
+            >
+              {savingId === 'bulk'
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <Text style={styles.brandNewBtnText}>🆕 {t('predictions.brandNewMarkAll')}</Text>
+              }
+            </TouchableOpacity>
+          )}
           {noData.map(renderSetupCard)}
         </>
       )}
@@ -502,6 +559,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedPrediction(null)} />
             <View style={styles.detailSheet}>
               <View style={styles.detailHandle} />
+              <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.detailHeader}>
                 <Text style={styles.detailName}>{p.name}</Text>
                 <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
@@ -512,7 +570,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               <View style={styles.detailRow}>
                 <Text style={styles.detailRowLabel}>{t('predictions.lastDoneLabel')}</Text>
                 <Text style={styles.detailRowValue}>
-                  {p.lastDoneDate
+                  {p.confirmedNeverDone
+                    ? t('predictions.neverDoneNewVehicle')
+                    : p.lastDoneDate
                     ? `${formatDate(p.lastDoneDate)}${p.lastDoneKm ? ` · ${kmStr(p.lastDoneKm)}` : ''}`
                     : t('predictions.noRecordYet')}
                 </Text>
@@ -605,6 +665,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   )}
                 </View>
               )}
+              </ScrollView>
             </View>
 
             {/* Override editor modal — nested inside the sheet modal */}
@@ -800,12 +861,23 @@ function makeStyles(c: Colors) {
       fontSize: 14, color: c.text, backgroundColor: c.surfaceAlt, letterSpacing: 0,
     },
 
+    setupBtnRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
     setupSaveBtn: {
       backgroundColor: c.primary, borderRadius: 8,
-      paddingVertical: 10, alignItems: 'center', marginBottom: 10,
+      paddingVertical: 10, alignItems: 'center',
     },
     setupSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    setupNeverDoneBtn: {
+      borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 8,
+      paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
+    },
+    setupNeverDoneBtnText: { fontSize: 13, fontWeight: '700', color: c.textSub },
     setupSource: { fontSize: 11, color: c.textFaint, fontStyle: 'italic' },
+    brandNewBtn: {
+      width: '100%', borderWidth: 1.5, borderColor: c.primary, borderRadius: 10,
+      paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', marginBottom: 14, backgroundColor: c.surface,
+    },
+    brandNewBtnText: { fontSize: 14, fontWeight: '700', color: c.primary, textAlign: 'center' },
 
     brandSection: { marginBottom: 12 },
     brandRow: { marginTop: 6 },
@@ -826,6 +898,7 @@ function makeStyles(c: Colors) {
       borderTopLeftRadius: 20, borderTopRightRadius: 20,
       padding: 20,
       paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+      maxHeight: '85%',
     },
     detailHandle: {
       width: 40, height: 4, backgroundColor: c.borderMid, borderRadius: 2,
