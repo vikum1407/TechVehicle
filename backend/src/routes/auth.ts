@@ -49,6 +49,27 @@ router.post('/send-otp', (req, res) => {
   res.json({ message: 'OTP sent', phoneNumber })
 })
 
+// GET /auth/dev-otp?phoneNumber=...
+// Local-dev convenience only: lets the dev-client phone fetch its own OTP
+// instead of asking for it in chat. Blocked outright in production (Render
+// sets NODE_ENV=production), so this can never leak a real user's OTP.
+router.get('/dev-otp', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).end()
+    return
+  }
+  const rawPhone = req.query.phoneNumber
+  if (!rawPhone) {
+    res.status(400).json({ error: 'Phone number is required' })
+    return
+  }
+  const phoneNumber = normalizePhone(String(rawPhone).trim())
+  const stored = otpStore.get(phoneNumber)
+  if (!stored) { res.status(404).json({ error: 'No OTP found for this number. Request one first.' }); return }
+  if (Date.now() > stored.expires) { res.status(404).json({ error: 'OTP expired. Request a new one.' }); return }
+  res.json({ otp: stored.otp })
+})
+
 // POST /auth/verify-otp
 router.post('/verify-otp', async (req, res) => {
   const { otp } = req.body

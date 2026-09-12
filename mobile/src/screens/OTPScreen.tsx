@@ -18,9 +18,21 @@ type Props = {
 export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
+  const [fetchingOtp, setFetchingOtp] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
+
+  const handleFetchDevOTP = async () => {
+    setFetchingOtp(true)
+    try {
+      const code = await api.getDevOTP(phoneNumber)
+      if (code) setOtp(code)
+      else Alert.alert('Not available', 'No OTP found yet — this only works against a local dev backend.')
+    } finally {
+      setFetchingOtp(false)
+    }
+  }
 
   const handleVerify = async () => {
     if (otp.length !== 6) {
@@ -54,9 +66,13 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
             {t('otp.codeSentTo')}{'\n'}
             <Text style={styles.phone}>{phoneNumber}</Text>
           </Text>
-          <Text style={styles.devNote}>
-            (Development mode: check the backend terminal for the OTP)
-          </Text>
+          {__DEV__ && (
+            <TouchableOpacity onPress={handleFetchDevOTP} disabled={fetchingOtp}>
+              <Text style={styles.devNote}>
+                {fetchingOtp ? 'Fetching...' : '(Dev mode: tap to autofill OTP from local backend)'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TextInput
             style={styles.otpInput}
