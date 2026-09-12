@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import AppIcon from './AppIcon'
 
 type Tab = 'vehicles' | 'garage'
 
@@ -28,7 +29,7 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
       >
         {activeTab === 'vehicles' && <View style={styles.activeBar} />}
         <View style={styles.iconWrap}>
-          <Text style={styles.icon}>🚗</Text>
+          <AppIcon icon={{ lib: 'mci', name: 'car-multiple' }} color={activeTab === 'vehicles' ? colors.primary : colors.textFaint} size={22} />
         </View>
         <Text style={[styles.label, activeTab === 'vehicles' && styles.labelActive]}>
           My Vehicles
@@ -43,7 +44,7 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
         >
           {activeTab === 'garage' && <View style={styles.activeBar} />}
           <View style={styles.iconWrap}>
-            <Text style={styles.icon}>🏭</Text>
+            <AppIcon icon={{ lib: 'mci', name: 'garage' }} color={activeTab === 'garage' ? colors.primary : colors.textFaint} size={22} />
           </View>
           <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
             Garage

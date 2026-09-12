@@ -10,9 +10,11 @@ import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useTranslation } from '../i18n/LanguageContext'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 
-const VEHICLE_TYPE_ICON: Record<string, string> = Object.fromEntries(
-  VEHICLE_TYPE_OPTIONS.map(opt => [opt.value, opt.icon])
+const DEFAULT_VEHICLE_ICON: AppIconSpec = { lib: 'mci', name: 'car' }
+const VEHICLE_TYPE_ICON: Record<string, AppIconSpec> = Object.fromEntries(
+  VEHICLE_TYPE_OPTIONS.map(opt => [opt.value, opt.iconSpec])
 )
 
 type Vehicle = {
@@ -251,7 +253,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} />
         ) : (
           <View style={styles.cardPhotoPlaceholder}>
-            <Text style={styles.cardPhotoIcon}>{VEHICLE_TYPE_ICON[item.vehicleType ?? ''] ?? '🚗'}</Text>
+            <AppIcon icon={VEHICLE_TYPE_ICON[item.vehicleType ?? ''] ?? DEFAULT_VEHICLE_ICON} color={colors.primary} size={32} />
           </View>
         )}
         <View style={styles.cardContent}>

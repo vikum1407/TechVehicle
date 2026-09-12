@@ -1,3 +1,5 @@
+import type { AppIconSpec } from '../components/AppIcon'
+
 export type SelectedItem = {
   name: string
   category: string
@@ -22,25 +24,33 @@ export type VehicleTypeOption = {
   label: string
   value: VehicleType
   icon: string
+  // Vector equivalent of `icon`, for spots that render one big "hero" icon
+  // (e.g. a vehicle card with no photo) rather than a small chip label —
+  // emoji at that size exposed how differently (and how washed-out) some
+  // OS emoji fonts render on older Android devices. Vector icons render
+  // identically everywhere, independent of the device's emoji font.
+  iconSpec: AppIconSpec
 }
 
 export const VEHICLE_TYPE_OPTIONS: VehicleTypeOption[] = [
-  { icon: '🏍️', label: 'Motorcycle',     value: 'motorcycle' },
-  { icon: '⚡',  label: 'Electric Cycle', value: 'electric-cycle' },
-  { icon: '🚗',  label: 'Car — Petrol',   value: 'car-petrol' },
-  { icon: '🚗',  label: 'Car — Diesel',   value: 'car-diesel' },
-  { icon: '🚙',  label: 'SUV — Petrol',   value: 'suv-petrol' },
-  { icon: '🚙',  label: 'SUV — Diesel',   value: 'suv-diesel' },
+  { icon: '🏍️', label: 'Motorcycle',     value: 'motorcycle',     iconSpec: { lib: 'mci', name: 'motorbike' } },
+  { icon: '⚡',  label: 'Electric Cycle', value: 'electric-cycle', iconSpec: { lib: 'mci', name: 'bicycle-electric' } },
+  { icon: '🚗',  label: 'Car — Petrol',   value: 'car-petrol',     iconSpec: { lib: 'mci', name: 'car' } },
+  { icon: '🚗',  label: 'Car — Diesel',   value: 'car-diesel',     iconSpec: { lib: 'mci', name: 'car' } },
+  // No dedicated jeep/SUV glyph exists in MaterialCommunityIcons — car-estate
+  // (a longer, taller wagon shape) is the closest available approximation.
+  { icon: '🚙',  label: 'SUV — Petrol',   value: 'suv-petrol',     iconSpec: { lib: 'mci', name: 'car-estate' } },
+  { icon: '🚙',  label: 'SUV — Diesel',   value: 'suv-diesel',     iconSpec: { lib: 'mci', name: 'car-estate' } },
   // 🛺 (auto rickshaw) is a newer emoji (Unicode 11, 2018) with poor glyph
   // support on older Android devices — on a Samsung J7 it silently broke
   // rendering of this entire chip's label, not just the icon. 🛵 (scooter,
   // Unicode 9, 2016) is far more broadly supported.
-  { icon: '🛵',  label: 'Three-Wheeler',  value: 'three-wheeler' },
-  { icon: '🚐',  label: 'Van / Minivan',  value: 'van' },
-  { icon: '🛻',  label: 'Pickup Truck',   value: 'pickup' },
-  { icon: '🔋',  label: 'Electric Car',   value: 'electric' },
-  { icon: '🚛',  label: 'Truck / Lorry',  value: 'truck' },
-  { icon: '🚜',  label: 'Heavy Vehicle',  value: 'heavy' },
+  { icon: '🛵',  label: 'Three-Wheeler',  value: 'three-wheeler',  iconSpec: { lib: 'mci', name: 'rickshaw' } },
+  { icon: '🚐',  label: 'Van / Minivan',  value: 'van',            iconSpec: { lib: 'mci', name: 'van-utility' } },
+  { icon: '🛻',  label: 'Pickup Truck',   value: 'pickup',         iconSpec: { lib: 'mci', name: 'car-pickup' } },
+  { icon: '🔋',  label: 'Electric Car',   value: 'electric',       iconSpec: { lib: 'mci', name: 'car-electric' } },
+  { icon: '🚛',  label: 'Truck / Lorry',  value: 'truck',          iconSpec: { lib: 'mci', name: 'truck' } },
+  { icon: '🚜',  label: 'Heavy Vehicle',  value: 'heavy',          iconSpec: { lib: 'mci', name: 'excavator' } },
 ]
 
 export const NO_BRAND_ITEMS = new Set([
