@@ -62,6 +62,7 @@ type IncomingTransfer = {
     year: number
     fuelType: string
     mileage: number
+    vehicleType?: string | null
     _count: { serviceRecords: number; fuelLogs: number; expenses: number }
   }
 }
@@ -339,7 +340,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                         </View>
                         <View style={styles.transferCounts}>
                           <Text style={styles.transferCountItem}>🔧 {transfer.vehicle._count.serviceRecords}</Text>
-                          <Text style={styles.transferCountItem}>⛽ {transfer.vehicle._count.fuelLogs}</Text>
+                          <Text style={styles.transferCountItem}>{transfer.vehicle.vehicleType === 'electric' ? '🔋' : '⛽'} {transfer.vehicle._count.fuelLogs}</Text>
                           <Text style={styles.transferCountItem}>💰 {transfer.vehicle._count.expenses}</Text>
                         </View>
                       </View>

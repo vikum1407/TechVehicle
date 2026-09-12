@@ -19,6 +19,7 @@ type Vehicle = {
   year: number
   fuelType: string
   mileage: number
+  vehicleType?: string | null
 }
 
 type Props = {
@@ -138,7 +139,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.serviceRecords ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>⛽ {t('sell.fuelLogs')}</Text>
+                <Text style={styles.summaryItem}>{vehicle.vehicleType === 'electric' ? '🔋' : '⛽'} {t(vehicle.vehicleType === 'electric' ? 'sell.chargeLogs' : 'sell.fuelLogs')}</Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.fuelLogs ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>

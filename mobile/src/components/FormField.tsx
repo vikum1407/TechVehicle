@@ -36,6 +36,7 @@ function makeStyles(c: Colors) {
     input: {
       backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, color: c.text, letterSpacing: 0,
+      height: 48, textAlignVertical: 'center',
     },
     error: { fontSize: 12, color: c.error, marginTop: 4 },
   })

@@ -2,7 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { canReadVehicle } from '../utils/vehicleAccess'
-import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, MAX_LITRES, SHORT_TEXT_LEN } from '../utils/validate'
+import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, MAX_LITRES, MAX_KWH, SHORT_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -31,7 +31,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
 // POST /fuel-logs/:vehicleId
 router.post('/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
-  const { date, mileage, litres, cost, fullTank, station } = req.body
+  const { date, mileage, litres, kWh, cost, fullTank, station } = req.body
 
   if (!date || mileage === undefined) {
     res.status(400).json({ error: 'Date and mileage are required' })
@@ -43,6 +43,9 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   }
   if (litres !== undefined && litres !== null && litres !== '' && !isValidNumber(litres, { min: 0, max: MAX_LITRES })) {
     res.status(400).json({ error: 'Litres must be a valid, non-negative number' }); return
+  }
+  if (kWh !== undefined && kWh !== null && kWh !== '' && !isValidNumber(kWh, { min: 0, max: MAX_KWH })) {
+    res.status(400).json({ error: `kWh must be a valid number between 0 and ${MAX_KWH.toLocaleString()}` }); return
   }
   if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
@@ -60,6 +63,7 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
         date: new Date(date),
         mileage: Number(mileage),
         litres: litres ? Number(litres) : null,
+        kWh: kWh ? Number(kWh) : null,
         cost: cost ? Number(cost) : null,
         fullTank: fullTank !== false,
         station: station?.trim() ? capText(station, SHORT_TEXT_LEN) : null,
@@ -84,13 +88,16 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
 // PATCH /fuel-logs/:id — edit a fuel log
 router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
-  const { date, mileage, litres, cost, station } = req.body
+  const { date, mileage, litres, kWh, cost, station } = req.body
   if (date !== undefined && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
   if (mileage !== undefined && !isValidNumber(mileage, { min: 0, max: MAX_MILEAGE })) {
     res.status(400).json({ error: 'Mileage must be a valid, non-negative number' }); return
   }
   if (litres !== undefined && litres !== null && litres !== '' && !isValidNumber(litres, { min: 0, max: MAX_LITRES })) {
     res.status(400).json({ error: 'Litres must be a valid, non-negative number' }); return
+  }
+  if (kWh !== undefined && kWh !== null && kWh !== '' && !isValidNumber(kWh, { min: 0, max: MAX_KWH })) {
+    res.status(400).json({ error: `kWh must be a valid number between 0 and ${MAX_KWH.toLocaleString()}` }); return
   }
   if (cost !== undefined && cost !== null && cost !== '' && !isValidNumber(cost, { min: 0, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'Cost must be a valid, non-negative number' }); return
@@ -109,6 +116,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         ...(date && { date: new Date(date) }),
         ...(mileage !== undefined && { mileage: Number(mileage) }),
         ...(litres !== undefined && { litres: litres ? Number(litres) : null }),
+        ...(kWh !== undefined && { kWh: kWh ? Number(kWh) : null }),
         ...(cost !== undefined && { cost: cost ? Number(cost) : null }),
         ...(station !== undefined && { station: station?.trim() ? capText(station, SHORT_TEXT_LEN) : null }),
       },

@@ -92,6 +92,7 @@ function makeStyles(c: Colors) {
     input: {
       backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 13,
+      height: 48, justifyContent: 'center',
     },
     valueText: { fontSize: 15, color: c.text },
     placeholderText: { fontSize: 15, color: c.textFaint },

@@ -16,6 +16,7 @@ import { useTranslation } from '../i18n/LanguageContext'
 type Props = {
   token: string
   vehicleId: string
+  vehicleType?: string | null
   onBack: () => void
   onKnowledgeHub?: () => void
 }
@@ -41,6 +42,7 @@ type AcHistoryItem = {
 type Analytics = {
   totalSpend: number
   serviceCost: number
+  vehicleTestCost: number
   fuelCost: number
   expenseTotal: number
   expenseBreakdown: { category: string; amount: number }[]
@@ -462,7 +464,8 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 
-export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeHub }: Props) {
+export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack, onKnowledgeHub }: Props) {
+  const isElectric = vehicleType === 'electric'
   const [data, setData] = useState<Analytics | null>(null)
   const [forecast, setForecast] = useState<Forecast | null>(null)
   const [anomalies, setAnomalies] = useState<Anomaly[]>([])
@@ -533,7 +536,10 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <Text style={styles.totalAmount}>{fmt(data.totalSpend)}</Text>
         <View style={styles.pillRow}>
           <View style={styles.pill}><Text style={styles.pillText}>🔧 {fmt(data.serviceCost)}</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>⛽ {fmt(data.fuelCost)}</Text></View>
+          {data.vehicleTestCost > 0 && (
+            <View style={styles.pill}><Text style={styles.pillText}>✅ {fmt(data.vehicleTestCost)}</Text></View>
+          )}
+          <View style={styles.pill}><Text style={styles.pillText}>{isElectric ? '🔋' : '⛽'} {fmt(data.fuelCost)}</Text></View>
           <View style={styles.pill}><Text style={styles.pillText}>📋 {fmt(data.expenseTotal)}</Text></View>
         </View>
       </View>
@@ -546,10 +552,12 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
           <Text style={styles.statSub}>{t('analytics.perKmDriven')}</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t('analytics.fuelEconomy')}</Text>
-          <Text style={styles.statValue}>{data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + ' km/L' : '—'}</Text>
+          <Text style={styles.statLabel}>{t(isElectric ? 'analytics.energyEconomy' : 'analytics.fuelEconomy')}</Text>
+          <Text style={styles.statValue}>
+            {data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + (isElectric ? ' km/kWh' : ' km/L') : '—'}
+          </Text>
           <Text style={styles.statSub}>
-            {data.avgFuelEfficiency != null ? t('analytics.avgEfficiency') : t('analytics.log3FillUps')}
+            {data.avgFuelEfficiency != null ? t('analytics.avgEfficiency') : t(isElectric ? 'analytics.log3Charges' : 'analytics.log3FillUps')}
           </Text>
         </View>
       </View>
@@ -596,8 +604,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>{t('analytics.fuelEfficiency')}</Text>
-              <Text style={styles.chartSub}>{t('analytics.kmPerLitreSub')}</Text>
+              <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.chargingEfficiency' : 'analytics.fuelEfficiency')}</Text>
+              <Text style={styles.chartSub}>{t(isElectric ? 'analytics.kmPerKwhSub' : 'analytics.kmPerLitreSub')}</Text>
             </View>
             <View style={[styles.chartDot, { backgroundColor: '#34a853' }]} />
           </View>
@@ -610,8 +618,8 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>{t('analytics.costPerFillup')}</Text>
-              <Text style={styles.chartSub}>{t('analytics.lkrSpentPerFillup')}</Text>
+              <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.costPerCharge' : 'analytics.costPerFillup')}</Text>
+              <Text style={styles.chartSub}>{t(isElectric ? 'analytics.lkrSpentPerCharge' : 'analytics.lkrSpentPerFillup')}</Text>
             </View>
             <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
@@ -665,7 +673,7 @@ export default function AnalyticsScreen({ token, vehicleId, onBack, onKnowledgeH
         </View>
         <View style={styles.countCard}>
           <Text style={styles.countNum}>{data.recordCounts.fuelLogs}</Text>
-          <Text style={styles.countLbl}>{t('analytics.fuelLogsLabel')}</Text>
+          <Text style={styles.countLbl}>{t(isElectric ? 'analytics.chargeLogsLabel' : 'analytics.fuelLogsLabel')}</Text>
         </View>
         <View style={styles.countCard}>
           <Text style={styles.countNum}>{data.recordCounts.expenses}</Text>

@@ -4,6 +4,7 @@ import {
   ScrollView, ActivityIndicator, Image, Modal, FlatList, Dimensions, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
+import { getServiceCategories } from '../constants/serviceData'
 import { exportVehiclePdf } from '../utils/pdfExport'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -28,12 +29,12 @@ type Expense = {
 
 type FuelLog = {
   id: string; date: string; mileage: number | null
-  litres: number | null; cost: number | null; station?: string | null
+  litres: number | null; kWh: number | null; cost: number | null; station?: string | null
 }
 
 type Vehicle = {
   id: string; registrationNo: string; make: string; model: string
-  year: number; fuelType: string; mileage: number
+  year: number; fuelType: string; mileage: number; vehicleType?: string | null
 }
 
 type Props = {
@@ -72,6 +73,7 @@ function parseItems(description: string) {
 }
 
 export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEditRecordId }: Props) {
+  const isElectric = vehicle.vehicleType === 'electric'
   const [activeTab, setActiveTab] = useState<Tab>('service')
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -104,17 +106,36 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
   const [editFuel, setEditFuel] = useState<FuelLog | null>(null)
   const [draftService, setDraftService] = useState({ date: '', description: '', mileage: '', parts: '', brand: '', cost: '', notes: '' })
   const [draftExpense, setDraftExpense] = useState({ date: '', category: '', amount: '', description: '', mileage: '', notes: '' })
-  const [draftFuel, setDraftFuel] = useState({ date: '', mileage: '', litres: '', cost: '', station: '' })
+  const [draftFuel, setDraftFuel] = useState({ date: '', mileage: '', litres: '', kWh: '', cost: '', station: '' })
   const [savingEdit, setSavingEdit] = useState(false)
 
   // Quick-add past record
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [quickDraft, setQuickDraft] = useState({ description: '', year: '', mileage: '', cost: '' })
   const [savingQuick, setSavingQuick] = useState(false)
+  const [showQuickCategories, setShowQuickCategories] = useState(false)
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const s = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const { t } = useTranslation()
+
+  const quickCategories = useMemo(
+    () => getServiceCategories(vehicle.vehicleType, vehicle.fuelType),
+    [vehicle.vehicleType, vehicle.fuelType]
+  )
+
+  const toggleQuickItem = (item: string) => {
+    setQuickDraft(p => {
+      const items = p.description.split(',').map(s => s.trim()).filter(Boolean)
+      const idx = items.findIndex(i => i.toLowerCase() === item.toLowerCase())
+      if (idx >= 0) items.splice(idx, 1)
+      else items.push(item)
+      return { ...p, description: items.join(', ') }
+    })
+  }
+
+  const isQuickItemSelected = (item: string) =>
+    quickDraft.description.split(',').map(s => s.trim().toLowerCase()).includes(item.toLowerCase())
 
   const handleQuickAdd = async () => {
     if (!quickDraft.description.trim()) { Alert.alert(t('history.quickAdd.required.title'), t('history.quickAdd.required.message')); return }
@@ -132,6 +153,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         notes: 'Historical record',
       })
       setQuickDraft({ description: '', year: '', mileage: '', cost: '' })
+      setShowQuickCategories(false)
       setShowQuickAdd(false)
       await loadAll()
     } catch (e: any) {
@@ -214,14 +236,15 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
     return true
   })
 
-  // Fuel summary
-  const logsWithKm = filteredFuelLogs.filter(f => f.litres && f.litres > 0 && f.mileage)
+  // Fuel/charging summary — litres for combustion vehicles, kWh for electric
+  const fuelQty = (f: FuelLog) => (isElectric ? f.kWh : f.litres)
+  const logsWithKm = filteredFuelLogs.filter(f => { const q = fuelQty(f); return q && q > 0 && f.mileage })
   const avgKmPerL = logsWithKm.length >= 2 ? (() => {
     const sorted = [...logsWithKm].sort((a, b) => (a.mileage ?? 0) - (b.mileage ?? 0))
     const first = sorted[0], last = sorted[sorted.length - 1]
     const totalKm = (last.mileage ?? 0) - (first.mileage ?? 0)
-    const totalL = sorted.slice(1).reduce((s, f) => s + (f.litres ?? 0), 0)
-    return totalL > 0 ? (totalKm / totalL).toFixed(1) : null
+    const totalQty = sorted.slice(1).reduce((s, f) => s + (fuelQty(f) ?? 0), 0)
+    return totalQty > 0 ? (totalKm / totalQty).toFixed(1) : null
   })() : null
   const totalFuelCost = filteredFuelLogs.reduce((s, f) => s + (f.cost ?? 0), 0)
 
@@ -277,6 +300,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       date: new Date(f.date).toISOString().split('T')[0],
       mileage: f.mileage?.toString() ?? '',
       litres: f.litres?.toString() ?? '',
+      kWh: f.kWh?.toString() ?? '',
       cost: f.cost?.toString() ?? '',
       station: f.station ?? '',
     })
@@ -333,7 +357,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       const updated = await api.updateFuelLog(token, editFuel.id, {
         date: draftFuel.date || undefined,
         mileage: draftFuel.mileage ? Number(draftFuel.mileage) : undefined,
-        litres: draftFuel.litres ? Number(draftFuel.litres) : null,
+        litres: !isElectric && draftFuel.litres ? Number(draftFuel.litres) : null,
+        kWh: isElectric && draftFuel.kWh ? Number(draftFuel.kWh) : null,
         cost: draftFuel.cost ? Number(draftFuel.cost) : null,
         station: draftFuel.station || null,
       })
@@ -399,7 +424,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
   }
 
   const openFuelMenu = (f: FuelLog) => {
-    Alert.alert(fmt(f.date), `${f.mileage?.toLocaleString() ?? '?'} km${f.litres ? ` · ${f.litres}L` : ''}`, [
+    const qtyStr = isElectric ? (f.kWh ? ` · ${f.kWh}kWh` : '') : (f.litres ? ` · ${f.litres}L` : '')
+    Alert.alert(fmt(f.date), `${f.mileage?.toLocaleString() ?? '?'} km${qtyStr}`, [
       { text: t('common.edit'), onPress: () => openEditFuel(f) },
       { text: t('common.delete'), style: 'destructive', onPress: () => confirmDeleteFuel(f.id) },
       { text: t('common.cancel'), style: 'cancel' },
@@ -486,7 +512,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
         {([
           { key: 'service', label: `📋 ${t('history.tab.service')} (${records.length})` },
           { key: 'expenses', label: `💰 ${t('history.tab.expenses')} (${expenses.length})` },
-          { key: 'fuel', label: `⛽ ${t('history.tab.fuel')} (${fuelLogs.length})` },
+          { key: 'fuel', label: `${isElectric ? '🔋' : '⛽'} ${t(isElectric ? 'history.tab.charging' : 'history.tab.fuel')} (${fuelLogs.length})` },
         ] as { key: Tab; label: string }[]).map(tb => (
           <TouchableOpacity
             key={tb.key}
@@ -779,7 +805,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                   {avgKmPerL && (
                     <View style={s.fuelStat}>
                       <Text style={s.fuelStatVal}>{avgKmPerL}</Text>
-                      <Text style={s.fuelStatLabel}>{t('history.avgKmL')}</Text>
+                      <Text style={s.fuelStatLabel}>{t(isElectric ? 'history.avgKmKwh' : 'history.avgKmL')}</Text>
                     </View>
                   )}
                   {totalFuelCost > 0 && (
@@ -793,7 +819,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {fuelLogs.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>⛽</Text>
+                  <Text style={s.emptyIcon}>{isElectric ? '🔋' : '⛽'}</Text>
                   <Text style={s.emptyText}>{t('history.empty.noFuelLogs')}</Text>
                   <Text style={s.emptySub}>{t('history.empty.noFuelLogsSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
@@ -822,10 +848,10 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     </View>
                     <View style={s.fuelCardMeta}>
                       {f.mileage != null && <Text style={s.fuelMeta}>{f.mileage.toLocaleString()} km</Text>}
-                      {f.litres != null && <Text style={s.fuelMeta}>{f.litres} L</Text>}
-                      {f.litres && f.litres > 0 && f.mileage && (
-                        <Text style={s.fuelKmL}>—</Text>
-                      )}
+                      {isElectric
+                        ? (f.kWh != null && <Text style={s.fuelMeta}>{f.kWh} kWh</Text>)
+                        : (f.litres != null && <Text style={s.fuelMeta}>{f.litres} L</Text>)
+                      }
                     </View>
                     {f.station && <Text style={s.fuelStation}>{f.station}</Text>}
                   </View>
@@ -837,12 +863,12 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       )}
 
       {/* ── Quick-add past record modal ─── */}
-      <Modal visible={showQuickAdd} transparent animationType="slide" onRequestClose={() => setShowQuickAdd(false)}>
+      <Modal visible={showQuickAdd} transparent animationType="slide" onRequestClose={() => { setShowQuickAdd(false); setShowQuickCategories(false) }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.editModalOverlay}>
           <View style={s.editModalCard}>
             <View style={s.editModalHeader}>
               <Text style={s.editModalTitle}>{t('history.quickAdd.title')}</Text>
-              <TouchableOpacity onPress={() => setShowQuickAdd(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TouchableOpacity onPress={() => { setShowQuickAdd(false); setShowQuickCategories(false) }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={s.editModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -856,6 +882,35 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 placeholderTextColor={colors.textFaint}
                 autoFocus
               />
+
+              <TouchableOpacity onPress={() => setShowQuickCategories(v => !v)} activeOpacity={0.7}>
+                <Text style={s.quickTapLabel}>
+                  {t('history.quickAdd.tapToAdd')} {showQuickCategories ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+              {showQuickCategories && quickCategories.map(cat => (
+                <View key={cat.title}>
+                  <Text style={s.quickCatLabel}>{cat.title}</Text>
+                  <View style={s.quickChipRow}>
+                    {cat.items.map(item => {
+                      const sel = isQuickItemSelected(item)
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={[s.quickChip, sel && s.quickChipSelected]}
+                          onPress={() => toggleQuickItem(item)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[s.quickChipText, sel && s.quickChipTextSelected]}>
+                            {sel ? '✓ ' : ''}{item}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </View>
+              ))}
+
               <Text style={s.editLabel}>{t('history.quickAdd.approxYear')}</Text>
               <TextInput
                 style={s.editInput}
@@ -981,12 +1036,16 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
               <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>{t('history.litres')}</Text>
-              <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor={colors.textFaint} />
+              <Text style={s.editLabel}>{t(isElectric ? 'logFuel.energyAdded' : 'history.litres')}</Text>
+              {isElectric ? (
+                <TextInput style={s.editInput} value={draftFuel.kWh} onChangeText={v => setDraftFuel(p => ({ ...p, kWh: v }))} keyboardType="decimal-pad" placeholder="e.g. 32" placeholderTextColor={colors.textFaint} />
+              ) : (
+                <TextInput style={s.editInput} value={draftFuel.litres} onChangeText={v => setDraftFuel(p => ({ ...p, litres: v }))} keyboardType="decimal-pad" placeholder="e.g. 35.5" placeholderTextColor={colors.textFaint} />
+              )}
               <Text style={s.editLabel}>{t('history.costLkr')}</Text>
               <TextInput style={s.editInput} value={draftFuel.cost} onChangeText={v => setDraftFuel(p => ({ ...p, cost: v }))} keyboardType="number-pad" placeholder="e.g. 8900" placeholderTextColor={colors.textFaint} />
-              <Text style={s.editLabel}>{t('history.station')}</Text>
-              <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder="e.g. Ceylinco Petrol" placeholderTextColor={colors.textFaint} />
+              <Text style={s.editLabel}>{t(isElectric ? 'logFuel.chargingLocation' : 'history.station')}</Text>
+              <TextInput style={s.editInput} value={draftFuel.station} onChangeText={v => setDraftFuel(p => ({ ...p, station: v }))} placeholder={isElectric ? 'e.g. Home charger' : 'e.g. Ceylinco Petrol'} placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveFuel} disabled={savingEdit}>
                 {savingEdit ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.editSaveBtnText}>{t('history.saveChanges')}</Text>}
               </TouchableOpacity>
@@ -1220,6 +1279,16 @@ function makeStyles(c: Colors, topInset: number) {
       paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: c.text,
     },
     editInputMulti: { minHeight: 80, textAlignVertical: 'top' },
+    quickTapLabel: { fontSize: 12, color: c.textMuted, marginTop: 10, marginBottom: 4 },
+    quickCatLabel: { fontSize: 11, fontWeight: '700', color: c.textMuted, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 },
+    quickChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    quickChip: {
+      paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16,
+      backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.borderMid,
+    },
+    quickChipSelected: { backgroundColor: c.primaryTint, borderColor: c.primary },
+    quickChipText: { fontSize: 12, color: c.textBody },
+    quickChipTextSelected: { color: c.primary, fontWeight: '700' },
     editSaveBtn: {
       backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24,
     },

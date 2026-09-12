@@ -16,6 +16,7 @@ type Props = {
   token: string
   vehicleId: string
   currentMileage: number
+  vehicleType?: string | null
   onLogged: (newMileage: number) => void
   onBack: () => void
 }
@@ -34,7 +35,8 @@ const parseDate = (str: string): string | null => {
   return parsed.toISOString()
 }
 
-export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogged, onBack }: Props) {
+export default function LogFuelScreen({ token, vehicleId, currentMileage, vehicleType, onLogged, onBack }: Props) {
+  const isElectric = vehicleType === 'electric'
   const [date, setDate] = useState(today())
   const [mileage, setMileage] = useState(String(currentMileage))
   const [litres, setLitres] = useState('')
@@ -50,7 +52,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   const isHistorical = mileageNum > 0 && mileageNum < currentMileage
   const kmSinceLast = mileageNum > currentMileage ? mileageNum - currentMileage : null
 
-  const kmPerLitre = kmSinceLast && litres && parseFloat(litres) > 0
+  const kmPerUnit = kmSinceLast && litres && parseFloat(litres) > 0
     ? (kmSinceLast / parseFloat(litres)).toFixed(1)
     : null
 
@@ -70,7 +72,8 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       await api.addFuelLog(token, vehicleId, {
         date: isoDate,
         mileage: mileageNum,
-        litres: litres ? parseFloat(litres) : undefined,
+        litres: !isElectric && litres ? parseFloat(litres) : undefined,
+        kWh: isElectric && litres ? parseFloat(litres) : undefined,
         cost: cost ? parseFloat(cost) : undefined,
         fullTank,
         station: station.trim() || undefined,
@@ -86,7 +89,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
-      <ScreenHeader title={t('logFuel.title')} onBack={onBack} />
+      <ScreenHeader title={isElectric ? t('logFuel.titleCharging') : t('logFuel.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>{t('logFuel.lastRecorded', { mileage: currentMileage.toLocaleString() })}</Text>
 
@@ -109,18 +112,18 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       {kmSinceLast != null && (
         <View style={styles.insight}>
           <Text style={styles.insightText}>
-            {t('logFuel.kmSinceLastFillup', { km: kmSinceLast.toLocaleString() })}
-            {kmPerLitre ? `  ·  ${kmPerLitre} km/L` : ''}
+            {t(isElectric ? 'logFuel.kmSinceLastCharge' : 'logFuel.kmSinceLastFillup', { km: kmSinceLast.toLocaleString() })}
+            {kmPerUnit ? `  ·  ${kmPerUnit} ${isElectric ? 'km/kWh' : 'km/L'}` : ''}
           </Text>
         </View>
       )}
 
       <FormField
-        label={t('logFuel.litresFilled')}
+        label={isElectric ? t('logFuel.energyAdded') : t('logFuel.litresFilled')}
         value={litres}
         onChangeText={setLitres}
         keyboardType="decimal-pad"
-        placeholder="e.g. 35.5"
+        placeholder={isElectric ? 'e.g. 32' : 'e.g. 35.5'}
       />
 
       <FormField
@@ -131,13 +134,15 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
         placeholder="e.g. 9800"
       />
 
-      <Text style={styles.label}>{t('logFuel.tank')}</Text>
+      <Text style={styles.label}>{isElectric ? t('logFuel.chargeLabel') : t('logFuel.tank')}</Text>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           style={[styles.toggleBtn, fullTank && styles.toggleBtnActive]}
           onPress={() => setFullTank(true)}
         >
-          <Text style={[styles.toggleText, fullTank && styles.toggleTextActive]}>{t('logFuel.fullTank')}</Text>
+          <Text style={[styles.toggleText, fullTank && styles.toggleTextActive]}>
+            {isElectric ? t('logFuel.fullCharge') : t('logFuel.fullTank')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toggleBtn, !fullTank && styles.toggleBtnActive]}
@@ -150,13 +155,13 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, onLogg
       <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
 
       <FormField
-        label={t('logFuel.fuelStation')}
+        label={isElectric ? t('logFuel.chargingLocation') : t('logFuel.fuelStation')}
         value={station}
         onChangeText={setStation}
-        placeholder="e.g. Ceylon Petroleum, IOC"
+        placeholder={isElectric ? 'e.g. Home, ChargeNet Colombo' : 'e.g. Ceylon Petroleum, IOC'}
       />
 
-      <Button title={t('logFuel.saveFillup')} onPress={handleSubmit} loading={loading} />
+      <Button title={isElectric ? t('logFuel.saveCharge') : t('logFuel.saveFillup')} onPress={handleSubmit} loading={loading} />
       </ScrollView>
     </View>
     </KeyboardAvoidingView>
