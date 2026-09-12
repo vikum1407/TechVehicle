@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image, Linking,
+  Modal, FlatList, Dimensions,
 } from 'react-native'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
@@ -33,6 +34,13 @@ type GarageResult = {
   address: string | null
   verified: boolean
   priceList?: { service: string; price: number }[] | null
+  photos?: string[]
+  aboutBio?: string | null
+  services?: string[]
+  contactPhone?: string | null
+  promoText?: string | null
+  websiteUrl?: string | null
+  googleMapsUrl?: string | null
   avgRating?: number | null
   ratingCount?: number
 }
@@ -75,6 +83,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [searching, setSearching] = useState(false)
   const [selectedGarage, setSelectedGarage] = useState<GarageResult | null>(null)
   const [expandedPriceGarageId, setExpandedPriceGarageId] = useState<string | null>(null)
+  const [expandedInfoGarageId, setExpandedInfoGarageId] = useState<string | null>(null)
+  const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number } | null>(null)
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
+  const photoViewerRef = useRef<FlatList<string>>(null)
   const [expandedReviewsGarageId, setExpandedReviewsGarageId] = useState<string | null>(null)
   const [reviewsLoadingId, setReviewsLoadingId] = useState<string | null>(null)
   const [reviewsCache, setReviewsCache] = useState<Record<string, {
@@ -277,6 +289,63 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   </View>
                 </TouchableOpacity>
 
+                {!!garage.promoText && (
+                  <View style={styles.promoBanner}>
+                    <Text style={styles.promoBannerText}>📣 {garage.promoText}</Text>
+                  </View>
+                )}
+
+                {!!garage.services?.length && (
+                  <View style={styles.serviceTagRow}>
+                    {garage.services.map((sv, i) => (
+                      <View key={i} style={styles.serviceTag}><Text style={styles.serviceTagText}>{sv}</Text></View>
+                    ))}
+                  </View>
+                )}
+
+                {(garage.aboutBio || garage.photos?.length || garage.contactPhone || garage.websiteUrl || garage.googleMapsUrl) && (() => {
+                  const infoExpanded = expandedInfoGarageId === garage.id
+                  return (
+                    <>
+                      <TouchableOpacity style={styles.priceToggle} onPress={() => setExpandedInfoGarageId(infoExpanded ? null : garage.id)}>
+                        <Text style={styles.priceToggleText}>ℹ️ {t('booking.moreInfo')} {infoExpanded ? '▲' : '▼'}</Text>
+                      </TouchableOpacity>
+                      {infoExpanded && (
+                        <View style={styles.infoExpandBox}>
+                          {!!garage.photos?.length && (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.profilePhotoStrip}>
+                              {garage.photos.map((url, i) => (
+                                <TouchableOpacity
+                                  key={i}
+                                  onPress={() => { setPhotoViewer({ photos: garage.photos!, index: i }); setPhotoViewerIndex(i) }}
+                                >
+                                  <Image source={{ uri: url }} style={styles.profilePhotoThumb} />
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          )}
+                          {!!garage.aboutBio && <Text style={styles.infoText}>{garage.aboutBio}</Text>}
+                          {!!garage.contactPhone && (
+                            <TouchableOpacity onPress={() => Linking.openURL(`tel:${garage.contactPhone}`)}>
+                              <Text style={styles.infoLink}>📞 {garage.contactPhone}</Text>
+                            </TouchableOpacity>
+                          )}
+                          {!!garage.websiteUrl && (
+                            <TouchableOpacity onPress={() => Linking.openURL(garage.websiteUrl!.startsWith('http') ? garage.websiteUrl! : `https://${garage.websiteUrl}`)}>
+                              <Text style={styles.infoLink}>🌐 {garage.websiteUrl}</Text>
+                            </TouchableOpacity>
+                          )}
+                          {!!garage.googleMapsUrl && (
+                            <TouchableOpacity onPress={() => Linking.openURL(garage.googleMapsUrl!.startsWith('http') ? garage.googleMapsUrl! : `https://${garage.googleMapsUrl}`)}>
+                              <Text style={styles.infoLink}>🗺️ {t('garage.viewOnMaps')}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+                    </>
+                  )
+                })()}
+
                 {!!garage.ratingCount && (() => {
                   const reviewsExpanded = expandedReviewsGarageId === garage.id
                   const detail = reviewsCache[garage.id]
@@ -343,6 +412,39 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           })}
         </ScrollView>
       </View>
+
+      <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
+        {photoViewer && (() => {
+          const { photos } = photoViewer
+          const W = Dimensions.get('window').width
+          return (
+            <View style={styles.photoModalOverlay}>
+              <TouchableOpacity onPress={() => setPhotoViewer(null)} style={styles.photoModalClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={styles.photoModalCloseText}>✕</Text>
+              </TouchableOpacity>
+              <FlatList
+                ref={photoViewerRef}
+                data={photos}
+                keyExtractor={(url, i) => `${url}-${i}`}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={photoViewer.index}
+                getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
+                onMomentumScrollEnd={e => setPhotoViewerIndex(Math.round(e.nativeEvent.contentOffset.x / W))}
+                renderItem={({ item }) => (
+                  <View style={{ width: W, alignItems: 'center', justifyContent: 'center' }}>
+                    <Image source={{ uri: item }} style={styles.photoModalImage} resizeMode="contain" />
+                  </View>
+                )}
+              />
+              {photos.length > 1 && (
+                <Text style={styles.photoCounter}>{photoViewerIndex + 1} / {photos.length}</Text>
+              )}
+            </View>
+          )
+        })()}
+      </Modal>
       </KeyboardAvoidingView>
     )
   }
@@ -365,11 +467,18 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           ) : (
             <View style={styles.dateGrid}>
               {(() => {
-                const todayStr = new Date().toISOString().split('T')[0]
+                // Local calendar date, not UTC (toISOString shifts to UTC, which can
+                // read as "yesterday" in Sri Lanka during the early-morning hours
+                // before UTC midnight) — this must match the device's actual "today"
+                // so a stale/late-night fetch can never leave a past date clickable.
+                const now = new Date()
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
                 return dates.map(slot => {
                 const hasMsg = !!slot.message
                 const msgColor = slot.messageColor || colors.orange
                 const isToday = slot.date === todayStr
+                const isPast = slot.date < todayStr
+                const isSelectable = slot.available && !isPast
                 return (
                   <TouchableOpacity
                     key={slot.date}
@@ -381,33 +490,35 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       slot.isWorkDay && !slot.available && slot.status === 'open' && styles.dateCellFull,
                       hasMsg && slot.available && { borderColor: msgColor, borderWidth: 2 },
                       isToday && styles.dateCellToday,
+                      isPast && styles.dateCellOff,
                     ]}
                     onPress={() => handleSelectDate(slot)}
-                    disabled={!slot.available}
-                    activeOpacity={slot.available ? 0.7 : 1}
+                    disabled={!isSelectable}
+                    activeOpacity={isSelectable ? 0.7 : 1}
                   >
-                    <Text style={[styles.dateDayName, !slot.available && styles.dateDimText]}>
+                    <Text style={[styles.dateDayName, !isSelectable && styles.dateDimText]}>
                       {slot.dayName}
                     </Text>
                     <View style={[styles.todayCircleWrap, isToday && styles.todayCircleWrapActive]}>
                       <Text style={[
                         styles.dateDayNum,
-                        slot.available && styles.dateDayNumAvailable,
-                        (slot.status === 'holiday' || (slot.isWorkDay && !slot.available && slot.status === 'open')) && styles.dateDayNumMuted,
+                        isSelectable && styles.dateDayNumAvailable,
+                        (slot.status === 'holiday' || (slot.isWorkDay && !slot.available && slot.status === 'open') || isPast) && styles.dateDayNumMuted,
                         isToday && styles.dateDayNumToday,
                       ]}>
                         {slot.dayNum}
                       </Text>
                     </View>
-                    <Text style={[styles.dateMonth, !slot.available && styles.dateDimText]}>
+                    <Text style={[styles.dateMonth, !isSelectable && styles.dateDimText]}>
                       {slot.month}
                     </Text>
-                    {slot.available && (
+                    {isSelectable && (
                       <Text style={styles.dateSlotsAvail}>{t('booking.remainingLeft', { count: slot.remaining })}</Text>
                     )}
-                    {slot.status === 'closed' && <Text style={styles.dateClosedText}>{t('booking.closed')}</Text>}
-                    {slot.status === 'holiday' && <Text style={styles.dateHolidayText}>{t('booking.holiday')}</Text>}
-                    {slot.isWorkDay && slot.status === 'open' && !slot.available && (
+                    {isPast && <Text style={styles.dateClosedText}>{t('booking.past')}</Text>}
+                    {!isPast && slot.status === 'closed' && <Text style={styles.dateClosedText}>{t('booking.closed')}</Text>}
+                    {!isPast && slot.status === 'holiday' && <Text style={styles.dateHolidayText}>{t('booking.holiday')}</Text>}
+                    {!isPast && slot.isWorkDay && slot.status === 'open' && !slot.available && (
                       <Text style={styles.dateFullText}>{t('booking.full')}</Text>
                     )}
                     {hasMsg && (
@@ -760,6 +871,31 @@ function makeStyles(c: Colors) {
     },
     priceListService: { fontSize: 13, color: c.textSub },
     priceListValue: { fontSize: 13, color: c.text, fontWeight: '700' },
+    promoBanner: {
+      backgroundColor: c.primaryTint, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12,
+      marginTop: 10,
+    },
+    promoBannerText: { fontSize: 13, fontWeight: '700', color: c.primaryTintText },
+    serviceTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+    serviceTag: {
+      backgroundColor: c.surfaceAlt, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 9,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    serviceTagText: { fontSize: 12, color: c.textSub, fontWeight: '600' },
+    infoExpandBox: { marginTop: 8, gap: 8 },
+    infoText: { fontSize: 13, color: c.textSub, lineHeight: 19 },
+    infoLink: { fontSize: 13, color: c.primary, fontWeight: '600' },
+    profilePhotoStrip: { marginBottom: 2 },
+    profilePhotoThumb: { width: 90, height: 70, borderRadius: 10, marginRight: 8, backgroundColor: c.surfaceAlt },
+    photoModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', justifyContent: 'center' },
+    photoModalClose: {
+      position: 'absolute', top: 44, right: 20, zIndex: 1,
+      width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    photoModalCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    photoModalImage: { width: '100%', height: '80%' },
+    photoCounter: { position: 'absolute', bottom: 36, alignSelf: 'center', color: '#fff', fontSize: 14, fontWeight: '600' },
     reviewsBox: { marginTop: 8, marginBottom: 8 },
     reviewsDistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
     reviewsDistLabel: { width: 26, fontSize: 11, color: c.textSub, fontWeight: '600' },

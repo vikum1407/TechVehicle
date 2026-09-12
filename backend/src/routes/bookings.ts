@@ -229,6 +229,52 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /bookings/:id/garage-cancel — garage cancels a booking (e.g. a no-show),
+// freeing the slot back up since each slot only allows one booking at a time.
+router.post('/:id/garage-cancel', async (req: AuthRequest, res) => {
+  const id = req.params.id as string
+  try {
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: req.phoneNumber! } })
+    if (!garage) { res.status(404).json({ error: 'No garage account' }); return }
+
+    const booking = await prisma.booking.findFirst({
+      where: { id, garageId: garage.id, status: { notIn: ['cancelled', 'completed'] } },
+      include: { vehicle: true },
+    })
+    if (!booking) { res.status(404).json({ error: 'Booking not found' }); return }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: { status: 'cancelled' },
+      include: { vehicle: true },
+    })
+
+    const owner = await prisma.user.findUnique({ where: { phoneNumber: booking.ownerPhone } })
+    const prefs = parsePrefs(owner?.notificationPrefs)
+    const dateStr = new Date(booking.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    if (prefs.booking) {
+      await sendPush(
+        owner?.pushToken,
+        'Booking Cancelled',
+        `${garage.name} cancelled your booking for ${dateStr}`,
+        { screen: 'vehicles' }
+      )
+    }
+    await createNotification(
+      prisma, booking.ownerPhone,
+      'booking_cancelled',
+      updated.vehicle.registrationNo,
+      `${garage.name} cancelled your booking for ${dateStr}`,
+      { screen: 'vehicleDashboard', vehicleId: booking.vehicleId }
+    )
+
+    res.json(updated)
+  } catch (error) {
+    console.error('POST /bookings/:id/garage-cancel error:', error)
+    res.status(500).json({ error: 'Failed to cancel booking' })
+  }
+})
+
 // POST /bookings/:id/counter — garage proposes a different date/slot
 router.post('/:id/counter', async (req: AuthRequest, res) => {
   const id = req.params.id as string
