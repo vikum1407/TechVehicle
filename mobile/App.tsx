@@ -596,7 +596,13 @@ export default function App() {
           initialTab={predictionsInitialTab}
           readOnly={selectedVehicle.isShared}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
-          onLogNow={() => { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setScreen('addServiceRecord') }}
+          onLogNow={(serviceName) => {
+            const n = serviceName.toLowerCase()
+            if (n.includes('emission')) { setTestsInitialTab('emission'); setScreen('vehicleTests') }
+            else if (n.includes('wheel alignment')) { setTestsInitialTab('alignment'); setScreen('vehicleTests') }
+            else if (n.includes('chain')) { setTestsInitialTab('chain'); setScreen('vehicleTests') }
+            else { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setScreen('addServiceRecord') }
+          }}
           onEditRecord={(id) => { setHistoryEditRecordId(id); setHistoryReturnTo('predictions'); setScreen('vehicleHistory') }}
         />
       )}
