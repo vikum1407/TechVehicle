@@ -41,10 +41,20 @@ type Garage = {
   id: string
   name: string
   address: string | null
+  addressLine?: string | null
+  village?: string | null
+  town?: string | null
   brNumber: string | null
   verified: boolean
   createdAt: string
   priceList?: { service: string; price: number }[] | null
+  photos?: string[]
+  aboutBio?: string | null
+  services?: string[]
+  contactPhone?: string | null
+  promoText?: string | null
+  websiteUrl?: string | null
+  googleMapsUrl?: string | null
   avgRating?: number | null
   ratingCount?: number
 }
@@ -151,6 +161,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [bookings, setBookings] = useState<Booking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [counterModal, setCounterModal] = useState<{ bookingId: string } | null>(null)
   const [counterDate, setCounterDate] = useState('')
   const [counterSlot, setCounterSlot] = useState('')
@@ -212,9 +223,19 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   // Garage profile form
   const [name, setName] = useState('')
-  const [address, setAddress] = useState('')
+  const [addressLine, setAddressLine] = useState('')
+  const [village, setVillage] = useState('')
+  const [town, setTown] = useState('')
   const [brNumber, setBrNumber] = useState('')
   const [priceListRows, setPriceListRows] = useState<{ service: string; price: string }[]>([])
+  const [profilePhotos, setProfilePhotos] = useState<string[]>([])
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false)
+  const [aboutBio, setAboutBio] = useState('')
+  const [servicesText, setServicesText] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [promoText, setPromoText] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('')
   const [ratingsModalOpen, setRatingsModalOpen] = useState(false)
   const [ratingsLoading, setRatingsLoading] = useState(false)
   const [ratingsDetail, setRatingsDetail] = useState<{
@@ -247,7 +268,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       .then(data => {
         setGarage(data)
         setName(data.name)
-        setAddress(data.address || '')
+        setAddressLine(data.addressLine || '')
+        setVillage(data.village || '')
+        setTown(data.town || '')
         setBrNumber(data.brNumber || '')
       })
       .catch(e => {
@@ -290,6 +313,31 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     } finally {
       setConfirmingId(null)
     }
+  }
+
+  const handleGarageCancelBooking = (bookingId: string) => {
+    Alert.alert(
+      t('garage.cancelBooking.title'),
+      t('garage.cancelBooking.message'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('garage.cancelBooking.confirm'),
+          style: 'destructive',
+          onPress: async () => {
+            setCancellingId(bookingId)
+            try {
+              await api.garageCancelBooking(token, bookingId)
+              setBookings(prev => prev.filter(b => b.id !== bookingId))
+            } catch (e: any) {
+              Alert.alert(t('common.error'), e.message)
+            } finally {
+              setCancellingId(null)
+            }
+          },
+        },
+      ]
+    )
   }
 
   const handleCounterSubmit = async () => {
@@ -543,9 +591,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   const handleRegister = async () => {
     if (!name.trim()) { Alert.alert(t('garage.nameRequired.title'), t('garage.nameRequired.message')); return }
+    if (!village.trim() || !town.trim()) {
+      Alert.alert(t('garage.nameRequired.title'), t('garage.villageTownRequired'))
+      return
+    }
     setSaving(true)
     try {
-      const data = await api.registerGarage(token, { name, address, brNumber })
+      const data = await api.registerGarage(token, { name, addressLine, village, town, brNumber })
       setGarage(data)
       setEditing(false)
       setTab('schedule')
@@ -559,15 +611,74 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   const handleUpdate = async () => {
     if (!name.trim()) { Alert.alert(t('garage.nameRequired.title'), t('garage.nameRequired.message')); return }
+    if (!village.trim() || !town.trim()) {
+      Alert.alert(t('garage.nameRequired.title'), t('garage.villageTownRequired'))
+      return
+    }
+    if (contactPhone.trim() && !/^0?7\d{8}$/.test(contactPhone.replace(/[\s-]/g, ''))) {
+      Alert.alert(t('garage.nameRequired.title'), t('garage.contactPhoneInvalid'))
+      return
+    }
     setSaving(true)
     try {
-      const data = await api.updateGarage(token, { name, address, brNumber })
+      const services = servicesText.split(',').map(s => s.trim()).filter(Boolean)
+      const data = await api.updateGarage(token, {
+        name, addressLine, village, town, brNumber,
+        photos: profilePhotos,
+        aboutBio,
+        services,
+        contactPhone,
+        promoText,
+        websiteUrl,
+        googleMapsUrl,
+      })
       setGarage(data)
       setEditing(false)
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const pickProfilePhoto = async (source: 'camera' | 'gallery') => {
+    const remaining = 5 - profilePhotos.length
+    if (remaining <= 0) {
+      Alert.alert(t('garage.photoLimitReached.title'), t('garage.photoLimitReached.message'))
+      return
+    }
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert(
+        t('addService.permissionNeeded.title'),
+        t('addService.permissionNeeded.message', { source: t(source === 'camera' ? 'addService.cameraAccess' : 'addService.galleryAccess') })
+      )
+      return
+    }
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remaining })
+    if (result.canceled || result.assets.length === 0) return
+    setUploadingProfilePhoto(true)
+    let added = 0
+    try {
+      for (const asset of result.assets.slice(0, remaining)) {
+        if (profilePhotos.length + added >= 5) break
+        const compressed = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        )
+        const url = await api.uploadPhoto(token, compressed.uri)
+        setProfilePhotos(prev => prev.length >= 5 ? prev : [...prev, url])
+        added++
+      }
+    } catch (e: any) {
+      Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
+    } finally {
+      setUploadingProfilePhoto(false)
     }
   }
 
@@ -578,7 +689,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       const priceList = priceListRows
         .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
         .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
-      const data = await api.updateGarage(token, { name: garage.name, address: garage.address ?? undefined, brNumber: garage.brNumber ?? undefined, priceList })
+      const data = await api.updateGarage(token, {
+        name: garage.name,
+        addressLine: garage.addressLine ?? undefined,
+        village: garage.village ?? undefined,
+        town: garage.town ?? undefined,
+        brNumber: garage.brNumber ?? undefined,
+        priceList,
+      })
       setGarage(data)
       Alert.alert(t('logEmissionTest.saved.title'), t('garage.priceListSaved'))
     } catch (e: any) {
@@ -698,7 +816,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   }
 
   const pickSubPhoto = async (source: 'camera' | 'gallery') => {
-    if (subPhotos.length >= 5) {
+    const remaining = 5 - subPhotos.length
+    if (remaining <= 0) {
       Alert.alert(t('garage.photoLimitReached.title'), t('garage.photoLimitReached.message'))
       return
     }
@@ -714,17 +833,22 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
     const result = source === 'camera'
       ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
-    if (result.canceled || !result.assets[0]) return
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remaining })
+    if (result.canceled || result.assets.length === 0) return
     setUploadingSubPhoto(true)
+    let added = 0
     try {
-      const compressed = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      )
-      const url = await api.uploadPhoto(token, compressed.uri)
-      setSubPhotos(prev => [...prev, url])
+      for (const asset of result.assets.slice(0, remaining)) {
+        if (subPhotos.length + added >= 5) break
+        const compressed = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        )
+        const url = await api.uploadPhoto(token, compressed.uri)
+        setSubPhotos(prev => prev.length >= 5 ? prev : [...prev, url])
+        added++
+      }
     } catch (e: any) {
       Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
     } finally {
@@ -844,7 +968,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <Text style={styles.formSubtitle}>{t('garage.tapEverythingVisit')}</Text>
 
-        {getServiceCategories(submittingShare?.vehicle?.vehicleType).map(cat => (
+        {getServiceCategories(submittingShare?.vehicle?.vehicleType, submittingShare?.vehicle?.fuelType).map(cat => (
           <View key={cat.title}>
             <Text style={styles.catLabel}>{cat.title}</Text>
             <View style={styles.chipRow}>
@@ -956,7 +1080,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             </View>
           ))}
           {subPhotos.length < 5 && (
-            <View style={styles.photoActions}>
+            <View style={styles.photoActionsFull}>
               <TouchableOpacity
                 style={styles.photoBtn}
                 onPress={() => pickSubPhoto('camera')}
@@ -1209,14 +1333,51 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <Text style={styles.detail}>
                   💰 {garage.priceList && garage.priceList.length > 0 ? t('garage.pricesListed', { count: garage.priceList.length }) : t('garage.noPriceList')}
                 </Text>
+
+                {!!garage.promoText && (
+                  <View style={styles.promoBanner}>
+                    <Text style={styles.promoBannerText}>📣 {garage.promoText}</Text>
+                  </View>
+                )}
+
+                {!!garage.photos?.length && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.profilePhotoStrip}>
+                    {garage.photos.map((url, i) => (
+                      <Image key={i} source={{ uri: url }} style={styles.profilePhotoThumb} />
+                    ))}
+                  </ScrollView>
+                )}
+
+                {!!garage.aboutBio && <Text style={styles.detail}>{garage.aboutBio}</Text>}
+
+                {!!garage.services?.length && (
+                  <View style={styles.serviceTagRow}>
+                    {garage.services.map((sv, i) => (
+                      <View key={i} style={styles.serviceTag}><Text style={styles.serviceTagText}>{sv}</Text></View>
+                    ))}
+                  </View>
+                )}
+
+                {garage.contactPhone && <Text style={styles.detail}>📞 {garage.contactPhone}</Text>}
+                {garage.websiteUrl && <Text style={styles.detail}>🌐 {garage.websiteUrl}</Text>}
+                {garage.googleMapsUrl && <Text style={styles.detail}>🗺️ {t('garage.viewOnMaps')}</Text>}
               </View>
 
               <TouchableOpacity
                 style={styles.editBtn}
                 onPress={() => {
                   setName(garage.name)
-                  setAddress(garage.address || '')
+                  setAddressLine(garage.addressLine || '')
+                  setVillage(garage.village || '')
+                  setTown(garage.town || '')
                   setBrNumber(garage.brNumber || '')
+                  setProfilePhotos(garage.photos || [])
+                  setAboutBio(garage.aboutBio || '')
+                  setServicesText((garage.services || []).join(', '))
+                  setContactPhone(garage.contactPhone || '')
+                  setPromoText(garage.promoText || '')
+                  setWebsiteUrl(garage.websiteUrl || '')
+                  setGoogleMapsUrl(garage.googleMapsUrl || '')
                   setEditing(true)
                 }}
               >
@@ -1234,11 +1395,17 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   : t('garage.setupProfileNote')}
               </Text>
 
-              <Text style={styles.label}>{t('garage.garageName')}</Text>
+              <Text style={styles.label}>{t('garage.garageName')} <Text style={styles.requiredStar}>*</Text></Text>
               <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Silva Auto Service" />
 
-              <Text style={styles.label}>{t('garage.addressOptional')}</Text>
-              <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="e.g. 45/A Kandy Road, Kelaniya" />
+              <Text style={styles.label}>{t('garage.addressLineOptional')}</Text>
+              <TextInput style={styles.input} value={addressLine} onChangeText={setAddressLine} placeholder="e.g. 45/A Kandy Road" />
+
+              <Text style={styles.label}>{t('garage.villageLabel')} <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput style={styles.input} value={village} onChangeText={setVillage} placeholder="e.g. Kelaniya" />
+
+              <Text style={styles.label}>{t('garage.townLabel')} <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput style={styles.input} value={town} onChangeText={setTown} placeholder="e.g. Colombo" />
 
               <Text style={styles.label}>{t('garage.brNumberOptional')}</Text>
               <TextInput style={styles.input} value={brNumber} onChangeText={setBrNumber} placeholder="e.g. PV 00123456" autoCapitalize="characters" />
@@ -1248,6 +1415,76 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   {t('garage.brNoteText')}
                 </Text>
               </View>
+
+              {garage && (
+                <>
+                  <Text style={styles.label}>{t('garage.aboutBioOptional')}</Text>
+                  <TextInput
+                    style={[styles.input, styles.inputMultiline]}
+                    value={aboutBio}
+                    onChangeText={setAboutBio}
+                    placeholder={t('garage.aboutBioPlaceholder')}
+                    multiline
+                    numberOfLines={3}
+                  />
+
+                  <Text style={styles.label}>{t('garage.servicesOptional')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={servicesText}
+                    onChangeText={setServicesText}
+                    placeholder={t('garage.servicesPlaceholder')}
+                  />
+
+                  <Text style={styles.label}>{t('garage.contactPhoneOptional')}</Text>
+                  <TextInput style={styles.input} value={contactPhone} onChangeText={setContactPhone} placeholder="e.g. 077 123 4567" keyboardType="phone-pad" maxLength={12} />
+
+                  <Text style={styles.label}>{t('garage.promoTextOptional')}</Text>
+                  <TextInput style={styles.input} value={promoText} onChangeText={setPromoText} placeholder={t('garage.promoTextPlaceholder')} />
+
+                  <Text style={styles.label}>{t('garage.websiteUrlOptional')}</Text>
+                  <TextInput style={styles.input} value={websiteUrl} onChangeText={setWebsiteUrl} placeholder="e.g. www.silvaauto.lk" autoCapitalize="none" keyboardType="url" />
+
+                  <Text style={styles.label}>{t('garage.googleMapsUrlOptional')}</Text>
+                  <TextInput style={styles.input} value={googleMapsUrl} onChangeText={setGoogleMapsUrl} placeholder="e.g. maps.app.goo.gl/..." autoCapitalize="none" keyboardType="url" />
+
+                  <Text style={styles.label}>{t('garage.photosOptional')}</Text>
+                  <View style={styles.photoRow}>
+                    {profilePhotos.map((url) => (
+                      <View key={url} style={styles.photoThumb}>
+                        <Image source={{ uri: url }} style={styles.thumbImg} />
+                        <TouchableOpacity
+                          style={styles.photoRemove}
+                          onPress={() => setProfilePhotos(prev => prev.filter(p => p !== url))}
+                        >
+                          <Text style={styles.photoRemoveText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {profilePhotos.length < 5 && (
+                      <View style={styles.photoActionsFull}>
+                        <TouchableOpacity
+                          style={styles.photoBtn}
+                          onPress={() => pickProfilePhoto('camera')}
+                          disabled={uploadingProfilePhoto}
+                        >
+                          {uploadingProfilePhoto
+                            ? <ActivityIndicator size="small" color={colors.primary} />
+                            : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
+                          }
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.photoBtn}
+                          onPress={() => pickProfilePhoto('gallery')}
+                          disabled={uploadingProfilePhoto}
+                        >
+                          <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
 
               {editing && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
@@ -1717,19 +1954,31 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </View>
                 )}
 
-                {/* Messages toggle — always visible on every booking card */}
-                <TouchableOpacity
-                  style={styles.messagesToggleBtn}
-                  onPress={(e) => { e.stopPropagation?.(); toggleMessages(booking.id) }}
-                >
-                  <Text style={styles.messagesToggleBtnText}>
-                    💬 {t('garage.messagesWithOwner')} {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
-                  </Text>
-                  {(() => {
-                    const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
-                    return unread > 0 ? <View style={styles.msgDot} /> : null
-                  })()}
-                </TouchableOpacity>
+                {/* Messages toggle + cancel — always visible on every booking card */}
+                <View style={styles.bookingBottomRow}>
+                  <TouchableOpacity
+                    style={[styles.messagesToggleBtn, { marginTop: 0 }]}
+                    onPress={(e) => { e.stopPropagation?.(); toggleMessages(booking.id) }}
+                  >
+                    <Text style={styles.messagesToggleBtnText} numberOfLines={1}>
+                      💬 {t('garage.messagesWithOwner')} {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
+                    </Text>
+                    {(() => {
+                      const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
+                      return unread > 0 ? <View style={styles.msgDot} /> : null
+                    })()}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelBookingBtn}
+                    onPress={(e) => { e.stopPropagation?.(); handleGarageCancelBooking(booking.id) }}
+                    disabled={cancellingId === booking.id}
+                  >
+                    {cancellingId === booking.id
+                      ? <ActivityIndicator color="#c62828" size="small" />
+                      : <Text style={styles.cancelBookingBtnText} numberOfLines={1}>🗑 {t('garage.cancelBooking.button')}</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
 
                 {/* Messages thread — shown independently of card expand */}
                 {expandedMessagesSet.has(booking.id) && (
@@ -2078,6 +2327,16 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             })
             const thisMonthRevenue = thisMonthJobs.reduce((s, j) => s + (j.cost ?? 0), 0)
 
+            // Last month, for the vs-last-month comparison
+            const lastMonthDate = new Date(); lastMonthDate.setDate(1); lastMonthDate.setMonth(lastMonthDate.getMonth() - 1)
+            const lastMonthRevenue = completed.filter(j => {
+              const d = new Date(j.createdAt)
+              return d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear()
+            }).reduce((s, j) => s + (j.cost ?? 0), 0)
+            const monthTrend = lastMonthRevenue > 0
+              ? { pct: Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100), isNew: false }
+              : (thisMonthRevenue > 0 ? { pct: 0, isNew: true } : null)
+
             // Last 6 months bar data
             const months: { label: string; revenue: number }[] = []
             for (let i = 5; i >= 0; i--) {
@@ -2123,6 +2382,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <Text style={styles.revCardLabel}>{t('garage.thisMonth')}</Text>
                     <Text style={styles.revCardValue}>LKR {thisMonthRevenue.toLocaleString()}</Text>
                     <Text style={styles.revCardSub}>{t('garage.jobCount', { count: thisMonthJobs.length, s: thisMonthJobs.length !== 1 ? 's' : '' })}</Text>
+                    {monthTrend && (
+                      <Text style={[styles.revTrend, { color: monthTrend.isNew || monthTrend.pct >= 0 ? colors.success : colors.error }]}>
+                        {monthTrend.isNew ? t('garage.newThisMonth') : `${monthTrend.pct >= 0 ? '↑' : '↓'} ${Math.abs(monthTrend.pct)}% ${t('garage.vsLastMonth')}`}
+                      </Text>
+                    )}
                   </View>
                 </View>
                 <View style={styles.revSummaryRow}>
@@ -2466,7 +2730,7 @@ function makeStyles(c: Colors, topInset: number) {
       width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
     },
     photoRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-    photoActions: { flexDirection: 'row', gap: 8 },
+    photoActionsFull: { flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 },
     photoBtn: {
       flex: 1, paddingVertical: 10, borderRadius: 10,
       borderWidth: 1.5, borderColor: c.primary,
@@ -2552,6 +2816,20 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 14,
       fontSize: 15, color: c.text, borderWidth: 1, borderColor: c.borderMid,
     },
+    inputMultiline: { height: 80, textAlignVertical: 'top' },
+    promoBanner: {
+      backgroundColor: c.primaryTint, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14,
+      marginTop: 10, marginBottom: 6,
+    },
+    promoBannerText: { fontSize: 13.5, fontWeight: '700', color: c.primaryTintText },
+    profilePhotoStrip: { marginTop: 10, marginBottom: 6 },
+    profilePhotoThumb: { width: 90, height: 70, borderRadius: 10, marginRight: 8, backgroundColor: c.surfaceAlt },
+    serviceTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 4 },
+    serviceTag: {
+      backgroundColor: c.surfaceAlt, borderRadius: 8, paddingVertical: 5, paddingHorizontal: 10,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    serviceTagText: { fontSize: 12.5, color: c.textSub, fontWeight: '600' },
     brNote: { backgroundColor: c.primaryTint, borderRadius: 10, padding: 14, marginTop: 14 },
     brNoteText: { fontSize: 13, color: c.primaryTintText, lineHeight: 19 },
     cancelBtn: {
@@ -2816,12 +3094,19 @@ function makeStyles(c: Colors, topInset: number) {
     },
     noteSendBtnDisabled: { opacity: 0.4 },
     noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+    bookingBottomRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 10 },
     messagesToggleBtn: {
-      marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
+      flex: 1.4, marginTop: 10, paddingVertical: 9, paddingHorizontal: 10,
       backgroundColor: c.primaryTint, borderRadius: 8,
-      flexDirection: 'row', alignItems: 'center', gap: 8,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     },
-    messagesToggleBtnText: { fontSize: 13, color: c.primary, fontWeight: '700', flex: 1 },
+    messagesToggleBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    cancelBookingBtn: {
+      flex: 1, paddingVertical: 9, paddingHorizontal: 10,
+      backgroundColor: '#ffebee', borderRadius: 8,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    cancelBookingBtnText: { fontSize: 13, color: '#c62828', fontWeight: '700' },
     msgDot: {
       width: 10, height: 10, borderRadius: 5,
       backgroundColor: '#e53935',
@@ -2875,6 +3160,7 @@ function makeStyles(c: Colors, topInset: number) {
     revCardLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
     revCardValue: { fontSize: 18, fontWeight: '800', color: c.primary, marginBottom: 2 },
     revCardSub: { fontSize: 12, color: c.textFaint },
+    revTrend: { fontSize: 12, fontWeight: '700', marginTop: 2 },
     revChartCard: {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,
       shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,

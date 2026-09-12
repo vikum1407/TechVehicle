@@ -94,6 +94,7 @@ model FuelLog {
   date      DateTime
   mileage   Int
   litres    Float?
+  kWh       Float?
   cost      Float?
   fullTank  Boolean  @default(true)
   station   String?
@@ -106,6 +107,9 @@ model Garage {
   ownerPhone    String               @unique
   name          String
   address       String?
+  addressLine   String?
+  village       String?
+  town          String?
   brNumber      String?
   verified      Boolean              @default(false)
   createdAt     DateTime             @default(now())
@@ -119,6 +123,13 @@ model Garage {
   reminders         GarageReminder[]
   ratings           GarageRating[]
   priceList         Json?
+  photos        String[]
+  aboutBio      String?
+  services      String[]
+  contactPhone  String?
+  promoText     String?
+  websiteUrl    String?
+  googleMapsUrl String?
 }
 
 model GarageReminder {

@@ -19,6 +19,18 @@ export const api = {
     return data
   },
 
+  // Dev-only helper: 404s in production, so it's safe to call unconditionally.
+  getDevOTP: async (phoneNumber: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`${API_URL}/auth/dev-otp?phoneNumber=${encodeURIComponent(phoneNumber)}`)
+      if (!res.ok) return null
+      const data = await res.json()
+      return data.otp || null
+    } catch {
+      return null
+    }
+  },
+
   verifyOTP: async (phoneNumber: string, otp: string) => {
     const res = await fetch(`${API_URL}/auth/verify-otp`, {
       method: 'POST',
@@ -91,7 +103,7 @@ export const api = {
     return data
   },
 
-  registerGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string }) => {
+  registerGarage: async (token: string, garage: { name: string; addressLine?: string; village?: string; town?: string; brNumber?: string }) => {
     const res = await fetch(`${API_URL}/garages/register`, {
       method: 'POST',
       headers: authHeaders(token),
@@ -102,7 +114,12 @@ export const api = {
     return data
   },
 
-  updateGarage: async (token: string, garage: { name: string; address?: string; brNumber?: string; priceList?: { service: string; price: number }[] }) => {
+  updateGarage: async (token: string, garage: {
+    name: string; addressLine?: string; village?: string; town?: string; brNumber?: string
+    priceList?: { service: string; price: number }[]
+    photos?: string[]; aboutBio?: string; services?: string[]; contactPhone?: string
+    promoText?: string; websiteUrl?: string; googleMapsUrl?: string
+  }) => {
     const res = await fetch(`${API_URL}/garages/me`, {
       method: 'PUT',
       headers: authHeaders(token),
@@ -122,6 +139,8 @@ export const api = {
     return data as {
       id: string; name: string; address: string | null; verified: boolean
       priceList: { service: string; price: number }[] | null
+      photos: string[]; aboutBio: string | null; services: string[]; contactPhone: string | null
+      promoText: string | null; websiteUrl: string | null; googleMapsUrl: string | null
       avgRating: number | null; ratingCount: number
     }[]
   },
@@ -359,6 +378,7 @@ export const api = {
     date: string
     mileage: number
     litres?: number
+    kWh?: number
     cost?: number
     fullTank?: boolean
     station?: string
@@ -557,6 +577,16 @@ export const api = {
   cancelBooking: async (token: string, bookingId: string) => {
     const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
       method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to cancel booking')
+    return data
+  },
+
+  garageCancelBooking: async (token: string, bookingId: string) => {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/garage-cancel`, {
+      method: 'POST',
       headers: authHeaders(token),
     })
     const data = await res.json()
@@ -844,7 +874,7 @@ export const api = {
   },
 
   updateFuelLog: async (token: string, id: string, data: {
-    date?: string; mileage?: number; litres?: number | null; cost?: number | null; station?: string | null
+    date?: string; mileage?: number; litres?: number | null; kWh?: number | null; cost?: number | null; station?: string | null
   }) => {
     const res = await fetch(`${API_URL}/fuel-logs/${id}`, {
       method: 'PATCH',
@@ -947,13 +977,20 @@ export const api = {
     const match = /\.(\w+)$/.exec(filename)
     const mimeType = match ? `image/${match[1]}` : 'image/jpeg'
 
-    const result = await FileSystem.uploadAsync(`${API_URL}/uploads/photo`, uri, {
+    // No timeout on uploadAsync itself — on a flaky connection a dead upload can
+    // hang indefinitely with no error, silently dropping the photo. Race it
+    // against a timeout so a bad connection always surfaces as a visible error.
+    const uploadPromise = FileSystem.uploadAsync(`${API_URL}/uploads/photo`, uri, {
       httpMethod: 'POST',
       uploadType: FileSystem.FileSystemUploadType.MULTIPART,
       fieldName: 'photo',
       mimeType,
       headers: { Authorization: `Bearer ${token}` },
     })
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Upload timed out — check your connection and try again')), 30000)
+    )
+    const result = await Promise.race([uploadPromise, timeoutPromise])
 
     let data: any
     try {
@@ -968,7 +1005,13 @@ export const api = {
   updateVehicleExpiry: async (
     token: string,
     vehicleId: string,
-    payload: { emissionTestExpiry?: string | null; revenueLicenceExpiry?: string | null; insuranceExpiry?: string | null; insuranceCompany?: string | null; insurancePolicyNo?: string | null }
+    payload: {
+      emissionTestExpiry?: string | null; revenueLicenceExpiry?: string | null
+      insuranceExpiry?: string | null; insuranceCompany?: string | null; insurancePolicyNo?: string | null
+      skipHistory?: boolean
+      insurancePolicyHistory?: { company: string | null; policyNo: string | null; expiry: string | null; replacedAt: string }[]
+      revenueLicenceHistory?: { expiry: string | null; replacedAt: string }[]
+    }
   ) => {
     const res = await fetch(`${API_URL}/vehicles/${vehicleId}/expiry`, {
       method: 'PATCH',

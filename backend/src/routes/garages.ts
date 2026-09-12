@@ -4,12 +4,20 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { computePredictions } from '../utils/predictionEngine'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
-import { capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
+import { capText, isSafeUrl, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
 
 router.use(authMiddleware)
+
+// Sri Lankan addresses are commonly given as lane/house number, village, town —
+// composed here into a single display string so every screen that already
+// shows `garage.address` keeps working unchanged.
+function composeAddress(addressLine?: string | null, village?: string | null, town?: string | null): string | null {
+  const parts = [addressLine, village, town].map(p => p?.trim()).filter((p): p is string => !!p)
+  return parts.length > 0 ? parts.join(', ') : null
+}
 
 // GET /garages/me
 router.get('/me', async (req: AuthRequest, res) => {
@@ -28,9 +36,16 @@ router.get('/me', async (req: AuthRequest, res) => {
 
 // POST /garages/register
 router.post('/register', async (req: AuthRequest, res) => {
-  const { name, address, brNumber } = req.body
+  const { name, address, addressLine, village, town, brNumber } = req.body
   if (!name?.trim()) {
     res.status(400).json({ error: 'Garage name is required' }); return
+  }
+  // Structured address (addressLine/village/town) is the current form; a caller on
+  // an older app build that only ever sends a bare `address` string must still be
+  // able to register without ever having heard of village/town.
+  const hasStructuredAddress = addressLine !== undefined || village !== undefined || town !== undefined
+  if (hasStructuredAddress && (!village?.trim() || !town?.trim())) {
+    res.status(400).json({ error: 'Village and town are required' }); return
   }
   try {
     const existing = await prisma.garage.findUnique({
@@ -42,7 +57,14 @@ router.post('/register', async (req: AuthRequest, res) => {
       data: {
         ownerPhone: req.phoneNumber!,
         name: capText(name.trim(), SHORT_TEXT_LEN),
-        address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null,
+        ...(hasStructuredAddress
+          ? {
+              addressLine: addressLine?.trim() ? capText(addressLine, SHORT_TEXT_LEN) : null,
+              village: village?.trim() ? capText(village, SHORT_TEXT_LEN) : null,
+              town: town?.trim() ? capText(town, SHORT_TEXT_LEN) : null,
+              address: composeAddress(addressLine, village, town),
+            }
+          : { address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null }),
         brNumber: brNumber?.trim() ? capText(brNumber, SHORT_TEXT_LEN) : null,
         verified: false,
       },
@@ -56,9 +78,18 @@ router.post('/register', async (req: AuthRequest, res) => {
 
 // PUT /garages/me
 router.put('/me', async (req: AuthRequest, res) => {
-  const { name, address, brNumber, priceList } = req.body
+  const {
+    name, address, addressLine, village, town, brNumber, priceList,
+    photos, aboutBio, services, contactPhone, promoText, websiteUrl, googleMapsUrl,
+  } = req.body
   if (!name?.trim()) {
     res.status(400).json({ error: 'Garage name is required' }); return
+  }
+  // Structured address (addressLine/village/town) is the current form; a bare
+  // `address` string is kept accepted for any older caller still sending it.
+  const hasStructuredAddress = addressLine !== undefined || village !== undefined || town !== undefined
+  if (hasStructuredAddress && (!village?.trim() || !town?.trim())) {
+    res.status(400).json({ error: 'Village and town are required' }); return
   }
   if (priceList !== undefined && priceList !== null) {
     if (!Array.isArray(priceList) || priceList.length > 200) {
@@ -68,16 +99,55 @@ router.put('/me', async (req: AuthRequest, res) => {
       res.status(400).json({ error: 'Each price list item must be an object under 500 characters' }); return
     }
   }
+  if (photos !== undefined && photos !== null) {
+    if (!Array.isArray(photos) || photos.length > 10) {
+      res.status(400).json({ error: 'photos must be an array of at most 10 items' }); return
+    }
+    if (!photos.every((p: unknown) => typeof p === 'string' && p.length <= 2048)) {
+      res.status(400).json({ error: 'Each photo must be a URL under 2048 characters' }); return
+    }
+  }
+  if (services !== undefined && services !== null) {
+    if (!Array.isArray(services) || services.length > 20) {
+      res.status(400).json({ error: 'services must be an array of at most 20 items' }); return
+    }
+    if (!services.every((sItem: unknown) => typeof sItem === 'string' && sItem.length <= SHORT_TEXT_LEN)) {
+      res.status(400).json({ error: `Each service tag must be under ${SHORT_TEXT_LEN} characters` }); return
+    }
+  }
+  if (contactPhone?.trim() && !/^0?7\d{8}$/.test(String(contactPhone).replace(/[\s-]/g, ''))) {
+    res.status(400).json({ error: 'Contact phone must be a valid Sri Lankan mobile number, e.g. 077 123 4567' }); return
+  }
+  if (websiteUrl !== undefined && !isSafeUrl(websiteUrl)) {
+    res.status(400).json({ error: 'Website URL must be a valid http(s) link' }); return
+  }
+  if (googleMapsUrl !== undefined && !isSafeUrl(googleMapsUrl)) {
+    res.status(400).json({ error: 'Google Maps URL must be a valid http(s) link' }); return
+  }
   try {
     const garage = await prisma.garage.update({
       where: { ownerPhone: req.phoneNumber! },
       data: {
         name: capText(name.trim(), SHORT_TEXT_LEN),
-        address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null,
+        ...(hasStructuredAddress
+          ? {
+              addressLine: addressLine?.trim() ? capText(addressLine, SHORT_TEXT_LEN) : null,
+              village: village?.trim() ? capText(village, SHORT_TEXT_LEN) : null,
+              town: town?.trim() ? capText(town, SHORT_TEXT_LEN) : null,
+              address: composeAddress(addressLine, village, town),
+            }
+          : (address !== undefined ? { address: address?.trim() ? capText(address, LONG_TEXT_LEN) : null } : {})),
         brNumber: brNumber?.trim() ? capText(brNumber, SHORT_TEXT_LEN) : null,
         ...(priceList !== undefined
           ? { priceList: Array.isArray(priceList) ? priceList : Prisma.JsonNull }
           : {}),
+        ...(photos !== undefined && { photos: Array.isArray(photos) ? photos.map((p: string) => p.trim()) : [] }),
+        ...(services !== undefined && { services: Array.isArray(services) ? services.map((sItem: string) => capText(sItem, SHORT_TEXT_LEN)) : [] }),
+        ...(aboutBio !== undefined && { aboutBio: aboutBio?.trim() ? capText(aboutBio, 500) : null }),
+        ...(contactPhone !== undefined && { contactPhone: contactPhone?.trim() ? capText(contactPhone, SHORT_TEXT_LEN) : null }),
+        ...(promoText !== undefined && { promoText: promoText?.trim() ? capText(promoText, SHORT_TEXT_LEN) : null }),
+        ...(websiteUrl !== undefined && { websiteUrl: websiteUrl?.trim() ? capText(websiteUrl, 500) : null }),
+        ...(googleMapsUrl !== undefined && { googleMapsUrl: googleMapsUrl?.trim() ? capText(googleMapsUrl, 500) : null }),
       },
     })
     res.json(garage)
@@ -87,14 +157,27 @@ router.put('/me', async (req: AuthRequest, res) => {
   }
 })
 
-// GET /garages/search?name=xxx — search garages by name (public-ish, still requires auth)
-// name is optional — omit or leave blank to return all garages
+// GET /garages/search?name=xxx — search garages by name, village, or town (public-ish,
+// still requires auth). The query still arrives as `name` for backward compatibility
+// with existing mobile callers, but now matches any of the three fields.
+// Omit or leave blank to return all garages.
 router.get('/search', async (req: AuthRequest, res) => {
-  const name = (req.query.name as string || '').trim()
+  const query = (req.query.name as string || '').trim()
   try {
     const garages = await prisma.garage.findMany({
-      where: name.length >= 2 ? { name: { contains: name, mode: 'insensitive' } } : undefined,
-      select: { id: true, name: true, address: true, verified: true, priceList: true },
+      where: query.length >= 2
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { village: { contains: query, mode: 'insensitive' } },
+              { town: { contains: query, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      select: {
+        id: true, name: true, address: true, verified: true, priceList: true,
+        photos: true, aboutBio: true, services: true, contactPhone: true, promoText: true, websiteUrl: true, googleMapsUrl: true,
+      },
       take: 50,
       orderBy: { verified: 'desc' },
     })

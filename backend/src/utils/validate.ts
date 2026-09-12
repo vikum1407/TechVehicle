@@ -27,10 +27,26 @@ export function isValidDateInput(value: unknown, opts: { allowFuture?: boolean }
 export const MAX_AMOUNT = 100_000_000
 export const MAX_MILEAGE = 5_000_000
 export const MAX_LITRES = 10_000
+export const MAX_KWH = 10_000
 
 export const SHORT_TEXT_LEN = 300
 export const LONG_TEXT_LEN = 3000
 
 export function capText(value: unknown, maxLen: number): string {
   return String(value).slice(0, maxLen)
+}
+
+// Any URL a user enters that gets opened cross-user (e.g. a garage's website/maps
+// link, opened via Linking.openURL on the OWNER'S device) must be restricted to
+// http(s) — otherwise a malicious scheme (javascript:, data:, intent:, file:, a
+// custom app deep link, etc.) set by one account could be pushed onto another
+// user's device disguised as a normal link. A bare domain with no scheme at all
+// (e.g. "silvaauto.lk") is allowed since callers prefix it with https:// before
+// opening.
+export function isSafeUrl(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const v = value.trim()
+  if (!v) return true
+  if (v.includes(':')) return /^https?:\/\//i.test(v)
+  return true
 }
