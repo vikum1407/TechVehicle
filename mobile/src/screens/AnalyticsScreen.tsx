@@ -43,6 +43,7 @@ type Analytics = {
   totalSpend: number
   serviceCost: number
   vehicleTestCost: number
+  legalComplianceCost?: number
   fuelCost: number
   expenseTotal: number
   expenseBreakdown: { category: string; amount: number }[]
@@ -211,6 +212,76 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
       })}
       <SvgText x={pL - 4} y={pT + 5} textAnchor="end" fontSize="9" fill="#bbb">{fmtTop}</SvgText>
     </Svg>
+  )
+}
+
+// ── Spend breakdown donut ───────────────────────────────────────────────────────
+
+function DonutChart({ segments, size = 116, strokeWidth = 16, trackColor }: {
+  segments: { amount: number; color: string }[]
+  size?: number
+  strokeWidth?: number
+  trackColor: string
+}) {
+  const total = segments.reduce((s, x) => s + x.amount, 0)
+  const r = (size - strokeWidth) / 2
+  const cx = size / 2, cy = size / 2
+  const circumference = 2 * Math.PI * r
+  let cumulative = 0
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Circle cx={cx} cy={cy} r={r} stroke={trackColor} strokeWidth={strokeWidth} fill="none" opacity={0.25} />
+      {total > 0 && segments.filter(s => s.amount > 0).map((s, i) => {
+        const dash = (s.amount / total) * circumference
+        const offset = -cumulative
+        cumulative += dash
+        return (
+          <Circle
+            key={i} cx={cx} cy={cy} r={r} stroke={s.color} strokeWidth={strokeWidth} fill="none"
+            strokeDasharray={`${dash} ${circumference - dash}`}
+            strokeDashoffset={offset}
+            strokeLinecap="butt"
+            rotation="-90" origin={`${cx}, ${cy}`}
+          />
+        )
+      })}
+    </Svg>
+  )
+}
+
+// ── Trip-ready banner ────────────────────────────────────────────────────────────
+
+function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emissionFailed: boolean }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
+  const overdueCount = forecast.items.filter(i => i.status === 'overdue').length
+  const dueSoonCount = forecast.items.filter(i => i.status === 'due_soon').length
+
+  let level: 'ready' | 'attention' | 'not_ready' = 'ready'
+  if (overdueCount > 0 || emissionFailed) level = 'not_ready'
+  else if (dueSoonCount > 0) level = 'attention'
+
+  const color = level === 'not_ready' ? colors.error : level === 'attention' ? colors.warning : colors.success
+  const icon = level === 'not_ready' ? '🔴' : level === 'attention' ? '🟡' : '🟢'
+  const title = t(
+    level === 'not_ready' ? 'analytics.tripReady.notReadyTitle'
+      : level === 'attention' ? 'analytics.tripReady.attentionTitle'
+      : 'analytics.tripReady.title'
+  )
+  const sub = level === 'not_ready'
+    ? t(emissionFailed ? 'analytics.tripReady.notReadySubWithEmission' : 'analytics.tripReady.notReadySub', { count: overdueCount })
+    : level === 'attention'
+      ? t('analytics.tripReady.attentionSub', { count: dueSoonCount })
+      : t('analytics.tripReady.sub')
+
+  return (
+    <View style={[styles.tripBanner, { borderLeftColor: color }]}>
+      <Text style={styles.tripBannerIcon}>{icon}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.tripBannerTitle, { color }]}>{title}</Text>
+        <Text style={styles.tripBannerSub}>{sub}</Text>
+      </View>
+    </View>
   )
 }
 
@@ -530,18 +601,41 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       <ScreenHeader title={t('analytics.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
 
-      {/* Total spend */}
+      {/* Trip-ready snapshot */}
+      {forecast && forecast.items.length > 0 && (
+        <TripReadyBanner
+          forecast={forecast}
+          emissionFailed={!!data.emissionAnalytics?.warning?.includes('FAILED')}
+        />
+      )}
+
+      {/* Total spend + category donut */}
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>{t('analytics.totalSpend')}</Text>
         <Text style={styles.totalAmount}>{fmt(data.totalSpend)}</Text>
-        <View style={styles.pillRow}>
-          <View style={styles.pill}><Text style={styles.pillText}>🔧 {fmt(data.serviceCost)}</Text></View>
-          {data.vehicleTestCost > 0 && (
-            <View style={styles.pill}><Text style={styles.pillText}>✅ {fmt(data.vehicleTestCost)}</Text></View>
-          )}
-          <View style={styles.pill}><Text style={styles.pillText}>{isElectric ? '🔋' : '⛽'} {fmt(data.fuelCost)}</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>📋 {fmt(data.expenseTotal)}</Text></View>
-        </View>
+
+        {data.expenseBreakdown.length > 0 && (
+          <View style={styles.donutRow}>
+            <DonutChart
+              trackColor="rgba(255,255,255,0.25)"
+              segments={data.expenseBreakdown.map((item, i) => ({ amount: item.amount, color: COLORS[i % COLORS.length] }))}
+            />
+            <View style={styles.donutLegend}>
+              {data.expenseBreakdown.slice(0, 5).map((item, i) => (
+                <View key={i} style={styles.legendRow}>
+                  <View style={[styles.legendDot, { backgroundColor: COLORS[i % COLORS.length] }]} />
+                  <Text style={styles.legendLabel} numberOfLines={1}>{item.category}</Text>
+                  <Text style={styles.legendAmount}>{fmt(item.amount)}</Text>
+                </View>
+              ))}
+              {data.expenseBreakdown.length > 5 && (
+                <Text style={styles.legendMore}>
+                  {t('analytics.spendBreakdown.andMore', { count: data.expenseBreakdown.length - 5 })}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Key stats */}
@@ -735,10 +829,24 @@ function makeStyles(c: Colors) {
 
     totalCard: { backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 16 },
     totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },
-    totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 14 },
-    pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    pill: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-    pillText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+    totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 4 },
+    donutRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 14 },
+    donutLegend: { flex: 1, gap: 7 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    legendDot: { width: 8, height: 8, borderRadius: 4 },
+    legendLabel: { flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+    legendAmount: { fontSize: 12, color: '#fff', fontWeight: '700' },
+    legendMore: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: 2 },
+
+    tripBanner: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 16,
+      borderLeftWidth: 4,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    tripBannerIcon: { fontSize: 16, marginTop: 1 },
+    tripBannerTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
+    tripBannerSub: { fontSize: 12, color: c.textSub, lineHeight: 17 },
 
     statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     statCard: {
