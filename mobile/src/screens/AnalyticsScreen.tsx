@@ -11,7 +11,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
-import AppIcon from '../components/AppIcon'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import DonutChart from '../components/DonutChart'
 import { useTranslation } from '../i18n/LanguageContext'
 
@@ -232,7 +232,10 @@ function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emi
   else if (dueSoonCount > 0) level = 'attention'
 
   const color = level === 'not_ready' ? colors.error : level === 'attention' ? colors.warning : colors.success
-  const icon = level === 'not_ready' ? '🔴' : level === 'attention' ? '🟡' : '🟢'
+  const icon: AppIconSpec = {
+    lib: 'mci',
+    name: level === 'not_ready' ? 'close-circle' : level === 'attention' ? 'alert-circle' : 'check-circle',
+  }
   const title = t(
     level === 'not_ready' ? 'analytics.tripReady.notReadyTitle'
       : level === 'attention' ? 'analytics.tripReady.attentionTitle'
@@ -246,7 +249,7 @@ function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emi
 
   return (
     <View style={[styles.tripBanner, { borderLeftColor: color }]}>
-      <Text style={styles.tripBannerIcon}>{icon}</Text>
+      <View style={styles.tripBannerIcon}><AppIcon icon={icon} size={18} color={color} /></View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.tripBannerTitle, { color }]}>{title}</Text>
         <Text style={styles.tripBannerSub}>{sub}</Text>
@@ -351,7 +354,9 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
       </View>
       {data.warning && (
         <View style={[styles.warnBanner, data.warning.includes('FAIL') && styles.warnBannerRed]}>
-          <Text style={styles.warnIcon}>{data.warning.includes('FAIL') ? '🚨' : '⚠️'}</Text>
+          <View style={styles.warnIcon}>
+            <AppIcon icon={{ lib: 'mci', name: data.warning.includes('FAIL') ? 'alert' : 'alert-outline' }} size={14} color={data.warning.includes('FAIL') ? '#e53935' : '#f9a825'} />
+          </View>
           <Text style={styles.warnText}>{data.warning}</Text>
         </View>
       )}
@@ -405,7 +410,7 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
       </View>
       {data.warning && (
         <View style={styles.warnBanner}>
-          <Text style={styles.warnIcon}>⚠️</Text>
+          <View style={styles.warnIcon}><AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={14} color="#f9a825" /></View>
           <Text style={styles.warnText}>{data.warning}</Text>
         </View>
       )}
@@ -555,7 +560,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
   if (loadError) return (
     <View style={styles.center}>
-      <Text style={styles.errorIcon}>⚠️</Text>
+      <View style={styles.errorIcon}><AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={44} color={colors.textFaint} /></View>
       <Text style={styles.errorTitle}>{t('analytics.loadError.title')}</Text>
       <Text style={styles.errorSub}>{t('analytics.loadError.sub')}</Text>
       <TouchableOpacity style={styles.retryBtn} onPress={load}>
@@ -569,7 +574,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
   if (!data || (data.totalSpend === 0 && data.recordCounts.fuelLogs === 0 && data.recordCounts.services === 0)) return (
     <View style={styles.center}>
-      <Text style={styles.errorIcon}>📊</Text>
+      <View style={styles.errorIcon}><AppIcon icon={{ lib: 'mci', name: 'chart-box-outline' }} size={44} color={colors.textFaint} /></View>
       <Text style={styles.errorTitle}>{t('analytics.noData.title')}</Text>
       <Text style={styles.errorSub}>{t('analytics.noData.sub')}</Text>
       <TouchableOpacity onPress={onBack} style={styles.retryBtn}>
@@ -657,7 +662,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               style={[styles.anomalyCard, a.severity === 'warning' ? styles.anomalyCardWarn : styles.anomalyCardInfo]}
             >
               <Text style={[styles.anomalyTitle, a.severity === 'warning' ? styles.anomalyTitleWarn : styles.anomalyTitleInfo]}>
-                {a.severity === 'warning' ? '⚠️ ' : 'ℹ️ '}{a.title}
+                <AppIcon icon={{ lib: 'mci', name: a.severity === 'warning' ? 'alert-outline' : 'information-outline' }} size={13} color={a.severity === 'warning' ? '#e65100' : colors.primaryTintText} /> {a.title}
               </Text>
               <Text style={[styles.anomalyDesc, a.severity === 'warning' && styles.anomalyDescWarn]}>{a.description}</Text>
             </View>
@@ -801,7 +806,7 @@ function makeStyles(c: Colors) {
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 48 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, backgroundColor: c.background },
-    errorIcon: { fontSize: 48, marginBottom: 16 },
+    errorIcon: { marginBottom: 16 },
     errorTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8, textAlign: 'center' },
     errorSub: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     retryBtn: {
@@ -828,7 +833,7 @@ function makeStyles(c: Colors) {
       borderLeftWidth: 4,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
-    tripBannerIcon: { fontSize: 16, marginTop: 1 },
+    tripBannerIcon: { marginTop: 1 },
     tripBannerTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
     tripBannerSub: { fontSize: 12, color: c.textSub, lineHeight: 17 },
 
@@ -925,7 +930,7 @@ function makeStyles(c: Colors) {
       borderLeftWidth: 3, borderLeftColor: '#f9a825',
     },
     warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
-    warnIcon: { fontSize: 14, marginTop: 1 },
+    warnIcon: { marginTop: 1 },
     warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
 
     anomalySection: { marginBottom: 16 },

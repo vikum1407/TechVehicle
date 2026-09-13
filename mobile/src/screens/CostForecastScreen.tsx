@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type ForecastItem = {
@@ -40,11 +41,11 @@ function statusBg(status: string): string {
   return '#f5f5f5'
 }
 
-function statusLabel(status: string, t: (key: any, params?: Record<string, string | number>) => string): string {
-  if (status === 'overdue')   return `🚨 ${t('costForecast.status.overdue')}`
-  if (status === 'due_soon')  return `⚠️ ${t('costForecast.status.dueSoon')}`
-  if (status === 'upcoming')  return `📅 ${t('costForecast.status.upcoming')}`
-  return status
+function statusLabel(status: string, t: (key: any, params?: Record<string, string | number>) => string): { icon: AppIconSpec | null; label: string } {
+  if (status === 'overdue')   return { icon: { lib: 'mci', name: 'alert' }, label: t('costForecast.status.overdue') }
+  if (status === 'due_soon')  return { icon: { lib: 'mci', name: 'alert-outline' }, label: t('costForecast.status.dueSoon') }
+  if (status === 'upcoming')  return { icon: { lib: 'mci', name: 'calendar-month-outline' }, label: t('costForecast.status.upcoming') }
+  return { icon: null, label: status }
 }
 
 function remainingText(item: ForecastItem, t: (key: any, params?: Record<string, string | number>) => string): string {
@@ -132,7 +133,9 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                 <View key={i} style={[styles.itemCard, { backgroundColor: statusBg(item.status), borderLeftColor: statusColor(item.status) }]}>
                   <View style={styles.itemTop}>
                     <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
-                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status, t)}</Text>
+                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
+                      {statusLabel(item.status, t).icon && <AppIcon icon={statusLabel(item.status, t).icon!} size={12} color={statusColor(item.status)} />} {statusLabel(item.status, t).label}
+                    </Text>
                   </View>
                   {remainingText(item, t) ? (
                     <Text style={styles.itemRemaining}>{remainingText(item, t)}</Text>
@@ -156,7 +159,9 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                 <View key={i} style={[styles.itemCard, styles.itemCardMuted, { borderLeftColor: statusColor(item.status) }]}>
                   <View style={styles.itemTop}>
                     <Text style={styles.itemNameMuted}>{item.name}</Text>
-                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>{statusLabel(item.status, t)}</Text>
+                    <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
+                      {statusLabel(item.status, t).icon && <AppIcon icon={statusLabel(item.status, t).icon!} size={12} color={statusColor(item.status)} />} {statusLabel(item.status, t).label}
+                    </Text>
                   </View>
                   {remainingText(item, t) ? (
                     <Text style={styles.itemRemaining}>{remainingText(item, t)}</Text>
@@ -175,7 +180,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
           )}
 
           <Text style={styles.footer}>
-            💡 {t('costForecast.footer')}
+            <AppIcon icon={{ lib: 'mci', name: 'lightbulb-on-outline' }} size={12} color={colors.textFaint} /> {t('costForecast.footer')}
           </Text>
         </ScrollView>
       )}
