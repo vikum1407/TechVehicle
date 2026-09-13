@@ -9,6 +9,7 @@ import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import Button from '../components/Button'
+import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type Vehicle = {
@@ -135,15 +136,21 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
             <View style={styles.summaryCard}>
               <Text style={styles.confirmLabel}>{t('sell.whatTransfers')}</Text>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>🔧 {t('sell.serviceRecords')}</Text>
+                <Text style={styles.summaryItem}>
+                  <AppIcon icon={{ lib: 'mci', name: 'wrench' }} size={13} color={colors.textSub} /> {t('sell.serviceRecords')}
+                </Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.serviceRecords ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>{vehicle.vehicleType === 'electric' ? '🔋' : '⛽'} {t(vehicle.vehicleType === 'electric' ? 'sell.chargeLogs' : 'sell.fuelLogs')}</Text>
+                <Text style={styles.summaryItem}>
+                  <AppIcon icon={{ lib: 'mci', name: vehicle.vehicleType === 'electric' ? 'battery-charging' : 'gas-station' }} size={13} color={colors.textSub} /> {t(vehicle.vehicleType === 'electric' ? 'sell.chargeLogs' : 'sell.fuelLogs')}
+                </Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.fuelLogs ?? 0}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryItem}>💰 {t('sell.expenseRecords')}</Text>
+                <Text style={styles.summaryItem}>
+                  <AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={13} color={colors.textSub} /> {t('sell.expenseRecords')}
+                </Text>
                 <Text style={styles.summaryCount}>{analytics.recordCounts?.expenses ?? 0}</Text>
               </View>
               {analytics.totalSpend > 0 && (
@@ -156,7 +163,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           )}
 
           <View style={styles.warningBox}>
-            <Text style={styles.warningTitle}>⚠️ {t('sell.irreversibleTitle')}</Text>
+            <Text style={styles.warningTitle}><AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={13} color="#e65100" /> {t('sell.irreversibleTitle')}</Text>
             <Text style={styles.warningText}>
               {t('sell.irreversibleText')}
             </Text>

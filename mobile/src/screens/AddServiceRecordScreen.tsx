@@ -16,6 +16,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -502,7 +503,11 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
             >
               {uploadingPhoto
                 ? <ActivityIndicator size="small" color={colors.primary} />
-                : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
+                : (
+                  <Text style={styles.photoBtnText}>
+                    <AppIcon icon={{ lib: 'mci', name: 'camera-outline' }} size={14} color={colors.primary} /> {t('addService.cameraBtn')}
+                  </Text>
+                )
               }
             </TouchableOpacity>
             <TouchableOpacity
@@ -510,7 +515,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
               onPress={() => pickPhoto('gallery')}
               disabled={uploadingPhoto}
             >
-              <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
+              <Text style={styles.photoBtnText}>
+                <AppIcon icon={{ lib: 'mci', name: 'image-outline' }} size={14} color={colors.primary} /> {t('addService.galleryBtn')}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
