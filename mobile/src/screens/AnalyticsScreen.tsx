@@ -82,7 +82,9 @@ type Anomaly = {
   severity: 'warning' | 'info'
 }
 
-const COLORS = ['#1d3a5f', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
+// Note: avoid navy (#1d3a5f) here — it matches the hero card background,
+// which made that swatch (and its legend dot) invisible when it landed first.
+const COLORS = ['#4fc3f7', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#f06292']
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -615,7 +617,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
         <Text style={styles.totalAmount}>{fmt(data.totalSpend)}</Text>
 
         {data.expenseBreakdown.length > 0 && (
-          <View style={styles.donutRow}>
+          <View style={styles.donutSection}>
             <DonutChart
               trackColor="rgba(255,255,255,0.25)"
               segments={data.expenseBreakdown.map((item, i) => ({ amount: item.amount, color: COLORS[i % COLORS.length] }))}
@@ -624,7 +626,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               {data.expenseBreakdown.slice(0, 5).map((item, i) => (
                 <View key={i} style={styles.legendRow}>
                   <View style={[styles.legendDot, { backgroundColor: COLORS[i % COLORS.length] }]} />
-                  <Text style={styles.legendLabel} numberOfLines={1}>{item.category}</Text>
+                  <Text style={styles.legendLabel}>{item.category}</Text>
                   <Text style={styles.legendAmount}>{fmt(item.amount)}</Text>
                 </View>
               ))}
@@ -830,12 +832,12 @@ function makeStyles(c: Colors) {
     totalCard: { backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 16 },
     totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },
     totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 4 },
-    donutRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 14 },
-    donutLegend: { flex: 1, gap: 7 },
-    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-    legendDot: { width: 8, height: 8, borderRadius: 4 },
-    legendLabel: { flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-    legendAmount: { fontSize: 12, color: '#fff', fontWeight: '700' },
+    donutSection: { alignItems: 'center', marginTop: 14, gap: 14 },
+    donutLegend: { width: '100%', gap: 9 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    legendDot: { width: 9, height: 9, borderRadius: 4.5 },
+    legendLabel: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+    legendAmount: { fontSize: 13, color: '#fff', fontWeight: '700' },
     legendMore: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: 2 },
 
     tripBanner: {
