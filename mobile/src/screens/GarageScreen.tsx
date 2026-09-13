@@ -2494,7 +2494,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             })
             const catBreakdown = Array.from(catRevenue.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6)
             const maxCatRevenue = Math.max(...catBreakdown.map(c => c[1]), 1)
-            const CAT_COLORS = ['#1d3a5f', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b']
+            // Avoid navy (#1d3a5f) — it matches the hero card background this
+            // donut sits on, which made whichever category sorted first
+            // (often the largest) render invisibly with no visible legend dot.
+            const CAT_COLORS = ['#4fc3f7', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b']
 
             return (
               <>
