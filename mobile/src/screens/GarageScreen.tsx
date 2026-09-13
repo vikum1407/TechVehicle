@@ -20,6 +20,7 @@ import {
 } from '../constants/serviceData'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
+import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
 
 type Props = {
   token: string
@@ -85,6 +86,7 @@ type IncomingShare = {
   ownerPhone: string
   avgFuelEfficiency: number | null
   totalServiceCost: number
+  healthSummary?: HealthSummary | null
   vehicle: {
     registrationNo: string
     make: string
@@ -187,6 +189,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [sendingNote, setSendingNote] = useState<string | null>(null)
   const [loadingNotesId, setLoadingNotesId] = useState<string | null>(null)
   const [expandedMessagesSet, setExpandedMessagesSet] = useState<Set<string>>(new Set())
+  const [showRawRecordsSet, setShowRawRecordsSet] = useState<Set<string>>(new Set())
 
   // Schedule tab state
   const [schedWorkDays, setSchedWorkDays] = useState<number[]>([1, 2, 3, 4, 5])
@@ -1923,7 +1926,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {isExpanded && attachedShare && (
                   <View style={styles.inlineShareSection}>
                     <Text style={styles.inlineShareTitle}>
-                      📋 {t('garage.sharedServiceHistory', { count: attachedShare.records.length })}
+                      📋 {t('garage.vehicleHistoryTitle')}
                     </Text>
 
                     {/* Vehicle profile */}
@@ -1944,8 +1947,32 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       )}
                     </View>
 
-                    {/* Records */}
-                    {attachedShare.records.map((r: SharedRecord) => (
+                    {/* Health summary — default view */}
+                    {attachedShare.healthSummary && (
+                      <View style={{ marginBottom: 12 }}>
+                        <VehicleHealthSummaryCard summary={attachedShare.healthSummary} />
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.()
+                        setShowRawRecordsSet(prev => {
+                          const next = new Set(prev)
+                          if (next.has(booking.id)) next.delete(booking.id)
+                          else next.add(booking.id)
+                          return next
+                        })
+                      }}
+                      style={styles.messagesToggleBtn}
+                    >
+                      <Text style={styles.messagesToggleBtnText}>
+                        {t('garage.sharedServiceHistory', { count: attachedShare.records.length })} {showRawRecordsSet.has(booking.id) ? '▲' : '▼'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Records — raw list, fallback detail view */}
+                    {showRawRecordsSet.has(booking.id) && attachedShare.records.map((r: SharedRecord) => (
                       <View key={r.id} style={styles.inlineRecord}>
                         <View style={styles.inlineRecordTop}>
                           <Text style={styles.inlineRecordDate}>{formatDate(r.date)}</Text>
