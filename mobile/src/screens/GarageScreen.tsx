@@ -1884,19 +1884,29 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                         styles.bookingBadgeText,
                         isPending ? styles.bookingBadgeTextPending : isCounter ? styles.bookingBadgeTextCounter : styles.bookingBadgeTextConfirmed,
                       ]}>
-                        {isPending ? t('garage.pending') : isCounter ? `🔄 ${t('garage.counterSent')}` : t('garage.confirmed')}
+                        {isPending
+                          ? t('garage.pending')
+                          : isCounter
+                            ? (<><AppIcon icon={{ lib: 'mci', name: 'sync' }} size={11} color="#1565c0" /> {t('garage.counterSent')}</>)
+                            : t('garage.confirmed')}
                       </Text>
                     </View>
                     {attachedShare && (
-                      <Text style={styles.shareAttachedTag}>📎 {t('garage.historyAttached')}</Text>
+                      <Text style={styles.shareAttachedTag}>
+                        <AppIcon icon={{ lib: 'mci', name: 'paperclip' }} size={11} color={colors.textMuted} /> {t('garage.historyAttached')}
+                      </Text>
                     )}
                   </View>
                 </View>
 
                 <View style={styles.bookingMeta}>
-                  <Text style={styles.bookingDate}>📅 {dateStr}</Text>
+                  <Text style={styles.bookingDate}>
+                    <AppIcon icon={{ lib: 'mci', name: 'calendar-month-outline' }} size={12} color={colors.textMuted} /> {dateStr}
+                  </Text>
                   {bAny.slotLabel && (
-                    <Text style={styles.bookingSlot}>⏰ {bAny.slotLabel}</Text>
+                    <Text style={styles.bookingSlot}>
+                      <AppIcon icon={{ lib: 'mci', name: 'clock-outline' }} size={12} color={colors.textMuted} /> {bAny.slotLabel}
+                    </Text>
                   )}
                   <Text style={styles.bookingOwner}>{t('garage.ownerLabel', { phone: booking.ownerPhone })}</Text>
                   <Text style={styles.bookingMileage}>{booking.vehicle.mileage.toLocaleString()} km</Text>
@@ -1907,7 +1917,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     styles.bookingNotes,
                     bAny.noteType === 'urgent' && styles.bookingNotesUrgent,
                   ]}>
-                    {bAny.noteType === 'urgent' ? '🚨 ' : ''}"{booking.notes}"
+                    {bAny.noteType === 'urgent' ? (<><AppIcon icon={{ lib: 'mci', name: 'alert' }} size={12} color="#c62828" /> </>) : ''}"{booking.notes}"
                   </Text>
                 ) : null}
 
@@ -1920,20 +1930,20 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     >
                       {confirmingId === booking.id
                         ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.confirmBookingBtnText}>✓ {t('garage.confirm')}</Text>
+                        : <Text style={styles.confirmBookingBtnText}><AppIcon icon={{ lib: 'mci', name: 'check' }} size={13} color="#fff" /> {t('garage.confirm')}</Text>
                       }
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.counterSuggestBtn}
                       onPress={(e) => { e.stopPropagation?.(); openCounterModal(booking.id, booking.date, bAny.slotLabel ?? null) }}
                     >
-                      <Text style={styles.counterSuggestBtnText}>🔄 {t('garage.suggestSlot')}</Text>
+                      <Text style={styles.counterSuggestBtnText}><AppIcon icon={{ lib: 'mci', name: 'sync' }} size={13} color={colors.primary} /> {t('garage.suggestSlot')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
                 {isCounter && (
                   <View style={styles.counterSentNote}>
-                    <Text style={styles.counterSentText}>🔄 {t('garage.counterSentAwaiting')}</Text>
+                    <Text style={styles.counterSentText}><AppIcon icon={{ lib: 'mci', name: 'sync' }} size={13} color="#1565c0" /> {t('garage.counterSentAwaiting')}</Text>
                   </View>
                 )}
 
@@ -1946,7 +1956,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {isConfirmed && attachedShare && !isExpanded && (
                   <View style={styles.confirmedBadge}>
                     <Text style={styles.confirmedText}>
-                      {alreadySubmitted ? `✓ ${t('garage.serviceSubmittedAwaiting')}` : `📋 ${t('garage.confirmedTapToViewHistory')}`}
+                      {alreadySubmitted
+                        ? `✓ ${t('garage.serviceSubmittedAwaiting')}`
+                        : (<><AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={13} color={colors.text} /> {t('garage.confirmedTapToViewHistory')}</>)}
                     </Text>
                   </View>
                 )}
@@ -1974,7 +1986,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {isExpanded && attachedShare && (
                   <View style={styles.inlineShareSection}>
                     <Text style={styles.inlineShareTitle}>
-                      📋 {t('garage.vehicleHistoryTitle')}
+                      <AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={14} color={colors.text} /> {t('garage.vehicleHistoryTitle')}
                     </Text>
 
                     {/* Vehicle profile */}
@@ -2064,7 +2076,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     onPress={(e) => { e.stopPropagation?.(); toggleMessages(booking.id) }}
                   >
                     <Text style={styles.messagesToggleBtnText} numberOfLines={1}>
-                      💬 {t('garage.messagesWithOwner')} {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
+                      <AppIcon icon={{ lib: 'mci', name: 'message-text-outline' }} size={13} color={colors.text} /> {t('garage.messagesWithOwner')} {expandedMessagesSet.has(booking.id) ? '▲' : '▼'}
                     </Text>
                     {(() => {
                       const unread = Math.max(0, (booking._count?.bookingNotes ?? 0) - (bookingSeenCounts[booking.id] ?? 0))
@@ -2078,7 +2090,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   >
                     {cancellingId === booking.id
                       ? <ActivityIndicator color="#c62828" size="small" />
-                      : <Text style={styles.cancelBookingBtnText} numberOfLines={1}>🗑 {t('garage.cancelBooking.button')}</Text>
+                      : <Text style={styles.cancelBookingBtnText} numberOfLines={1}><AppIcon icon={{ lib: 'mci', name: 'trash-can-outline' }} size={13} color="#c62828" /> {t('garage.cancelBooking.button')}</Text>
                     }
                   </TouchableOpacity>
                 </View>
