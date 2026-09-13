@@ -1305,8 +1305,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {/* Upcoming Services prediction card */}
         <TouchableOpacity style={styles.predCard} onPress={onPredictions} activeOpacity={0.85}>
           <View style={styles.predCardHeader}>
-            <Text style={styles.predCardTitle}>{t('dashboard.upcomingServices')}</Text>
-            <Text style={styles.predCardLink}>{t('dashboard.viewAll')}</Text>
+            <Text style={styles.predCardTitle} numberOfLines={1} ellipsizeMode="tail">{t('dashboard.upcomingServices')}</Text>
+            <Text style={styles.predCardLink} numberOfLines={1}>{t('dashboard.viewAll')}</Text>
           </View>
           {topPredictions.length === 0 ? (
             <Text style={styles.predAllOk}>{t('dashboard.allOnSchedule')}</Text>
@@ -1807,9 +1807,9 @@ function makeStyles(c: Colors, topInset: number) {
       borderRadius: 12, padding: 14,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
-    predCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-    predCardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    predCardLink: { fontSize: 13, color: c.primary, fontWeight: '600' },
+    predCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 8 },
+    predCardTitle: { fontSize: 14, fontWeight: '700', color: c.text, flex: 1 },
+    predCardLink: { fontSize: 13, color: c.primary, fontWeight: '600', flexShrink: 0 },
     predAllOk: { fontSize: 13, color: '#2e7d32', fontWeight: '600' },
     predItem: {
       flexDirection: 'row', alignItems: 'center',
