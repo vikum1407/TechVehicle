@@ -21,6 +21,8 @@ type Props = {
   vehicleType?: string | null
   onBack: () => void
   onKnowledgeHub?: () => void
+  onPredictions?: () => void
+  onCostForecast?: () => void
 }
 
 type OilHistoryItem = {
@@ -221,7 +223,7 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
 
 // ── Trip-ready banner ────────────────────────────────────────────────────────────
 
-function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emissionFailed: boolean }) {
+function TripReadyBanner({ forecast, emissionFailed, onPress }: { forecast: Forecast; emissionFailed: boolean; onPress?: () => void }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
   const overdueCount = forecast.items.filter(i => i.status === 'overdue').length
@@ -248,13 +250,19 @@ function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emi
       : t('analytics.tripReady.sub')
 
   return (
-    <View style={[styles.tripBanner, { borderLeftColor: color }]}>
+    <TouchableOpacity
+      style={[styles.tripBanner, { borderLeftColor: color }]}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={0.8}
+    >
       <View style={styles.tripBannerIcon}><AppIcon icon={icon} size={18} color={color} /></View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.tripBannerTitle, { color }]}>{title}</Text>
         <Text style={styles.tripBannerSub}>{sub}</Text>
       </View>
-    </View>
+      {onPress && <Text style={styles.tripBannerChevron}>›</Text>}
+    </TouchableOpacity>
   )
 }
 
@@ -450,14 +458,14 @@ const STATUS_COLOR: Record<string, string> = {
   no_data: '#9e9e9e',
 }
 
-function CostForecastCard({ forecast }: { forecast: Forecast }) {
+function CostForecastCard({ forecast, onPress }: { forecast: Forecast; onPress?: () => void }) {
   const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
   const hasAnyEstimate = forecast.items.some(i => i.estimatedCost !== null)
 
   return (
-    <View style={styles.forecastCard}>
+    <TouchableOpacity style={styles.forecastCard} onPress={onPress} disabled={!onPress} activeOpacity={0.8}>
       <View style={styles.forecastHeader}>
         <View>
           <View style={styles.sectionTitleRow}>
@@ -519,13 +527,13 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
           {t('analytics.forecast.hint')}
         </Text>
       )}
-    </View>
+    </TouchableOpacity>
   )
 }
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 
-export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack, onKnowledgeHub }: Props) {
+export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack, onKnowledgeHub, onPredictions, onCostForecast }: Props) {
   const isElectric = vehicleType === 'electric'
   const [data, setData] = useState<Analytics | null>(null)
   const [forecast, setForecast] = useState<Forecast | null>(null)
@@ -596,6 +604,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
         <TripReadyBanner
           forecast={forecast}
           emissionFailed={!!data.emissionAnalytics?.warning?.includes('FAILED')}
+          onPress={onPredictions}
         />
       )}
 
@@ -672,7 +681,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
       {/* Cost forecast */}
       {forecast && forecast.items.length > 0 && (
-        <CostForecastCard forecast={forecast} />
+        <CostForecastCard forecast={forecast} onPress={onCostForecast} />
       )}
 
       {/* Mileage growth */}
@@ -836,6 +845,7 @@ function makeStyles(c: Colors) {
     tripBannerIcon: { marginTop: 1 },
     tripBannerTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
     tripBannerSub: { fontSize: 12, color: c.textSub, lineHeight: 17 },
+    tripBannerChevron: { fontSize: 20, color: c.textFaint, marginLeft: 4 },
 
     statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     statCard: {

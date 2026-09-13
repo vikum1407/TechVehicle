@@ -585,6 +585,8 @@ export default function App() {
           vehicleType={selectedVehicle.vehicleType}
           onBack={() => setScreen('vehicleDashboard')}
           onKnowledgeHub={() => { setKnowledgeHubReturnTo('analytics'); setScreen('knowledgeHub') }}
+          onPredictions={() => setScreen('predictions')}
+          onCostForecast={() => setScreen('costForecast')}
         />
       )}
       {screen === 'predictions' && selectedVehicle && (
