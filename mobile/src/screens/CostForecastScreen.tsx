@@ -24,7 +24,7 @@ type Props = {
   vehicleId: string
   vehicleName: string
   onBack: () => void
-  onAddService?: () => void
+  onLogService?: (serviceName: string) => void
 }
 
 function statusColor(status: string): string {
@@ -65,7 +65,7 @@ function remainingText(item: ForecastItem, t: (key: any, params?: Record<string,
   return parts.join('  ·  ')
 }
 
-export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onAddService }: Props) {
+export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onLogService }: Props) {
   const [items, setItems] = useState<ForecastItem[]>([])
   const [total, setTotal] = useState(0)
   const [periodDays, setPeriodDays] = useState(365)
@@ -130,7 +130,13 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
             <>
               <Text style={styles.sectionTitle}>{t('costForecast.withEstimates')}</Text>
               {itemsWithCost.map((item, i) => (
-                <View key={i} style={[styles.itemCard, { backgroundColor: statusBg(item.status), borderLeftColor: statusColor(item.status) }]}>
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.itemCard, { backgroundColor: statusBg(item.status), borderLeftColor: statusColor(item.status) }]}
+                  onPress={() => onLogService?.(item.name)}
+                  disabled={!onLogService}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.itemTop}>
                     <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
                     <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
@@ -146,8 +152,11 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                       LKR {item.estimatedCost!.toLocaleString()}
                     </Text>
                   </View>
-                  <Text style={styles.itemBased}>{t('costForecast.basedOnRecords', { count: item.basedOn, s: item.basedOn !== 1 ? 's' : '' })}</Text>
-                </View>
+                  <View style={styles.itemBasedRow}>
+                    <Text style={styles.itemBased}>{t('costForecast.basedOnRecords', { count: item.basedOn, s: item.basedOn !== 1 ? 's' : '' })}</Text>
+                    {onLogService && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
+                  </View>
+                </TouchableOpacity>
               ))}
             </>
           )}
@@ -156,7 +165,13 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
             <>
               <Text style={styles.sectionTitle}>{t('costForecast.otherDue')}</Text>
               {itemsNoCost.map((item, i) => (
-                <View key={i} style={[styles.itemCard, styles.itemCardMuted, { borderLeftColor: statusColor(item.status) }]}>
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.itemCard, styles.itemCardMuted, { borderLeftColor: statusColor(item.status) }]}
+                  onPress={() => onLogService?.(item.name)}
+                  disabled={!onLogService}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.itemTop}>
                     <Text style={styles.itemNameMuted}>{item.name}</Text>
                     <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
@@ -168,13 +183,9 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   ) : null}
                   <View style={styles.itemNoCostRow}>
                     <Text style={styles.itemBased}>{t('costForecast.logToImprove')}</Text>
-                    {onAddService && (
-                      <TouchableOpacity onPress={onAddService} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Text style={styles.itemLogLink}>{t('costForecast.logService')}</Text>
-                      </TouchableOpacity>
-                    )}
+                    {onLogService && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </>
           )}
@@ -220,6 +231,7 @@ function makeStyles(c: Colors) {
     itemCostLabel: { fontSize: 12, color: '#666' },
     itemCost: { fontSize: 17, fontWeight: '800' },
     itemBased: { fontSize: 11, color: '#888', marginTop: 4, flex: 1 },
+    itemBasedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     itemNoCostRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 8 },
     itemLogLink: { fontSize: 12, color: c.primary, fontWeight: '700' },
     footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16, lineHeight: 18 },

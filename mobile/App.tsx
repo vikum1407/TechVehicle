@@ -621,7 +621,13 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
-          onAddService={() => { setAddServiceReturnTo('costForecast'); setScreen('addServiceRecord') }}
+          onLogService={(serviceName) => {
+            const n = serviceName.toLowerCase()
+            if (n.includes('emission')) { setTestsInitialTab('emission'); setScreen('vehicleTests') }
+            else if (n.includes('wheel alignment')) { setTestsInitialTab('alignment'); setScreen('vehicleTests') }
+            else if (n.includes('chain')) { setTestsInitialTab('chain'); setScreen('vehicleTests') }
+            else { setAddServiceReturnTo('costForecast'); setScreen('addServiceRecord') }
+          }}
         />
       )}
       {screen === 'addExpense' && selectedVehicle && (
