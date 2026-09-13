@@ -9,6 +9,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 
 type Vehicle = {
   id: string
@@ -34,16 +35,16 @@ type Milestone = {
   labelKey: TranslationKey
   questionKey: TranslationKey
   serviceCategory: string
-  icon: string
+  icon: AppIconSpec
 }
 
 const MILESTONES: Milestone[] = [
-  { id: 'oil',       icon: '🛢️', labelKey: 'onboarding.milestone.oil.label',       questionKey: 'onboarding.milestone.oil.question',       serviceCategory: 'Oil & Filter Change' },
-  { id: 'timing',    icon: '⚙️', labelKey: 'onboarding.milestone.timing.label',    questionKey: 'onboarding.milestone.timing.question',    serviceCategory: 'Timing Belt / Chain' },
-  { id: 'brakes',    icon: '🛑', labelKey: 'onboarding.milestone.brakes.label',    questionKey: 'onboarding.milestone.brakes.question',    serviceCategory: 'Brake Pads' },
-  { id: 'battery',   icon: '🔋', labelKey: 'onboarding.milestone.battery.label',   questionKey: 'onboarding.milestone.battery.question',   serviceCategory: 'Battery' },
-  { id: 'chain',     icon: '⛓️', labelKey: 'onboarding.milestone.chain.label',     questionKey: 'onboarding.milestone.chain.question',     serviceCategory: 'Chain & Sprocket' },
-  { id: 'hydraulic', icon: '💧', labelKey: 'onboarding.milestone.hydraulic.label', questionKey: 'onboarding.milestone.hydraulic.question', serviceCategory: 'Hydraulic Oil' },
+  { id: 'oil',       icon: { lib: 'mci', name: 'oil' },           labelKey: 'onboarding.milestone.oil.label',       questionKey: 'onboarding.milestone.oil.question',       serviceCategory: 'Oil & Filter Change' },
+  { id: 'timing',    icon: { lib: 'mci', name: 'cog-outline' },   labelKey: 'onboarding.milestone.timing.label',    questionKey: 'onboarding.milestone.timing.question',    serviceCategory: 'Timing Belt / Chain' },
+  { id: 'brakes',    icon: { lib: 'mci', name: 'car-brake-alert' }, labelKey: 'onboarding.milestone.brakes.label',    questionKey: 'onboarding.milestone.brakes.question',    serviceCategory: 'Brake Pads' },
+  { id: 'battery',   icon: { lib: 'mci', name: 'car-battery' },   labelKey: 'onboarding.milestone.battery.label',   questionKey: 'onboarding.milestone.battery.question',   serviceCategory: 'Battery' },
+  { id: 'chain',     icon: { lib: 'mci', name: 'link-variant' },  labelKey: 'onboarding.milestone.chain.label',     questionKey: 'onboarding.milestone.chain.question',     serviceCategory: 'Chain & Sprocket' },
+  { id: 'hydraulic', icon: { lib: 'mci', name: 'water-outline' }, labelKey: 'onboarding.milestone.hydraulic.label', questionKey: 'onboarding.milestone.hydraulic.question', serviceCategory: 'Hydraulic Oil' },
 ]
 
 const MILESTONE_FOR: Record<string, string[]> = {
@@ -223,7 +224,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
           <View key={m.id} style={[styles.card, s.added && styles.cardActive]}>
             <TouchableOpacity style={styles.cardHeader} onPress={() => toggleMilestone(m.id)} activeOpacity={0.7}>
               <View style={styles.cardLeft}>
-                <Text style={styles.cardIcon}>{m.icon}</Text>
+                <View style={styles.cardIcon}><AppIcon icon={m.icon} size={20} color={colors.primary} /></View>
                 <View style={styles.cardTextWrap}>
                   <Text style={styles.cardLabel}>{t(m.labelKey)}</Text>
                   <Text style={styles.cardQuestion}>{t(m.questionKey)}</Text>
@@ -420,7 +421,7 @@ function makeStyles(c: Colors) {
     cardActive: { borderColor: c.primary, backgroundColor: c.primaryTint },
     cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
     cardLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12, marginRight: 12 },
-    cardIcon: { fontSize: 24, marginTop: 2 },
+    cardIcon: { marginTop: 2 },
     cardTextWrap: { flex: 1 },
     cardLabel: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
     cardQuestion: { fontSize: 13, color: c.textSub, lineHeight: 18 },
