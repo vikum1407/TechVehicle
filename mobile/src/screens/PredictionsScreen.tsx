@@ -9,6 +9,7 @@ import { ITEM_BRANDS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -115,10 +116,10 @@ type Props = {
 
 function statusConfig(c: Colors, t: (key: any, params?: Record<string, string | number>) => string) {
   return {
-    overdue:  { color: '#c62828', bg: c.surface, badge: `⚠️ ${t('predictions.status.overdue')}`,  badgeColor: '#c62828', badgeBg: '#fdecea' },
-    due_soon: { color: '#e65100', bg: c.surface, badge: `🔔 ${t('predictions.status.dueSoon')}`, badgeColor: '#e65100', badgeBg: '#fff3e0' },
-    ok:       { color: '#2e7d32', bg: c.surface, badge: `✓ ${t('predictions.status.ok')}`,        badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
-    no_data:  { color: '#999',    bg: c.surface, badge: `? ${t('predictions.status.noRecord')}`, badgeColor: '#777',    badgeBg: c.surfaceAlt },
+    overdue:  { color: '#c62828', bg: c.surface, badgeIcon: { lib: 'mci', name: 'alert-outline' } as AppIconSpec, badge: t('predictions.status.overdue'),  badgeColor: '#c62828', badgeBg: '#fdecea' },
+    due_soon: { color: '#e65100', bg: c.surface, badgeIcon: { lib: 'mci', name: 'bell-outline' } as AppIconSpec, badge: t('predictions.status.dueSoon'), badgeColor: '#e65100', badgeBg: '#fff3e0' },
+    ok:       { color: '#2e7d32', bg: c.surface, badgeIcon: null as AppIconSpec | null, badge: `✓ ${t('predictions.status.ok')}`,        badgeColor: '#2e7d32', badgeBg: '#f1f8e9' },
+    no_data:  { color: '#999',    bg: c.surface, badgeIcon: null as AppIconSpec | null, badge: `? ${t('predictions.status.noRecord')}`, badgeColor: '#777',    badgeBg: c.surfaceAlt },
   }
 }
 
@@ -280,7 +281,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
           <View style={styles.cardHeader}>
             <Text style={styles.cardName}>{p.name}</Text>
             <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
-              <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
+              <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>
+                {cfg.badgeIcon && <AppIcon icon={cfg.badgeIcon} size={11} color={cfg.badgeColor} />} {cfg.badge}
+              </Text>
             </View>
           </View>
           {distanceLine !== '' && <Text style={[styles.distanceLine, { color: cfg.color }]}>{distanceLine}</Text>}
@@ -563,7 +566,9 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               <View style={styles.detailHeader}>
                 <Text style={styles.detailName}>{p.name}</Text>
                 <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
-                  <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>{cfg.badge}</Text>
+                  <Text style={[styles.badgeText, { color: cfg.badgeColor }]}>
+                {cfg.badgeIcon && <AppIcon icon={cfg.badgeIcon} size={11} color={cfg.badgeColor} />} {cfg.badge}
+              </Text>
                 </View>
               </View>
 
@@ -583,7 +588,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                   onPress={() => { const id = p.lastRecordId!; setSelectedPrediction(null); onEditRecord(id) }}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
-                  <Text style={styles.detailEditLink}>✏️ {t('predictions.editRecordLink')}</Text>
+                  <Text style={styles.detailEditLink}><AppIcon icon={{ lib: 'mci', name: 'pencil-outline' }} size={12} color={colors.primary} /> {t('predictions.editRecordLink')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -660,7 +665,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
                         setShowOverrideModal(true)
                       }}
                     >
-                      <Text style={styles.customizeBtnText}>✏️ {t('predictions.customize')}</Text>
+                      <Text style={styles.customizeBtnText}><AppIcon icon={{ lib: 'mci', name: 'pencil-outline' }} size={13} color={colors.primary} /> {t('predictions.customize')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
