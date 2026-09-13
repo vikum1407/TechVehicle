@@ -559,7 +559,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
             <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedPrediction(null)} />
             <View style={styles.detailSheet}>
               <View style={styles.detailHandle} />
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
               <View style={styles.detailHeader}>
                 <Text style={styles.detailName}>{p.name}</Text>
                 <View style={[styles.badge, { backgroundColor: cfg.badgeBg }]}>
