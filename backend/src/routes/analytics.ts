@@ -172,7 +172,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     // Tyre Change History
     const tyreRecords = serviceRecords
       .filter(r => r.description.toLowerCase().includes('tyre change'))
-      .slice(-5)
+      .slice(-8)
 
     let tyreAnalytics = null
     if (tyreRecords.length > 0) {
@@ -197,6 +197,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     // Emission Test History
     const emissionRecords = serviceRecords
       .filter(r => r.description.toLowerCase().includes('emission test'))
+      .slice(-8)
 
     let emissionAnalytics = null
     if (emissionRecords.length > 0) {
@@ -243,7 +244,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
       const refillCount12m = acRecords.filter(r => new Date(r.date) > oneYearAgo).length
 
-      const history = acRecords.slice(-6).map(r => {
+      const history = acRecords.slice(-8).map(r => {
         const sd = (r.structuredData as any)?.['AC Gas Refill'] || {}
         return {
           date: r.date.toISOString(),
