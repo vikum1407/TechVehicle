@@ -4,6 +4,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon from '../components/AppIcon'
 
 type Props = {
   onBack: () => void
@@ -21,7 +22,7 @@ export default function SettingsScreen({ onBack, onNotificationPrefs }: Props) {
 
       <View style={styles.card}>
         <TouchableOpacity style={styles.row} onPress={onNotificationPrefs} activeOpacity={0.7}>
-          <Text style={styles.rowIcon}>🔔</Text>
+          <View style={styles.rowIcon}><AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={18} color={colors.text} /></View>
           <Text style={styles.rowLabel}>{t('settings.notificationPrefs')}</Text>
           <Text style={styles.rowChevron}>›</Text>
         </TouchableOpacity>
@@ -79,7 +80,7 @@ function makeStyles(c: Colors) {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       paddingHorizontal: 16, paddingVertical: 16,
     },
-    rowIcon: { fontSize: 18 },
+    rowIcon: {},
     rowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
     rowChevron: { fontSize: 18, color: c.textMuted },
 

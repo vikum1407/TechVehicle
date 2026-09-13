@@ -8,6 +8,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type VehicleSpec = {
@@ -353,7 +354,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
       </View>
       {s.dataConfidence === 'needs-update' && (
         <View style={styles.updateFlagBox}>
-          <Text style={styles.updateFlagText}>🔄 {t('knowledgeHub.updateFlag')}</Text>
+          <Text style={styles.updateFlagText}><AppIcon icon={{ lib: 'mci', name: 'refresh' }} size={12} color={colors.warning} /> {t('knowledgeHub.updateFlag')}</Text>
         </View>
       )}
       {(s.engine || s.engineCapacityCC) && (
@@ -427,7 +428,7 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
 
       {s.notes && (
         <View style={styles.notesBox}>
-          <Text style={styles.noteText}>📝 {s.notes}</Text>
+          <Text style={styles.noteText}><AppIcon icon={{ lib: 'mci', name: 'note-text-outline' }} size={12} color={colors.textMuted} /> {s.notes}</Text>
         </View>
       )}
 
@@ -460,14 +461,18 @@ export default function KnowledgeHubScreen({ token, vehicle, onBack }: Props) {
           onPress={() => setTab('myVehicle')}
         >
           <Text style={[styles.tabText, tab === 'myVehicle' && styles.tabTextActive]}>
-            {warnCount > 0 ? `⚠ ${t('knowledgeHub.myVehicleWarn', { count: warnCount })}` : `🚗 ${t('knowledgeHub.myVehicle')}`}
+            {warnCount > 0
+              ? `⚠ ${t('knowledgeHub.myVehicleWarn', { count: warnCount })}`
+              : (<><AppIcon icon={{ lib: 'mci', name: 'car' }} size={13} color={tab === 'myVehicle' ? colors.primary : colors.textMuted} /> {t('knowledgeHub.myVehicle')}</>)}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, tab === 'search' && styles.tabActive]}
           onPress={() => setTab('search')}
         >
-          <Text style={[styles.tabText, tab === 'search' && styles.tabTextActive]}>🔍 {t('knowledgeHub.manufacturerSpecs')}</Text>
+          <Text style={[styles.tabText, tab === 'search' && styles.tabTextActive]}>
+            <AppIcon icon={{ lib: 'mci', name: 'magnify' }} size={13} color={tab === 'search' ? colors.primary : colors.textMuted} /> {t('knowledgeHub.manufacturerSpecs')}
+          </Text>
         </TouchableOpacity>
       </View>
 

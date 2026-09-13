@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type AppNotification = {
@@ -27,25 +28,26 @@ type Props = {
   onSettings: () => void
 }
 
-const TYPE_ICON: Record<string, string> = {
-  message: '💬',
-  booking_confirmed: '✅',
-  booking_reminder: '📅',
-  booking_counter: '🔄',
-  booking_counter_accepted: '✅',
-  booking_counter_declined: '❌',
-  booking_request: '📬',
-  booking_cancelled: '🚫',
-  mileage_reminder: '⛽',
-  setup_reminder:   '🔧',
-  service_reminder: '⚠️',
-  submission: '📋',
-  transfer: '🔑',
-  transfer_accepted: '🏆',
-  licence_reminder: '🚨',
-  emission_reminder: '🚨',
-  insurance_reminder: '🛡️',
+const TYPE_ICON: Record<string, AppIconSpec> = {
+  message: { lib: 'mci', name: 'message-text-outline' },
+  booking_confirmed: { lib: 'mci', name: 'calendar-check' },
+  booking_reminder: { lib: 'mci', name: 'calendar-clock' },
+  booking_counter: { lib: 'mci', name: 'calendar-sync' },
+  booking_counter_accepted: { lib: 'mci', name: 'calendar-check' },
+  booking_counter_declined: { lib: 'mci', name: 'calendar-remove' },
+  booking_request: { lib: 'mci', name: 'calendar-plus' },
+  booking_cancelled: { lib: 'mci', name: 'calendar-remove' },
+  mileage_reminder: { lib: 'mci', name: 'gas-station' },
+  setup_reminder:   { lib: 'mci', name: 'wrench' },
+  service_reminder: { lib: 'mci', name: 'alert-circle-outline' },
+  submission: { lib: 'mci', name: 'clipboard-text-outline' },
+  transfer: { lib: 'mci', name: 'key-variant' },
+  transfer_accepted: { lib: 'mci', name: 'trophy' },
+  licence_reminder: { lib: 'mci', name: 'card-account-details-outline' },
+  emission_reminder: { lib: 'mci', name: 'molecule-co2' },
+  insurance_reminder: { lib: 'mci', name: 'shield-check-outline' },
 }
+const DEFAULT_TYPE_ICON: AppIconSpec = { lib: 'mci', name: 'bell-outline' }
 
 const URGENT_TYPES = new Set(['licence_reminder', 'emission_reminder'])
 const TRANSFER_TYPES = new Set(['transfer', 'transfer_accepted'])
@@ -100,7 +102,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
         onBack={onBack}
         rightElement={
           <TouchableOpacity onPress={onSettings} style={styles.settingsBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <AppIcon icon={{ lib: 'mci', name: 'cog-outline' }} size={20} color={colors.text} />
           </TouchableOpacity>
         }
       />
@@ -109,7 +111,7 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
       ) : notifs.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🔔</Text>
+          <View style={styles.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={44} color={colors.textFaint} /></View>
           <Text style={styles.emptyText}>{t('notifications.empty')}</Text>
           <Text style={styles.emptySubtext}>{t('notifications.emptySub')}</Text>
         </View>
@@ -129,7 +131,13 @@ export default function NotificationsScreen({ token, onBack, onNavigate, onMarkA
               onPress={() => handleTap(item)}
               activeOpacity={0.75}
             >
-              <Text style={styles.cardIcon}>{TYPE_ICON[item.type] ?? '🔔'}</Text>
+              <View style={styles.cardIcon}>
+                <AppIcon
+                  icon={TYPE_ICON[item.type] ?? DEFAULT_TYPE_ICON}
+                  size={22}
+                  color={URGENT_TYPES.has(item.type) ? '#e65100' : TRANSFER_TYPES.has(item.type) ? '#f9a825' : colors.primary}
+                />
+              </View>
               <View style={styles.cardBody}>
                 <Text style={[
                   styles.cardTitle,
@@ -158,10 +166,9 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     settingsBtn: { padding: 4 },
-    settingsIcon: { fontSize: 20 },
 
     empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-    emptyIcon: { fontSize: 48, marginBottom: 16 },
+    emptyIcon: { marginBottom: 16 },
     emptyText: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 8 },
     emptySubtext: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20 },
 
@@ -185,7 +192,7 @@ function makeStyles(c: Colors) {
     },
     cardTitleTransfer: { color: '#e65100' },
     unreadDotTransfer: { backgroundColor: '#f9a825' },
-    cardIcon: { fontSize: 22, marginRight: 12, marginTop: 2 },
+    cardIcon: { marginRight: 12, marginTop: 2 },
     cardBody: { flex: 1 },
     cardTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 3 },
     cardText: { fontSize: 13, color: c.textSub, lineHeight: 18 },

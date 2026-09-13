@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useTranslation } from '../i18n/LanguageContext'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
+import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
 
 const DEFAULT_VEHICLE_ICON: AppIconSpec = { lib: 'mci', name: 'car' }
 const VEHICLE_TYPE_ICON: Record<string, AppIconSpec> = Object.fromEntries(
@@ -50,6 +51,7 @@ type VehicleShareInvite = {
     fuelType: string
     mileage: number
   }
+  healthSummary?: HealthSummary | null
 }
 
 type IncomingTransfer = {
@@ -95,6 +97,7 @@ type TransferRecords = {
     amount: number
     description?: string
   }[]
+  healthSummary?: HealthSummary | null
 }
 
 type Props = {
@@ -124,6 +127,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const [previewTransfer, setPreviewTransfer] = useState<IncomingTransfer | null>(null)
   const [previewRecords, setPreviewRecords] = useState<TransferRecords | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [showRawPreviewRecords, setShowRawPreviewRecords] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null)
 
@@ -192,6 +196,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const handleViewHistory = async (transfer: IncomingTransfer) => {
     setPreviewTransfer(transfer)
     setPreviewRecords(null)
+    setShowRawPreviewRecords(false)
     setLoadingPreview(true)
     try {
       const data = await api.getTransferRecords(token, transfer.id)
@@ -289,7 +294,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
         <View style={styles.headerRight}>
           {onNotifPress && (
             <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
-              <Text style={styles.bellIcon}>🔔</Text>
+              <AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={20} color={colors.text} />
               {notifUnread && <View style={styles.bellDot} />}
             </TouchableOpacity>
           )}
@@ -341,9 +346,15 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                           </Text>
                         </View>
                         <View style={styles.transferCounts}>
-                          <Text style={styles.transferCountItem}>🔧 {transfer.vehicle._count.serviceRecords}</Text>
-                          <Text style={styles.transferCountItem}>{transfer.vehicle.vehicleType === 'electric' ? '🔋' : '⛽'} {transfer.vehicle._count.fuelLogs}</Text>
-                          <Text style={styles.transferCountItem}>💰 {transfer.vehicle._count.expenses}</Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: 'wrench' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.serviceRecords}
+                          </Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: transfer.vehicle.vehicleType === 'electric' ? 'battery-charging' : 'gas-station' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.fuelLogs}
+                          </Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.expenses}
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.transferFrom}>{t('myVehicles.transferFrom', { phone: transfer.sellerPhone, date: formatDate(transfer.createdAt) })}</Text>
@@ -392,6 +403,11 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                         </View>
                       </View>
                       <Text style={styles.shareInviteFrom}>{t('myVehicles.shareFrom', { phone: share.ownerPhone })}</Text>
+                      {share.healthSummary && (
+                        <View style={{ marginTop: 10, marginBottom: 4 }}>
+                          <VehicleHealthSummaryCard summary={share.healthSummary} />
+                        </View>
+                      )}
                       <View style={styles.shareInviteActions}>
                         <TouchableOpacity
                           style={[styles.declineShareBtn, decliningShare === share.id && { opacity: 0.5 }]}
@@ -473,6 +489,23 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.primary} />
           ) : previewRecords ? (
             <ScrollView style={styles.modalScroll} contentContainerStyle={{ paddingBottom: 120 }}>
+              {previewRecords.healthSummary && (
+                <View style={{ marginBottom: 16 }}>
+                  <VehicleHealthSummaryCard summary={previewRecords.healthSummary} />
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={() => setShowRawPreviewRecords(v => !v)}
+                style={{ paddingVertical: 10, marginBottom: 8 }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+                  {t('myVehicles.viewDetailedRecords')} {showRawPreviewRecords ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+
+              {!showRawPreviewRecords ? null : (
+              <>
               {/* Service Records */}
               <Text style={styles.modalSectionTitle}>
                 {t('myVehicles.serviceRecords', { count: previewRecords.serviceRecords.length })}
@@ -527,6 +560,8 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                   {e.description && <Text style={styles.recordMeta}>{e.description}</Text>}
                 </View>
               ))}
+              </>
+              )}
             </ScrollView>
           ) : null}
 

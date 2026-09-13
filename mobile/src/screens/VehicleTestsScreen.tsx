@@ -11,6 +11,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
+import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
@@ -642,23 +643,33 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabBarContent}>
         {showEmissionTab && (
           <TouchableOpacity style={[s.tab, activeTab === 'emission' && s.tabActive]} onPress={() => setActiveTab('emission')} activeOpacity={0.7}>
-            <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>💨 {t('vehicleTests.tab.emission')}</Text>
+            <Text style={[s.tabText, activeTab === 'emission' && s.tabTextActive]}>
+              <AppIcon icon={{ lib: 'mci', name: 'weather-windy' }} size={13} color={activeTab === 'emission' ? colors.primary : colors.textMuted} /> {t('vehicleTests.tab.emission')}
+            </Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[s.tab, activeTab === 'alignment' && s.tabActive]} onPress={() => setActiveTab('alignment')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>🔧 {t('vehicleTests.tab.alignment')}</Text>
+          <Text style={[s.tabText, activeTab === 'alignment' && s.tabTextActive]}>
+            <AppIcon icon={{ lib: 'mci', name: 'car-wrench' }} size={13} color={activeTab === 'alignment' ? colors.primary : colors.textMuted} /> {t('vehicleTests.tab.alignment')}
+          </Text>
         </TouchableOpacity>
         {showChainTab && (
           <TouchableOpacity style={[s.tab, activeTab === 'chain' && s.tabActive]} onPress={() => setActiveTab('chain')} activeOpacity={0.7}>
-            <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>⛓ {t('vehicleTests.tab.chain')}</Text>
+            <Text style={[s.tabText, activeTab === 'chain' && s.tabTextActive]}>
+              <AppIcon icon={{ lib: 'mci', name: 'link-variant' }} size={13} color={activeTab === 'chain' ? colors.primary : colors.textMuted} /> {t('vehicleTests.tab.chain')}
+            </Text>
             {chainStatus.lubeStatus === 'overdue' && <View style={s.tabDot} />}
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[s.tab, activeTab === 'insurance' && s.tabActive]} onPress={() => setActiveTab('insurance')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'insurance' && s.tabTextActive]}>🛡️ {t('vehicleTests.tab.insurance')}</Text>
+          <Text style={[s.tabText, activeTab === 'insurance' && s.tabTextActive]}>
+            <AppIcon icon={{ lib: 'mci', name: 'shield-check-outline' }} size={13} color={activeTab === 'insurance' ? colors.primary : colors.textMuted} /> {t('vehicleTests.tab.insurance')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tab, activeTab === 'licence' && s.tabActive]} onPress={() => setActiveTab('licence')} activeOpacity={0.7}>
-          <Text style={[s.tabText, activeTab === 'licence' && s.tabTextActive]}>📋 {t('vehicleTests.tab.revLicence')}</Text>
+          <Text style={[s.tabText, activeTab === 'licence' && s.tabTextActive]}>
+            <AppIcon icon={{ lib: 'mci', name: 'card-account-details-outline' }} size={13} color={activeTab === 'licence' ? colors.primary : colors.textMuted} /> {t('vehicleTests.tab.revLicence')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -672,7 +683,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
                   <View style={s.docStatusHeaderRow}>
-                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentEmissionReminder')}</Text>
+                    <Text style={[s.docStatusPin, { color: status.color }]}><AppIcon icon={{ lib: 'mci', name: 'map-marker' }} size={11} color={status.color} /> {t('vehicleTests.currentEmissionReminder')}</Text>
                     {!isShared && curEmissionExpiry && (
                       <TouchableOpacity onPress={startEditEmissionExpiry} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>
@@ -698,7 +709,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.histCard, { borderLeftColor: pass ? colors.success : colors.error, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 {t('vehicleTests.latest')}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}><AppIcon icon={{ lib: 'mci', name: 'map-marker' }} size={11} color={colors.primary} /> {t('vehicleTests.latest')}</Text>
                   </View>
                   <View style={s.histRow}>
                     <Text style={[s.histResult, { color: pass ? colors.success : colors.error }]}>{pass ? '✓ Pass' : '✗ Fail'}</Text>
@@ -824,7 +835,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.histCard, { borderLeftColor: colors.primary, marginBottom: 20 }]}>
                   <View style={[s.histRow, { marginBottom: 6 }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}>📌 {t('vehicleTests.latest')}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginRight: 4 }}><AppIcon icon={{ lib: 'mci', name: 'map-marker' }} size={11} color={colors.primary} /> {t('vehicleTests.latest')}</Text>
                   </View>
                   <View style={s.histRow}>
                     <Text style={s.histLabel}>Wheel Alignment</Text>
@@ -910,7 +921,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
             ) : (
               <View style={s.predHint}>
                 <Text style={s.predHintText}>
-                  💡 {t('vehicleTests.predHint')}
+                  <AppIcon icon={{ lib: 'mci', name: 'lightbulb-on-outline' }} size={13} color={colors.primaryTintText} /> {t('vehicleTests.predHint')}
                 </Text>
               </View>
             )}
@@ -1043,7 +1054,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
                   <View style={s.docStatusHeaderRow}>
-                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentPolicy')}</Text>
+                    <Text style={[s.docStatusPin, { color: status.color }]}><AppIcon icon={{ lib: 'mci', name: 'map-marker' }} size={11} color={status.color} /> {t('vehicleTests.currentPolicy')}</Text>
                     {!isShared && hasDetails && (
                       <TouchableOpacity onPress={startEditCurrentPolicy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>
@@ -1130,7 +1141,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               return (
                 <View style={[s.docStatusCard, { backgroundColor: status.bg, borderLeftColor: status.color }]}>
                   <View style={s.docStatusHeaderRow}>
-                    <Text style={[s.docStatusPin, { color: status.color }]}>📌 {t('vehicleTests.currentRevenueLicence')}</Text>
+                    <Text style={[s.docStatusPin, { color: status.color }]}><AppIcon icon={{ lib: 'mci', name: 'map-marker' }} size={11} color={status.color} /> {t('vehicleTests.currentRevenueLicence')}</Text>
                     {!isShared && curLicenceExpiry && (
                       <TouchableOpacity onPress={startEditCurrentLicence} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Text style={s.docStatusEditLink}>{t('common.edit')}</Text>

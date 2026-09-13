@@ -10,6 +10,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -510,17 +511,19 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       {/* Tab bar */}
       <View style={s.tabBar}>
         {([
-          { key: 'service', label: `📋 ${t('history.tab.service')} (${records.length})` },
-          { key: 'expenses', label: `💰 ${t('history.tab.expenses')} (${expenses.length})` },
-          { key: 'fuel', label: `${isElectric ? '🔋' : '⛽'} ${t(isElectric ? 'history.tab.charging' : 'history.tab.fuel')} (${fuelLogs.length})` },
-        ] as { key: Tab; label: string }[]).map(tb => (
+          { key: 'service', icon: { lib: 'mci', name: 'clipboard-text-outline' }, label: `${t('history.tab.service')} (${records.length})` },
+          { key: 'expenses', icon: { lib: 'mci', name: 'cash-multiple' }, label: `${t('history.tab.expenses')} (${expenses.length})` },
+          { key: 'fuel', icon: { lib: 'mci', name: isElectric ? 'battery-charging' : 'gas-station' }, label: `${t(isElectric ? 'history.tab.charging' : 'history.tab.fuel')} (${fuelLogs.length})` },
+        ] as { key: Tab; icon: AppIconSpec; label: string }[]).map(tb => (
           <TouchableOpacity
             key={tb.key}
             style={[s.tab, activeTab === tb.key && s.tabActive]}
             onPress={() => setActiveTab(tb.key)}
             activeOpacity={0.7}
           >
-            <Text style={[s.tabText, activeTab === tb.key && s.tabTextActive]}>{tb.label}</Text>
+            <Text style={[s.tabText, activeTab === tb.key && s.tabTextActive]}>
+              <AppIcon icon={tb.icon} size={13} color={activeTab === tb.key ? colors.primary : colors.textMuted} /> {tb.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -552,7 +555,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 >
                   {exporting
                     ? <ActivityIndicator size="small" color={colors.primary} />
-                    : <Text style={s.exportBtnText}>📄 PDF</Text>
+                    : <Text style={s.exportBtnText}><AppIcon icon={{ lib: 'mci', name: 'file-pdf-box' }} size={13} color={colors.primary} /> PDF</Text>
                   }
                 </TouchableOpacity>
               </View>
@@ -634,7 +637,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {records.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>🔧</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'wrench-outline' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noServiceRecords')}</Text>
                   <Text style={s.emptySub}>{t('history.empty.noServiceRecordsSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
@@ -643,7 +646,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 </View>
               ) : filteredRecords.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>🔍</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'magnify' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noRecordsMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setSearch(''); setDateFilter('all'); setCatFilter('All'); setMileageMin(''); setMileageMax(''); setShowMileageFilter(false) }}>
                     <Text style={s.emptyBtnText}>{t('history.clearAllFilters')}</Text>
@@ -722,7 +725,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {expenses.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>💰</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'cash-multiple' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noExpenses')}</Text>
                   <Text style={s.emptySub}>{t('history.empty.noExpensesSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
@@ -731,7 +734,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 </View>
               ) : filteredExpenses.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>🔍</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'magnify' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noExpensesMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setExpSearch(''); setExpDateFilter('all'); setExpCatFilter('All') }}>
                     <Text style={s.emptyBtnText}>{t('history.clearAllFilters')}</Text>
@@ -819,7 +822,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
 
               {fuelLogs.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>{isElectric ? '🔋' : '⛽'}</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: isElectric ? 'battery-charging' : 'gas-station' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noFuelLogs')}</Text>
                   <Text style={s.emptySub}>{t('history.empty.noFuelLogsSub')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={onBack}>
@@ -828,7 +831,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                 </View>
               ) : filteredFuelLogs.length === 0 ? (
                 <View style={s.empty}>
-                  <Text style={s.emptyIcon}>🔍</Text>
+                  <View style={s.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'magnify' }} size={40} color={colors.textFaint} /></View>
                   <Text style={s.emptyText}>{t('history.empty.noFillUpsMatch')}</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => { setFuelSearch(''); setFuelDateFilter('all') }}>
                     <Text style={s.emptyBtnText}>{t('history.clearFilters')}</Text>
@@ -1252,7 +1255,7 @@ function makeStyles(c: Colors, topInset: number) {
     fuelStation: { fontSize: 12, color: c.textFaint, marginTop: 4 },
 
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32 },
-    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyIcon: { marginBottom: 12 },
     emptyText: { fontSize: 17, fontWeight: '700', color: c.textBody, marginBottom: 8, textAlign: 'center' },
     emptySub: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
     emptyBtn: {

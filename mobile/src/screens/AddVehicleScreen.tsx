@@ -17,6 +17,7 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import Chip from '../components/Chip'
+import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -385,7 +386,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
           <Image source={{ uri: photoUrl }} style={styles.photoPreview} resizeMode="cover" />
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Text style={styles.photoIcon}>📷</Text>
+            <View style={styles.photoIcon}><AppIcon icon={{ lib: 'mci', name: 'camera-outline' }} size={32} color={colors.textFaint} /></View>
             <Text style={styles.photoHint}>{t('addVehicle.tapToAddPhoto')}</Text>
           </View>
         )}
@@ -444,7 +445,7 @@ function makeMainStyles(c: Colors) {
     },
     photoPreview: { width: '100%', height: '100%' },
     photoPlaceholder: { alignItems: 'center', gap: 8 },
-    photoIcon: { fontSize: 36 },
+    photoIcon: {},
     photoHint: { fontSize: 13, color: c.textFaint },
     removePhoto: { alignSelf: 'flex-end', marginBottom: 16 },
     removePhotoText: { fontSize: 12, color: c.error },

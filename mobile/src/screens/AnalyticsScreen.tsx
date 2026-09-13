@@ -11,6 +11,8 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
+import DonutChart from '../components/DonutChart'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
@@ -43,6 +45,7 @@ type Analytics = {
   totalSpend: number
   serviceCost: number
   vehicleTestCost: number
+  legalComplianceCost?: number
   fuelCost: number
   expenseTotal: number
   expenseBreakdown: { category: string; amount: number }[]
@@ -81,7 +84,9 @@ type Anomaly = {
   severity: 'warning' | 'info'
 }
 
-const COLORS = ['#1d3a5f', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#1565c0']
+// Note: avoid navy (#1d3a5f) here — it matches the hero card background,
+// which made that swatch (and its legend dot) invisible when it landed first.
+const COLORS = ['#4fc3f7', '#34a853', '#fbbc04', '#ea4335', '#9334e6', '#00897b', '#e65100', '#f06292']
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -214,6 +219,45 @@ function FuelCostChart({ data }: { data: { cost: number; label: string }[] }) {
   )
 }
 
+// ── Trip-ready banner ────────────────────────────────────────────────────────────
+
+function TripReadyBanner({ forecast, emissionFailed }: { forecast: Forecast; emissionFailed: boolean }) {
+  const colors = useColors(); const styles = useMemo(() => makeStyles(colors), [colors])
+  const { t } = useTranslation()
+  const overdueCount = forecast.items.filter(i => i.status === 'overdue').length
+  const dueSoonCount = forecast.items.filter(i => i.status === 'due_soon').length
+
+  let level: 'ready' | 'attention' | 'not_ready' = 'ready'
+  if (overdueCount > 0 || emissionFailed) level = 'not_ready'
+  else if (dueSoonCount > 0) level = 'attention'
+
+  const color = level === 'not_ready' ? colors.error : level === 'attention' ? colors.warning : colors.success
+  const icon: AppIconSpec = {
+    lib: 'mci',
+    name: level === 'not_ready' ? 'close-circle' : level === 'attention' ? 'alert-circle' : 'check-circle',
+  }
+  const title = t(
+    level === 'not_ready' ? 'analytics.tripReady.notReadyTitle'
+      : level === 'attention' ? 'analytics.tripReady.attentionTitle'
+      : 'analytics.tripReady.title'
+  )
+  const sub = level === 'not_ready'
+    ? t(emissionFailed ? 'analytics.tripReady.notReadySubWithEmission' : 'analytics.tripReady.notReadySub', { count: overdueCount })
+    : level === 'attention'
+      ? t('analytics.tripReady.attentionSub', { count: dueSoonCount })
+      : t('analytics.tripReady.sub')
+
+  return (
+    <View style={[styles.tripBanner, { borderLeftColor: color }]}>
+      <View style={styles.tripBannerIcon}><AppIcon icon={icon} size={18} color={color} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.tripBannerTitle, { color }]}>{title}</Text>
+        <Text style={styles.tripBannerSub}>{sub}</Text>
+      </View>
+    </View>
+  )
+}
+
 // ── Structured analytics cards ─────────────────────────────────────────────────
 
 function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
@@ -222,7 +266,10 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.oilCard.title')}</Text>
+        <View style={styles.sectionTitleRow}>
+          <AppIcon icon={{ lib: 'mci', name: 'oil' }} size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('analytics.oilCard.title')}</Text>
+        </View>
         <Text style={styles.sectionBadge}>{t('analytics.recordsCount', { count: data.history.length })}</Text>
       </View>
       {data.history.map((item, i) => (
@@ -257,7 +304,10 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.tyreCard.title')}</Text>
+        <View style={styles.sectionTitleRow}>
+          <AppIcon icon={{ lib: 'mci', name: 'tire' }} size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('analytics.tyreCard.title')}</Text>
+        </View>
         {data.currentSize && (
           <View style={styles.sizeBadge}><Text style={styles.sizeBadgeText}>{data.currentSize}</Text></View>
         )}
@@ -296,12 +346,17 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.emissionCard.title')}</Text>
+        <View style={styles.sectionTitleRow}>
+          <AppIcon icon={{ lib: 'mci', name: 'molecule-co2' }} size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('analytics.emissionCard.title')}</Text>
+        </View>
         <Text style={styles.sectionBadge}>{t('analytics.testsCount', { count: data.history.length })}</Text>
       </View>
       {data.warning && (
         <View style={[styles.warnBanner, data.warning.includes('FAIL') && styles.warnBannerRed]}>
-          <Text style={styles.warnIcon}>{data.warning.includes('FAIL') ? '🚨' : '⚠️'}</Text>
+          <View style={styles.warnIcon}>
+            <AppIcon icon={{ lib: 'mci', name: data.warning.includes('FAIL') ? 'alert' : 'alert-outline' }} size={14} color={data.warning.includes('FAIL') ? '#e53935' : '#f9a825'} />
+          </View>
           <Text style={styles.warnText}>{data.warning}</Text>
         </View>
       )}
@@ -347,12 +402,15 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.acCard.title')}</Text>
+        <View style={styles.sectionTitleRow}>
+          <AppIcon icon={{ lib: 'mci', name: 'snowflake' }} size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('analytics.acCard.title')}</Text>
+        </View>
         <Text style={styles.sectionBadge}>{t('analytics.acCard.pastYear', { count: data.refillCount12m })}</Text>
       </View>
       {data.warning && (
         <View style={styles.warnBanner}>
-          <Text style={styles.warnIcon}>⚠️</Text>
+          <View style={styles.warnIcon}><AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={14} color="#f9a825" /></View>
           <Text style={styles.warnText}>{data.warning}</Text>
         </View>
       )}
@@ -402,7 +460,10 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
     <View style={styles.forecastCard}>
       <View style={styles.forecastHeader}>
         <View>
-          <Text style={styles.forecastTitle}>{t('analytics.forecast.title')}</Text>
+          <View style={styles.sectionTitleRow}>
+            <AppIcon icon={{ lib: 'mci', name: 'crystal-ball' }} size={16} color={colors.primary} />
+            <Text style={styles.forecastTitle}>{t('analytics.forecast.title')}</Text>
+          </View>
           <Text style={styles.forecastSub}>{t('analytics.forecast.subtitle')}</Text>
         </View>
         {hasAnyEstimate && (
@@ -471,6 +532,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
   const [anomalies, setAnomalies] = useState<Anomaly[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -498,7 +560,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
   if (loadError) return (
     <View style={styles.center}>
-      <Text style={styles.errorIcon}>⚠️</Text>
+      <View style={styles.errorIcon}><AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={44} color={colors.textFaint} /></View>
       <Text style={styles.errorTitle}>{t('analytics.loadError.title')}</Text>
       <Text style={styles.errorSub}>{t('analytics.loadError.sub')}</Text>
       <TouchableOpacity style={styles.retryBtn} onPress={load}>
@@ -512,7 +574,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
   if (!data || (data.totalSpend === 0 && data.recordCounts.fuelLogs === 0 && data.recordCounts.services === 0)) return (
     <View style={styles.center}>
-      <Text style={styles.errorIcon}>📊</Text>
+      <View style={styles.errorIcon}><AppIcon icon={{ lib: 'mci', name: 'chart-box-outline' }} size={44} color={colors.textFaint} /></View>
       <Text style={styles.errorTitle}>{t('analytics.noData.title')}</Text>
       <Text style={styles.errorSub}>{t('analytics.noData.sub')}</Text>
       <TouchableOpacity onPress={onBack} style={styles.retryBtn}>
@@ -522,7 +584,6 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
   )
 
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
-  const maxBreakdown = Math.max(...data.expenseBreakdown.map(e => e.amount), 1)
   const maxMonthly = Math.max(...data.monthlySpend.map(m => m.amount), 1)
 
   return (
@@ -530,28 +591,57 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       <ScreenHeader title={t('analytics.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
 
-      {/* Total spend */}
+      {/* Trip-ready snapshot */}
+      {forecast && forecast.items.length > 0 && (
+        <TripReadyBanner
+          forecast={forecast}
+          emissionFailed={!!data.emissionAnalytics?.warning?.includes('FAILED')}
+        />
+      )}
+
+      {/* Total spend + category donut */}
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>{t('analytics.totalSpend')}</Text>
         <Text style={styles.totalAmount}>{fmt(data.totalSpend)}</Text>
-        <View style={styles.pillRow}>
-          <View style={styles.pill}><Text style={styles.pillText}>🔧 {fmt(data.serviceCost)}</Text></View>
-          {data.vehicleTestCost > 0 && (
-            <View style={styles.pill}><Text style={styles.pillText}>✅ {fmt(data.vehicleTestCost)}</Text></View>
-          )}
-          <View style={styles.pill}><Text style={styles.pillText}>{isElectric ? '🔋' : '⛽'} {fmt(data.fuelCost)}</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>📋 {fmt(data.expenseTotal)}</Text></View>
-        </View>
+
+        {data.expenseBreakdown.length > 0 && (
+          <View style={styles.donutSection}>
+            <DonutChart
+              trackColor="rgba(255,255,255,0.25)"
+              segments={data.expenseBreakdown.map((item, i) => ({ amount: item.amount, color: COLORS[i % COLORS.length] }))}
+            />
+            <View style={styles.donutLegend}>
+              {data.expenseBreakdown.slice(0, showAllCategories ? undefined : 5).map((item, i) => (
+                <View key={i} style={styles.legendRow}>
+                  <View style={[styles.legendDot, { backgroundColor: COLORS[i % COLORS.length] }]} />
+                  <Text style={styles.legendLabel}>{item.category}</Text>
+                  <Text style={styles.legendAmount}>{fmt(item.amount)}</Text>
+                </View>
+              ))}
+              {data.expenseBreakdown.length > 5 && (
+                <TouchableOpacity onPress={() => setShowAllCategories(v => !v)}>
+                  <Text style={styles.legendMore}>
+                    {showAllCategories
+                      ? t('analytics.spendBreakdown.showLess')
+                      : t('analytics.spendBreakdown.andMore', { count: data.expenseBreakdown.length - 5 })}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Key stats */}
       <View style={styles.statRow}>
         <View style={styles.statCard}>
+          <View style={styles.statIcon}><AppIcon icon={{ lib: 'mci', name: 'cash' }} size={20} color={colors.primary} /></View>
           <Text style={styles.statLabel}>{t('analytics.costPerKm')}</Text>
           <Text style={styles.statValue}>{data.costPerKm != null ? 'LKR ' + data.costPerKm.toFixed(1) : '—'}</Text>
           <Text style={styles.statSub}>{t('analytics.perKmDriven')}</Text>
         </View>
         <View style={styles.statCard}>
+          <View style={styles.statIcon}><AppIcon icon={{ lib: 'mci', name: isElectric ? 'battery-charging' : 'gas-station' }} size={20} color={colors.primary} /></View>
           <Text style={styles.statLabel}>{t(isElectric ? 'analytics.energyEconomy' : 'analytics.fuelEconomy')}</Text>
           <Text style={styles.statValue}>
             {data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + (isElectric ? ' km/kWh' : ' km/L') : '—'}
@@ -572,7 +662,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               style={[styles.anomalyCard, a.severity === 'warning' ? styles.anomalyCardWarn : styles.anomalyCardInfo]}
             >
               <Text style={[styles.anomalyTitle, a.severity === 'warning' ? styles.anomalyTitleWarn : styles.anomalyTitleInfo]}>
-                {a.severity === 'warning' ? '⚠️ ' : 'ℹ️ '}{a.title}
+                <AppIcon icon={{ lib: 'mci', name: a.severity === 'warning' ? 'alert-outline' : 'information-outline' }} size={13} color={a.severity === 'warning' ? '#e65100' : colors.primaryTintText} /> {a.title}
               </Text>
               <Text style={[styles.anomalyDesc, a.severity === 'warning' && styles.anomalyDescWarn]}>{a.description}</Text>
             </View>
@@ -593,7 +683,9 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t('analytics.mileageGrowth')}</Text>
               <Text style={styles.chartSub}>{t('analytics.odometerOverTime')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: colors.primaryTint }]}>
+              <AppIcon icon={{ lib: 'mci', name: 'chart-line' }} size={17} color={colors.primary} />
+            </View>
           </View>
           <MileageChart data={data.mileageTrend} />
         </View>
@@ -607,7 +699,9 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.chargingEfficiency' : 'analytics.fuelEfficiency')}</Text>
               <Text style={styles.chartSub}>{t(isElectric ? 'analytics.kmPerKwhSub' : 'analytics.kmPerLitreSub')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: '#34a853' }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: '#e6f4ea' }]}>
+              <AppIcon icon={{ lib: 'mci', name: isElectric ? 'lightning-bolt' : 'gas-station' }} size={17} color="#34a853" />
+            </View>
           </View>
           <EfficiencyChart data={data.fuelEfficiencyTrend ?? []} />
         </View>
@@ -621,34 +715,20 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.costPerCharge' : 'analytics.costPerFillup')}</Text>
               <Text style={styles.chartSub}>{t(isElectric ? 'analytics.lkrSpentPerCharge' : 'analytics.lkrSpentPerFillup')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: colors.primaryTint }]}>
+              <AppIcon icon={{ lib: 'mci', name: 'credit-card-outline' }} size={17} color={colors.primary} />
+            </View>
           </View>
           <FuelCostChart data={data.fuelCostTrend} />
         </View>
       )}
 
-      {/* Spending by category */}
-      {data.expenseBreakdown.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('analytics.spendingByCategory')}</Text>
-          {data.expenseBreakdown.map((item, i) => (
-            <View key={i} style={styles.catRow}>
-              <Text style={styles.catLabel} numberOfLines={1}>{item.category}</Text>
-              <View style={styles.barTrack}>
-                <View style={[
-                  styles.barFill,
-                  { width: (Math.round((item.amount / maxBreakdown) * 100) + '%') as any, backgroundColor: COLORS[i % COLORS.length] }
-                ]} />
-              </View>
-              <Text style={styles.catAmount}>{fmt(item.amount)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
       {/* Monthly spend */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('analytics.monthlySpend')}</Text>
+        <View style={styles.sectionTitleRow}>
+          <AppIcon icon={{ lib: 'mci', name: 'calendar-month' }} size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('analytics.monthlySpend')}</Text>
+        </View>
         <View style={styles.monthlyChart}>
           {data.monthlySpend.map((m, i) => {
             const barH = maxMonthly > 0 ? Math.round((m.amount / maxMonthly) * 80) : 0
@@ -668,14 +748,17 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       {/* Record counts */}
       <View style={styles.countRow}>
         <View style={styles.countCard}>
+          <View style={styles.countIcon}><AppIcon icon={{ lib: 'mci', name: 'wrench' }} size={16} color={colors.primary} /></View>
           <Text style={styles.countNum}>{data.recordCounts.services}</Text>
           <Text style={styles.countLbl}>{t('analytics.servicesLabel')}</Text>
         </View>
         <View style={styles.countCard}>
+          <View style={styles.countIcon}><AppIcon icon={{ lib: 'mci', name: isElectric ? 'battery-charging' : 'gas-station' }} size={16} color={colors.primary} /></View>
           <Text style={styles.countNum}>{data.recordCounts.fuelLogs}</Text>
           <Text style={styles.countLbl}>{t(isElectric ? 'analytics.chargeLogsLabel' : 'analytics.fuelLogsLabel')}</Text>
         </View>
         <View style={styles.countCard}>
+          <View style={styles.countIcon}><AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={16} color={colors.primary} /></View>
           <Text style={styles.countNum}>{data.recordCounts.expenses}</Text>
           <Text style={styles.countLbl}>{t('analytics.expensesLabel')}</Text>
         </View>
@@ -723,7 +806,7 @@ function makeStyles(c: Colors) {
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 24, paddingBottom: 48 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, backgroundColor: c.background },
-    errorIcon: { fontSize: 48, marginBottom: 16 },
+    errorIcon: { marginBottom: 16 },
     errorTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8, textAlign: 'center' },
     errorSub: { fontSize: 14, color: c.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     retryBtn: {
@@ -735,16 +818,31 @@ function makeStyles(c: Colors) {
 
     totalCard: { backgroundColor: c.primary, borderRadius: 16, padding: 20, marginBottom: 16 },
     totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 6 },
-    totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 14 },
-    pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    pill: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-    pillText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+    totalAmount: { fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 4 },
+    donutSection: { alignItems: 'center', marginTop: 14, gap: 14 },
+    donutLegend: { width: '100%', gap: 9 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    legendDot: { width: 9, height: 9, borderRadius: 4.5 },
+    legendLabel: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+    legendAmount: { fontSize: 13, color: '#fff', fontWeight: '700' },
+    legendMore: { fontSize: 12, color: '#fff', fontWeight: '700', textDecorationLine: 'underline', marginTop: 4 },
+
+    tripBanner: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+      backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 16,
+      borderLeftWidth: 4,
+      shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    tripBannerIcon: { marginTop: 1 },
+    tripBannerTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
+    tripBannerSub: { fontSize: 12, color: c.textSub, lineHeight: 17 },
 
     statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     statCard: {
       flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
+    statIcon: { marginBottom: 6 },
     statLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
     statValue: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 2 },
     statSub: { fontSize: 11, color: c.textFaint },
@@ -756,7 +854,7 @@ function makeStyles(c: Colors) {
     chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
     chartTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
     chartSub: { fontSize: 11, color: c.textFaint },
-    chartDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+    chartIconBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
 
     section: {
       backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16,
@@ -764,13 +862,9 @@ function makeStyles(c: Colors) {
     },
     sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: c.text },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     sectionBadge: { fontSize: 11, color: c.textMuted, fontWeight: '600' },
 
-    catRow: { marginBottom: 12 },
-    catLabel: { fontSize: 12, color: c.textSub, fontWeight: '600', marginBottom: 5 },
-    barTrack: { height: 10, backgroundColor: c.border, borderRadius: 5, marginBottom: 3, overflow: 'hidden' },
-    barFill: { height: '100%', borderRadius: 5 },
-    catAmount: { fontSize: 11, color: c.textMuted },
 
     monthlyChart: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 6 },
     monthCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
@@ -784,6 +878,7 @@ function makeStyles(c: Colors) {
       flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16, alignItems: 'center',
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
+    countIcon: { marginBottom: 4 },
     countNum: { fontSize: 28, fontWeight: '800', color: c.primary, marginBottom: 4 },
     countLbl: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
@@ -835,7 +930,7 @@ function makeStyles(c: Colors) {
       borderLeftWidth: 3, borderLeftColor: '#f9a825',
     },
     warnBannerRed: { backgroundColor: '#fce4ec', borderLeftColor: '#e53935' },
-    warnIcon: { fontSize: 14, marginTop: 1 },
+    warnIcon: { marginTop: 1 },
     warnText: { flex: 1, fontSize: 12, color: '#5d4037', lineHeight: 17 },
 
     anomalySection: { marginBottom: 16 },

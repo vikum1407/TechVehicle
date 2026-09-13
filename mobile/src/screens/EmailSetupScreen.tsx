@@ -7,6 +7,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 
 type Props = {
   token: string
@@ -41,16 +42,16 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         <View style={styles.iconWrap}>
-          <Text style={styles.icon}>📧</Text>
+          <AppIcon icon={{ lib: 'mci', name: 'email-outline' }} size={28} color={colors.primary} />
         </View>
 
         <Text style={styles.title}>{t('emailSetup.title')}</Text>
         <Text style={styles.subtitle}>{t('emailSetup.subtitle')}</Text>
 
         <View style={styles.reasons}>
-          <ReasonRow icon="🔑" text={t('emailSetup.reason1')} />
-          <ReasonRow icon="📅" text={t('emailSetup.reason2')} />
-          <ReasonRow icon="🔔" text={t('emailSetup.reason3')} />
+          <ReasonRow icon={{ lib: 'mci', name: 'key-outline' }} text={t('emailSetup.reason1')} color={colors.primary} />
+          <ReasonRow icon={{ lib: 'mci', name: 'calendar-month-outline' }} text={t('emailSetup.reason2')} color={colors.primary} />
+          <ReasonRow icon={{ lib: 'mci', name: 'bell-outline' }} text={t('emailSetup.reason3')} color={colors.primary} />
         </View>
 
         <TextInput
@@ -86,10 +87,10 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
   )
 }
 
-function ReasonRow({ icon, text }: { icon: string; text: string }) {
+function ReasonRow({ icon, text, color }: { icon: AppIconSpec; text: string; color: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <Text style={{ fontSize: 16 }}>{icon}</Text>
+      <AppIcon icon={icon} size={16} color={color} />
       <Text style={{ fontSize: 14, color: '#555', flex: 1 }}>{text}</Text>
     </View>
   )
@@ -105,7 +106,6 @@ function makeStyles(c: Colors) {
       backgroundColor: c.primaryTint, alignItems: 'center', justifyContent: 'center',
       marginBottom: 20,
     },
-    icon: { fontSize: 32 },
 
     title: {
       fontSize: 22, fontWeight: '800', color: c.text,

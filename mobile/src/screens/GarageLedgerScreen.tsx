@@ -8,6 +8,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import FormField from '../components/FormField'
+import AppIcon from '../components/AppIcon'
 import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useTranslation } from '../i18n/LanguageContext'
 
@@ -123,7 +124,7 @@ export default function GarageLedgerScreen({ token, focusVehicleId, onBack }: Pr
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📒</Text>
+            <View style={styles.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'book-open-outline' }} size={40} color={colors.textFaint} /></View>
             <Text style={styles.emptyText}>{t('garageLedger.noCustomersFound')}</Text>
             <Text style={styles.emptySub}>
               {customers.length === 0
@@ -229,7 +230,7 @@ function makeStyles(c: Colors) {
     historyMeta: { fontSize: 12, color: c.textMuted, marginTop: 4 },
     historyNotes: { fontSize: 12, color: c.textSub, marginTop: 4, fontStyle: 'italic' },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
-    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyIcon: { marginBottom: 12 },
     emptyText: { fontSize: 15, fontWeight: '700', color: c.textSub, marginBottom: 4 },
     emptySub: { fontSize: 13, color: c.textFaint, textAlign: 'center' },
   })

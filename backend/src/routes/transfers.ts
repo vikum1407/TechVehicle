@@ -5,6 +5,7 @@ import { createNotification } from '../utils/appNotifications'
 import { sendPush } from '../utils/push'
 import { normalizePhone, isValidPhone } from '../utils/phone'
 import { checkRateLimit } from '../utils/rateLimit'
+import { computeVehicleHealthSummary } from '../utils/vehicleHealthSummary'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -159,7 +160,7 @@ router.get('/:id/records', async (req: AuthRequest, res) => {
     })
     if (!transfer) { res.status(404).json({ error: 'Transfer not found' }); return }
 
-    const [serviceRecords, fuelLogs, expenses] = await Promise.all([
+    const [serviceRecords, fuelLogs, expenses, healthSummary] = await Promise.all([
       prisma.serviceRecord.findMany({
         where: { vehicleId: transfer.vehicleId },
         orderBy: { date: 'desc' },
@@ -169,12 +170,17 @@ router.get('/:id/records', async (req: AuthRequest, res) => {
         orderBy: { date: 'desc' },
       }),
       prisma.expense.findMany({
-        where: { vehicleId: transfer.vehicleId },
+        // Personal/behavioral categories (Parking, Toll, Fine/Penalty,
+        // Accessories, Washing) are withheld from a buyer who hasn't even
+        // accepted the transfer yet — see vehicleHealthSummary.ts's header
+        // for why. Full expense history still transfers in full once accepted.
+        where: { vehicleId: transfer.vehicleId, category: { in: ['Insurance', 'Revenue Licence', 'Emission Test'] } },
         orderBy: { date: 'desc' },
       }),
+      computeVehicleHealthSummary(transfer.vehicleId),
     ])
 
-    res.json({ serviceRecords, fuelLogs, expenses })
+    res.json({ serviceRecords, fuelLogs, expenses, healthSummary })
   } catch (error) {
     console.error('GET /transfers/:id/records error:', error)
     res.status(500).json({ error: 'Failed to fetch records' })

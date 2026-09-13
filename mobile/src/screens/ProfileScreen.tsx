@@ -9,6 +9,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
@@ -171,8 +172,9 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </TouchableOpacity>
         <Text style={styles.phone}>{phoneNumber}</Text>
         <View style={styles.roleBadge}>
+          <AppIcon icon={{ lib: 'mci', name: userType === 'garage' ? 'wrench' : 'car' }} size={13} color={colors.primaryTintText} />
           <Text style={styles.roleBadgeText}>
-            {userType === 'garage' ? `🔧 ${t('profile.garageServiceCenter')}` : `🚗 ${t('profile.vehicleOwner')}`}
+            {userType === 'garage' ? t('profile.garageServiceCenter') : t('profile.vehicleOwner')}
           </Text>
         </View>
       </View>
@@ -182,29 +184,29 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
       ) : stats ? (
         <View style={styles.statsGrid}>
-          <StatCard value={stats.vehicleCount} label={t('profile.vehicles')} icon="🚗" colors={colors} />
-          <StatCard value={stats.serviceCount} label={t('profile.serviceRecords')} icon="🔧" colors={colors} />
-          <StatCard value={stats.fuelCount}    label={t('analytics.fuelLogsLabel')} icon="⛽" colors={colors} />
-          <StatCard value={stats.expenseCount} label={t('analytics.expensesLabel')} icon="💰" colors={colors} />
+          <StatCard value={stats.vehicleCount} label={t('profile.vehicles')} icon={{ lib: 'mci', name: 'car' }} colors={colors} />
+          <StatCard value={stats.serviceCount} label={t('profile.serviceRecords')} icon={{ lib: 'mci', name: 'wrench' }} colors={colors} />
+          <StatCard value={stats.fuelCount}    label={t('analytics.fuelLogsLabel')} icon={{ lib: 'mci', name: 'gas-station' }} colors={colors} />
+          <StatCard value={stats.expenseCount} label={t('analytics.expensesLabel')} icon={{ lib: 'mci', name: 'clipboard-text-outline' }} colors={colors} />
         </View>
       ) : null}
 
       {garageName ? (
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowLive]} onPress={onOpenGarage} activeOpacity={0.7}>
-          <Text style={styles.settingsRowIcon}>🏭</Text>
+          <View style={styles.settingsRowIcon}><AppIcon icon={{ lib: 'mci', name: 'garage' }} size={18} color={colors.text} /></View>
           <Text style={styles.settingsRowLabel}>{garageName}</Text>
           <Text style={styles.garageLiveBadge}>✓ {t('profile.live')}</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowNew]} onPress={onOpenGarage} activeOpacity={0.7}>
-          <Text style={styles.settingsRowIcon}>🏭</Text>
+          <View style={styles.settingsRowIcon}><AppIcon icon={{ lib: 'mci', name: 'garage' }} size={18} color={colors.text} /></View>
           <Text style={styles.settingsRowLabel}>{t('profile.registerGarage')}</Text>
           <Text style={styles.garageNewBadge}>{t('profile.new')}</Text>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity style={styles.settingsRow} onPress={onSettings} activeOpacity={0.7}>
-        <Text style={styles.settingsRowIcon}>⚙️</Text>
+        <View style={styles.settingsRowIcon}><AppIcon icon={{ lib: 'mci', name: 'cog-outline' }} size={18} color={colors.text} /></View>
         <Text style={styles.settingsRowLabel}>{t('settings.title')}</Text>
         <Text style={styles.settingsRowChevron}>›</Text>
       </TouchableOpacity>
@@ -215,7 +217,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         activeOpacity={0.7}
         disabled={loggingOutAllDevices}
       >
-        <Text style={styles.settingsRowIcon}>🔒</Text>
+        <View style={styles.settingsRowIcon}><AppIcon icon={{ lib: 'mci', name: 'lock-outline' }} size={18} color={colors.text} /></View>
         <Text style={styles.settingsRowLabel}>{t('profile.logOutAllDevices')}</Text>
         {loggingOutAllDevices
           ? <ActivityIndicator size="small" color={colors.primary} />
@@ -225,7 +227,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       {/* Email section */}
       {!savedEmail && (
         <View style={styles.emailBanner}>
-          <Text style={styles.emailBannerIcon}>📧</Text>
+          <AppIcon icon={{ lib: 'mci', name: 'email-outline' }} size={18} color={colors.primaryTintText} />
           <Text style={styles.emailBannerText}>{t('profile.emailBanner')}</Text>
         </View>
       )}
@@ -283,11 +285,11 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   )
 }
 
-function StatCard({ value, label, icon, colors }: { value: number; label: string; icon: string; colors: Colors }) {
+function StatCard({ value, label, icon, colors }: { value: number; label: string; icon: AppIconSpec; colors: Colors }) {
   const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <View style={styles.statIcon}><AppIcon icon={icon} size={18} color={colors.primary} /></View>
       <Text style={styles.statValue}>{value.toLocaleString()}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -316,6 +318,7 @@ function makeStyles(c: Colors) {
     avatarEditBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
     phone: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
     roleBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
       backgroundColor: c.primaryTint, borderRadius: 20,
       paddingHorizontal: 14, paddingVertical: 5,
     },
@@ -336,7 +339,7 @@ function makeStyles(c: Colors) {
       padding: 16, alignItems: 'center',
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
     },
-    statIcon: { fontSize: 22, marginBottom: 6 },
+    statIcon: { marginBottom: 6 },
     statValue: { fontSize: 24, fontWeight: '800', color: c.text, marginBottom: 2 },
     statLabel: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
@@ -346,7 +349,7 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 16, paddingVertical: 16,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
-    settingsRowIcon: { fontSize: 18 },
+    settingsRowIcon: {},
     settingsRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
     settingsRowChevron: { fontSize: 18, color: c.textMuted },
 
@@ -363,7 +366,6 @@ function makeStyles(c: Colors) {
       backgroundColor: c.primaryTint, borderRadius: 12,
       marginHorizontal: 16, marginTop: 16, padding: 14,
     },
-    emailBannerIcon: { fontSize: 20 },
     emailBannerText: { flex: 1, fontSize: 13, color: c.primaryTintText, fontWeight: '600' },
 
     emailCard: {

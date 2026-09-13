@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { canReadVehicle } from '../utils/vehicleAccess'
+import { classifyDescription } from '../data/serviceCatalog'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -30,29 +31,41 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       prisma.expense.findMany({ where: { vehicleId } }),
     ])
 
-    // Emission Test / Wheel Alignment / Chain Service records are logged from the
-    // Vehicle Tests screen, not Add Service Record — kept as their own "Vehicle
-    // Tests" category rather than lumped anonymously into Service & Repairs.
-    const isVehicleTestRecord = (description: string) => {
-      const d = description.toLowerCase()
-      return d.includes('emission test') || d.includes('wheel alignment') ||
-        d.includes('chain lubrication') || d.includes('chain & sprocket') || d.includes('chain tension')
-    }
     const isElectric = vehicle?.vehicleType === 'electric'
 
-    const allServiceCost = serviceRecords.reduce((s, r) => s + (r.cost || 0), 0)
-    const vehicleTestCost = serviceRecords
-      .filter(r => isVehicleTestRecord(r.description))
-      .reduce((s, r) => s + (r.cost || 0), 0)
-    const serviceCost = allServiceCost - vehicleTestCost
+    // Classify each service record via the shared catalog (serviceCatalog.ts)
+    // instead of a bespoke substring check: mileage-driven items (including
+    // Wheel Alignment / Chain Service, moved in here since they're genuine
+    // mechanical maintenance) stay in Service & Repairs; date-driven legal
+    // items (Emission Test, when logged via the Vehicle Tests screen) go to
+    // Legal & Compliance instead of a separate "Vehicle Tests" bucket that
+    // used to double-count against Add Expense's own Emission Test category.
+    // Anything not in the catalog (custom/free-text entries) defaults to
+    // Service & Repairs, matching the previous "everything else goes there"
+    // behavior.
+    let serviceCost = 0
+    let legalComplianceCost = 0
+    for (const r of serviceRecords) {
+      const cost = r.cost || 0
+      if (classifyDescription(r.description)?.category === 'legal_compliance') legalComplianceCost += cost
+      else serviceCost += cost
+    }
+    const allServiceCost = serviceCost + legalComplianceCost
     const fuelCost = fuelLogs.reduce((s, l) => s + (l.cost || 0), 0)
     const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0)
     const totalSpend = allServiceCost + fuelCost + expenseTotal
 
+    // Add Expense's own Insurance/Revenue Licence/Emission Test categories
+    // are the same Legal & Compliance concept, from a different entry point —
+    // merged into the same bucket rather than shown as separate line items.
+    const LEGAL_COMPLIANCE_EXPENSE_CATEGORIES = new Set(['Insurance', 'Revenue Licence', 'Emission Test'])
     const categoryMap: Record<string, number> = {}
-    expenses.forEach(e => { categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount })
+    expenses.forEach(e => {
+      if (LEGAL_COMPLIANCE_EXPENSE_CATEGORIES.has(e.category)) legalComplianceCost += e.amount
+      else categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount
+    })
     if (serviceCost > 0) categoryMap['Service & Repairs'] = serviceCost
-    if (vehicleTestCost > 0) categoryMap['Vehicle Tests'] = vehicleTestCost
+    if (legalComplianceCost > 0) categoryMap['Legal & Compliance'] = legalComplianceCost
     if (fuelCost > 0) categoryMap[isElectric ? 'Charging' : 'Fuel'] = fuelCost
     const expenseBreakdown = Object.entries(categoryMap)
       .map(([category, amount]) => ({ category, amount }))
@@ -159,7 +172,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     // Tyre Change History
     const tyreRecords = serviceRecords
       .filter(r => r.description.toLowerCase().includes('tyre change'))
-      .slice(-5)
+      .slice(-8)
 
     let tyreAnalytics = null
     if (tyreRecords.length > 0) {
@@ -184,6 +197,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     // Emission Test History
     const emissionRecords = serviceRecords
       .filter(r => r.description.toLowerCase().includes('emission test'))
+      .slice(-8)
 
     let emissionAnalytics = null
     if (emissionRecords.length > 0) {
@@ -230,7 +244,7 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
       const refillCount12m = acRecords.filter(r => new Date(r.date) > oneYearAgo).length
 
-      const history = acRecords.slice(-6).map(r => {
+      const history = acRecords.slice(-8).map(r => {
         const sd = (r.structuredData as any)?.['AC Gas Refill'] || {}
         return {
           date: r.date.toISOString(),
@@ -249,7 +263,13 @@ router.get('/:vehicleId', async (req: AuthRequest, res) => {
     }
 
     res.json({
-      totalSpend, serviceCost, vehicleTestCost, fuelCost, expenseTotal,
+      totalSpend, serviceCost, fuelCost, expenseTotal,
+      legalComplianceCost,
+      // vehicleTestCost is kept as an alias of legalComplianceCost for the
+      // currently-released mobile app (its summary pill still reads this
+      // field name) — remove once the redesigned Analytics screen ships and
+      // no released build depends on the old name.
+      vehicleTestCost: legalComplianceCost,
       expenseBreakdown, avgFuelEfficiency, costPerKm, monthlySpend,
       mileageTrend, fuelEfficiencyTrend, fuelCostTrend,
       recordCounts: {

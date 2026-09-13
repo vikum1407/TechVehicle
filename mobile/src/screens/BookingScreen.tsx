@@ -9,6 +9,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import Button from '../components/Button'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -69,10 +70,10 @@ type ServiceRecord = {
 
 type Step = 'search' | 'dates' | 'slots' | 'confirm'
 
-const SERVICE_TYPE_BTN_OPTIONS: { key: 'full' | 'between' | 'third_party'; labelKey: TranslationKey; icon: string }[] = [
-  { key: 'full', labelKey: 'share.serviceType.full.label', icon: '🔧' },
-  { key: 'between', labelKey: 'share.serviceType.between.label', icon: '⚡' },
-  { key: 'third_party', labelKey: 'booking.serviceType.thirdParty', icon: '🏭' },
+const SERVICE_TYPE_BTN_OPTIONS: { key: 'full' | 'between' | 'third_party'; labelKey: TranslationKey; icon: AppIconSpec }[] = [
+  { key: 'full', labelKey: 'share.serviceType.full.label', icon: { lib: 'mci', name: 'wrench' } },
+  { key: 'between', labelKey: 'share.serviceType.between.label', icon: { lib: 'mci', name: 'lightning-bolt' } },
+  { key: 'third_party', labelKey: 'booking.serviceType.thirdParty', icon: { lib: 'mci', name: 'garage' } },
 ]
 
 export default function BookingScreen({ token, vehicle, onBack, onBooked }: Props) {
@@ -291,7 +292,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
 
                 {!!garage.promoText && (
                   <View style={styles.promoBanner}>
-                    <Text style={styles.promoBannerText}>📣 {garage.promoText}</Text>
+                    <Text style={styles.promoBannerText}>
+                      <AppIcon icon={{ lib: 'mci', name: 'bullhorn-outline' }} size={13} color={colors.primaryTintText} /> {garage.promoText}
+                    </Text>
                   </View>
                 )}
 
@@ -308,7 +311,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   return (
                     <>
                       <TouchableOpacity style={styles.priceToggle} onPress={() => setExpandedInfoGarageId(infoExpanded ? null : garage.id)}>
-                        <Text style={styles.priceToggleText}>ℹ️ {t('booking.moreInfo')} {infoExpanded ? '▲' : '▼'}</Text>
+                        <Text style={styles.priceToggleText}>
+                          <AppIcon icon={{ lib: 'mci', name: 'information-outline' }} size={13} color={colors.primary} /> {t('booking.moreInfo')} {infoExpanded ? '▲' : '▼'}
+                        </Text>
                       </TouchableOpacity>
                       {infoExpanded && (
                         <View style={styles.infoExpandBox}>
@@ -327,17 +332,23 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                           {!!garage.aboutBio && <Text style={styles.infoText}>{garage.aboutBio}</Text>}
                           {!!garage.contactPhone && (
                             <TouchableOpacity onPress={() => Linking.openURL(`tel:${garage.contactPhone}`)}>
-                              <Text style={styles.infoLink}>📞 {garage.contactPhone}</Text>
+                              <Text style={styles.infoLink}>
+                                <AppIcon icon={{ lib: 'mci', name: 'phone-outline' }} size={13} color={colors.primary} /> {garage.contactPhone}
+                              </Text>
                             </TouchableOpacity>
                           )}
                           {!!garage.websiteUrl && (
                             <TouchableOpacity onPress={() => Linking.openURL(garage.websiteUrl!.startsWith('http') ? garage.websiteUrl! : `https://${garage.websiteUrl}`)}>
-                              <Text style={styles.infoLink}>🌐 {garage.websiteUrl}</Text>
+                              <Text style={styles.infoLink}>
+                                <AppIcon icon={{ lib: 'mci', name: 'web' }} size={13} color={colors.primary} /> {garage.websiteUrl}
+                              </Text>
                             </TouchableOpacity>
                           )}
                           {!!garage.googleMapsUrl && (
                             <TouchableOpacity onPress={() => Linking.openURL(garage.googleMapsUrl!.startsWith('http') ? garage.googleMapsUrl! : `https://${garage.googleMapsUrl}`)}>
-                              <Text style={styles.infoLink}>🗺️ {t('garage.viewOnMaps')}</Text>
+                              <Text style={styles.infoLink}>
+                                <AppIcon icon={{ lib: 'mci', name: 'map-outline' }} size={13} color={colors.primary} /> {t('garage.viewOnMaps')}
+                              </Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -353,7 +364,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     <>
                       <TouchableOpacity style={styles.priceToggle} onPress={() => handleToggleReviews(garage.id)}>
                         <Text style={styles.garageRating}>
-                          ⭐ {garage.avgRating} ({garage.ratingCount}) — {t('booking.reviews')} {reviewsExpanded ? '▲' : '▼'}
+                          <AppIcon icon={{ lib: 'mci', name: 'star' }} size={12} color={colors.accent} /> {garage.avgRating} ({garage.ratingCount}) — {t('booking.reviews')} {reviewsExpanded ? '▲' : '▼'}
                         </Text>
                       </TouchableOpacity>
                       {reviewsExpanded && (
@@ -376,7 +387,11 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                             })}
                             {detail.reviews.length > 0 && detail.reviews.slice(0, 5).map((r, i) => (
                               <View key={i} style={styles.reviewCard}>
-                                <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
+                                <View style={styles.reviewStars}>
+                                  {Array.from({ length: r.rating }).map((_, si) => (
+                                    <AppIcon key={si} icon={{ lib: 'mci', name: 'star' }} size={12} color={colors.accent} />
+                                  ))}
+                                </View>
                                 <Text style={styles.reviewComment}>{r.comment}</Text>
                               </View>
                             ))}
@@ -393,7 +408,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                     onPress={() => setExpandedPriceGarageId(isExpanded ? null : garage.id)}
                   >
                     <Text style={styles.priceToggleText}>
-                      💰 {t('booking.fromLkr', { amount: cheapest.toLocaleString() })} — {t('booking.priceList')} {isExpanded ? '▲' : '▼'}
+                      <AppIcon icon={{ lib: 'mci', name: 'cash-multiple' }} size={13} color={colors.primary} /> {t('booking.fromLkr', { amount: cheapest.toLocaleString() })} — {t('booking.priceList')} {isExpanded ? '▲' : '▼'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -685,7 +700,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               onPress={() => setServiceType(serviceType === opt.key ? '' : opt.key)}
               activeOpacity={0.8}
             >
-              <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
+              <View style={styles.serviceTypeIcon}><AppIcon icon={opt.icon} size={20} color={serviceType === opt.key ? colors.primary : colors.text} /></View>
               <Text style={[styles.serviceTypeBtnText, serviceType === opt.key && styles.serviceTypeBtnTextActive]}>
                 {t(opt.labelKey)}
               </Text>
@@ -702,7 +717,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           activeOpacity={0.8}
         >
           <View style={styles.shareToggleLeft}>
-            <Text style={styles.shareToggleIcon}>📋</Text>
+            <View style={styles.shareToggleIcon}>
+              <AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={22} color={shareEnabled ? '#fff' : colors.text} />
+            </View>
             <View style={styles.shareToggleText}>
               <Text style={[styles.shareToggleTitle, shareEnabled && styles.shareToggleTitleOn]}>
                 {t('booking.attachRecords')}
@@ -781,7 +798,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
             onPress={() => setNoteType('urgent')}
           >
             <Text style={[styles.noteTypeBtnText, noteType === 'urgent' && styles.noteTypeBtnTextActive]}>
-              🚨 {t('booking.urgent')}
+              <AppIcon icon={{ lib: 'mci', name: 'alert' }} size={13} color={noteType === 'urgent' ? '#fff' : colors.text} /> {t('booking.urgent')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -905,7 +922,7 @@ function makeStyles(c: Colors) {
     reviewCard: {
       backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 12, marginTop: 8,
     },
-    reviewStars: { fontSize: 12, marginBottom: 4 },
+    reviewStars: { flexDirection: 'row', gap: 2, marginBottom: 4 },
     reviewComment: { fontSize: 13, color: c.textBody, lineHeight: 18 },
 
     selectedGarageBanner: {
@@ -991,7 +1008,7 @@ function makeStyles(c: Colors) {
     },
     shareToggleCardOn: { borderColor: c.primary, backgroundColor: c.primary },
     shareToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    shareToggleIcon: { fontSize: 24 },
+    shareToggleIcon: {},
     shareToggleText: { flex: 1 },
     shareToggleTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
     shareToggleTitleOn: { color: '#fff' },
@@ -1064,7 +1081,7 @@ function makeStyles(c: Colors) {
       alignItems: 'center', borderWidth: 1.5, borderColor: c.borderMid,
     },
     serviceTypeBtnActive: { borderColor: c.primary, backgroundColor: c.primary },
-    serviceTypeIcon: { fontSize: 20, marginBottom: 4 },
+    serviceTypeIcon: { marginBottom: 4 },
     serviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: c.textMuted, textAlign: 'center' },
     serviceTypeBtnTextActive: { color: '#fff', fontWeight: '700' },
   })
