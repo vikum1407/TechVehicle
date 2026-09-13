@@ -8,6 +8,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
+import AppIcon from '../components/AppIcon'
 
 type Props = {
   token: string
@@ -53,7 +54,7 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
           onPress={() => setSelected('owner')}
           activeOpacity={0.8}
         >
-          <Text style={styles.cardIcon}>🚗</Text>
+          <View style={styles.cardIcon}><AppIcon icon={{ lib: 'mci', name: 'car' }} size={30} color={selected === 'owner' ? colors.primary : colors.text} /></View>
           <Text style={[styles.cardTitle, selected === 'owner' && styles.cardTitleSelected]}>
             {t('role.owner.title')}
           </Text>
@@ -72,7 +73,7 @@ export default function RoleSelectScreen({ token, onSelected, onCancel }: Props)
           onPress={() => setSelected('garage')}
           activeOpacity={0.8}
         >
-          <Text style={styles.cardIcon}>🏭</Text>
+          <View style={styles.cardIcon}><AppIcon icon={{ lib: 'mci', name: 'garage' }} size={30} color={selected === 'garage' ? colors.primary : colors.text} /></View>
           <Text style={[styles.cardTitle, selected === 'garage' && styles.cardTitleSelected]}>
             {t('role.garage.title')}
           </Text>
@@ -125,7 +126,7 @@ function makeStyles(c: Colors, topInset: number) {
       padding: 24, backgroundColor: c.surface,
     },
     cardSelected: { borderColor: c.primary, backgroundColor: c.primaryTint },
-    cardIcon: { fontSize: 36, marginBottom: 12 },
+    cardIcon: { marginBottom: 12 },
     cardTitle: { fontSize: 18, fontWeight: '800', color: c.text, marginBottom: 8 },
     cardTitleSelected: { color: c.primary },
     cardDesc: { fontSize: 14, color: c.textMuted, lineHeight: 20 },

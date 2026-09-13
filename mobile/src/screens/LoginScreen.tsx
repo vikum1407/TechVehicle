@@ -9,6 +9,7 @@ import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { COUNTRY_CODES, isoToFlag, CountryCode } from '../constants/countryCodes'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 
 type Props = {
@@ -25,10 +26,10 @@ export default function LoginScreen({ onOTPSent }: Props) {
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const { t } = useTranslation()
 
-  const PERKS = [
-    { icon: '🔧', label: t('login.perk.serviceHistory') },
-    { icon: '⛽', label: t('login.perk.fuelMileage') },
-    { icon: '📄', label: t('login.perk.verifiedTransfer') },
+  const PERKS: { icon: AppIconSpec; label: string }[] = [
+    { icon: { lib: 'mci', name: 'wrench' }, label: t('login.perk.serviceHistory') },
+    { icon: { lib: 'mci', name: 'gas-station' }, label: t('login.perk.fuelMileage') },
+    { icon: { lib: 'mci', name: 'file-document-check-outline' }, label: t('login.perk.verifiedTransfer') },
   ]
 
   const handleSendOTP = async () => {
@@ -72,7 +73,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
 
         <View style={styles.badgeWrap}>
           <View style={styles.badge}>
-            <Text style={styles.badgeIcon}>🚗</Text>
+            <AppIcon icon={{ lib: 'mci', name: 'car' }} size={28} color="#fff" />
           </View>
         </View>
 
@@ -112,7 +113,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
           <View style={styles.perksRow}>
             {PERKS.map(perk => (
               <View key={perk.label} style={styles.perk}>
-                <Text style={styles.perkIcon}>{perk.icon}</Text>
+                <View style={styles.perkIcon}><AppIcon icon={perk.icon} size={18} color={colors.primary} /></View>
                 <Text style={styles.perkLabel}>{perk.label}</Text>
               </View>
             ))}
@@ -233,7 +234,6 @@ function makeStyles(c: Colors, topInset: number) {
       borderWidth: 4, borderColor: c.background,
       shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6,
     },
-    badgeIcon: { fontSize: 26 },
 
     card: {
       backgroundColor: c.surface, borderRadius: 20,
@@ -270,7 +270,7 @@ function makeStyles(c: Colors, topInset: number) {
       marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border,
     },
     perk: { flex: 1, alignItems: 'center' },
-    perkIcon: { fontSize: 18 },
+    perkIcon: {},
     perkLabel: { fontSize: 10, color: c.textMuted, fontWeight: '600', textAlign: 'center', marginTop: 4, lineHeight: 13 },
   })
 }
