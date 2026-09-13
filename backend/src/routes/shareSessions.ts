@@ -2,6 +2,7 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { capText, SHORT_TEXT_LEN } from '../utils/validate'
+import { computeVehicleHealthSummary } from '../utils/vehicleHealthSummary'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -120,6 +121,7 @@ router.get('/incoming', async (req: AuthRequest, res) => {
       }
 
       const totalServiceCost = records.reduce((sum, r) => sum + (r.cost || 0), 0)
+      const healthSummary = await computeVehicleHealthSummary(session.vehicleId)
 
       return {
         ...session,
@@ -133,6 +135,7 @@ router.get('/incoming', async (req: AuthRequest, res) => {
         },
         ownerPhone: session.ownerPhone,
         avgFuelEfficiency,
+        healthSummary,
         totalServiceCost,
         records,
       }

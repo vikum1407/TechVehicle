@@ -5,6 +5,7 @@ import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { normalizePhone, isValidPhone } from '../utils/phone'
 import { checkRateLimit } from '../utils/rateLimit'
+import { computeVehicleHealthSummary } from '../utils/vehicleHealthSummary'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -76,7 +77,11 @@ router.get('/received', async (req: AuthRequest, res) => {
       },
       orderBy: { createdAt: 'desc' },
     })
-    res.json(shares)
+    const withSummary = await Promise.all(shares.map(async share => ({
+      ...share,
+      healthSummary: await computeVehicleHealthSummary(share.vehicleId),
+    })))
+    res.json(withSummary)
   } catch (error) {
     console.error('GET /vehicle-shares/received error:', error)
     res.status(500).json({ error: 'Failed to fetch received shares' })
