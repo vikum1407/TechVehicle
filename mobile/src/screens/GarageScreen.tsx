@@ -1121,7 +1121,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               >
                 {uploadingSubPhoto
                   ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
+                  : (
+                    <View style={styles.photoBtnRow}>
+                      <AppIcon icon={{ lib: 'mci', name: 'camera-outline' }} size={16} color={colors.primary} />
+                      <Text style={styles.photoBtnText}>{t('addService.cameraBtn')}</Text>
+                    </View>
+                  )
                 }
               </TouchableOpacity>
               <TouchableOpacity
@@ -1129,7 +1134,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 onPress={() => pickSubPhoto('gallery')}
                 disabled={uploadingSubPhoto}
               >
-                <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
+                <View style={styles.photoBtnRow}>
+                  <AppIcon icon={{ lib: 'mci', name: 'image-outline' }} size={16} color={colors.primary} />
+                  <Text style={styles.photoBtnText}>{t('addService.galleryBtn')}</Text>
+                </View>
               </TouchableOpacity>
             </View>
           )}
@@ -1174,17 +1182,23 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
         <Text style={styles.fieldLabel}>{t('garage.dayStatus')}</Text>
         <View style={styles.statusRow}>
-          {(['open', 'closed', 'holiday'] as const).map(s => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.statusBtn, ovStatus === s && styles.statusBtnActive]}
-              onPress={() => setOvStatus(s)}
-            >
-              <Text style={[styles.statusBtnText, ovStatus === s && styles.statusBtnTextActive]}>
-                {s === 'open' ? `✅ ${t('garage.status.open')}` : s === 'closed' ? `🔒 ${t('garage.status.closed')}` : `🎉 ${t('garage.status.holiday')}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(['open', 'closed', 'holiday'] as const).map(s => {
+            const active = ovStatus === s
+            const icon = s === 'open' ? 'check-circle-outline' : s === 'closed' ? 'lock-outline' : 'party-popper'
+            const label = s === 'open' ? t('garage.status.open') : s === 'closed' ? t('garage.status.closed') : t('garage.status.holiday')
+            return (
+              <TouchableOpacity
+                key={s}
+                style={[styles.statusBtn, active && styles.statusBtnActive]}
+                onPress={() => setOvStatus(s)}
+              >
+                <View style={styles.photoBtnRow}>
+                  <AppIcon icon={{ lib: 'mci', name: icon }} size={14} color={active ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.statusBtnText, active && styles.statusBtnTextActive]}>{label}</Text>
+                </View>
+              </TouchableOpacity>
+            )
+          })}
         </View>
 
         {ovStatus === 'open' && (
@@ -1272,7 +1286,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               )}
               {onNotifPress && (
                 <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
-                  <Text style={styles.bellIcon}>🔔</Text>
+                  <AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={20} color={colors.text} />
                   {notifUnread && <View style={styles.bellDot} />}
                 </TouchableOpacity>
               )}
@@ -1330,15 +1344,15 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('customers') }}>
-              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>👥</Text></View>
+              <View style={styles.moreSheetIcon}><AppIcon icon={{ lib: 'mci', name: 'account-group-outline' }} size={20} color={colors.primary} /></View>
               <Text style={styles.moreSheetItemText}>{t('garage.customers')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); setTab('history') }}>
-              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>💰</Text></View>
+              <View style={styles.moreSheetIcon}><AppIcon icon={{ lib: 'mci', name: 'cash-multiple' }} size={20} color={colors.primary} /></View>
               <Text style={styles.moreSheetItemText}>{t('garage.revenue')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreMenuOpen(false); onOpenLedger?.() }}>
-              <View style={styles.moreSheetIcon}><Text style={styles.moreSheetIconText}>📒</Text></View>
+              <View style={styles.moreSheetIcon}><AppIcon icon={{ lib: 'mci', name: 'book-open-outline' }} size={20} color={colors.primary} /></View>
               <Text style={styles.moreSheetItemText}>{t('garage.customerLedger')}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -1354,22 +1368,34 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <View style={styles.badgeRow}>
                   {garage.ratingCount != null && garage.ratingCount > 0 && (
                     <TouchableOpacity style={styles.ratingBadge} onPress={openRatingsModal}>
-                      <Text style={styles.ratingBadgeText}>⭐ {garage.avgRating} ({garage.ratingCount}) ›</Text>
+                      <Text style={styles.ratingBadgeText}>
+                        <AppIcon icon={{ lib: 'mci', name: 'star' }} size={12} color={colors.accent} /> {garage.avgRating} ({garage.ratingCount}) ›
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
-                {garage.address && <Text style={styles.detail}>📍 {garage.address}</Text>}
+                {garage.address && (
+                  <Text style={styles.detail}>
+                    <AppIcon icon={{ lib: 'mci', name: 'map-marker-outline' }} size={13} color={colors.textMuted} /> {garage.address}
+                  </Text>
+                )}
                 {garage.brNumber
-                  ? <Text style={styles.detail}>🏢 {t('garage.brLabel', { br: garage.brNumber })}</Text>
+                  ? (
+                    <Text style={styles.detail}>
+                      <AppIcon icon={{ lib: 'mci', name: 'office-building-outline' }} size={13} color={colors.textMuted} /> {t('garage.brLabel', { br: garage.brNumber })}
+                    </Text>
+                  )
                   : <Text style={styles.detailMuted}>{t('garage.noBrNumber')}</Text>
                 }
                 <Text style={styles.detail}>
-                  💰 {garage.priceList && garage.priceList.length > 0 ? t('garage.pricesListed', { count: garage.priceList.length }) : t('garage.noPriceList')}
+                  <AppIcon icon={{ lib: 'mci', name: 'cash-multiple' }} size={13} color={colors.textMuted} /> {garage.priceList && garage.priceList.length > 0 ? t('garage.pricesListed', { count: garage.priceList.length }) : t('garage.noPriceList')}
                 </Text>
 
                 {!!garage.promoText && (
                   <View style={styles.promoBanner}>
-                    <Text style={styles.promoBannerText}>📣 {garage.promoText}</Text>
+                    <Text style={styles.promoBannerText}>
+                      <AppIcon icon={{ lib: 'mci', name: 'bullhorn-outline' }} size={13} color={colors.primaryTintText} /> {garage.promoText}
+                    </Text>
                   </View>
                 )}
 
@@ -1391,9 +1417,21 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </View>
                 )}
 
-                {garage.contactPhone && <Text style={styles.detail}>📞 {garage.contactPhone}</Text>}
-                {garage.websiteUrl && <Text style={styles.detail}>🌐 {garage.websiteUrl}</Text>}
-                {garage.googleMapsUrl && <Text style={styles.detail}>🗺️ {t('garage.viewOnMaps')}</Text>}
+                {garage.contactPhone && (
+                  <Text style={styles.detail}>
+                    <AppIcon icon={{ lib: 'mci', name: 'phone-outline' }} size={13} color={colors.textMuted} /> {garage.contactPhone}
+                  </Text>
+                )}
+                {garage.websiteUrl && (
+                  <Text style={styles.detail}>
+                    <AppIcon icon={{ lib: 'mci', name: 'web' }} size={13} color={colors.textMuted} /> {garage.websiteUrl}
+                  </Text>
+                )}
+                {garage.googleMapsUrl && (
+                  <Text style={styles.detail}>
+                    <AppIcon icon={{ lib: 'mci', name: 'map-outline' }} size={13} color={colors.textMuted} /> {t('garage.viewOnMaps')}
+                  </Text>
+                )}
               </View>
 
               <TouchableOpacity
@@ -1503,7 +1541,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                         >
                           {uploadingProfilePhoto
                             ? <ActivityIndicator size="small" color={colors.primary} />
-                            : <Text style={styles.photoBtnText}>📷 {t('addService.cameraBtn')}</Text>
+                            : (
+                              <View style={styles.photoBtnRow}>
+                                <AppIcon icon={{ lib: 'mci', name: 'camera-outline' }} size={16} color={colors.primary} />
+                                <Text style={styles.photoBtnText}>{t('addService.cameraBtn')}</Text>
+                              </View>
+                            )
                           }
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -1511,7 +1554,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                           onPress={() => pickProfilePhoto('gallery')}
                           disabled={uploadingProfilePhoto}
                         >
-                          <Text style={styles.photoBtnText}>🖼 {t('addService.galleryBtn')}</Text>
+                          <View style={styles.photoBtnRow}>
+                            <AppIcon icon={{ lib: 'mci', name: 'image-outline' }} size={16} color={colors.primary} />
+                            <Text style={styles.photoBtnText}>{t('addService.galleryBtn')}</Text>
+                          </View>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -2831,6 +2877,7 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.primaryTint, minWidth: 100,
     },
     photoBtnText: { color: c.primary, fontSize: 13, fontWeight: '600' },
+    photoBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
