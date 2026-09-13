@@ -527,6 +527,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
   const [anomalies, setAnomalies] = useState<Anomaly[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -605,7 +606,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               segments={data.expenseBreakdown.map((item, i) => ({ amount: item.amount, color: COLORS[i % COLORS.length] }))}
             />
             <View style={styles.donutLegend}>
-              {data.expenseBreakdown.slice(0, 5).map((item, i) => (
+              {data.expenseBreakdown.slice(0, showAllCategories ? undefined : 5).map((item, i) => (
                 <View key={i} style={styles.legendRow}>
                   <View style={[styles.legendDot, { backgroundColor: COLORS[i % COLORS.length] }]} />
                   <Text style={styles.legendLabel}>{item.category}</Text>
@@ -613,9 +614,13 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
                 </View>
               ))}
               {data.expenseBreakdown.length > 5 && (
-                <Text style={styles.legendMore}>
-                  {t('analytics.spendBreakdown.andMore', { count: data.expenseBreakdown.length - 5 })}
-                </Text>
+                <TouchableOpacity onPress={() => setShowAllCategories(v => !v)}>
+                  <Text style={styles.legendMore}>
+                    {showAllCategories
+                      ? t('analytics.spendBreakdown.showLess')
+                      : t('analytics.spendBreakdown.andMore', { count: data.expenseBreakdown.length - 5 })}
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
@@ -815,7 +820,7 @@ function makeStyles(c: Colors) {
     legendDot: { width: 9, height: 9, borderRadius: 4.5 },
     legendLabel: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
     legendAmount: { fontSize: 13, color: '#fff', fontWeight: '700' },
-    legendMore: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: 2 },
+    legendMore: { fontSize: 12, color: '#fff', fontWeight: '700', textDecorationLine: 'underline', marginTop: 4 },
 
     tripBanner: {
       flexDirection: 'row', alignItems: 'flex-start', gap: 10,

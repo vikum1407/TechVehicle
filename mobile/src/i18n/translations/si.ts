@@ -599,6 +599,7 @@ const si: Record<TranslationKey, string> = {
   'analytics.noData.sub': 'විශ්ලේෂණ බැලීමට ඉන්ධන පිරවීමක් හෝ සේවා සටහනක් ඇතුළත් කරන්න',
   'analytics.totalSpend': 'මුළු වාහන වියදම',
   'analytics.spendBreakdown.andMore': 'තවත් {count}',
+  'analytics.spendBreakdown.showLess': 'අඩුවෙන් පෙන්වන්න',
   'analytics.tripReady.title': 'ගමනට සූදානම්',
   'analytics.tripReady.sub': 'හදිසි නඩත්තුවක් අවශ්‍ය නැත — දිගු ගමනකට සුදානම්.',
   'analytics.tripReady.attentionTitle': 'සුළු අවධානයක් අවශ්‍යයි',

@@ -597,6 +597,7 @@ const en = {
   'analytics.noData.sub': 'Log a fuel fill-up or service record to start seeing analytics',
   'analytics.totalSpend': 'Total Vehicle Spend',
   'analytics.spendBreakdown.andMore': '+{count} more',
+  'analytics.spendBreakdown.showLess': 'Show less',
   'analytics.tripReady.title': 'Trip Ready',
   'analytics.tripReady.sub': 'No urgent maintenance due — good to go for a long journey.',
   'analytics.tripReady.attentionTitle': 'Minor Attention Needed',
