@@ -595,7 +595,6 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
   )
 
   const fmt = (n: number) => 'LKR ' + Math.round(n).toLocaleString()
-  const maxBreakdown = Math.max(...data.expenseBreakdown.map(e => e.amount), 1)
   const maxMonthly = Math.max(...data.monthlySpend.map(m => m.amount), 1)
 
   return (
@@ -720,25 +719,6 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
             <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
           </View>
           <FuelCostChart data={data.fuelCostTrend} />
-        </View>
-      )}
-
-      {/* Spending by category */}
-      {data.expenseBreakdown.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('analytics.spendingByCategory')}</Text>
-          {data.expenseBreakdown.map((item, i) => (
-            <View key={i} style={styles.catRow}>
-              <Text style={styles.catLabel} numberOfLines={1}>{item.category}</Text>
-              <View style={styles.barTrack}>
-                <View style={[
-                  styles.barFill,
-                  { width: (Math.round((item.amount / maxBreakdown) * 100) + '%') as any, backgroundColor: COLORS[i % COLORS.length] }
-                ]} />
-              </View>
-              <Text style={styles.catAmount}>{fmt(item.amount)}</Text>
-            </View>
-          ))}
         </View>
       )}
 
@@ -876,11 +856,6 @@ function makeStyles(c: Colors) {
     sectionTitle: { fontSize: 15, fontWeight: '700', color: c.text },
     sectionBadge: { fontSize: 11, color: c.textMuted, fontWeight: '600' },
 
-    catRow: { marginBottom: 12 },
-    catLabel: { fontSize: 12, color: c.textSub, fontWeight: '600', marginBottom: 5 },
-    barTrack: { height: 10, backgroundColor: c.border, borderRadius: 5, marginBottom: 3, overflow: 'hidden' },
-    barFill: { height: '100%', borderRadius: 5 },
-    catAmount: { fontSize: 11, color: c.textMuted },
 
     monthlyChart: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 6 },
     monthCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
