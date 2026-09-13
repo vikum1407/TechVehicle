@@ -295,7 +295,7 @@ function OilCard({ data }: { data: NonNullable<Analytics['oilAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.oilCard.title')}</Text>
+        <Text style={styles.sectionTitle}>🛢️ {t('analytics.oilCard.title')}</Text>
         <Text style={styles.sectionBadge}>{t('analytics.recordsCount', { count: data.history.length })}</Text>
       </View>
       {data.history.map((item, i) => (
@@ -330,7 +330,7 @@ function TyreCard({ data }: { data: NonNullable<Analytics['tyreAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.tyreCard.title')}</Text>
+        <Text style={styles.sectionTitle}>🛞 {t('analytics.tyreCard.title')}</Text>
         {data.currentSize && (
           <View style={styles.sizeBadge}><Text style={styles.sizeBadgeText}>{data.currentSize}</Text></View>
         )}
@@ -369,7 +369,7 @@ function EmissionCard({ data }: { data: NonNullable<Analytics['emissionAnalytics
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.emissionCard.title')}</Text>
+        <Text style={styles.sectionTitle}>💨 {t('analytics.emissionCard.title')}</Text>
         <Text style={styles.sectionBadge}>{t('analytics.testsCount', { count: data.history.length })}</Text>
       </View>
       {data.warning && (
@@ -420,7 +420,7 @@ function AcCard({ data }: { data: NonNullable<Analytics['acAnalytics']> }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>{t('analytics.acCard.title')}</Text>
+        <Text style={styles.sectionTitle}>❄️ {t('analytics.acCard.title')}</Text>
         <Text style={styles.sectionBadge}>{t('analytics.acCard.pastYear', { count: data.refillCount12m })}</Text>
       </View>
       {data.warning && (
@@ -475,7 +475,7 @@ function CostForecastCard({ forecast }: { forecast: Forecast }) {
     <View style={styles.forecastCard}>
       <View style={styles.forecastHeader}>
         <View>
-          <Text style={styles.forecastTitle}>{t('analytics.forecast.title')}</Text>
+          <Text style={styles.forecastTitle}>🔮 {t('analytics.forecast.title')}</Text>
           <Text style={styles.forecastSub}>{t('analytics.forecast.subtitle')}</Text>
         </View>
         {hasAnyEstimate && (
@@ -642,11 +642,13 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       {/* Key stats */}
       <View style={styles.statRow}>
         <View style={styles.statCard}>
+          <Text style={styles.statIcon}>💰</Text>
           <Text style={styles.statLabel}>{t('analytics.costPerKm')}</Text>
           <Text style={styles.statValue}>{data.costPerKm != null ? 'LKR ' + data.costPerKm.toFixed(1) : '—'}</Text>
           <Text style={styles.statSub}>{t('analytics.perKmDriven')}</Text>
         </View>
         <View style={styles.statCard}>
+          <Text style={styles.statIcon}>{isElectric ? '🔋' : '⛽'}</Text>
           <Text style={styles.statLabel}>{t(isElectric ? 'analytics.energyEconomy' : 'analytics.fuelEconomy')}</Text>
           <Text style={styles.statValue}>
             {data.avgFuelEfficiency != null ? data.avgFuelEfficiency.toFixed(1) + (isElectric ? ' km/kWh' : ' km/L') : '—'}
@@ -688,7 +690,9 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t('analytics.mileageGrowth')}</Text>
               <Text style={styles.chartSub}>{t('analytics.odometerOverTime')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: colors.primaryTint }]}>
+              <Text style={styles.chartIcon}>📈</Text>
+            </View>
           </View>
           <MileageChart data={data.mileageTrend} />
         </View>
@@ -702,7 +706,9 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.chargingEfficiency' : 'analytics.fuelEfficiency')}</Text>
               <Text style={styles.chartSub}>{t(isElectric ? 'analytics.kmPerKwhSub' : 'analytics.kmPerLitreSub')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: '#34a853' }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: '#e6f4ea' }]}>
+              <Text style={styles.chartIcon}>{isElectric ? '⚡' : '⛽'}</Text>
+            </View>
           </View>
           <EfficiencyChart data={data.fuelEfficiencyTrend ?? []} />
         </View>
@@ -716,7 +722,9 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
               <Text style={styles.chartTitle}>{t(isElectric ? 'analytics.costPerCharge' : 'analytics.costPerFillup')}</Text>
               <Text style={styles.chartSub}>{t(isElectric ? 'analytics.lkrSpentPerCharge' : 'analytics.lkrSpentPerFillup')}</Text>
             </View>
-            <View style={[styles.chartDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.chartIconBadge, { backgroundColor: colors.primaryTint }]}>
+              <Text style={styles.chartIcon}>💳</Text>
+            </View>
           </View>
           <FuelCostChart data={data.fuelCostTrend} />
         </View>
@@ -724,7 +732,7 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
 
       {/* Monthly spend */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('analytics.monthlySpend')}</Text>
+        <Text style={styles.sectionTitle}>📅 {t('analytics.monthlySpend')}</Text>
         <View style={styles.monthlyChart}>
           {data.monthlySpend.map((m, i) => {
             const barH = maxMonthly > 0 ? Math.round((m.amount / maxMonthly) * 80) : 0
@@ -744,14 +752,17 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       {/* Record counts */}
       <View style={styles.countRow}>
         <View style={styles.countCard}>
+          <Text style={styles.countIcon}>🔧</Text>
           <Text style={styles.countNum}>{data.recordCounts.services}</Text>
           <Text style={styles.countLbl}>{t('analytics.servicesLabel')}</Text>
         </View>
         <View style={styles.countCard}>
+          <Text style={styles.countIcon}>{isElectric ? '🔋' : '⛽'}</Text>
           <Text style={styles.countNum}>{data.recordCounts.fuelLogs}</Text>
           <Text style={styles.countLbl}>{t(isElectric ? 'analytics.chargeLogsLabel' : 'analytics.fuelLogsLabel')}</Text>
         </View>
         <View style={styles.countCard}>
+          <Text style={styles.countIcon}>📋</Text>
           <Text style={styles.countNum}>{data.recordCounts.expenses}</Text>
           <Text style={styles.countLbl}>{t('analytics.expensesLabel')}</Text>
         </View>
@@ -835,6 +846,7 @@ function makeStyles(c: Colors) {
       flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
+    statIcon: { fontSize: 18, marginBottom: 6 },
     statLabel: { fontSize: 12, color: c.textMuted, fontWeight: '600', marginBottom: 4 },
     statValue: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 2 },
     statSub: { fontSize: 11, color: c.textFaint },
@@ -846,7 +858,8 @@ function makeStyles(c: Colors) {
     chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
     chartTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
     chartSub: { fontSize: 11, color: c.textFaint },
-    chartDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+    chartIconBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+    chartIcon: { fontSize: 16 },
 
     section: {
       backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16,
@@ -869,6 +882,7 @@ function makeStyles(c: Colors) {
       flex: 1, backgroundColor: c.surface, borderRadius: 12, padding: 16, alignItems: 'center',
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
     },
+    countIcon: { fontSize: 16, marginBottom: 4 },
     countNum: { fontSize: 28, fontWeight: '800', color: c.primary, marginBottom: 4 },
     countLbl: { fontSize: 11, color: c.textMuted, fontWeight: '600', textAlign: 'center' },
 
