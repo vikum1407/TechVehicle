@@ -21,6 +21,8 @@ import {
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
+import AppIcon from '../components/AppIcon'
+import DonutChart from '../components/DonutChart'
 
 type Props = {
   token: string
@@ -2429,11 +2431,13 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {/* Summary cards */}
                 <View style={styles.revSummaryRow}>
                   <View style={styles.revCard}>
+                    <View style={styles.revCardIcon}><AppIcon icon={{ lib: 'mci', name: 'cash-multiple' }} size={18} color={colors.primary} /></View>
                     <Text style={styles.revCardLabel}>{t('garage.totalRevenue')}</Text>
                     <Text style={styles.revCardValue}>LKR {totalRevenue.toLocaleString()}</Text>
                     <Text style={styles.revCardSub}>{t('garage.completedJobsCount', { count: completed.length, s: completed.length !== 1 ? 's' : '' })}</Text>
                   </View>
                   <View style={styles.revCard}>
+                    <View style={styles.revCardIcon}><AppIcon icon={{ lib: 'mci', name: 'calendar-month' }} size={18} color={colors.primary} /></View>
                     <Text style={styles.revCardLabel}>{t('garage.thisMonth')}</Text>
                     <Text style={styles.revCardValue}>LKR {thisMonthRevenue.toLocaleString()}</Text>
                     <Text style={styles.revCardSub}>{t('garage.jobCount', { count: thisMonthJobs.length, s: thisMonthJobs.length !== 1 ? 's' : '' })}</Text>
@@ -2446,10 +2450,12 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </View>
                 <View style={styles.revSummaryRow}>
                   <View style={styles.revCard}>
+                    <View style={styles.revCardIcon}><AppIcon icon={{ lib: 'mci', name: 'chart-line' }} size={18} color={colors.primary} /></View>
                     <Text style={styles.revCardLabel}>{t('garage.avgJobValue')}</Text>
                     <Text style={styles.revCardValue}>LKR {avgJobValue.toLocaleString()}</Text>
                   </View>
                   <View style={styles.revCard}>
+                    <View style={styles.revCardIcon}><AppIcon icon={{ lib: 'mci', name: 'account-group' }} size={18} color={colors.primary} /></View>
                     <Text style={styles.revCardLabel}>{t('garage.repeatCustomers')}</Text>
                     <Text style={styles.revCardValue}>{repeatPct}%</Text>
                     <Text style={styles.revCardSub}>{t('garage.ofVehicles', { repeat: repeatVehicles, total: distinctVehicles })}</Text>
@@ -2459,22 +2465,34 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 {/* Revenue by category */}
                 {catBreakdown.length > 0 && (
                   <View style={styles.revChartCard}>
-                    <Text style={styles.revChartTitle}>{t('garage.revenueByCategory')}</Text>
-                    {catBreakdown.map(([cat, rev], i) => (
-                      <View key={cat} style={styles.revCatRow}>
-                        <Text style={styles.revCatLabel} numberOfLines={1}>{cat}</Text>
-                        <View style={styles.revCatBarTrack}>
-                          <View style={[styles.revCatBarFill, { width: `${Math.round((rev / maxCatRevenue) * 100)}%` as any, backgroundColor: CAT_COLORS[i % CAT_COLORS.length] }]} />
-                        </View>
-                        <Text style={styles.revCatAmount}>{Math.round(rev / 1000)}k</Text>
+                    <View style={styles.sectionTitleRow}>
+                      <AppIcon icon={{ lib: 'mci', name: 'chart-donut' }} size={16} color={colors.primary} />
+                      <Text style={styles.revChartTitle}>{t('garage.revenueByCategory')}</Text>
+                    </View>
+                    <View style={styles.donutSection}>
+                      <DonutChart
+                        trackColor={colors.border}
+                        segments={catBreakdown.map(([, rev], i) => ({ amount: rev, color: CAT_COLORS[i % CAT_COLORS.length] }))}
+                      />
+                      <View style={styles.donutLegend}>
+                        {catBreakdown.map(([cat, rev], i) => (
+                          <View key={cat} style={styles.legendRow}>
+                            <View style={[styles.legendDot, { backgroundColor: CAT_COLORS[i % CAT_COLORS.length] }]} />
+                            <Text style={styles.legendLabelDark} numberOfLines={1}>{cat}</Text>
+                            <Text style={styles.legendAmountDark}>LKR {rev.toLocaleString()}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
+                    </View>
                   </View>
                 )}
 
                 {/* Monthly bar chart */}
                 <View style={styles.revChartCard}>
-                  <Text style={styles.revChartTitle}>{t('garage.revenueLast6Months')}</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <AppIcon icon={{ lib: 'mci', name: 'calendar-month' }} size={16} color={colors.primary} />
+                    <Text style={styles.revChartTitle}>{t('garage.revenueLast6Months')}</Text>
+                  </View>
                   <View style={styles.revBars}>
                     {months.map((m, i) => (
                       <View key={i} style={styles.revBarCol}>
@@ -2491,7 +2509,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </View>
 
                 {/* Completed jobs list */}
-                <Text style={styles.revSectionTitle}>{t('garage.completedJobs')}</Text>
+                <View style={[styles.sectionTitleRow, { marginBottom: 10 }]}>
+                  <AppIcon icon={{ lib: 'mci', name: 'wrench-check' }} size={16} color={colors.primary} />
+                  <Text style={styles.revSectionTitle}>{t('garage.completedJobs')}</Text>
+                </View>
                 {completed.length === 0 ? (
                   <View style={styles.empty}>
                     <Text style={styles.emptyIcon}>🔧</Text>
@@ -3254,14 +3275,14 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, borderRadius: 14, padding: 16, marginBottom: 16,
       shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
     },
-    revChartTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 16 },
+    revChartTitle: { fontSize: 14, fontWeight: '700', color: c.text },
     revBars: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 8 },
     revBarCol: { flex: 1, alignItems: 'center' },
     revBarTrack: { width: '100%', height: 80, backgroundColor: c.primaryTint, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
     revBarFill: { width: '100%', backgroundColor: c.primary, borderRadius: 6, minHeight: 3 },
     revBarLabel: { fontSize: 10, color: c.textMuted, marginTop: 4, fontWeight: '600' },
     revBarValue: { fontSize: 9, color: c.primary, fontWeight: '700' },
-    revSectionTitle: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 10 },
+    revSectionTitle: { fontSize: 15, fontWeight: '800', color: c.text },
     revJobCard: {
       backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
       shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
@@ -3275,11 +3296,14 @@ function makeStyles(c: Colors, topInset: number) {
     revJobMeta: { flexDirection: 'row', gap: 12 },
     revJobDate: { fontSize: 12, color: c.textFaint },
     revJobMileage: { fontSize: 12, color: c.textFaint },
-    revCatRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-    revCatLabel: { width: 100, fontSize: 12, color: c.textSub, fontWeight: '600' },
-    revCatBarTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: c.borderMid, marginHorizontal: 8, overflow: 'hidden' },
-    revCatBarFill: { height: '100%', borderRadius: 5 },
-    revCatAmount: { fontSize: 12, color: c.textMuted, fontWeight: '700', width: 42, textAlign: 'right' },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 16 },
+    donutSection: { alignItems: 'center', gap: 14 },
+    donutLegend: { width: '100%', gap: 9 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    legendDot: { width: 9, height: 9, borderRadius: 4.5 },
+    legendLabelDark: { flex: 1, fontSize: 13, color: c.textSub, fontWeight: '600' },
+    legendAmountDark: { fontSize: 13, color: c.text, fontWeight: '700' },
+    revCardIcon: { marginBottom: 6 },
 
     walkinBtn: {
       backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14,
