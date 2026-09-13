@@ -8,6 +8,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import Button from '../components/Button'
+import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 
@@ -35,10 +36,10 @@ type GarageResult = {
 
 type Step = 'selectServiceType' | 'selectRecords' | 'selectGarage' | 'confirm'
 
-const SERVICE_TYPE_OPTIONS: { key: string; labelKey: TranslationKey; icon: string; descKey: TranslationKey }[] = [
-  { key: 'full', labelKey: 'share.serviceType.full.label', icon: '🔧', descKey: 'share.serviceType.full.desc' },
-  { key: 'between', labelKey: 'share.serviceType.between.label', icon: '⚡', descKey: 'share.serviceType.between.desc' },
-  { key: 'third_party', labelKey: 'share.serviceType.thirdParty.label', icon: '🏭', descKey: 'share.serviceType.thirdParty.desc' },
+const SERVICE_TYPE_OPTIONS: { key: string; labelKey: TranslationKey; icon: AppIconSpec; descKey: TranslationKey }[] = [
+  { key: 'full', labelKey: 'share.serviceType.full.label', icon: { lib: 'mci', name: 'wrench' }, descKey: 'share.serviceType.full.desc' },
+  { key: 'between', labelKey: 'share.serviceType.between.label', icon: { lib: 'mci', name: 'lightning-bolt' }, descKey: 'share.serviceType.between.desc' },
+  { key: 'third_party', labelKey: 'share.serviceType.thirdParty.label', icon: { lib: 'mci', name: 'garage' }, descKey: 'share.serviceType.thirdParty.desc' },
 ]
 
 export default function ShareScreen({ token, vehicleId, onBack, onShared }: Props) {
@@ -161,7 +162,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
               onPress={() => setServiceType(opt.key)}
               activeOpacity={0.8}
             >
-              <Text style={styles.serviceTypeIcon}>{opt.icon}</Text>
+              <View style={styles.serviceTypeIcon}><AppIcon icon={opt.icon} size={22} color={serviceType === opt.key ? colors.primary : colors.text} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.serviceTypeLabel, serviceType === opt.key && styles.serviceTypeLabelSelected]}>
                   {t(opt.labelKey)}
@@ -286,7 +287,9 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
             <Text style={styles.confirmLabel}>{t('share.sharingWith')}</Text>
             <Text style={styles.confirmGarage}>{selectedGarage.name}</Text>
             {selectedGarage.address && (
-              <Text style={styles.confirmAddress}>📍 {selectedGarage.address}</Text>
+              <Text style={styles.confirmAddress}>
+                <AppIcon icon={{ lib: 'mci', name: 'map-marker-outline' }} size={12} color={colors.textMuted} /> {selectedGarage.address}
+              </Text>
             )}
           </View>
 
@@ -412,7 +415,7 @@ function makeStyles(c: Colors) {
       shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
     },
     serviceTypeCardSelected: { borderColor: c.primary, backgroundColor: c.primary },
-    serviceTypeIcon: { fontSize: 26 },
+    serviceTypeIcon: {},
     serviceTypeLabel: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 2 },
     serviceTypeLabelSelected: { color: '#fff' },
     serviceTypeDesc: { fontSize: 12, color: c.textMuted },
