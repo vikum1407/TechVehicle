@@ -294,7 +294,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
         <View style={styles.headerRight}>
           {onNotifPress && (
             <TouchableOpacity style={styles.bellBtn} onPress={onNotifPress}>
-              <Text style={styles.bellIcon}>🔔</Text>
+              <AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={20} color={colors.text} />
               {notifUnread && <View style={styles.bellDot} />}
             </TouchableOpacity>
           )}
@@ -346,9 +346,15 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
                           </Text>
                         </View>
                         <View style={styles.transferCounts}>
-                          <Text style={styles.transferCountItem}>🔧 {transfer.vehicle._count.serviceRecords}</Text>
-                          <Text style={styles.transferCountItem}>{transfer.vehicle.vehicleType === 'electric' ? '🔋' : '⛽'} {transfer.vehicle._count.fuelLogs}</Text>
-                          <Text style={styles.transferCountItem}>💰 {transfer.vehicle._count.expenses}</Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: 'wrench' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.serviceRecords}
+                          </Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: transfer.vehicle.vehicleType === 'electric' ? 'battery-charging' : 'gas-station' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.fuelLogs}
+                          </Text>
+                          <Text style={styles.transferCountItem}>
+                            <AppIcon icon={{ lib: 'mci', name: 'clipboard-text-outline' }} size={11} color={colors.textMuted} /> {transfer.vehicle._count.expenses}
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.transferFrom}>{t('myVehicles.transferFrom', { phone: transfer.sellerPhone, date: formatDate(transfer.createdAt) })}</Text>
