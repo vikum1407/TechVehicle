@@ -711,7 +711,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
           <View style={styles.headerRightIcons}>
             {onNotifications && (
               <TouchableOpacity onPress={onNotifications} style={styles.bellBtn}>
-                <Text style={styles.bellIcon}>🔔</Text>
+                <AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={20} color={colors.text} />
                 {notifUnread && <View style={styles.bellDot} />}
               </TouchableOpacity>
             )}
@@ -919,7 +919,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(emission.urgency) }]}>
-                      {emission.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.emissionTest')}
+                      <AppIcon icon={{ lib: 'mci', name: emission.urgency === 'expired' ? 'alert' : 'alert-outline' }} size={13} color={urgencyColor(emission.urgency)} /> {t('dashboard.emissionTest')}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(emission.urgency) }]}>
                       {expiryLabel(t, emission.daysLeft)}
@@ -939,7 +939,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(licence.urgency) }]}>
-                      {licence.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.revenueLicence')}
+                      <AppIcon icon={{ lib: 'mci', name: licence.urgency === 'expired' ? 'alert' : 'alert-outline' }} size={13} color={urgencyColor(licence.urgency)} /> {t('dashboard.revenueLicence')}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(licence.urgency) }]}>
                       {expiryLabel(t, licence.daysLeft)}
@@ -959,7 +959,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 >
                   <View style={styles.renewalLeft}>
                     <Text style={[styles.renewalTitle, { color: urgencyColor(insurance.urgency) }]}>
-                      {insurance.urgency === 'expired' ? '🚨' : '⚠️'} {t('dashboard.insurance')}
+                      <AppIcon icon={{ lib: 'mci', name: insurance.urgency === 'expired' ? 'alert' : 'alert-outline' }} size={13} color={urgencyColor(insurance.urgency)} /> {t('dashboard.insurance')}
                       {vehicle.insuranceCompany ? ` — ${vehicle.insuranceCompany}` : ''}
                     </Text>
                     <Text style={[styles.renewalDays, { color: urgencyColor(insurance.urgency) }]}>
@@ -980,7 +980,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         {(submissions.length > 0 || pendingTransfer) && (
           <View style={styles.actionRequiredSection}>
             <Text style={styles.actionRequiredTitle}>
-              ⚡ {t('dashboard.actionRequired', { count: submissions.length + (pendingTransfer ? 1 : 0) })}
+              <AppIcon icon={{ lib: 'mci', name: 'lightning-bolt' }} size={15} color={colors.error} /> {t('dashboard.actionRequired', { count: submissions.length + (pendingTransfer ? 1 : 0) })}
             </Text>
 
             {/* Pending submissions */}
@@ -1186,7 +1186,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
                   {bk.notes && (
                     <Text style={styles.appointmentNotes}>
-                      {bk.noteType === 'urgent' ? '🚨 ' : ''}{bk.notes}
+                      {bk.noteType === 'urgent' ? (<><AppIcon icon={{ lib: 'mci', name: 'alert' }} size={12} color={colors.error} /> </>) : ''}{bk.notes}
                     </Text>
                   )}
 
@@ -1593,7 +1593,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map(n => (
                 <TouchableOpacity key={n} onPress={() => setRatingValue(n)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                  <Text style={styles.starIcon}>{n <= ratingValue ? '⭐' : '☆'}</Text>
+                  <AppIcon icon={{ lib: 'mci', name: n <= ratingValue ? 'star' : 'star-outline' }} size={30} color={colors.accent} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -2031,7 +2031,6 @@ function makeStyles(c: Colors, topInset: number) {
     familyShareBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     ratingSubtitle: { fontSize: 14, color: c.textSub, marginBottom: 16 },
     starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
-    starIcon: { fontSize: 32 },
     ratingCommentInput: {
       backgroundColor: c.surfaceAlt, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid,
       paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text,

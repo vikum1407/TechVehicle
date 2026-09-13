@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
-import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
+import AppIcon from './AppIcon'
 
 type Props = {
   onPress: () => void
@@ -15,7 +16,7 @@ export default function FloatingHomeButton({ onPress }: Props) {
 
   return (
     <TouchableOpacity style={styles.btn} onPress={onPress} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-      <Text style={styles.icon}>🏠</Text>
+      <AppIcon icon={{ lib: 'mci', name: 'home-outline' }} size={22} color="#fff" />
     </TouchableOpacity>
   )
 }
@@ -32,6 +33,5 @@ function makeStyles(c: Colors, bottomInset: number) {
       shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6,
       zIndex: 999,
     },
-    icon: { fontSize: 20 },
   })
 }
