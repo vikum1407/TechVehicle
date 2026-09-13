@@ -2297,7 +2297,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <Text style={styles.calDayDetailDate}>{displayDate}</Text>
 
                 {override?.message && (
-                  <Text style={styles.calDayMessage}>⚠️ {override.message}</Text>
+                  <Text style={styles.calDayMessage}>
+                    <AppIcon icon={{ lib: 'mci', name: 'alert-outline' }} size={12} color={colors.error} /> {override.message}
+                  </Text>
                 )}
                 {override?.status === 'closed' && (
                   <Text style={styles.calDayClosedMsg}>{t('garage.closedThisDay')}</Text>
@@ -2325,10 +2327,14 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                           <Text style={[styles.bookingBadgeText, b.status === 'pending' ? styles.bookingBadgeTextPending : styles.bookingBadgeTextConfirmed]}>{b.status === 'pending' ? t('garage.pending') : t('garage.confirmed')}</Text>
                         </View>
                       </View>
-                      {b.slotLabel && <Text style={styles.calDaySlot}>⏰ {b.slotLabel}</Text>}
+                      {b.slotLabel && (
+                        <Text style={styles.calDaySlot}>
+                          <AppIcon icon={{ lib: 'mci', name: 'clock-outline' }} size={11} color={colors.textMuted} /> {b.slotLabel}
+                        </Text>
+                      )}
                       {b.notes && (
                         <Text style={[styles.calDayNotes, b.noteType === 'urgent' && { color: '#e53935' }]}>
-                          {b.noteType === 'urgent' ? '🚨 ' : ''}"{b.notes}"
+                          {b.noteType === 'urgent' ? (<><AppIcon icon={{ lib: 'mci', name: 'alert' }} size={11} color="#e53935" /> </>) : ''}"{b.notes}"
                         </Text>
                       )}
                     </View>
@@ -2344,7 +2350,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       {tab === 'customers' && (
         <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity style={styles.walkinBtn} onPress={() => setWalkinOpen(true)}>
-            <Text style={styles.walkinBtnText}>🚶 {t('garage.logWalkinService')}</Text>
+            <Text style={styles.walkinBtnText}>
+              <AppIcon icon={{ lib: 'mci', name: 'walk' }} size={14} color="#fff" /> {t('garage.logWalkinService')}
+            </Text>
           </TouchableOpacity>
 
           <FormField
@@ -2362,7 +2370,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             if (filtered.length === 0) {
               return (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyIcon}>👥</Text>
+                  <View style={styles.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'account-group-outline' }} size={40} color={colors.textFaint} /></View>
                   <Text style={styles.emptyText}>{t('garage.noCustomersYet')}</Text>
                   <Text style={styles.emptySub}>{t('garage.noCustomersYetSub')}</Text>
                 </View>
@@ -2381,7 +2389,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <Text style={styles.custReg}>{cust.registrationNo}</Text>
                     {(isOverdue || isDueSoon) && (
                       <View style={[styles.custBadge, isOverdue ? styles.custBadgeOverdue : styles.custBadgeDueSoon]}>
-                        <Text style={styles.custBadgeText}>{isOverdue ? `🚨 ${t('predictions.status.overdue')}` : `⚠ ${t('predictions.status.dueSoon')}`}</Text>
+                        <Text style={styles.custBadgeText}>
+                          <AppIcon icon={{ lib: 'mci', name: 'alert' }} size={11} color={isOverdue ? '#c62828' : '#e65100'} /> {isOverdue ? t('predictions.status.overdue') : t('predictions.status.dueSoon')}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -2408,7 +2418,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
                         <Text style={styles.custRemindBtnText}>
-                          {cooldownActive ? t('garage.sentDaysAgo', { days: daysSinceReminder ?? 0 }) : `🔔 ${t('garage.sendReminder')}`}
+                          {cooldownActive
+                            ? t('garage.sentDaysAgo', { days: daysSinceReminder ?? 0 })
+                            : (<><AppIcon icon={{ lib: 'mci', name: 'bell-outline' }} size={12} color="#fff" /> {t('garage.sendReminder')}</>)}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -2567,7 +2579,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </View>
                 {completed.length === 0 ? (
                   <View style={styles.empty}>
-                    <Text style={styles.emptyIcon}>🔧</Text>
+                    <View style={styles.emptyIcon}><AppIcon icon={{ lib: 'mci', name: 'wrench-outline' }} size={40} color={colors.textFaint} /></View>
                     <Text style={styles.emptyText}>{t('garage.noCompletedJobsYet')}</Text>
                     <Text style={styles.emptySub}>{t('garage.acceptedSubmissionsAppearHere')}</Text>
                   </View>
@@ -2614,7 +2626,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   <View style={styles.ratingsSummaryRow}>
                     <Text style={styles.ratingsAvgNum}>{ratingsDetail.avgRating}</Text>
                     <View>
-                      <Text style={styles.ratingsAvgStars}>{'⭐'.repeat(Math.round(ratingsDetail.avgRating ?? 0))}</Text>
+                      <View style={styles.ratingsAvgStars}>
+                        {Array.from({ length: Math.round(ratingsDetail.avgRating ?? 0) }).map((_, i) => (
+                          <AppIcon key={i} icon={{ lib: 'mci', name: 'star' }} size={16} color={colors.accent} />
+                        ))}
+                      </View>
                       <Text style={styles.ratingsCountText}>
                         {t('garage.ratingCount', { count: ratingsDetail.ratingCount, s: ratingsDetail.ratingCount !== 1 ? 's' : '' })}
                       </Text>
@@ -2643,7 +2659,11 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   ) : (
                     ratingsDetail.reviews.map((r, i) => (
                       <View key={i} style={styles.reviewCard}>
-                        <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
+                        <View style={styles.reviewStars}>
+                          {Array.from({ length: r.rating }).map((_, i) => (
+                            <AppIcon key={i} icon={{ lib: 'mci', name: 'star' }} size={13} color={colors.accent} />
+                          ))}
+                        </View>
                         <Text style={styles.reviewComment}>{r.comment}</Text>
                         <Text style={styles.reviewDate}>
                           {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -3411,7 +3431,7 @@ function makeStyles(c: Colors, topInset: number) {
 
     ratingsSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
     ratingsAvgNum: { fontSize: 44, fontWeight: '800', color: c.text },
-    ratingsAvgStars: { fontSize: 16, marginBottom: 2 },
+    ratingsAvgStars: { flexDirection: 'row', gap: 2, marginBottom: 2 },
     ratingsCountText: { fontSize: 13, color: c.textMuted },
     ratingsDistWrap: { marginBottom: 28 },
     ratingsDistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
@@ -3424,12 +3444,12 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 10,
       borderWidth: 1, borderColor: c.border,
     },
-    reviewStars: { fontSize: 13, marginBottom: 6 },
+    reviewStars: { flexDirection: 'row', gap: 2, marginBottom: 6 },
     reviewComment: { fontSize: 14, color: c.textBody, lineHeight: 20, marginBottom: 6 },
     reviewDate: { fontSize: 11, color: c.textFaint },
 
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
-    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyIcon: { marginBottom: 12 },
     emptyText: { fontSize: 15, fontWeight: '700', color: c.textSub, marginBottom: 4 },
     emptySub: { fontSize: 13, color: c.textFaint, textAlign: 'center' },
   })
