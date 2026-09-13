@@ -170,6 +170,8 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'dashboard.vehicleNotes': 'வாகன குறிப்புகள்',
   'dashboard.saveChanges': 'மாற்றங்களை சேமி',
   'dashboard.moreForVehicle': 'இந்த வாகனத்திற்கு மேலும்',
+  'dashboard.knowYourVehicle': 'உங்கள் வாகனத்தை அறியுங்கள்',
+  'dashboard.familySharedAccess': 'குடும்பம் / பகிரப்பட்ட அணுகல்',
   'dashboard.vehicleTests': 'வாகன சோதனைகள்',
   'dashboard.costForecast': 'செலவு முன்கணிப்பு',
   'dashboard.bookServiceAppointment': 'சேவை சந்திப்பு பதிவு',
