@@ -215,6 +215,11 @@ export default function App() {
       } else {
         setScreen('login')
       }
+    }).catch(() => {
+      // If reading the saved session fails for any reason, fail safe to the
+      // login screen rather than leaving the app stuck on the spinner
+      // forever with no error and no way to recover.
+      setScreen('login')
     })
   }, [])
 
