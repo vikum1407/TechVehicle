@@ -113,7 +113,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
               {total > 0 ? `LKR ${total.toLocaleString()}` : t('costForecast.notEnoughData')}
             </Text>
             <Text style={styles.totalNote}>
-              {t('costForecast.totalNote')}
+              {total > 0 ? t('costForecast.totalNote') : t('costForecast.notEnoughDataHint')}
             </Text>
           </View>
 
