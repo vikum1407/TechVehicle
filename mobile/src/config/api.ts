@@ -1,5 +1,27 @@
 import * as FileSystem from 'expo-file-system/legacy'
 
+// ── Never let a raw network/parsing failure reach the user as a JS error ──
+// Every api.* function below follows the same fetch → res.json() → throw
+// new Error(data.error || fallback) pattern. Two failure modes bypass that
+// and leak a raw technical message instead of a friendly one: a dropped or
+// flaky connection (fetch() itself rejects), and a non-JSON response body,
+// e.g. a proxy/error page during a cold start (res.json() rejects with
+// something like "JSON Parse error: Unexpected character: ;"). Patched once
+// here for every call in this file, rather than in each function individually.
+const nativeFetch = globalThis.fetch
+globalThis.fetch = ((...args: Parameters<typeof fetch>) =>
+  nativeFetch(...args).catch(() => {
+    throw new Error('Could not connect. Please check your internet connection and try again.')
+  })
+) as typeof fetch
+
+const nativeResJson = Response.prototype.json
+Response.prototype.json = function (this: Response) {
+  return nativeResJson.call(this).catch(() => {
+    throw new Error('Something went wrong loading data. Please try again.')
+  })
+}
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'
 
 const authHeaders = (token: string) => ({
