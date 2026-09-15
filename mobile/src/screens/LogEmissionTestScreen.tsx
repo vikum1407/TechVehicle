@@ -180,9 +180,12 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
         <FormField
           label={t('logEmissionTest.nextExpiryDate')}
           value={nextExpiry}
-          onChangeText={setNextExpiry}
+          onChangeText={v => {
+            const digits = v.replace(/[^0-9]/g, '').slice(0, 6)
+            setNextExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits)
+          }}
           placeholder="e.g. 06/2027"
-          keyboardType="numbers-and-punctuation"
+          keyboardType="number-pad"
         />
       </View>
 

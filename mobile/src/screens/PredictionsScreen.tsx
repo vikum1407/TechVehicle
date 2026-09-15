@@ -317,8 +317,12 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               placeholder="06/2023"
               placeholderTextColor={colors.textFaint}
               value={entry.date}
-              onChangeText={v => setEntry(p.id, 'date', v)}
-              keyboardType="numbers-and-punctuation"
+              onChangeText={v => {
+                const digits = v.replace(/[^0-9]/g, '').slice(0, 6)
+                const formatted = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
+                setEntry(p.id, 'date', formatted)
+              }}
+              keyboardType="number-pad"
               maxLength={7}
             />
           </View>
