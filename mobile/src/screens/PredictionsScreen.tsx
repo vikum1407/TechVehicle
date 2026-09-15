@@ -4,6 +4,7 @@ import {
   ScrollView, RefreshControl, ActivityIndicator,
   TextInput, Alert, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { ITEM_BRANDS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
@@ -145,7 +146,8 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   const [overrideDays, setOverrideDays] = useState('')
   const [savingOverride, setSavingOverride] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
   const STATUS_CONFIG = useMemo(() => statusConfig(colors, t), [colors, t])
 
@@ -774,7 +776,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
 
@@ -906,7 +908,10 @@ function makeStyles(c: Colors) {
       backgroundColor: c.surface,
       borderTopLeftRadius: 20, borderTopRightRadius: 20,
       padding: 20,
-      paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+      // Fixed 24/40px wasn't enough on phones with classic 3-button on-screen
+      // nav bars (vs. gesture nav) — the last row (Customize) rendered
+      // underneath it. Use the device's real inset instead.
+      paddingBottom: (Platform.OS === 'ios' ? 20 : 12) + bottomInset,
       maxHeight: '85%',
     },
     detailHandle: {
