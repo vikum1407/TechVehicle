@@ -262,7 +262,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
   const photoViewerRef = useRef<FlatList<string>>(null)
   const [vehicleShares, setVehicleShares] = useState<{ id: string; sharedWithPhone: string; status: string }[]>([])
-  const [shareInput, setShareInput] = useState('')
   const [sharingAccess, setSharingAccess] = useState(false)
   const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const colors = useColors()
@@ -305,16 +304,16 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     }
   }
 
-  const handleShareAccess = async () => {
-    const phone = shareInput.trim()
-    if (!phone) return
+  const handleShareAccess = async (phone: string): Promise<boolean> => {
+    if (!phone) return false
     setSharingAccess(true)
     try {
       await api.shareVehicleAccess(token, vehicle.id, phone)
-      setShareInput('')
       await loadRecords()
+      return true
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
+      return false
     } finally {
       setSharingAccess(false)
     }
@@ -1517,67 +1516,18 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={familyShareModal} transparent animationType="slide" onRequestClose={() => setFamilyShareModal(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.moreSheetOverlay}>
-          <View style={styles.moreSheetCard}>
-            <View style={styles.moreSheetHeaderRow}>
-              <Text style={styles.moreSheetTitle}>{t('dashboard.familySharedAccess')}</Text>
-              <TouchableOpacity onPress={() => setFamilyShareModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.moreSheetClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {vehicleShares.length > 0 && (
-              <View style={styles.familyShareList}>
-                {vehicleShares.map(share => (
-                  <View key={share.id} style={styles.familyShareRow}>
-                    <View>
-                      <Text style={styles.familySharePhone}>{share.sharedWithPhone}</Text>
-                      <Text style={[
-                        styles.familyShareStatus,
-                        share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
-                      ]}>
-                        {share.status === 'active' ? t('dashboard.active') : t('dashboard.pendingStatus')}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.revokeBtn, revokingShareId === share.id && { opacity: 0.5 }]}
-                      onPress={() => handleRevokeShare(share.id, share.sharedWithPhone)}
-                      disabled={revokingShareId === share.id}
-                    >
-                      {revokingShareId === share.id
-                        ? <ActivityIndicator size="small" color={colors.primary} />
-                        : <Text style={styles.revokeBtnText}>{t('dashboard.revoke')}</Text>
-                      }
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-            <View style={styles.familyShareInputRow}>
-              <TextInput
-                style={styles.familyShareInput}
-                value={shareInput}
-                onChangeText={setShareInput}
-                placeholder="With country code, e.g. +94771234567"
-                placeholderTextColor={colors.textFaint}
-                keyboardType="phone-pad"
-              />
-              <TouchableOpacity
-                style={[styles.familyShareBtn, (!shareInput.trim() || sharingAccess) && { opacity: 0.5 }]}
-                onPress={handleShareAccess}
-                disabled={!shareInput.trim() || sharingAccess}
-              >
-                {sharingAccess
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.familyShareBtnText}>{t('dashboard.share')}</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <FamilyShareModal
+        visible={familyShareModal}
+        onClose={() => setFamilyShareModal(false)}
+        shares={vehicleShares}
+        revokingShareId={revokingShareId}
+        onRevoke={handleRevokeShare}
+        onShare={handleShareAccess}
+        sharing={sharingAccess}
+        colors={colors}
+        styles={styles}
+        t={t}
+      />
 
       <Modal visible={!!ratingPrompt} transparent animationType="slide" onRequestClose={() => setRatingPrompt(null)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -1667,6 +1617,97 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       </Modal>
     </View>
     </KeyboardAvoidingView>
+  )
+}
+
+// Its own component (not a helper defined inside VehicleDashboardScreen) so
+// that typing in the phone field only re-renders this small modal, not the
+// entire dashboard tree (charts, sparklines, photo carousel) behind it —
+// that shared-state-in-a-giant-parent pattern was the actual cause of the
+// visible flicker/blink reported while typing here.
+function FamilyShareModal({
+  visible, onClose, shares, revokingShareId, onRevoke, onShare, sharing, colors, styles, t,
+}: {
+  visible: boolean
+  onClose: () => void
+  shares: { id: string; sharedWithPhone: string; status: string }[]
+  revokingShareId: string | null
+  onRevoke: (shareId: string, phone: string) => void
+  onShare: (phone: string) => Promise<boolean>
+  sharing: boolean
+  colors: Colors
+  styles: ReturnType<typeof makeStyles>
+  t: (key: any, params?: Record<string, string | number>) => string
+}) {
+  const [phone, setPhone] = useState('')
+
+  const handleSharePress = async () => {
+    const ok = await onShare(phone.trim())
+    if (ok) setPhone('')
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.moreSheetOverlay}>
+        <View style={styles.moreSheetCard}>
+          <View style={styles.moreSheetHeaderRow}>
+            <Text style={styles.moreSheetTitle}>{t('dashboard.familySharedAccess')}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.moreSheetClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          {shares.length > 0 && (
+            <View style={styles.familyShareList}>
+              {shares.map(share => (
+                <View key={share.id} style={styles.familyShareRow}>
+                  <View>
+                    <Text style={styles.familySharePhone}>{share.sharedWithPhone}</Text>
+                    <Text style={[
+                      styles.familyShareStatus,
+                      share.status === 'active' ? { color: '#2e7d32' } : { color: '#e65100' }
+                    ]}>
+                      {share.status === 'active' ? t('dashboard.active') : t('dashboard.pendingStatus')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.revokeBtn, revokingShareId === share.id && { opacity: 0.5 }]}
+                    onPress={() => onRevoke(share.id, share.sharedWithPhone)}
+                    disabled={revokingShareId === share.id}
+                  >
+                    {revokingShareId === share.id
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Text style={styles.revokeBtnText}>{t('dashboard.revoke')}</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={styles.familyShareInputRow}>
+            <TextInput
+              style={styles.familyShareInput}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="With country code, e.g. +94771234567"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="phone-pad"
+            />
+            <TouchableOpacity
+              style={[styles.familyShareBtn, (!phone.trim() || sharing) && { opacity: 0.5 }]}
+              onPress={handleSharePress}
+              disabled={!phone.trim() || sharing}
+            >
+              {sharing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.familyShareBtnText}>{t('dashboard.share')}</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+      </KeyboardAvoidingView>
+    </Modal>
   )
 }
 
