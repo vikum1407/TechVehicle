@@ -66,9 +66,13 @@ export function yearMatches(interval: ServiceInterval, year: number): boolean {
 }
 
 export function vehicleTypeMatches(interval: ServiceInterval, vehicleType: string | null): boolean {
-  if (!vehicleType) return true
-  if (interval.vehicleTypes && !interval.vehicleTypes.includes(vehicleType)) return false
-  if (interval.excludeVehicleTypes && interval.excludeVehicleTypes.includes(vehicleType)) return false
+  // A missing vehicleType must NOT bypass a rule's vehicleTypes restriction —
+  // that previously let e.g. motorcycle-only chain-lubrication rules match a
+  // car with no vehicleType set, since "matches everything" was the fallback
+  // for "we don't know the type." Fail closed instead: if the rule is
+  // type-restricted and we don't know the vehicle's type, it doesn't match.
+  if (interval.vehicleTypes && (!vehicleType || !interval.vehicleTypes.includes(vehicleType))) return false
+  if (interval.excludeVehicleTypes && vehicleType && interval.excludeVehicleTypes.includes(vehicleType)) return false
   return true
 }
 

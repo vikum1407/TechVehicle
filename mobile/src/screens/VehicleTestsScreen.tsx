@@ -95,9 +95,14 @@ function parseExpiryDMY(str: string): string | null {
 export default function VehicleTestsScreen({ token, vehicleId, vehicleName, currentMileage, vehicleType, initialTab, isShared = false, insuranceExpiry, insuranceCompany, insurancePolicyNo, insurancePolicyHistory, revenueLicenceExpiry, revenueLicenceHistory, emissionTestExpiry, onMileageUpdated, onInsuranceLicenceUpdated, onBack }: Props) {
   const showChainTab = CHAIN_TYPES.has(vehicleType ?? '')
   const showEmissionTab = vehicleType !== 'electric'
-  const [activeTab, setActiveTab] = useState<Tab>(
-    initialTab && initialTab !== 'emission' ? initialTab : (showEmissionTab ? 'emission' : 'insurance')
-  )
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    // Defensive: never land on a tab this vehicle type doesn't show — no
+    // active tab would be highlighted in the bar, and there'd be no way
+    // back to a valid tab short of leaving the screen.
+    if (initialTab === 'chain' && !showChainTab) return showEmissionTab ? 'emission' : 'insurance'
+    if (initialTab === 'emission' && !showEmissionTab) return 'insurance'
+    return initialTab ?? (showEmissionTab ? 'emission' : 'insurance')
+  })
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
