@@ -157,6 +157,19 @@ export default function App() {
     if (targetScreen === 'garage') {
       if (bookingId) setFocusBookingId(bookingId)
       setScreen('garage')
+    } else if (targetScreen === 'predictions') {
+      if (vehicleId) {
+        const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
+        if (vehicle) {
+          setSelectedVehicle(vehicle)
+          setPredictionsInitialTab('services')
+          setScreen('predictions')
+        } else if (vehiclesRef.current.length === 0) {
+          pendingNotifDataRef.current = data ?? null
+        } else {
+          setScreen('vehicles')
+        }
+      }
     } else if (targetScreen === 'vehicles') {
       if (vehicleId) {
         const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)

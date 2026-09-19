@@ -59,7 +59,7 @@ router.post('/notify', async (req: AuthRequest, res) => {
           overdue.length === 1
             ? `${names} is overdue — service needed soon`
             : `${overdue.length} services overdue: ${names}`,
-          { screen: 'vehicles', vehicleId: vehicle.id })
+          { screen: 'predictions', vehicleId: vehicle.id })
         sent++
       } else if (dueSoon.length > 0) {
         const top = dueSoon[0]
@@ -68,7 +68,7 @@ router.post('/notify', async (req: AuthRequest, res) => {
         const timeLeft = [kmText, daysText].filter(Boolean).join(' / ')
         await sendPush(user.pushToken, `Service Due: ${vehicleName}`,
           `${top.name} due in ${timeLeft}`,
-          { screen: 'vehicles', vehicleId: vehicle.id })
+          { screen: 'predictions', vehicleId: vehicle.id })
         sent++
       }
     }
