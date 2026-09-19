@@ -81,6 +81,8 @@ export default function App() {
   const [userType, setUserType] = useState<'owner' | 'garage' | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const vehiclesRef = useRef<Vehicle[]>([])
+  useEffect(() => { vehiclesRef.current = vehicles }, [vehicles])
   const [vehiclesBadge, setVehiclesBadge] = useState(0)
   const [garageBadge, setGarageBadge] = useState(0)
   const [newVehicle, setNewVehicle] = useState<Vehicle | null>(null)
@@ -155,7 +157,7 @@ export default function App() {
         setScreen('garage')
       } else if (targetScreen === 'vehicles') {
         if (vehicleId) {
-          const vehicle = vehicles.find(v => v.id === vehicleId)
+          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
           if (vehicle) {
             setSelectedVehicle(vehicle)
             setScreen('vehicleDashboard')
@@ -167,7 +169,7 @@ export default function App() {
         }
       } else if (targetScreen === 'predictions_setup') {
         if (vehicleId) {
-          const vehicle = vehicles.find(v => v.id === vehicleId)
+          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
           if (vehicle) {
             setSelectedVehicle(vehicle)
             setPredictionsInitialTab('setup')
@@ -178,7 +180,7 @@ export default function App() {
         }
       } else if (targetScreen === 'vehicleDashboard') {
         if (vehicleId) {
-          const vehicle = vehicles.find(v => v.id === vehicleId)
+          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
           if (vehicle) {
             setSelectedVehicle(vehicle)
             if (bookingId) setFocusVehicleBookingId(bookingId)
