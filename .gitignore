@@ -3,7 +3,6 @@ node_modules/
 dist/
 .expo/
 *.txt
-mobile/google-services.json
 mobile/GoogleService-Info.plist
 mobile/play-store-key.json
 

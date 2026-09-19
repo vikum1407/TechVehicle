@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "438419895940",
+    "project_id": "vocksy-c007b",
+    "storage_bucket": "vocksy-c007b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:438419895940:android:2d1a3aa16ac10eb1eab4d1",
+        "android_client_info": {
+          "package_name": "com.vocksy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeM9kebhH79QPZqwfxqezJhSFsLAPKPtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
