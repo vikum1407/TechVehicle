@@ -109,12 +109,22 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
           {/* Total card */}
           <View style={styles.totalCard}>
             <Text style={styles.totalLabel}>{t('costForecast.estimatedNextMonths', { months: Math.round(periodDays / 30) })}</Text>
-            <Text style={styles.totalAmount}>
-              {total > 0 ? `LKR ${total.toLocaleString()}` : t('costForecast.notEnoughData')}
-            </Text>
-            <Text style={styles.totalNote}>
-              {total > 0 ? t('costForecast.totalNote') : t('costForecast.notEnoughDataHint')}
-            </Text>
+            {total > 0 ? (
+              <>
+                <Text style={styles.totalAmount}>LKR {total.toLocaleString()}</Text>
+                <Text style={styles.totalNote}>{t('costForecast.totalNote')}</Text>
+              </>
+            ) : (
+              <View style={styles.noDataRow}>
+                <View style={styles.noDataIconWrap}>
+                  <AppIcon icon={{ lib: 'mci', name: 'information-outline' }} size={18} color="#fff" />
+                </View>
+                <View style={styles.noDataTextWrap}>
+                  <Text style={styles.noDataTitle}>{t('costForecast.notEnoughData')}</Text>
+                  <Text style={styles.totalNote}>{t('costForecast.notEnoughDataHint')}</Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {items.length === 0 && (
@@ -209,6 +219,13 @@ function makeStyles(c: Colors) {
     totalLabel: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginBottom: 4 },
     totalAmount: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 10 },
     totalNote: { fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 18 },
+    noDataRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    noDataIconWrap: {
+      width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center', marginTop: 1,
+    },
+    noDataTextWrap: { flex: 1 },
+    noDataTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 6, lineHeight: 21 },
     emptyCard: {
       backgroundColor: c.surface, borderRadius: 14, padding: 24,
       alignItems: 'center', borderWidth: 1, borderColor: c.border,

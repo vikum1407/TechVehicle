@@ -1508,7 +1508,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   />
 
                   <Text style={styles.label}>{t('garage.contactPhoneOptional')}</Text>
-                  <TextInput style={styles.input} value={contactPhone} onChangeText={setContactPhone} placeholder="e.g. 077 123 4567" keyboardType="phone-pad" maxLength={12} />
+                  <TextInput style={styles.input} value={contactPhone} onChangeText={v => setContactPhone(v.replace(/[^0-9]/g, ''))} placeholder="e.g. 077 123 4567" keyboardType="number-pad" maxLength={12} />
 
                   <Text style={styles.label}>{t('garage.promoTextOptional')}</Text>
                   <TextInput style={styles.input} value={promoText} onChangeText={setPromoText} placeholder={t('garage.promoTextPlaceholder')} />

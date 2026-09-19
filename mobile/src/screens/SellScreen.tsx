@@ -111,7 +111,7 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
           <FormField
             label={t('sell.buyerMobileNumber')}
             value={buyerPhone}
-            onChangeText={setBuyerPhone}
+            onChangeText={v => setBuyerPhone(v.replace(/[^0-9+]/g, '').replace(/(?!^)\+/g, ''))}
             placeholder="e.g. +94771234567"
             keyboardType="phone-pad"
             autoFocus

@@ -1688,7 +1688,7 @@ function FamilyShareModal({
             <TextInput
               style={styles.familyShareInput}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={v => setPhone(v.replace(/[^0-9+]/g, '').replace(/(?!^)\+/g, ''))}
               placeholder="With country code, e.g. +94771234567"
               placeholderTextColor={colors.textFaint}
               keyboardType="phone-pad"

@@ -91,10 +91,10 @@ export default function LoginScreen({ onOTPSent }: Props) {
               style={styles.input}
               placeholder="7X XXX XXXX"
               placeholderTextColor={colors.textFaint}
-              keyboardType="phone-pad"
+              keyboardType="number-pad"
               maxLength={14}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={v => setPhone(v.replace(/[^0-9]/g, ''))}
               autoFocus
             />
           </View>

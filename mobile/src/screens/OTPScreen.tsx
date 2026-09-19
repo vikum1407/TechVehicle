@@ -81,7 +81,7 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
             keyboardType="number-pad"
             maxLength={6}
             value={otp}
-            onChangeText={setOtp}
+            onChangeText={v => setOtp(v.replace(/[^0-9]/g, ''))}
             textAlign="center"
             autoFocus
           />
