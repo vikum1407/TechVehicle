@@ -141,56 +141,77 @@ export default function App() {
 
   const notifListenerRef = useRef<any>(null)
   const responseListenerRef = useRef<any>(null)
+  // A notification tap that cold-starts the app (process was fully killed) fires
+  // before addNotificationResponseReceivedListener below has a chance to register,
+  // so that listener alone silently misses it — getLastNotificationResponseAsync()
+  // is the only way to recover that tap. If it names a vehicle that hasn't loaded
+  // yet (vehicles list is fetched async, after MyVehiclesScreen mounts), stash it
+  // here and the effect watching `vehicles` below flushes it once real data arrives.
+  const pendingNotifDataRef = useRef<Record<string, any> | null>(null)
+
+  const handleNotificationData = (data: Record<string, any> | undefined) => {
+    const targetScreen = data?.screen as string | undefined
+    const bookingId = data?.bookingId as string | undefined
+    const vehicleId = data?.vehicleId as string | undefined
+
+    if (targetScreen === 'garage') {
+      if (bookingId) setFocusBookingId(bookingId)
+      setScreen('garage')
+    } else if (targetScreen === 'vehicles') {
+      if (vehicleId) {
+        const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
+        if (vehicle) {
+          setSelectedVehicle(vehicle)
+          setScreen('vehicleDashboard')
+        } else if (vehiclesRef.current.length === 0) {
+          pendingNotifDataRef.current = data ?? null
+        } else {
+          setScreen('vehicles')
+        }
+      } else {
+        setScreen('vehicles')
+      }
+    } else if (targetScreen === 'predictions_setup') {
+      if (vehicleId) {
+        const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
+        if (vehicle) {
+          setSelectedVehicle(vehicle)
+          setPredictionsInitialTab('setup')
+          setScreen('predictions')
+        } else if (vehiclesRef.current.length === 0) {
+          pendingNotifDataRef.current = data ?? null
+        } else {
+          setScreen('vehicles')
+        }
+      }
+    } else if (targetScreen === 'vehicleDashboard') {
+      if (vehicleId) {
+        const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
+        if (vehicle) {
+          setSelectedVehicle(vehicle)
+          if (bookingId) setFocusVehicleBookingId(bookingId)
+          setScreen('vehicleDashboard')
+        } else if (vehiclesRef.current.length === 0) {
+          pendingNotifDataRef.current = data ?? null
+        } else {
+          setScreen('vehicles')
+        }
+      } else {
+        setScreen('vehicles')
+      }
+    }
+  }
 
   useEffect(() => {
     notifListenerRef.current = Notifications.addNotificationReceivedListener(() => {
       // foreground notifications are shown automatically via setNotificationHandler
     })
     responseListenerRef.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data as Record<string, any> | undefined
-      const targetScreen = data?.screen as string | undefined
-      const bookingId = data?.bookingId as string | undefined
-      const vehicleId = data?.vehicleId as string | undefined
-
-      if (targetScreen === 'garage') {
-        if (bookingId) setFocusBookingId(bookingId)
-        setScreen('garage')
-      } else if (targetScreen === 'vehicles') {
-        if (vehicleId) {
-          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
-          if (vehicle) {
-            setSelectedVehicle(vehicle)
-            setScreen('vehicleDashboard')
-          } else {
-            setScreen('vehicles')
-          }
-        } else {
-          setScreen('vehicles')
-        }
-      } else if (targetScreen === 'predictions_setup') {
-        if (vehicleId) {
-          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
-          if (vehicle) {
-            setSelectedVehicle(vehicle)
-            setPredictionsInitialTab('setup')
-            setScreen('predictions')
-          } else {
-            setScreen('vehicles')
-          }
-        }
-      } else if (targetScreen === 'vehicleDashboard') {
-        if (vehicleId) {
-          const vehicle = vehiclesRef.current.find(v => v.id === vehicleId)
-          if (vehicle) {
-            setSelectedVehicle(vehicle)
-            if (bookingId) setFocusVehicleBookingId(bookingId)
-            setScreen('vehicleDashboard')
-          } else {
-            setScreen('vehicles')
-          }
-        } else {
-          setScreen('vehicles')
-        }
+      handleNotificationData(response.notification.request.content.data as Record<string, any> | undefined)
+    })
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        handleNotificationData(response.notification.request.content.data as Record<string, any> | undefined)
       }
     })
     return () => {
@@ -198,6 +219,16 @@ export default function App() {
       responseListenerRef.current?.remove()
     }
   }, [])
+
+  // Flush a notification-tap navigation that arrived before the vehicle list
+  // had loaded (see pendingNotifDataRef above).
+  useEffect(() => {
+    if (vehicles.length > 0 && pendingNotifDataRef.current) {
+      const data = pendingNotifDataRef.current
+      pendingNotifDataRef.current = null
+      handleNotificationData(data)
+    }
+  }, [vehicles])
 
   useEffect(() => {
     Promise.all([
