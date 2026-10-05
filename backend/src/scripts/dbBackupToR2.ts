@@ -2,6 +2,7 @@
 // Run from backend/: npx ts-node src/scripts/dbBackupToR2.ts
 // Requires env vars: NEON_DIRECT_URL, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BACKUP_BUCKET_NAME
 // Requires the `pg_dump` binary on PATH, matching (or newer than) the database's major version.
+/// <reference types="node" />
 import { execFileSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
