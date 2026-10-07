@@ -6,6 +6,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { getJwtSecret } from '../utils/jwtSecret'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
 import { normalizePhone, isValidPhone } from '../utils/phone'
+import { NOTIFICATION_PREF_DEFAULTS, parsePrefs } from '../utils/notificationPrefs'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -196,13 +197,7 @@ router.put('/user-type', authMiddleware, async (req: AuthRequest, res) => {
 router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
-    const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
-    if (!user?.notificationPrefs) { res.json(defaults); return }
-    try {
-      res.json({ ...defaults, ...JSON.parse(user.notificationPrefs) })
-    } catch {
-      res.json(defaults)
-    }
+    res.json(parsePrefs(user?.notificationPrefs))
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch preferences' })
   }
@@ -210,16 +205,12 @@ router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
 
 // PUT /auth/notification-prefs — update notification preferences
 router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) => {
-  const { service_due, mileage_reminder, renewal, insurance_reminder, booking, transfer, submission } = req.body
-  const prefs: Record<string, boolean> = {}
-  if (service_due !== undefined) prefs.service_due = Boolean(service_due)
-  if (mileage_reminder !== undefined) prefs.mileage_reminder = Boolean(mileage_reminder)
-  if (renewal !== undefined) prefs.renewal = Boolean(renewal)
-  if (insurance_reminder !== undefined) prefs.insurance_reminder = Boolean(insurance_reminder)
-  if (booking !== undefined) prefs.booking = Boolean(booking)
-  if (transfer !== undefined) prefs.transfer = Boolean(transfer)
-  if (submission !== undefined) prefs.submission = Boolean(submission)
   try {
+    const user = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
+    const prefs = parsePrefs(user?.notificationPrefs)
+    for (const key of Object.keys(NOTIFICATION_PREF_DEFAULTS)) {
+      if (req.body[key] !== undefined) prefs[key] = Boolean(req.body[key])
+    }
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },
       data: { notificationPrefs: JSON.stringify(prefs) },

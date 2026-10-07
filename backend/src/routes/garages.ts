@@ -5,6 +5,7 @@ import { computePredictions } from '../utils/predictionEngine'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { capText, isSafeUrl, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
+import { parsePrefs } from '../utils/notificationPrefs'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -378,12 +379,6 @@ async function getRatingStats(garageId: string): Promise<{ avgRating: number | n
     avgRating: agg._avg.rating != null ? Math.round(agg._avg.rating * 10) / 10 : null,
     ratingCount: agg._count.rating,
   }
-}
-
-function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true, garage_reminder: true }
-  if (!raw) return defaults
-  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
 export default router

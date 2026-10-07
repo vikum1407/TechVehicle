@@ -1,17 +1,12 @@
 import { PrismaClient } from '@prisma/client'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { parsePrefs } from '../utils/notificationPrefs'
 
 const prisma = new PrismaClient()
 
 const DAYS_7  = 7  * 24 * 60 * 60 * 1000
 const HOURS_24 = 24 * 60 * 60 * 1000
-
-function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
-  if (!raw) return defaults
-  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
-}
 
 async function checkMileageReminders() {
   const since7Days = new Date(Date.now() - DAYS_7)

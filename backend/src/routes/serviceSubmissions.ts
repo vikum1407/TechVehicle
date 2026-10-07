@@ -5,6 +5,7 @@ import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { isValidNumber, isValidDateInput, capText, MAX_AMOUNT, MAX_MILEAGE, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 import { checkRateLimit } from '../utils/rateLimit'
+import { parsePrefs } from '../utils/notificationPrefs'
 
 function validatePhotos(photos: unknown): string | null {
   if (!Array.isArray(photos)) return null
@@ -477,11 +478,5 @@ router.post('/:id/rate', async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to submit rating' })
   }
 })
-
-function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
-  if (!raw) return defaults
-  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
-}
 
 export default router

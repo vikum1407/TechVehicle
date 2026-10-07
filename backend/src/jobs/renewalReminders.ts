@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
+import { parsePrefs } from '../utils/notificationPrefs'
 
 const prisma = new PrismaClient()
 
@@ -9,12 +10,6 @@ const DAYS_3  =  3 * 24 * 60 * 60 * 1000
 
 function daysUntil(date: Date): number {
   return Math.ceil((date.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-}
-
-function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
-  if (!raw) return defaults
-  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
 async function checkRenewals() {

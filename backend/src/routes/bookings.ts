@@ -6,6 +6,7 @@ import { createNotification } from '../utils/appNotifications'
 import { isValidDateInput, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 import { checkRateLimit } from '../utils/rateLimit'
 import { parseGarageSlots } from '../utils/garageSlots'
+import { parsePrefs } from '../utils/notificationPrefs'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -484,12 +485,6 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   full: 'Full Service',
   between: 'Between Service',
   third_party: 'Third-Party Service',
-}
-
-function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
-  const defaults = { service_due: true, mileage_reminder: true, renewal: true, insurance_reminder: true, booking: true, transfer: true, submission: true }
-  if (!raw) return defaults
-  try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
 export default router
