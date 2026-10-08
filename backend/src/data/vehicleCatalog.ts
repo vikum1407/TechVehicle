@@ -1,3 +1,6 @@
+// duplicate of mobile/src/constants/vehicleData.ts — keep in sync until centralized.
+// Used by Mart listing validation (02-data-model.md §4.1: make must be in this catalog
+// or equal "Other"). Any change here must be mirrored there and vice versa.
 export const BRAND_MODELS: Record<string, string[]> = {
   // ── Most popular in Sri Lanka ──────────────────────────────────────────
   'Toyota': [
