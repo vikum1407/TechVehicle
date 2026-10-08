@@ -19,6 +19,11 @@ model User {
   createdAt         DateTime  @default(now())
   vehicles          Vehicle[]
   garage            Garage?
+  // ── Vocksy Mart (Step 0.8) ──────────────────────────────────────────
+  displayName         String?    // shown to other people, e.g. "Kasun Perera". 2-40 chars, trimmed
+  district            String?    // district id, e.g. "colombo" (see data/districts.ts)
+  martRulesAcceptedAt DateTime?  // when the user ticked the Mart rules checkbox
+  martRulesVersion    Int?       // which version of the rules text they accepted
 }
 
 model Vehicle {
@@ -239,6 +244,7 @@ model AppNotification {
   linkTo    String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+  @@index([userPhone, createdAt])
 }
 
 model VehicleShare {
@@ -274,4 +280,211 @@ model ServiceSubmission {
   createdAt        DateTime  @default(now())
   vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage           Garage?  @relation(fields: [garageId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════ Vocksy Mart (Step 0.8) ═══════════════════════
+// Spec: docs/mart/mart-handoff/02-data-model.md §2. Copied verbatim — do not rename a
+// field or change a status string without checking every place that reads it.
+
+// ───────────────────────── Listings ─────────────────────────
+model MartListing {
+  id                String   @id @default(cuid())
+  type              String   @default("selling")   // selling | wanted
+  ownerPhone        String                          // the seller (selling) or the requester (wanted)
+  title             String                          // 1-100 chars
+  description       String?                         // max 3000 (LONG_TEXT_LEN)
+  categoryId        String                          // id from MART_CATEGORIES, e.g. "brakes"
+  categoryTypeId    String?                         // e.g. "brake_pads"; null = "All <category>" or "other"
+  condition         String?                         // new | used   (selling only; null for wanted)
+  make              String?                         // exactly as picked, e.g. "Toyota"
+  model             String?                         // e.g. "Axio"
+  makeNorm          String?                         // normalizeVehicleText(make)  -- for matching
+  modelNorm         String?                         // normalizeVehicleText(model)
+  yearFrom          Int?
+  yearTo            Int?                            // yearFrom <= yearTo; both null = fits all years
+  price             Int?                            // LKR whole rupees. selling only, required there
+  budgetMin         Int?                             // wanted only
+  budgetMax         Int?                             // wanted only (required for wanted if budget given)
+  district          String                          // district id
+  deliveryAvailable Boolean  @default(false)        // selling only, informational
+  photoUrls         String[]                        // R2 urls, order = display order, [0] = cover. Selling 1-8, wanted 0-8
+
+  status            String   @default("available")  // selling: available | reserved | sold
+                                                    // wanted:  open | fulfilled
+  postedAt          DateTime @default(now())        // used for sort + "Posted 3 days ago"; reset by Relist
+  statusChangedAt   DateTime @default(now())        // "Reserved 1 day ago", "Sold 2 days ago"
+  closedAt          DateTime?                       // set when status becomes sold / fulfilled; cleared by Relist
+  removedAt         DateTime?                       // soft delete by the owner ("Removed"); NEVER hard-deleted (reports need it)
+
+  // The deal (who bought / who sold). Same fields for selling and wanted.
+  dealPartnerPhone  String?                         // selling: the buyer picked by the seller
+                                                    // wanted:  the seller picked by the requester
+  dealOutside       Boolean  @default(false)        // true = "Sold outside Vocksy" / "Got it outside Vocksy"
+  dealState         String?                         // null | pending | confirmed | declined
+  dealDecidedAt     DateTime?                       // when partner confirmed or declined
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  favorites         MartFavorite[]
+  threads           MartThread[]
+  ratings           MartSellerRating[]
+
+  @@index([type, status, removedAt, postedAt])
+  @@index([ownerPhone, type, status])
+  @@index([categoryId, makeNorm])
+  @@index([district])
+  @@index([dealPartnerPhone])
+}
+
+// ───────────────────────── Favorites ─────────────────────────
+model MartFavorite {
+  id         String      @id @default(cuid())
+  userPhone  String
+  listingId  String
+  createdAt  DateTime    @default(now())
+  listing    MartListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userPhone, listingId])
+  @@index([userPhone, createdAt])
+  @@index([listingId])
+}
+
+// ───────────────────────── Messaging ─────────────────────────
+// One thread per (listing, other person). "owner" = listing owner, "other" = the other participant.
+//   selling: owner = seller, other = buyer
+//   wanted:  owner = requester (the buyer), other = the seller who answered
+model MartThread {
+  id                    String      @id @default(cuid())
+  listingId             String
+  ownerPhone            String
+  otherPhone            String
+  listingType           String                         // snapshot: selling | wanted
+  listingTitle          String                         // SNAPSHOT at creation (survives removal)
+  listingThumbUrl       String?                        // SNAPSHOT of photoUrls[0] at creation
+  lastMessageAt         DateTime    @default(now())
+  lastMessagePreview    String      @default("")       // first 80 chars, "Photo offer" etc.
+  lastMessageSenderPhone String?
+  ownerReadAt           DateTime?                      // when the owner last opened the thread
+  otherReadAt           DateTime?
+  ownerHiddenAt         DateTime?                      // one-sided delete by the owner
+  otherHiddenAt         DateTime?                      // one-sided delete by the other person
+  createdAt             DateTime    @default(now())
+  listing               MartListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  messages              MartMessage[]
+
+  @@unique([listingId, otherPhone])
+  @@index([ownerPhone, lastMessageAt])
+  @@index([otherPhone, lastMessageAt])
+}
+
+model MartMessage {
+  id           String     @id @default(cuid())
+  threadId     String
+  senderPhone  String                                  // for kind "system" = the person who caused it
+  kind         String     @default("text")             // text | offer | system
+  body         String     @default("")                 // text: max 1000. offer: the note (max 300). system: ""
+  offerPrice   Int?                                    // kind offer only
+  offerPhotos  String[]                                // kind offer only, max 3
+  systemCode   String?                                 // kind system: sold | fulfilled | deal_confirmed  (system lines do NOT change lastMessage* or unread). Texts: "Marked as sold", "Marked as fulfilled", "Purchase confirmed"
+  createdAt    DateTime   @default(now())
+  thread       MartThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+// ───────────────────────── Ratings ─────────────────────────
+// Was called "SellerRating" in earlier notes. Do NOT reuse GarageRating.
+model MartSellerRating {
+  id          String      @id @default(cuid())
+  listingId   String
+  raterPhone  String                                   // the person who gives the rating (the buyer; for a wanted deal: the requester)
+  sellerPhone String                                   // the person who is rated (the seller)
+  rating      Int                                      // 1..5
+  comment     String?                                  // max 500
+  listingTitle String                                  // snapshot of the ad title at rating time (shown as "For: <title>")
+  createdAt   DateTime    @default(now())
+  listing     MartListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, raterPhone])                    // one rating per sold listing
+  @@unique([raterPhone, sellerPhone])                  // one rating per rater-seller pair (anti-abuse)
+  @@index([sellerPhone, createdAt])
+}
+
+// ───────────────────────── People ─────────────────────────
+model MartFollow {
+  id            String   @id @default(cuid())
+  followerPhone String
+  sellerPhone   String
+  createdAt     DateTime @default(now())
+
+  @@unique([followerPhone, sellerPhone])
+  @@index([followerPhone, createdAt])
+}
+
+model MartBlock {
+  id           String   @id @default(cuid())
+  blockerPhone String
+  blockedPhone String
+  createdAt    DateTime @default(now())
+
+  @@unique([blockerPhone, blockedPhone])
+  @@index([blockedPhone])
+}
+
+// ───────────────────────── Trust & safety ─────────────────────────
+model MartReport {
+  id           String   @id @default(cuid())
+  reporterPhone String
+  targetType   String                                  // listing | user | message
+  targetId     String                                  // listing id, User.id (sellerId) or message id
+  targetPhone  String?                                 // owner of the reported thing (resolved by the server). Report phones are kept on purpose (investigation)
+  targetTitle  String?                                 // snapshot: listing title (max 200) so reports survive deletion
+  targetSnippet String?                                // snapshot: message text (max 200) for targetType message
+  reason       String                                  // scam | fake | prohibited | spam | abuse | other
+  note         String?                                 // max 300; required when reason = other
+  status       String   @default("open")               // open | reviewed
+  createdAt    DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@index([reporterPhone, targetType, targetId, createdAt])
+}
+
+// ───────────────────────── Shops ─────────────────────────
+model MartShopProfile {
+  id            String   @id @default(cuid())
+  ownerPhone    String   @unique
+  name          String                                  // 1-60
+  logoUrl       String?
+  about         String?                                 // max 300
+  contactPhone  String                                  // public phone/WhatsApp for the contact buttons
+  district      String
+  townAddress   String?                                 // max 100
+  websiteUrl    String?
+  googleMapsUrl String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ───────────────────────── Alerts & history ─────────────────────────
+// Makes sure one seller is notified at most once per wanted request.
+model MartWantedAlert {
+  id         String   @id @default(cuid())
+  listingId  String                                     // the wanted request
+  sellerPhone String
+  createdAt  DateTime @default(now())
+
+  @@unique([listingId, sellerPhone])
+}
+
+// Stored from day one for the Phase 2 "For You" feed. Keep the last 30 per user.
+model MartSearchHistory {
+  id        String   @id @default(cuid())
+  userPhone String
+  term      String                                      // lower-cased, trimmed, max 60
+  createdAt DateTime @default(now())                     // updated when the same term is searched again
+
+  @@unique([userPhone, term])
+  @@index([userPhone, createdAt])
 }
