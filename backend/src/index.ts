@@ -20,12 +20,16 @@ import uploadRoutes from './routes/uploads'
 import vehicleKnowledgeRoutes from './routes/vehicleKnowledge'
 import serviceCategoryRoutes from './routes/serviceCategories'
 import vehicleShareRoutes from './routes/vehicleShares'
+import martRouter from './routes/mart'
 import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
 import { startMileageReminderJob } from './jobs/mileageReminders'
 import { getJwtSecret } from './utils/jwtSecret'
 import { globalRateLimit } from './middleware/globalRateLimit'
+import { authMiddleware } from './middleware/auth'
+import { martGate, isMartBetaPhone } from './middleware/martGate'
+import jwt from 'jsonwebtoken'
 
 dotenv.config()
 
@@ -57,6 +61,29 @@ app.get('/health', (req, res) => {
   })
 })
 
+// GET /app-config — auth optional, no beta gate (spec: 03-api.md §1). The app reads
+// this on launch and after login to decide whether to show the Mart tab at all.
+app.get('/app-config', (req, res) => {
+  let phoneNumber: string | undefined
+  const authHeader = req.headers.authorization
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const decoded = jwt.verify(authHeader.split(' ')[1], getJwtSecret(), { algorithms: ['HS256'] }) as { phoneNumber: string }
+      phoneNumber = decoded.phoneNumber
+    } catch {
+      // Invalid/expired token on this specific endpoint just means "treat as logged out"
+      // — app-config has nothing sensitive in it and must never block the app from
+      // loading, unlike every real /mart route which requires a valid session.
+    }
+  }
+
+  res.json({
+    minVersion: null,
+    martEnabled: isMartBetaPhone(phoneNumber),
+    martSupportWhatsapp: process.env.MART_SUPPORT_WHATSAPP || null,
+  })
+})
+
 app.use('/auth', authRoutes)
 app.use('/vehicles', vehicleRoutes)
 app.use('/service-records', serviceRecordRoutes)
@@ -75,6 +102,7 @@ app.use('/uploads', uploadRoutes)
 app.use('/vehicle-knowledge', vehicleKnowledgeRoutes)
 app.use('/service-categories', serviceCategoryRoutes)
 app.use('/vehicle-shares', vehicleShareRoutes)
+app.use('/mart', authMiddleware, martGate, martRouter)
 
 app.listen(PORT, () => {
   console.log(`Vocksy backend running on port ${PORT}`)
