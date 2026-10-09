@@ -5,7 +5,7 @@ import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import AppIcon from './AppIcon'
 
-type Tab = 'vehicles' | 'garage'
+type Tab = 'vehicles' | 'garage' | 'mart'
 
 type Props = {
   activeTab: Tab
@@ -13,9 +13,10 @@ type Props = {
   vehiclesBadge?: number
   garageBadge?: number
   showGarageTab?: boolean
+  showMartTab?: boolean
 }
 
-export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0, showGarageTab = true }: Props) {
+export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0, garageBadge = 0, showGarageTab = true, showMartTab = false }: Props) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
   const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
@@ -48,6 +49,22 @@ export default function BottomTabBar({ activeTab, onTabPress, vehiclesBadge = 0,
           </View>
           <Text style={[styles.label, activeTab === 'garage' && styles.labelActive]}>
             Garage
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {showMartTab && (
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => onTabPress('mart')}
+          activeOpacity={0.8}
+        >
+          {activeTab === 'mart' && <View style={styles.activeBar} />}
+          <View style={styles.iconWrap}>
+            <AppIcon icon={{ lib: 'ion', name: 'storefront-outline' }} color={activeTab === 'mart' ? colors.primary : colors.textFaint} size={22} />
+          </View>
+          <Text style={[styles.label, activeTab === 'mart' && styles.labelActive]}>
+            Mart
           </Text>
         </TouchableOpacity>
       )}

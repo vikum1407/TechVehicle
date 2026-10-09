@@ -30,6 +30,20 @@ const authHeaders = (token: string) => ({
 })
 
 export const api = {
+  // Spec: 03-api.md §1. Auth optional, never gated, never throws — a failure here must
+  // never block the app, it should just mean "Mart hidden" (per the spec's own rule).
+  getAppConfig: async (token?: string): Promise<{ minVersion: string | null; martEnabled: boolean; martSupportWhatsapp: string | null }> => {
+    try {
+      const res = await fetch(`${API_URL}/app-config`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) return { minVersion: null, martEnabled: false, martSupportWhatsapp: null }
+      return await res.json()
+    } catch {
+      return { minVersion: null, martEnabled: false, martSupportWhatsapp: null }
+    }
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

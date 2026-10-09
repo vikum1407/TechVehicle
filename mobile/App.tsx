@@ -34,6 +34,7 @@ import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
 import CostForecastScreen from './src/screens/CostForecastScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import SettingsScreen from './src/screens/SettingsScreen'
+import MartNavigator from './src/screens/MartNavigator'
 import BottomTabBar from './src/components/BottomTabBar'
 import FloatingHomeButton from './src/components/FloatingHomeButton'
 
@@ -43,6 +44,7 @@ type Screen =
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
   | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
+  | 'mart' // Step 0.11 — everything Mart-internal lives inside MartNavigator's own stack, not here
 
 type Vehicle = {
   id: string
@@ -69,10 +71,10 @@ type Vehicle = {
 }
 
 // Screens that show the bottom tab bar
-const TAB_SCREENS: Screen[] = ['vehicles', 'garage']
+const TAB_SCREENS: Screen[] = ['vehicles', 'garage', 'mart']
 
 // Screens where a floating Home shortcut doesn't make sense (auth flow, or already home)
-const NO_HOME_SCREENS: Screen[] = ['loading', 'login', 'otp', 'roleSelect', 'emailSetup', 'vehicles', 'garage']
+const NO_HOME_SCREENS: Screen[] = ['loading', 'login', 'otp', 'roleSelect', 'emailSetup', 'vehicles', 'garage', 'mart']
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading')
@@ -102,6 +104,7 @@ export default function App() {
   const [garageEntryFrom, setGarageEntryFrom] = useState<'tab' | 'profile'>('tab')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
+  const [martEnabled, setMartEnabled] = useState(false) // Step 0.11: GET /app-config below decides this
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -274,6 +277,13 @@ export default function App() {
     api.getGarage(token).then(() => setHasGarage(true)).catch(() => setHasGarage(false))
   }, [token])
 
+  // Step 0.11: runs on launch (token still '') and again after login (token set) —
+  // covers both "on launch" and "after login" from the spec with one effect. Never
+  // throws (api.getAppConfig has its own fallback), so this can't block the app.
+  useEffect(() => {
+    api.getAppConfig(token || undefined).then(({ martEnabled: enabled }) => setMartEnabled(enabled))
+  }, [token])
+
   useEffect(() => {
     const backMap: Partial<Record<Screen, Screen>> = {
       otp: 'login',
@@ -298,6 +308,7 @@ export default function App() {
       notificationPrefs: notifPrefsReturnTo,
       notifications: 'vehicles',
       garageLedger: 'garage',
+      mart: 'vehicles', // MartNavigator's own BackHandler listener handles its internal stack first
       ...(garageEntryFrom === 'profile' && !hasGarage ? { garage: 'profile' as Screen } : {}),
     }
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -456,13 +467,17 @@ export default function App() {
                 }}
               />
             )}
+            {screen === 'mart' && (
+              <MartNavigator onExit={() => setScreen('vehicles')} />
+            )}
           </View>
           <BottomTabBar
-            activeTab={screen === 'garage' ? 'garage' : 'vehicles'}
+            activeTab={screen === 'garage' ? 'garage' : screen === 'mart' ? 'mart' : 'vehicles'}
             onTabPress={(tab) => { setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token) }}
             vehiclesBadge={vehiclesBadge}
             garageBadge={garageBadge}
             showGarageTab={hasGarage || screen === 'garage'}
+            showMartTab={martEnabled}
           />
         </View>
       )}
