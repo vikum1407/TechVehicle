@@ -4,6 +4,15 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-09 — Step 0.10: shared mobile components
+
+- **Added a new `priceSmall` theme token** to `colors.ts` (light `#b97f00`, dark same as `accent`) for list-row prices, per the spec's own §0.1 distinction between "big text" and "small text" price colors, and §0.1b's rule to add a token rather than hard-code when one doesn't exist.
+- **`MartPhotoViewer` was extracted from an existing pattern**, not built from scratch — the exact same `Modal` + paging `FlatList` approach already duplicated 3 times (`VehicleDashboardScreen`, `BookingScreen`, `VehicleHistoryScreen`). No new dependency (no pinch-zoom library) added, matching what the app already does despite the spec's looser wording ("swipe, pinch").
+- **`MartDevPreviewScreen` is built but deliberately not wired into navigation** — making it reachable is Step 0.11's job (the new nav stack), not 0.10's. Sits ready, unreachable, until then.
+- **`MartListingRow` is one shared component for both Favorites and My Ads rows** (same core shape per §7/§10), with a `footer` slot for each screen's own extra buttons/stats, rather than two near-duplicate components.
+
+---
+
 ## 2026-10-08 — IMPORTANT lesson: never run `npm run dev` / the full server locally against production for a quick test
 
 Starting the backend locally (to test one new route) also started every background job (`startRenewalReminderJob`, `startServiceNotificationJob`, `startBookingReminderJob`, `startMileageReminderJob`) — each one runs its check **once immediately on startup**, not just on its schedule. Since local `.env` points at the real production database, this ran real reminder logic against real data for the ~20 seconds the server was up, before being noticed and killed. **Checked the next day: confirmed zero notifications were created in that window** (queried `AppNotification` directly) — genuinely no impact, not just a low-risk guess. Still avoidable entirely. **Going forward: never start the full `index.ts`/`npm run dev` against the production database for a one-off test.** If a live HTTP-level test is ever truly needed, build a minimal standalone Express app in the test script that mounts only the specific middleware/route being tested — never import the real `index.ts`, which brings the jobs with it. See `docs/mart/checks/0.9.md` for the full incident.

@@ -21,6 +21,10 @@ export const lightColors = {
   accent: '#e3a008',
   accentTint: '#fbf0d9',
   accentTintText: '#8a6300',
+  // Mart list-row prices: darker amber than `accent` for contrast at small text sizes
+  // (04-screens.md §0.1 "Price on small text") — the big-price contexts (cards, Detail)
+  // still use `accent`.
+  priceSmall: '#b97f00',
   success: '#43a047',
   error: '#e53935',
   warning: '#f9a825',
@@ -47,6 +51,7 @@ export const darkColors: Colors = {
   accent: '#f0b429',
   accentTint: '#3a2e10',
   accentTintText: '#f0b429',
+  priceSmall: '#f0b429', // same as accent — already has good contrast on dark surfaces at any size
   success: '#43a047',
   error: '#e53935',
   warning: '#f9a825',
