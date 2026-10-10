@@ -19,13 +19,13 @@ type Card = {
 }
 
 // Spec: 04-screens.md §1. Selling only for now — the Selling|Wanted switch is Milestone 2
-// Step 2.1, so it isn't rendered. Favorites/Messages/Notifications/My Mart icons and the
-// heart button are present (matching the header layout) but not yet wired to anything real
-// — those screens don't exist until Steps 1.6/1.7/1.8/2.9, so tapping them is a harmless
-// no-op for now rather than a fake, unpersisted favorite toggle. Tapping a card opens the
-// real Detail screen (Step 1.4).
+// Step 2.1, so it isn't rendered. Favorites/Messages/Notifications icons and the heart
+// button are present (matching the header layout) but not yet wired to anything real —
+// those screens don't exist until Steps 1.7/1.8/2.9, so tapping them is a harmless no-op
+// for now rather than a fake, unpersisted favorite toggle. My Mart (Step 1.6) and card
+// taps (Step 1.4) open real screens.
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing,
+  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart,
 }: {
   token: string
   filters: MartFilters
@@ -33,6 +33,7 @@ export default function MartHomeScreen({
   onOpenFilters: () => void
   onOpenPostAd: () => void
   onOpenListing: (id: string) => void
+  onOpenMyMart: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -103,7 +104,7 @@ export default function MartHomeScreen({
           <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'notifications-outline' }} size={22} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenMyMart} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'person-outline' }} size={22} color={colors.primary} />
           </TouchableOpacity>
         </View>

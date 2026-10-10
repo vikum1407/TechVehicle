@@ -105,6 +105,26 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to load similar ads')
     return data
   },
+  setMartListingStatus: async (token: string, listingId: string, status: 'available' | 'reserved'): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/status`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ status }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to change status')
+    return data
+  },
+  deleteMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}`, { method: 'DELETE', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to delete ad')
+    return data
+  },
+  getMyMartAds: async (token: string, params: { type: 'selling' | 'wanted'; tab: string; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null; counts: Record<string, number> }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/my-ads?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load your ads')
+    return data
+  },
 
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {

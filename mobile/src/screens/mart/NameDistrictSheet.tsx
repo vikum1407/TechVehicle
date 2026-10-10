@@ -11,13 +11,19 @@ import { api } from '../../config/api'
 // MartRulesScreen). Saves with PATCH /mart/me. The district field opens the full-screen
 // District picker (21.3) as its own ad-hoc Modal layered above this sheet, since the
 // picker is meant to cover the whole screen, not fit inside the sheet's card.
+//
+// Step 1.6: also reused as-is for My Mart's "Edit" action (name + district only, no
+// photo) — `title`/`continueLabel` let that caller swap the gate's "Before you start" /
+// "Continue" copy for "Edit profile" / "Save" without duplicating this whole component.
 export default function NameDistrictSheet({
-  visible, token, initialName, initialDistrict, onDone, onClose,
+  visible, token, initialName, initialDistrict, title = 'Before you start', continueLabel = 'Continue', onDone, onClose,
 }: {
   visible: boolean
   token: string
   initialName?: string | null
   initialDistrict?: string | null
+  title?: string
+  continueLabel?: string
   onDone: () => void
   onClose?: () => void
 }) {
@@ -50,7 +56,7 @@ export default function NameDistrictSheet({
   return (
     <>
       <MartBottomSheet visible={visible} onClose={onClose || (() => {})} topOffset={260}>
-        <Text style={styles.title}>Before you start</Text>
+        <Text style={styles.title}>{title}</Text>
 
         <Text style={styles.label}>Your name</Text>
         <TextInput
@@ -77,7 +83,7 @@ export default function NameDistrictSheet({
           disabled={!canContinue}
           onPress={submit}
         >
-          <Text style={styles.continueBtnText}>{saving ? 'Saving…' : 'Continue'}</Text>
+          <Text style={styles.continueBtnText}>{saving ? 'Saving…' : continueLabel}</Text>
         </TouchableOpacity>
       </MartBottomSheet>
 

@@ -4,6 +4,29 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.6: My Ads + My Mart
+
+- **`GET /mart/my-ads` lives in its own router file (`myAds.ts`), mounted at
+  `/mart/my-ads`** — not nested under `/mart/listings`, because the spec's own path is
+  literally `/mart/my-ads` at the root, not `/mart/listings/my-ads`. It still reuses
+  `listings.ts`'s exported `buildListingCards()` rather than duplicating that
+  enrichment logic a third time.
+- **My Mart's "Edit" reuses Step 1.1's `NameDistrictSheet`** (given two new optional
+  props, `title`/`continueLabel`, defaulting to the gate's original copy so that call
+  site is unaffected) instead of either building a new dedicated screen or leaving
+  "Edit" as a stub. It only covers name + district — no photo picker, and no account-
+  deletion row, both of which stay part of the full Edit screen deferred to Milestone 3
+  (Step 0.13's existing decision).
+- **Favorites, Followings and Reviews rows on My Mart are "Coming soon"** — unlike My
+  Ads (which has a real backend and real counts already), none of these three has any
+  backend data source yet (Steps 1.7, 2.8, 2.7 respectively), so showing a real count
+  with no way to actually open the list would be more confusing than an honest stub.
+- **Mark Sold and Relist on My Ads are "Coming soon"**; Mark Reserved/Available and
+  Delete are real. Both stubs wait on Mark Sold (Milestone 2 Step 2.4) — Relist only
+  makes sense once there's a concept of "sold with a buyer" to relist away from.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.5: Edit via the posting screen (mobile)
 
 - **Detail's "Edit" button passes its already-loaded `ListingDetail` object straight

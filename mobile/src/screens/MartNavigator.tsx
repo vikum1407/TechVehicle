@@ -4,6 +4,8 @@ import MartHomeScreen from './mart/MartHomeScreen'
 import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/FiltersScreen'
 import PostAdScreen, { EditingListing } from './mart/PostAdScreen'
 import DetailScreen from './mart/DetailScreen'
+import MyMartScreen from './mart/MyMartScreen'
+import MyAdsScreen from './mart/MyAdsScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -19,15 +21,18 @@ import DetailScreen from './mart/DetailScreen'
 // here. Step 1.4 adds 'detail', pushed with a listingId (also from Detail's own Similar
 // Parts strip, so tapping a similar ad stacks another Detail rather than replacing it).
 // Step 1.5: 'postAd' optionally carries `editing`, pushed from Detail's Edit button —
-// same screen, prefilled, PATCH instead of POST. Screens whose destination isn't built
-// yet (Favorites, Messages, Notifications, My Mart, Mark Sold, Message Seller, Reserve/
-// Available/Delete — the latter two wait on My Ads, Step 1.6, per DECISIONS-MADE.md) are
-// stubbed with a plain Alert from inside the relevant screen itself for now.
+// same screen, prefilled, PATCH instead of POST. Step 1.6 adds 'myMart' and 'myAds'
+// (both keep the bottom tab bar visible, per §0.2 — not added to FULL_SCREEN below).
+// Screens whose destination isn't built yet (Favorites, Messages, Notifications, Mark
+// Sold, Relist, Message Seller) are stubbed with a plain Alert from inside the relevant
+// screen itself for now.
 type MartStackEntry =
   | { screen: 'home' }
   | { screen: 'filters' }
   | { screen: 'postAd'; editing?: EditingListing }
   | { screen: 'detail'; listingId: string }
+  | { screen: 'myMart' }
+  | { screen: 'myAds' }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
@@ -70,6 +75,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         onOpenFilters={() => push({ screen: 'filters' })}
         onOpenPostAd={() => push({ screen: 'postAd' })}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
+        onOpenMyMart={() => push({ screen: 'myMart' })}
       />
     )
   }
@@ -109,6 +115,28 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onEdit={listing => push({ screen: 'postAd', editing: { listingId: current.listingId, listing } })}
+      />
+    )
+  }
+
+  if (current.screen === 'myMart') {
+    return (
+      <MyMartScreen
+        token={token}
+        onBack={pop}
+        onOpenMyAds={() => push({ screen: 'myAds' })}
+      />
+    )
+  }
+
+  if (current.screen === 'myAds') {
+    return (
+      <MyAdsScreen
+        token={token}
+        onBack={pop}
+        onOpenPostAd={() => push({ screen: 'postAd' })}
+        onOpenListing={id => push({ screen: 'detail', listingId: id })}
+        onOpenEdit={listing => push({ screen: 'postAd', editing: { listingId: listing.id, listing } })}
       />
     )
   }
