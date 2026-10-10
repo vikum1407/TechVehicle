@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { BackHandler } from 'react-native'
-import MartDevPreviewScreen from './MartDevPreviewScreen'
+import { BackHandler, Alert } from 'react-native'
+import MartHomeScreen from './mart/MartHomeScreen'
+import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/FiltersScreen'
+import PostAdScreen from './mart/PostAdScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -11,21 +13,34 @@ import MartDevPreviewScreen from './MartDevPreviewScreen'
 // to its first entry, this listener returns false and lets the press fall through to
 // App.tsx's existing backMap unchanged (mart -> vehicles).
 //
-// Only 'home' exists right now (rendering the Step 0.10 dev preview screen, since the
-// real Mart Home is Milestone 1 Step 1.3 — swap it in then). push()/pop() are already
-// here so Milestone 1 screens plug straight in without touching this file's shape.
-type MartScreenName = 'home'
-type MartStackEntry = { screen: MartScreenName; params?: Record<string, unknown> }
+// Step 1.3: 'home' now renders the real Mart Home (MartHomeScreen) instead of the Step
+// 0.10 dev preview screen — that screen remains in the codebase, just no longer wired
+// here. 'filters' and 'postAd' are the first two real stack entries pushed with push()/
+// pop(). Screens whose destination isn't built yet (Favorites, Messages, Notifications,
+// My Mart, Detail) are stubbed with a plain Alert from MartHomeScreen itself for now.
+type MartScreenName = 'home' | 'filters' | 'postAd'
+type MartStackEntry = { screen: MartScreenName }
 
-export default function MartNavigator({ onExit, token }: { onExit: () => void; token: string }) {
+// Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
+// see inside this component's own stack, so it's told via `onFullScreenChange`.
+const FULL_SCREEN: MartScreenName[] = ['filters', 'postAd']
+
+export default function MartNavigator({ onExit, token, onFullScreenChange }: {
+  onExit: () => void
+  token: string
+  onFullScreenChange?: (isFullScreen: boolean) => void
+}) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
+  const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
 
-  const push = (screen: MartScreenName, params?: Record<string, unknown>) => {
-    setStack(prev => [...prev, { screen, params }])
-  }
-  const pop = () => {
-    setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
-  }
+  const push = (screen: MartScreenName) => setStack(prev => [...prev, { screen }])
+  const pop = () => setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
+
+  const current = stack[stack.length - 1]
+
+  useEffect(() => {
+    onFullScreenChange?.(FULL_SCREEN.includes(current.screen))
+  }, [current.screen])
 
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -38,13 +53,43 @@ export default function MartNavigator({ onExit, token }: { onExit: () => void; t
     return () => handler.remove()
   }, [stack])
 
-  const current = stack[stack.length - 1]
-
   if (current.screen === 'home') {
-    // push/pop are wired in but unused until Milestone 1 adds a real destination to
-    // navigate to (e.g. push('detail', { listingId })) — expected to show as unused
-    // until then.
-    return <MartDevPreviewScreen onBack={onExit} token={token} />
+    return (
+      <MartHomeScreen
+        token={token}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onOpenFilters={() => push('filters')}
+        onOpenPostAd={() => push('postAd')}
+      />
+    )
+  }
+
+  if (current.screen === 'filters') {
+    return (
+      <FiltersScreen
+        token={token}
+        initial={filters}
+        onClose={pop}
+        onApply={f => { setFilters(f); pop() }}
+      />
+    )
+  }
+
+  if (current.screen === 'postAd') {
+    return (
+      <PostAdScreen
+        token={token}
+        onBack={pop}
+        onPosted={() => {
+          // Detail doesn't exist yet (Step 1.4), so there's nowhere to navigate the new
+          // ad to — pop back to Home instead, which remounts fresh and so refetches the
+          // feed, making the new ad visible as confirmation that it really posted.
+          pop()
+          Alert.alert('Posted', 'Your ad is live on Vocksy Mart.')
+        }}
+      />
+    )
   }
 
   return null

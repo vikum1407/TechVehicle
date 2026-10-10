@@ -105,6 +105,7 @@ export default function App() {
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const [martEnabled, setMartEnabled] = useState(false) // Step 0.11: GET /app-config below decides this
+  const [martFullScreen, setMartFullScreen] = useState(false) // Step 1.3: MartNavigator reports Posting/Filters/etc. so the tab bar can hide, per 04-screens.md §0.2
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -468,17 +469,19 @@ export default function App() {
               />
             )}
             {screen === 'mart' && (
-              <MartNavigator onExit={() => setScreen('vehicles')} token={token} />
+              <MartNavigator onExit={() => setScreen('vehicles')} token={token} onFullScreenChange={setMartFullScreen} />
             )}
           </View>
-          <BottomTabBar
-            activeTab={screen === 'garage' ? 'garage' : screen === 'mart' ? 'mart' : 'vehicles'}
-            onTabPress={(tab) => { setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token) }}
-            vehiclesBadge={vehiclesBadge}
-            garageBadge={garageBadge}
-            showGarageTab={hasGarage || screen === 'garage'}
-            showMartTab={martEnabled}
-          />
+          {!(screen === 'mart' && martFullScreen) && (
+            <BottomTabBar
+              activeTab={screen === 'garage' ? 'garage' : screen === 'mart' ? 'mart' : 'vehicles'}
+              onTabPress={(tab) => { setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token) }}
+              vehiclesBadge={vehiclesBadge}
+              garageBadge={garageBadge}
+              showGarageTab={hasGarage || screen === 'garage'}
+              showMartTab={martEnabled}
+            />
+          )}
         </View>
       )}
 

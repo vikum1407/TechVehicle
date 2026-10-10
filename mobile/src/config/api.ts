@@ -69,6 +69,24 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to post ad')
     return data
   },
+  // `params` keys matching 03-api.md §4's GET /mart/listings query — undefined/empty
+  // values are simply omitted from the querystring rather than sent as "undefined".
+  getMartListings: async (token: string, params: Record<string, string | number | undefined>): Promise<{ items: any[]; nextCursor: string | null }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/listings?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load ads')
+    return data
+  },
+  getMartListingsCount: async (token: string, params: Record<string, string | number | undefined>): Promise<{ count: number }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/listings/count?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to count ads')
+    return data
+  },
 
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {

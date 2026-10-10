@@ -4,6 +4,47 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.3: Mart Home + Filters (mobile) + a navigation gap closed
+
+- **`MartNavigator` graduates from dev-preview-only to real navigation**: `'home'` now
+  renders the real `MartHomeScreen`, with real `push('filters')`/`push('postAd')` stack
+  entries. This is the natural point for that switch — Mart Home is the feature's actual
+  front door, which is what Step 0.11 built the stack machinery for in the first place.
+  `MartDevPreviewScreen` stays in the repo but is no longer referenced from here.
+- **Closed a real gap from Step 0.11**: the bottom tab bar is supposed to hide during
+  Mart's full-screen flows (Posting, Filters, Detail, Chat — `04-screens.md` §0.2), but
+  App.tsx's tab-bar visibility only ever checked the top-level `screen` value (always
+  `'mart'` regardless of what's happening inside `MartNavigator`'s own stack). Fixed with
+  a small additive callback (`MartNavigator`'s new `onFullScreenChange` prop) rather than
+  restructuring App.tsx's screen model — App.tsx's existing tab-bar render gained one
+  extra guard condition, nothing else changed.
+- **Favorites heart / card tap / 4 header icons (Favorites, Messages, Notifications, My
+  Mart) show a plain "Coming soon" alert**, not a disabled/grayed-out control and not a
+  faked local-only toggle. A fake-but-working-looking favorite heart would silently lose
+  the "favorite" on the next refresh (no real persistence exists until Step 1.7) — judged
+  more honest to say nothing works there yet than to look like it does.
+- **Posting pops back to Mart Home (which naturally refetches) with a plain success
+  alert**, instead of navigating to the new ad's Detail page — Detail doesn't exist until
+  Step 1.4.
+
+---
+
+## 2026-10-10 — Milestone 1 Step 1.3: Feed + filters (backend)
+
+- **`buildListingsWhere()`'s Wanted branch (budget overlap, `budgetMax` sort) is written
+  correctly per `03-api.md` §4 but tested only lightly**, same treatment as Step 1.2's
+  create validation — Wanted browsing isn't reachable from the app until Milestone 2 Step
+  2.1, so there's no real caller to exercise it against yet.
+- **`GET /mart/listings/count` registered before any future `/:listingId`** (Step 1.4) —
+  a one-line placement decision now, so whoever adds the single-listing route later
+  doesn't accidentally register it first and have Express treat the literal string
+  "count" as a listing id.
+- **Category-keyword search matching checks only the top-level category's own `en`/
+  `keywords` fields**, not its nested types' keywords — matches `03-api.md` §4's literal
+  wording ("the label/keywords of the category... which maps to categoryId").
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.2: Post ad (mobile) + a package-internal contradiction resolved
 
 - **Resolved a contradiction in the handoff package itself: Mart mobile text stays plain
