@@ -522,4 +522,72 @@ router.get('/:listingId/more-from-seller', async (req: AuthRequest, res) => {
   res.json({ items })
 })
 
+// Spec: 03-api.md §4 PATCH. Partial update: fields omitted from the body keep their
+// current value; fields explicitly sent as the correct type change; every field goes
+// through validateListingCreate() again on the MERGED result, so a required field being
+// set to null fails the same way it would on create (no separate "can't be null" check
+// needed — reusing the create validator makes this automatic).
+router.patch('/:listingId', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== req.phoneNumber!) { res.status(404).json(NOT_FOUND); return }
+  if (listing.status === 'sold' || listing.status === 'fulfilled') {
+    res.status(409).json({ error: 'Cannot edit a sold ad. Relist it first.', code: 'LISTING_CLOSED' }); return
+  }
+
+  const limit = checkRateLimit('mart-edit', req.phoneNumber!, MART_RATE_LIMITS.EDIT_LISTING.max, MART_RATE_LIMITS.EDIT_LISTING.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  const merged = {
+    title: listing.title, description: listing.description,
+    categoryId: listing.categoryId, categoryTypeId: listing.categoryTypeId,
+    condition: listing.condition, make: listing.make, model: listing.model,
+    yearFrom: listing.yearFrom, yearTo: listing.yearTo,
+    price: listing.price, budgetMin: listing.budgetMin, budgetMax: listing.budgetMax,
+    district: listing.district, deliveryAvailable: listing.deliveryAvailable,
+    photoUrls: listing.photoUrls,
+    ...req.body,
+    type: listing.type, // type can never change via PATCH, regardless of what the body sends
+  }
+
+  const result = validateListingCreate(merged, process.env.R2_PUBLIC_URL || '')
+  if (!result.ok) { res.status(400).json({ error: result.error, code: result.code }); return }
+
+  await prisma.martListing.update({ where: { id: listing.id }, data: result.data })
+  res.json({ ok: true })
+})
+
+// Spec: 03-api.md §4 POST /:listingId/status. Selling only, available<->reserved only —
+// every other case (wanted ad, any other status pair) is 409 VALIDATION per spec text.
+router.post('/:listingId/status', async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== req.phoneNumber!) { res.status(404).json(NOT_FOUND); return }
+
+  const { status } = req.body as { status?: string }
+  const validTransition = listing.type === 'selling'
+    && (status === 'reserved' || status === 'available')
+    && (listing.status === 'available' || listing.status === 'reserved')
+  if (!validTransition) { res.status(409).json({ error: 'Invalid status change', code: 'VALIDATION' }); return }
+
+  const limit = checkRateLimit('mart-misc', req.phoneNumber!, MART_RATE_LIMITS.MISC_WRITE.max, MART_RATE_LIMITS.MISC_WRITE.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  await prisma.martListing.update({ where: { id: listing.id }, data: { status, statusChangedAt: new Date() } })
+  res.json({ ok: true })
+})
+
+// Spec: 03-api.md §4 DELETE. Soft delete, idempotent — a second delete (or deleting an
+// id that's already gone) still returns { ok: true } rather than erroring, matching
+// "idempotent" literally: the end state the caller wants is already true.
+router.delete('/:listingId', async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing) { res.json({ ok: true }); return }
+  if (listing.ownerPhone !== req.phoneNumber!) { res.status(404).json(NOT_FOUND); return }
+  if (!listing.removedAt) {
+    await prisma.martListing.update({ where: { id: listing.id }, data: { removedAt: new Date() } })
+  }
+  res.json({ ok: true })
+})
+
 export default router
