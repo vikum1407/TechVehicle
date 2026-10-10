@@ -10,6 +10,10 @@ import { MART_CATEGORIES } from '../../data/martCategories'
 import { DISTRICTS } from '../../data/districts'
 import { BRAND_MODELS } from '../../data/vehicleCatalog'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
+import { blockedSet } from '../../utils/blockedSet'
+import { getSellerTags, getSellerRatings } from '../../utils/sellerInfo'
+import { publicName } from '../../utils/publicName'
+import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -172,6 +176,213 @@ router.post('/', requireProfile, requireRules, async (req: AuthRequest, res) => 
   // Wanted match alerts (02-data-model.md §7.3) run here once Milestone 2 Step 2.1 adds
   // real Wanted posting from the app — no caller can reach type:"wanted" yet, so there's
   // nothing to wire up before then.
+})
+
+// Spec: 03-api.md §4 GET /mart/listings. Exported as a pure function (no DB) so the
+// filter/search logic is unit-testable without a live database. `blockedPhones` is
+// passed in rather than queried here, so the caller controls when that query happens.
+export function buildListingsWhere(query: any, blockedPhones: string[]): Prisma.MartListingWhereInput {
+  const type = query?.type === 'wanted' ? 'wanted' : 'selling'
+  const isSelling = type === 'selling'
+
+  const and: Prisma.MartListingWhereInput[] = [
+    { type },
+    { status: { in: isSelling ? ['available', 'reserved'] : ['open'] } },
+    { removedAt: null },
+  ]
+  if (blockedPhones.length > 0) and.push({ ownerPhone: { notIn: blockedPhones } })
+
+  const q = typeof query?.q === 'string' ? query.q.trim() : ''
+  if (q) {
+    const words = q.split(/\s+/).filter(Boolean).slice(0, 6).map((w: string) => w.slice(0, 40).toLowerCase())
+    for (const word of words) {
+      const categoryIds = MART_CATEGORIES.filter(c =>
+        c.en.toLowerCase().includes(word) || c.keywords.some(k => k.toLowerCase().includes(word))
+      ).map(c => c.id)
+      const or: Prisma.MartListingWhereInput[] = [
+        { title: { contains: word, mode: 'insensitive' } },
+        { description: { contains: word, mode: 'insensitive' } },
+        { make: { contains: word, mode: 'insensitive' } },
+        { model: { contains: word, mode: 'insensitive' } },
+      ]
+      if (categoryIds.length > 0) or.push({ categoryId: { in: categoryIds } })
+      and.push({ OR: or })
+    }
+  }
+
+  if (typeof query?.categoryId === 'string') and.push({ categoryId: query.categoryId })
+  if (typeof query?.categoryTypeId === 'string') and.push({ categoryTypeId: query.categoryTypeId })
+
+  if (typeof query?.make === 'string' && query.make) {
+    const makeNorm = normalizeVehicleText(query.make)
+    and.push({ OR: [{ makeNorm: null }, { makeNorm }] })
+  }
+  if (typeof query?.model === 'string' && query.model) {
+    const modelNorm = normalizeVehicleText(query.model)
+    and.push({ OR: [{ modelNorm: null }, { modelNorm }] })
+  }
+
+  let yFrom = query?.yearFrom !== undefined ? Number(query.yearFrom) : undefined
+  let yTo = query?.yearTo !== undefined ? Number(query.yearTo) : undefined
+  if (Number.isFinite(yFrom) && !Number.isFinite(yTo)) yTo = yFrom
+  if (Number.isFinite(yTo) && !Number.isFinite(yFrom)) yFrom = yTo
+  if (Number.isFinite(yFrom) && Number.isFinite(yTo)) {
+    and.push({
+      OR: [
+        { AND: [{ yearFrom: null }, { yearTo: null }] },
+        { AND: [{ yearFrom: { lte: yTo } }, { yearTo: { gte: yFrom } }] },
+      ],
+    })
+  }
+
+  if (isSelling && (query?.condition === 'new' || query?.condition === 'used')) {
+    and.push({ condition: query.condition })
+  }
+
+  const priceMin = query?.priceMin !== undefined ? Number(query.priceMin) : undefined
+  const priceMax = query?.priceMax !== undefined ? Number(query.priceMax) : undefined
+  if (isSelling) {
+    if (Number.isFinite(priceMin)) and.push({ price: { gte: priceMin } })
+    if (Number.isFinite(priceMax)) and.push({ price: { lte: priceMax } })
+  } else if (Number.isFinite(priceMin) || Number.isFinite(priceMax)) {
+    // Wanted budget overlap — not reachable from the app until Milestone 2 Step 2.1
+    // (Wanted posting/feed), so this is a best-effort implementation of 03-api.md §4's
+    // rule rather than one exercised by any real caller yet.
+    and.push({
+      OR: [
+        { budgetMax: null },
+        {
+          AND: [
+            Number.isFinite(priceMin) ? { budgetMax: { gte: priceMin } } : {},
+            Number.isFinite(priceMax) ? { OR: [{ budgetMin: null }, { budgetMin: { lte: priceMax } }] } : {},
+          ],
+        },
+      ],
+    })
+  }
+
+  if (typeof query?.district === 'string' && query.district) and.push({ district: query.district })
+
+  return { AND: and }
+}
+
+type SortMode = 'newest' | 'price_asc' | 'price_desc'
+
+function parseSort(query: any): SortMode {
+  return query?.sort === 'price_asc' || query?.sort === 'price_desc' ? query.sort : 'newest'
+}
+
+function applyCursor(where: Prisma.MartListingWhereInput, sort: SortMode, type: string, cursor: { t: string | number; id: string } | null): Prisma.MartListingWhereInput {
+  if (!cursor) return where
+  const and = Array.isArray((where as any).AND) ? [...(where as any).AND] : [where]
+  if (sort === 'newest') {
+    const t = new Date(cursor.t)
+    and.push({ OR: [{ postedAt: { lt: t } }, { AND: [{ postedAt: t }, { id: { lt: cursor.id } }] }] })
+  } else {
+    const sortField = type === 'wanted' ? 'budgetMax' : 'price'
+    const t = Number(cursor.t)
+    const asc = sort === 'price_asc'
+    and.push({
+      OR: [
+        { [sortField]: asc ? { gt: t } : { lt: t } } as any,
+        { AND: [{ [sortField]: t } as any, { id: asc ? { gt: cursor.id } : { lt: cursor.id } }] },
+      ],
+    })
+  }
+  return { AND: and }
+}
+
+function orderBy(sort: SortMode, type: string): Prisma.MartListingOrderByWithRelationInput[] {
+  if (sort === 'newest') return [{ postedAt: 'desc' }, { id: 'desc' }]
+  const sortField = type === 'wanted' ? 'budgetMax' : 'price'
+  const dir = sort === 'price_asc' ? 'asc' : 'desc'
+  return [{ [sortField]: { sort: dir, nulls: 'last' } } as any, { id: dir }]
+}
+
+router.get('/', async (req: AuthRequest, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : ''
+  if (q) {
+    const limit = checkRateLimit('mart-search', req.phoneNumber!, MART_RATE_LIMITS.SEARCH.max, MART_RATE_LIMITS.SEARCH.windowMs)
+    if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+  }
+
+  const cursorRaw = typeof req.query.cursor === 'string' ? req.query.cursor : undefined
+  const cursor = decodeCursor(cursorRaw)
+  if (cursorRaw && !cursor) { res.status(400).json({ error: 'Invalid cursor', code: 'VALIDATION' }); return }
+
+  const blocked = await blockedSet(prisma, req.phoneNumber!)
+  const type = req.query.type === 'wanted' ? 'wanted' : 'selling'
+  const sort = parseSort(req.query)
+  const baseWhere = buildListingsWhere(req.query, [...blocked])
+  const where = applyCursor(baseWhere, sort, type, cursor)
+  const limitN = clampLimit(req.query.limit, MART_LIMITS.PAGE_SIZE, MART_LIMITS.PAGE_SIZE_MAX)
+
+  const rows = await prisma.martListing.findMany({
+    where, orderBy: orderBy(sort, type), take: limitN + 1,
+  })
+  const hasMore = rows.length > limitN
+  const page = hasMore ? rows.slice(0, limitN) : rows
+
+  if (q) {
+    const term = q.toLowerCase()
+    prisma.martSearchHistory.create({ data: { userPhone: req.phoneNumber!, term } })
+      .then(async () => {
+        const old = await prisma.martSearchHistory.findMany({
+          where: { userPhone: req.phoneNumber! }, orderBy: { createdAt: 'desc' },
+          skip: MART_LIMITS.SEARCH_HISTORY_MAX, select: { id: true },
+        })
+        if (old.length > 0) await prisma.martSearchHistory.deleteMany({ where: { id: { in: old.map(o => o.id) } } })
+      })
+      .catch(() => {})
+  }
+
+  const ownerPhones = [...new Set(page.map(r => r.ownerPhone))]
+  const [users, tagMap, ratingMap, favoriteRows] = await Promise.all([
+    prisma.user.findMany({ where: { phoneNumber: { in: ownerPhones } }, select: { id: true, phoneNumber: true, displayName: true } }),
+    getSellerTags(prisma, ownerPhones),
+    getSellerRatings(prisma, ownerPhones),
+    prisma.martFavorite.findMany({ where: { userPhone: req.phoneNumber!, listingId: { in: page.map(r => r.id) } }, select: { listingId: true } }),
+  ])
+  const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
+  const favoritedIds = new Set(favoriteRows.map(f => f.listingId))
+
+  const items = page.map(listing => {
+    const owner = userByPhone.get(listing.ownerPhone)
+    const tag = tagMap.get(listing.ownerPhone) || 'casual'
+    return {
+      id: listing.id, type: listing.type,
+      title: listing.title, coverUrl: listing.photoUrls[0] || null,
+      price: listing.price, budgetMin: listing.budgetMin, budgetMax: listing.budgetMax,
+      condition: listing.condition, district: listing.district,
+      make: listing.make, model: listing.model,
+      status: listing.status, postedAt: listing.postedAt.toISOString(),
+      isFavorited: favoritedIds.has(listing.id),
+      seller: {
+        id: owner?.id || '', name: publicName(owner?.displayName, tag),
+        tag, rating: ratingMap.get(listing.ownerPhone) || { avg: null, count: 0 },
+      },
+      yearFrom: listing.yearFrom, yearTo: listing.yearTo,
+      categoryId: listing.categoryId,
+      statusChangedAt: listing.statusChangedAt.toISOString(),
+      closedAt: listing.closedAt ? listing.closedAt.toISOString() : null,
+    }
+  })
+
+  const last = page[page.length - 1]
+  const nextCursor = hasMore && last
+    ? encodeCursor({ t: sort === 'newest' ? last.postedAt.toISOString() : (type === 'wanted' ? last.budgetMax ?? 0 : last.price ?? 0), id: last.id })
+    : null
+
+  res.json({ items, nextCursor })
+})
+
+// Registered before any future `/:listingId` (Step 1.4) so "count" is never swallowed
+// as a listing id — Express matches routes in registration order.
+router.get('/count', async (req: AuthRequest, res) => {
+  const blocked = await blockedSet(prisma, req.phoneNumber!)
+  const where = buildListingsWhere(req.query, [...blocked])
+  const count = await prisma.martListing.count({ where })
+  res.json({ count })
 })
 
 export default router
