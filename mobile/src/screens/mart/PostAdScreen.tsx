@@ -29,8 +29,22 @@ type Photo = { localUri: string; url: string | null; uploading: boolean; error: 
 // Selling|Wanted switch isn't built yet; this screen always posts type:"selling"). This is
 // also the first real caller of the Step 1.1 pickers and the first-action gate (§22) —
 // the gate runs here before the form is shown at all.
-export default function PostAdScreen({ token, onBack, onPosted }: {
+//
+// Step 1.5: `editing` turns this into the Edit screen (same form, prefilled, PATCH
+// instead of POST) per §2's "Entry: ... also used for Edit (same form, prefilled)."
+export type EditingListing = {
+  listingId: string
+  listing: {
+    categoryId: string; categoryTypeId: string | null; condition: string | null
+    make: string | null; model: string | null; yearFrom: number | null; yearTo: number | null
+    title: string; description: string | null; price: number | null
+    district: string; deliveryAvailable: boolean; photoUrls: string[]
+  }
+}
+
+export default function PostAdScreen({ token, editing, onBack, onPosted }: {
   token: string
+  editing?: EditingListing
   onBack: () => void
   onPosted: (listingId: string) => void
 }) {
@@ -40,18 +54,24 @@ export default function PostAdScreen({ token, onBack, onPosted }: {
 
   const [gateStep, setGateStep] = useState<'loading' | 'nameDistrict' | 'rules' | 'form'>('loading')
 
-  const [category, setCategory] = useState<CategoryPickerResult | null>(null)
+  const [category, setCategory] = useState<CategoryPickerResult | null>(
+    editing ? { categoryId: editing.listing.categoryId, categoryTypeId: editing.listing.categoryTypeId } : null
+  )
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
-  const [condition, setCondition] = useState<'new' | 'used' | null>(null)
-  const [vehicle, setVehicle] = useState<VehiclePickerResult | null>(null)
+  const [condition, setCondition] = useState<'new' | 'used' | null>((editing?.listing.condition as 'new' | 'used' | null) ?? null)
+  const [vehicle, setVehicle] = useState<VehiclePickerResult | null>(
+    editing?.listing.make ? { make: editing.listing.make, model: editing.listing.model, yearFrom: editing.listing.yearFrom, yearTo: editing.listing.yearTo } : null
+  )
   const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [price, setPrice] = useState('')
-  const [district, setDistrict] = useState<string | null>(null)
+  const [title, setTitle] = useState(editing?.listing.title ?? '')
+  const [description, setDescription] = useState(editing?.listing.description ?? '')
+  const [price, setPrice] = useState(editing?.listing.price != null ? String(editing.listing.price) : '')
+  const [district, setDistrict] = useState<string | null>(editing?.listing.district ?? null)
   const [districtPickerOpen, setDistrictPickerOpen] = useState(false)
-  const [deliveryAvailable, setDeliveryAvailable] = useState(false)
-  const [photos, setPhotos] = useState<Photo[]>([])
+  const [deliveryAvailable, setDeliveryAvailable] = useState(editing?.listing.deliveryAvailable ?? false)
+  const [photos, setPhotos] = useState<Photo[]>(
+    editing ? editing.listing.photoUrls.map(url => ({ localUri: url, url, uploading: false, error: null })) : []
+  )
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
@@ -175,26 +195,32 @@ export default function PostAdScreen({ token, onBack, onPosted }: {
     if (Object.keys(e).length > 0) return
     setSubmitting(true)
     setSubmitError('')
+    const body = {
+      type: 'selling',
+      title: title.trim(),
+      description: description.trim() || undefined,
+      categoryId: category!.categoryId,
+      categoryTypeId: category!.categoryTypeId,
+      condition,
+      make: vehicle!.make,
+      model: vehicle!.model,
+      yearFrom: vehicle!.yearFrom,
+      yearTo: vehicle!.yearTo,
+      price: Number(price),
+      district,
+      deliveryAvailable,
+      photoUrls: photos.map(p => p.url!),
+    }
     try {
-      const result = await api.postMartListing(token, {
-        type: 'selling',
-        title: title.trim(),
-        description: description.trim() || undefined,
-        categoryId: category!.categoryId,
-        categoryTypeId: category!.categoryTypeId,
-        condition,
-        make: vehicle!.make,
-        model: vehicle!.model,
-        yearFrom: vehicle!.yearFrom,
-        yearTo: vehicle!.yearTo,
-        price: Number(price),
-        district,
-        deliveryAvailable,
-        photoUrls: photos.map(p => p.url!),
-      })
-      onPosted(result.id)
+      if (editing) {
+        await api.patchMartListing(token, editing.listingId, body)
+        onPosted(editing.listingId)
+      } else {
+        const result = await api.postMartListing(token, body)
+        onPosted(result.id)
+      }
     } catch (err: any) {
-      setSubmitError(err.message || "Couldn't post your ad. Check your connection and try again.")
+      setSubmitError(err.message || `Couldn't ${editing ? 'save your changes' : 'post your ad'}. Check your connection and try again.`)
     } finally {
       setSubmitting(false)
     }
@@ -238,7 +264,7 @@ export default function PostAdScreen({ token, onBack, onPosted }: {
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Post Ad</Text>
+        <Text style={styles.title}>{editing ? 'Edit Ad' : 'Post Ad'}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -361,7 +387,7 @@ export default function PostAdScreen({ token, onBack, onPosted }: {
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitBtnDisabled]} disabled={submitting} onPress={handleSubmit}>
-          <Text style={styles.submitBtnText}>{submitting ? 'Posting…' : 'Post Ad'}</Text>
+          <Text style={styles.submitBtnText}>{submitting ? (editing ? 'Saving…' : 'Posting…') : (editing ? 'Save Changes' : 'Post Ad')}</Text>
         </TouchableOpacity>
       </View>
 

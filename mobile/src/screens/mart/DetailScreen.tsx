@@ -20,15 +20,17 @@ import { STORE_URL } from '../../constants/appLinks'
 
 const W = Dimensions.get('window').width
 
-// Spec: 04-screens.md §3. "Message Seller" (Chat, Step 1.8), Edit/Mark Sold (Step 1.5),
-// Report (Step 3.1), Favorite persistence (Step 1.7) and Seller profile (Step 2.7) are
-// all stubbed with a plain "Coming soon" alert, same reasoning as Mart Home (Step 1.3) —
-// honest about nothing real happening there yet, rather than faking it.
-export default function DetailScreen({ token, listingId, onBack, onOpenListing }: {
+// Spec: 04-screens.md §3. Edit (Step 1.5) opens the real posting screen, prefilled, via
+// `onEdit`. "Message Seller" (Chat, Step 1.8), "Mark Sold" (Step 2.4), Report (Step 3.1),
+// Favorite persistence (Step 1.7) and Seller profile (Step 2.7) are still stubbed with a
+// plain "Coming soon" alert, same reasoning as Mart Home (Step 1.3) — honest about
+// nothing real happening there yet, rather than faking it.
+export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit }: {
   token: string
   listingId: string
   onBack: () => void
   onOpenListing: (id: string) => void
+  onEdit: (listing: any) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -232,7 +234,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing }
       <View style={styles.bottomBar}>
         {detail.isOwner ? (
           <View style={styles.ownerBtnRow}>
-            <TouchableOpacity style={styles.editBtn} onPress={comingSoon}>
+            <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(detail)}>
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.markSoldBtn} onPress={comingSoon}>

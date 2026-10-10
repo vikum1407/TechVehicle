@@ -4,6 +4,34 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.5: Edit via the posting screen (mobile)
+
+- **Detail's "Edit" button passes its already-loaded `ListingDetail` object straight
+  into `PostAdScreen`'s new `editing` prop**, rather than having `PostAdScreen` fetch the
+  listing again by id — it was already fetched once to render Detail; no reason to ask
+  the server for the same data twice.
+- **A saved edit replaces the `postAd` stack entry with `detail`**, exactly like a fresh
+  post does — Back from the (possibly now-updated) Detail page goes to whatever screen
+  opened the form, not back into the submitted form itself.
+
+---
+
+## 2026-10-10 — Milestone 1 Step 1.5: Edit, status, delete (backend)
+
+- **`PATCH` validates by merging the request body over the listing's current values and
+  re-running `validateListingCreate()`** rather than writing separate "can this field be
+  null" PATCH-specific rules. Since that function already fails selling listings with no
+  `price`/`make`/etc., the exact same call correctly rejects nulling out a required
+  field on edit, for free, with zero new validation code.
+- **Reserve/Available and Delete are backend-only for now — not wired into any mobile
+  screen in this step.** `04-screens.md` §3's own Detail "own ad" state only ever shows
+  Edit and Mark Sold, not a status toggle or delete; the designed home for those two
+  actions is explicitly "My Ads menus" (`03-api.md`/build plan), which is Step 1.6. Rather
+  than inventing a UI for them that isn't in the design, they stay fully built and
+  verified server-side now and become reachable from the app once My Ads exists.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.4: Detail screen (mobile)
 
 - **Share actually works (native `Share.share`, no backend); Favorite, Report, Message

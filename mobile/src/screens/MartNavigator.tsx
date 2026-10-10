@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BackHandler } from 'react-native'
 import MartHomeScreen from './mart/MartHomeScreen'
 import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/FiltersScreen'
-import PostAdScreen from './mart/PostAdScreen'
+import PostAdScreen, { EditingListing } from './mart/PostAdScreen'
 import DetailScreen from './mart/DetailScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
@@ -18,13 +18,15 @@ import DetailScreen from './mart/DetailScreen'
 // 0.10 dev preview screen — that screen remains in the codebase, just no longer wired
 // here. Step 1.4 adds 'detail', pushed with a listingId (also from Detail's own Similar
 // Parts strip, so tapping a similar ad stacks another Detail rather than replacing it).
-// Screens whose destination isn't built yet (Favorites, Messages, Notifications, My
-// Mart, Edit, Mark Sold, Message Seller) are stubbed with a plain Alert from inside the
-// relevant screen itself for now.
+// Step 1.5: 'postAd' optionally carries `editing`, pushed from Detail's Edit button —
+// same screen, prefilled, PATCH instead of POST. Screens whose destination isn't built
+// yet (Favorites, Messages, Notifications, My Mart, Mark Sold, Message Seller, Reserve/
+// Available/Delete — the latter two wait on My Ads, Step 1.6, per DECISIONS-MADE.md) are
+// stubbed with a plain Alert from inside the relevant screen itself for now.
 type MartStackEntry =
   | { screen: 'home' }
   | { screen: 'filters' }
-  | { screen: 'postAd' }
+  | { screen: 'postAd'; editing?: EditingListing }
   | { screen: 'detail'; listingId: string }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
@@ -87,11 +89,12 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
     return (
       <PostAdScreen
         token={token}
+        editing={current.editing}
         onBack={pop}
         onPosted={id => {
           // Spec: "success -> the new ad's Detail." Replace the postAd entry with
-          // detail (rather than pushing on top of it) so back from Detail goes to Home,
-          // not back into the just-submitted form.
+          // detail (rather than pushing on top of it) so back from Detail goes to Home
+          // (or wherever opened it), not back into the just-submitted/saved form.
           setStack(prev => [...prev.slice(0, -1), { screen: 'detail', listingId: id }])
         }}
       />
@@ -105,6 +108,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         listingId={current.listingId}
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
+        onEdit={listing => push({ screen: 'postAd', editing: { listingId: current.listingId, listing } })}
       />
     )
   }

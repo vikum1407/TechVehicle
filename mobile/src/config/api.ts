@@ -87,6 +87,12 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to count ads')
     return data
   },
+  patchMartListing: async (token: string, listingId: string, body: Record<string, unknown>): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}`, { method: 'PATCH', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save changes')
+    return data
+  },
   getMartListingDetail: async (token: string, listingId: string): Promise<any> => {
     const res = await fetch(`${API_URL}/mart/listings/${listingId}`, { headers: authHeaders(token) })
     const data = await res.json()
