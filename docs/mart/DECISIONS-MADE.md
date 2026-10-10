@@ -4,6 +4,42 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.4: Detail screen (mobile)
+
+- **Share actually works (native `Share.share`, no backend); Favorite, Report, Message
+  Seller, Edit, Mark Sold and the seller-row tap all show "Coming soon."** Same rule as
+  every step since 1.3: never fake a button that looks functional when nothing real is
+  behind it yet (Favorites persistence is 1.7, Chat is 1.8, Edit/Mark Sold is 1.5, Report
+  is 3.1, Seller profile is 2.7).
+- **A successful Post Ad now replaces the `postAd` stack entry with `detail`** (not a
+  push on top of it) so Back from the brand-new ad's Detail page lands on Home, not back
+  inside the just-submitted form — matches §2's "Exit: ... success → the new ad's
+  Detail" without leaving a dead form screen in the back stack.
+- **Similar Parts strip reuses the existing `MartListingCard`** inside a fixed 128px-wide
+  wrapper, instead of a new dedicated small-card component — the card's own `flex: 1`
+  already adapts to whatever width it's given.
+
+---
+
+## 2026-10-10 — Milestone 1 Step 1.4: Detail + similar (backend)
+
+- **`offersCount`/`newOffersCount` (wanted, owner-only) and `deal.canRate` return
+  placeholder values (`0`/`0`/`false`) for now**, same treatment and same reasoning as
+  Step 1.1's `unreadThreads`: the real logic needs either data that can't exist yet (no
+  Offers UI until Milestone 2 Step 2.2, no Ratings until 2.5) or a cross-row "unread"
+  comparison Prisma can't express cleanly. Each has a comment pointing at the step where
+  the real version belongs.
+- **`buildListingCards()` (the feed's enrichment logic) extracted into a shared, exported
+  function** so `/similar` and `/more-from-seller` reuse it instead of duplicating the
+  seller-tag/rating/favorites batching — keeps the "no N+1" rule true across all three
+  new routes without three separate implementations to keep in sync.
+- **`/more-from-seller` only ever shows the seller's Selling ads**, reusing the exact
+  "active ads = selling only" interpretation already logged for `getActiveAdsCounts`
+  (Step 0.6) — a Wanted request from the same person doesn't count as one of their "ads"
+  here either, for the same reason.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.3: Mart Home + Filters (mobile) + a navigation gap closed
 
 - **`MartNavigator` graduates from dev-preview-only to real navigation**: `'home'` now

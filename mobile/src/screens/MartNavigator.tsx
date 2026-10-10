@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { BackHandler, Alert } from 'react-native'
+import { BackHandler } from 'react-native'
 import MartHomeScreen from './mart/MartHomeScreen'
 import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/FiltersScreen'
 import PostAdScreen from './mart/PostAdScreen'
+import DetailScreen from './mart/DetailScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -15,15 +16,20 @@ import PostAdScreen from './mart/PostAdScreen'
 //
 // Step 1.3: 'home' now renders the real Mart Home (MartHomeScreen) instead of the Step
 // 0.10 dev preview screen — that screen remains in the codebase, just no longer wired
-// here. 'filters' and 'postAd' are the first two real stack entries pushed with push()/
-// pop(). Screens whose destination isn't built yet (Favorites, Messages, Notifications,
-// My Mart, Detail) are stubbed with a plain Alert from MartHomeScreen itself for now.
-type MartScreenName = 'home' | 'filters' | 'postAd'
-type MartStackEntry = { screen: MartScreenName }
+// here. Step 1.4 adds 'detail', pushed with a listingId (also from Detail's own Similar
+// Parts strip, so tapping a similar ad stacks another Detail rather than replacing it).
+// Screens whose destination isn't built yet (Favorites, Messages, Notifications, My
+// Mart, Edit, Mark Sold, Message Seller) are stubbed with a plain Alert from inside the
+// relevant screen itself for now.
+type MartStackEntry =
+  | { screen: 'home' }
+  | { screen: 'filters' }
+  | { screen: 'postAd' }
+  | { screen: 'detail'; listingId: string }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
-const FULL_SCREEN: MartScreenName[] = ['filters', 'postAd']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange }: {
   onExit: () => void
@@ -33,7 +39,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
 
-  const push = (screen: MartScreenName) => setStack(prev => [...prev, { screen }])
+  const push = (entry: MartStackEntry) => setStack(prev => [...prev, entry])
   const pop = () => setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
 
   const current = stack[stack.length - 1]
@@ -59,8 +65,9 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         token={token}
         filters={filters}
         onFiltersChange={setFilters}
-        onOpenFilters={() => push('filters')}
-        onOpenPostAd={() => push('postAd')}
+        onOpenFilters={() => push({ screen: 'filters' })}
+        onOpenPostAd={() => push({ screen: 'postAd' })}
+        onOpenListing={id => push({ screen: 'detail', listingId: id })}
       />
     )
   }
@@ -81,13 +88,23 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
       <PostAdScreen
         token={token}
         onBack={pop}
-        onPosted={() => {
-          // Detail doesn't exist yet (Step 1.4), so there's nowhere to navigate the new
-          // ad to — pop back to Home instead, which remounts fresh and so refetches the
-          // feed, making the new ad visible as confirmation that it really posted.
-          pop()
-          Alert.alert('Posted', 'Your ad is live on Vocksy Mart.')
+        onPosted={id => {
+          // Spec: "success -> the new ad's Detail." Replace the postAd entry with
+          // detail (rather than pushing on top of it) so back from Detail goes to Home,
+          // not back into the just-submitted form.
+          setStack(prev => [...prev.slice(0, -1), { screen: 'detail', listingId: id }])
         }}
+      />
+    )
+  }
+
+  if (current.screen === 'detail') {
+    return (
+      <DetailScreen
+        token={token}
+        listingId={current.listingId}
+        onBack={pop}
+        onOpenListing={id => push({ screen: 'detail', listingId: id })}
       />
     )
   }

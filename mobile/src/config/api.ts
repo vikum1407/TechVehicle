@@ -87,6 +87,18 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to count ads')
     return data
   },
+  getMartListingDetail: async (token: string, listingId: string): Promise<any> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "This ad is no longer available")
+    return data
+  },
+  getMartSimilarListings: async (token: string, listingId: string): Promise<{ items: any[] }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/similar`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load similar ads')
+    return data
+  },
 
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {

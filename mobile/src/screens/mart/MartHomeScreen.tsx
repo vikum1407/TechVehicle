@@ -22,16 +22,17 @@ type Card = {
 // Step 2.1, so it isn't rendered. Favorites/Messages/Notifications/My Mart icons and the
 // heart button are present (matching the header layout) but not yet wired to anything real
 // — those screens don't exist until Steps 1.6/1.7/1.8/2.9, so tapping them is a harmless
-// no-op for now rather than a fake, unpersisted favorite toggle. Same for tapping a card
-// (Detail is Step 1.4).
+// no-op for now rather than a fake, unpersisted favorite toggle. Tapping a card opens the
+// real Detail screen (Step 1.4).
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd,
+  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing,
 }: {
   token: string
   filters: MartFilters
   onFiltersChange: (f: MartFilters) => void
   onOpenFilters: () => void
   onOpenPostAd: () => void
+  onOpenListing: (id: string) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -184,7 +185,7 @@ export default function MartHomeScreen({
               districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
               status={item.status === 'reserved' ? 'reserved' : 'available'}
               isFavorited={item.isFavorited}
-              onPress={comingSoon}
+              onPress={() => onOpenListing(item.id)}
               onToggleFavorite={comingSoon}
             />
           )}
