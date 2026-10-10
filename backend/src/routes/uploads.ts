@@ -8,6 +8,16 @@ import crypto from 'crypto'
 import https from 'https'
 
 const router = express.Router()
+
+// Step 0.12: pulled out as its own small pure function so it can be unit-tested
+// directly, without needing a live server. folder=undefined is the original,
+// unchanged behavior; folder="mart" is the new one; anything else is invalid.
+export type UploadTarget = { ok: true; isMart: boolean } | { ok: false }
+export function resolveUploadTarget(folder: string | undefined): UploadTarget {
+  if (folder === undefined) return { ok: true, isMart: false }
+  if (folder === 'mart') return { ok: true, isMart: true }
+  return { ok: false }
+}
 router.use(authMiddleware)
 
 const upload = multer({
@@ -66,8 +76,20 @@ function makeR2Client() {
 }
 
 // POST /uploads/photo — upload a single photo, returns { url }
+// Step 0.12: optional `folder` field, whitelist of exactly "mart" (anything else -> 400).
+// Omitting it keeps the exact original behavior (scope, limit, key prefix) unchanged.
 router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
-  const uploadLimit = checkRateLimit('photo-upload', req.phoneNumber!, 60, 60 * 60 * 1000)
+  const folder = (req as any).body?.folder as string | undefined
+  const target = resolveUploadTarget(folder)
+  if (!target.ok) {
+    res.status(400).json({ error: 'Invalid folder' })
+    return
+  }
+  const isMart = target.isMart
+
+  const uploadLimit = isMart
+    ? checkRateLimit('mart-upload', req.phoneNumber!, 120, 60 * 60 * 1000)
+    : checkRateLimit('photo-upload', req.phoneNumber!, 60, 60 * 60 * 1000)
   if (!uploadLimit.allowed) { res.status(429).json({ error: 'Too many uploads. Try again later.' }); return }
 
   const file = (req as any).file as Express.Multer.File | undefined
@@ -94,7 +116,9 @@ router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
 
   // Hash the phone number so the owner's PII is not embedded in the public URL path.
   const phoneHash = crypto.createHash('sha256').update(req.phoneNumber!).digest('hex').slice(0, 16)
-  const key = `service-photos/${phoneHash}/${crypto.randomUUID()}.${detected.ext}`
+  const key = isMart
+    ? `mart-photos/${phoneHash}/${crypto.randomUUID()}.${detected.ext}`
+    : `service-photos/${phoneHash}/${crypto.randomUUID()}.${detected.ext}`
 
   try {
     const r2 = makeR2Client()
