@@ -17,7 +17,7 @@ import MartDevPreviewScreen from './MartDevPreviewScreen'
 type MartScreenName = 'home'
 type MartStackEntry = { screen: MartScreenName; params?: Record<string, unknown> }
 
-export default function MartNavigator({ onExit }: { onExit: () => void }) {
+export default function MartNavigator({ onExit, token }: { onExit: () => void; token: string }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
 
   const push = (screen: MartScreenName, params?: Record<string, unknown>) => {
@@ -44,7 +44,7 @@ export default function MartNavigator({ onExit }: { onExit: () => void }) {
     // push/pop are wired in but unused until Milestone 1 adds a real destination to
     // navigate to (e.g. push('detail', { listingId })) — expected to show as unused
     // until then.
-    return <MartDevPreviewScreen onBack={onExit} />
+    return <MartDevPreviewScreen onBack={onExit} token={token} />
   }
 
   return null

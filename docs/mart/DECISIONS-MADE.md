@@ -4,6 +4,34 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.1: pickers, gate sheet, rules screen (mobile)
+
+- **Vehicle picker returns `{make, model, yearFrom, yearTo}` using the already-shared
+  `mobile/src/constants/vehicleData.ts` (`BRAND_MODELS`/`BRANDS_LIST`)**, not a separate Mart
+  copy — that file was already shared app-wide before Mart existed (Add Vehicle uses it
+  too), and `vehicleCatalog.ts` (backend) is its server-side twin per Step 0.7. No new
+  constant needed.
+- **Category picker returns `{categoryId, categoryTypeId}`**, matching the `MartListing`
+  Prisma field names exactly (not `typeId`, which §21.1's prose uses loosely) — per §23
+  point 9's correction that the data-model field names win.
+- **Pickers, the name+district sheet and the Mart rules screen were built as standalone,
+  reusable components but deliberately NOT wired into `MartNavigator`'s push/pop stack
+  yet.** None has a real caller until Step 1.2 (Post ad) and Step 1.8 (Chat) — wiring
+  `push()` params now would mean guessing a shape before any real caller's needs are known.
+  Reachable only from `MartDevPreviewScreen` for now, same bridge Step 0.10's components
+  used before Step 0.11 gave them real navigation. Will wire for real at Step 1.2.
+- **Name+district sheet opens the District picker as a second, ad-hoc `Modal`**, not a push
+  onto the sheet's own stack — the picker is specified as full-screen, which can't render
+  inside a bottom sheet's rounded card. Two sibling Modals stacking visually works fine in
+  RN; this also means `DistrictPickerScreen` stays a plain full-screen `View` (no `Modal` of
+  its own), so it still works unmodified when `MartNavigator` eventually pushes it directly.
+- **`MartRulesScreen` built with both `firstAction` and `readOnly` modes now**, even though
+  `readOnly` (My Mart > Mart rules) has no caller yet (My Mart doesn't exist until a later
+  milestone) — the extra mode was zero additional design work since the screen's body is
+  identical either way, only the bottom checkbox bar differs.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.1: Mart profile (backend)
 
 - **`unreadThreads` in `GET /mart/me` returns `0` for now**, not a real computed count. The correct logic needs `lastMessageAt > myReadAt`, where `myReadAt` is `ownerReadAt` or `otherReadAt` depending on which role I have in that specific thread — Prisma can't compare two columns of the same row in a plain `where` filter, and there's no Chat UI yet to verify such a query against real data anyway. Deferred to Milestone 1 Step 1.8 (Chat), where the real messaging query layer gets designed together with proper test coverage.

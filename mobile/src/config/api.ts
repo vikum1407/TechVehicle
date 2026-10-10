@@ -44,6 +44,26 @@ export const api = {
     }
   },
 
+  // Spec: 03-api.md §2. Milestone 1 Step 1.1.
+  getMartMe: async (token: string) => {
+    const res = await fetch(`${API_URL}/mart/me`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load Mart profile')
+    return data
+  },
+  patchMartMe: async (token: string, body: { displayName?: string; district?: string; profilePhotoUrl?: string }) => {
+    const res = await fetch(`${API_URL}/mart/me`, { method: 'PATCH', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save')
+    return data
+  },
+  acceptMartRules: async (token: string, version: number) => {
+    const res = await fetch(`${API_URL}/mart/rules/accept`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ version }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to accept rules')
+    return data
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

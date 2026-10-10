@@ -468,7 +468,7 @@ export default function App() {
               />
             )}
             {screen === 'mart' && (
-              <MartNavigator onExit={() => setScreen('vehicles')} />
+              <MartNavigator onExit={() => setScreen('vehicles')} token={token} />
             )}
           </View>
           <BottomTabBar
