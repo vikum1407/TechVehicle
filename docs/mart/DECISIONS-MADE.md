@@ -4,6 +4,13 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.1: Mart profile (backend)
+
+- **`unreadThreads` in `GET /mart/me` returns `0` for now**, not a real computed count. The correct logic needs `lastMessageAt > myReadAt`, where `myReadAt` is `ownerReadAt` or `otherReadAt` depending on which role I have in that specific thread — Prisma can't compare two columns of the same row in a plain `where` filter, and there's no Chat UI yet to verify such a query against real data anyway. Deferred to Milestone 1 Step 1.8 (Chat), where the real messaging query layer gets designed together with proper test coverage.
+- **`POST /mart/rules/accept` lives in its own file** (`routes/mart/rules.ts`), mounted at `/mart/rules/accept` directly — not nested inside `me.ts`'s router, which would have put it at the wrong path (`/mart/me/rules/accept`). Caught before testing.
+
+---
+
 ## 2026-10-09 — Step 0.10: shared mobile components
 
 - **Added a new `priceSmall` theme token** to `colors.ts` (light `#b97f00`, dark same as `accent`) for list-row prices, per the spec's own §0.1 distinction between "big text" and "small text" price colors, and §0.1b's rule to add a token rather than hard-code when one doesn't exist.

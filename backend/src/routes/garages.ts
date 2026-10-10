@@ -369,7 +369,7 @@ router.get('/:id/ratings', async (req: AuthRequest, res) => {
   }
 })
 
-async function getRatingStats(garageId: string): Promise<{ avgRating: number | null; ratingCount: number }> {
+export async function getRatingStats(garageId: string): Promise<{ avgRating: number | null; ratingCount: number }> {
   const agg = await prisma.garageRating.aggregate({
     where: { garageId },
     _avg: { rating: true },
