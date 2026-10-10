@@ -11,7 +11,7 @@ import { DISTRICTS } from '../../data/districts'
 import { BRAND_MODELS } from '../../data/vehicleCatalog'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
 import { blockedSet } from '../../utils/blockedSet'
-import { getSellerTags, getSellerRatings } from '../../utils/sellerInfo'
+import { getSellerTags, getSellerRatings, getActiveAdsCounts } from '../../utils/sellerInfo'
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 
@@ -299,6 +299,44 @@ function orderBy(sort: SortMode, type: string): Prisma.MartListingOrderByWithRel
   return [{ [sortField]: { sort: dir, nulls: 'last' } } as any, { id: dir }]
 }
 
+// Shared by the feed, /similar and /more-from-seller — one batched enrichment pass
+// (seller tag/rating lookup + my-favorites lookup) regardless of where the rows came
+// from, so none of the three routes risk an N+1 by re-deriving this inline.
+export async function buildListingCards(listings: any[], viewerPhone: string) {
+  if (listings.length === 0) return []
+  const ownerPhones = [...new Set(listings.map(r => r.ownerPhone))]
+  const [users, tagMap, ratingMap, favoriteRows] = await Promise.all([
+    prisma.user.findMany({ where: { phoneNumber: { in: ownerPhones } }, select: { id: true, phoneNumber: true, displayName: true } }),
+    getSellerTags(prisma, ownerPhones),
+    getSellerRatings(prisma, ownerPhones),
+    prisma.martFavorite.findMany({ where: { userPhone: viewerPhone, listingId: { in: listings.map(r => r.id) } }, select: { listingId: true } }),
+  ])
+  const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
+  const favoritedIds = new Set(favoriteRows.map(f => f.listingId))
+
+  return listings.map(listing => {
+    const owner = userByPhone.get(listing.ownerPhone)
+    const tag = tagMap.get(listing.ownerPhone) || 'casual'
+    return {
+      id: listing.id, type: listing.type,
+      title: listing.title, coverUrl: listing.photoUrls[0] || null,
+      price: listing.price, budgetMin: listing.budgetMin, budgetMax: listing.budgetMax,
+      condition: listing.condition, district: listing.district,
+      make: listing.make, model: listing.model,
+      status: listing.status, postedAt: listing.postedAt.toISOString(),
+      isFavorited: favoritedIds.has(listing.id),
+      seller: {
+        id: owner?.id || '', name: publicName(owner?.displayName, tag),
+        tag, rating: ratingMap.get(listing.ownerPhone) || { avg: null, count: 0 },
+      },
+      yearFrom: listing.yearFrom, yearTo: listing.yearTo,
+      categoryId: listing.categoryId,
+      statusChangedAt: listing.statusChangedAt.toISOString(),
+      closedAt: listing.closedAt ? listing.closedAt.toISOString() : null,
+    }
+  })
+}
+
 router.get('/', async (req: AuthRequest, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : ''
   if (q) {
@@ -336,37 +374,7 @@ router.get('/', async (req: AuthRequest, res) => {
       .catch(() => {})
   }
 
-  const ownerPhones = [...new Set(page.map(r => r.ownerPhone))]
-  const [users, tagMap, ratingMap, favoriteRows] = await Promise.all([
-    prisma.user.findMany({ where: { phoneNumber: { in: ownerPhones } }, select: { id: true, phoneNumber: true, displayName: true } }),
-    getSellerTags(prisma, ownerPhones),
-    getSellerRatings(prisma, ownerPhones),
-    prisma.martFavorite.findMany({ where: { userPhone: req.phoneNumber!, listingId: { in: page.map(r => r.id) } }, select: { listingId: true } }),
-  ])
-  const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
-  const favoritedIds = new Set(favoriteRows.map(f => f.listingId))
-
-  const items = page.map(listing => {
-    const owner = userByPhone.get(listing.ownerPhone)
-    const tag = tagMap.get(listing.ownerPhone) || 'casual'
-    return {
-      id: listing.id, type: listing.type,
-      title: listing.title, coverUrl: listing.photoUrls[0] || null,
-      price: listing.price, budgetMin: listing.budgetMin, budgetMax: listing.budgetMax,
-      condition: listing.condition, district: listing.district,
-      make: listing.make, model: listing.model,
-      status: listing.status, postedAt: listing.postedAt.toISOString(),
-      isFavorited: favoritedIds.has(listing.id),
-      seller: {
-        id: owner?.id || '', name: publicName(owner?.displayName, tag),
-        tag, rating: ratingMap.get(listing.ownerPhone) || { avg: null, count: 0 },
-      },
-      yearFrom: listing.yearFrom, yearTo: listing.yearTo,
-      categoryId: listing.categoryId,
-      statusChangedAt: listing.statusChangedAt.toISOString(),
-      closedAt: listing.closedAt ? listing.closedAt.toISOString() : null,
-    }
-  })
+  const items = await buildListingCards(page, req.phoneNumber!)
 
   const last = page[page.length - 1]
   const nextCursor = hasMore && last
@@ -383,6 +391,135 @@ router.get('/count', async (req: AuthRequest, res) => {
   const where = buildListingsWhere(req.query, [...blocked])
   const count = await prisma.martListing.count({ where })
   res.json({ count })
+})
+
+const NOT_FOUND = { error: 'This ad is no longer available', code: 'NOT_FOUND' }
+
+// Spec: 03-api.md §0 shared types + 02-data-model.md §3.4 (visibility windows).
+router.get('/:listingId', async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+
+  const me = req.phoneNumber!
+  const isOwner = listing.ownerPhone === me
+
+  if (!isOwner) {
+    const blocked = await blockedSet(prisma, me)
+    if (blocked.has(listing.ownerPhone)) { res.status(404).json(NOT_FOUND); return }
+
+    const activeStatuses = listing.type === 'wanted' ? ['open'] : ['available', 'reserved']
+    const isActive = activeStatuses.includes(listing.status)
+    const withinClosedWindow = !!listing.closedAt && (Date.now() - listing.closedAt.getTime()) < 7 * 24 * 60 * 60 * 1000
+    if (!isActive && !withinClosedWindow) { res.status(404).json(NOT_FOUND); return }
+  }
+
+  const [cards, activeAdsMap] = await Promise.all([
+    buildListingCards([listing], me),
+    getActiveAdsCounts(prisma, [listing.ownerPhone]),
+  ])
+  const card = cards[0]
+
+  let favoritesCount: number | null = null
+  let offersCount: number | null = null
+  let newOffersCount: number | null = null
+  if (isOwner) {
+    favoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
+    if (listing.type === 'wanted') {
+      // Offers (Milestone 2 Step 2.2) can't exist yet — no caller can create one. "New"
+      // needs the same cross-column unread comparison deferred for unreadThreads in Step
+      // 1.1; returning 0 now rather than shipping an unverifiable query. Revisit at 2.2.
+      offersCount = 0
+      newOffersCount = 0
+    }
+  }
+
+  let myThreadId: string | null = null
+  let myOfferThreadId: string | null = null
+  if (!isOwner) {
+    const thread = await prisma.martThread.findUnique({ where: { listingId_otherPhone: { listingId: listing.id, otherPhone: me } } })
+    myThreadId = thread?.id || null
+    if (listing.type === 'wanted' && thread) {
+      const offerMsg = await prisma.martMessage.findFirst({ where: { threadId: thread.id, kind: 'offer', senderPhone: me } })
+      if (offerMsg) myOfferThreadId = thread.id
+    }
+  }
+
+  let deal: { state: string; iAmPartner: boolean; outside: boolean; canRate: boolean } | null = null
+  if (listing.dealState) {
+    const iAmPartner = listing.dealPartnerPhone === me
+    if (isOwner || iAmPartner) {
+      // canRate's real guard (both participants messaged, no existing rating, 02 §4.6)
+      // is Milestone 2 Step 2.5 (Ratings) — deferred the same way, for the same reason,
+      // as Step 1.1's unreadThreads and this step's offersCount above.
+      deal = { state: listing.dealState, iAmPartner, outside: listing.dealOutside, canRate: false }
+    }
+  }
+
+  res.json({
+    ...card,
+    description: listing.description,
+    categoryTypeId: listing.categoryTypeId,
+    deliveryAvailable: listing.deliveryAvailable,
+    photoUrls: listing.photoUrls,
+    favoritesCount, offersCount, newOffersCount,
+    seller: { ...card.seller, activeAdsCount: activeAdsMap.get(listing.ownerPhone) || 0 },
+    isOwner, myThreadId, myOfferThreadId, deal,
+  })
+})
+
+// Spec: 02-data-model.md §6 "Similar ads" — same type + active + not removed/this ad/
+// blocked; same categoryId+makeNorm ranked first, then same categoryId, take 10, merged
+// and de-duplicated (two queries, not one, since Prisma can't express "rank A before B"
+// as a single orderBy across two different match conditions).
+router.get('/:listingId/similar', async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing) { res.json({ items: [] }); return }
+
+  const me = req.phoneNumber!
+  const blocked = await blockedSet(prisma, me)
+  const activeStatuses = listing.type === 'wanted' ? ['open'] : ['available', 'reserved']
+  const baseWhere: Prisma.MartListingWhereInput = {
+    type: listing.type, status: { in: activeStatuses }, removedAt: null, id: { not: listing.id },
+    ...(blocked.size > 0 ? { ownerPhone: { notIn: [...blocked] } } : {}),
+  }
+
+  const sameMakeAndCategory = listing.makeNorm
+    ? await prisma.martListing.findMany({
+        where: { ...baseWhere, categoryId: listing.categoryId, makeNorm: listing.makeNorm },
+        orderBy: [{ postedAt: 'desc' }, { id: 'desc' }], take: MART_LIMITS.SIMILAR_MAX,
+      })
+    : []
+  const remaining = MART_LIMITS.SIMILAR_MAX - sameMakeAndCategory.length
+  const sameCategory = remaining > 0
+    ? await prisma.martListing.findMany({
+        where: { ...baseWhere, categoryId: listing.categoryId, id: { notIn: [listing.id, ...sameMakeAndCategory.map(l => l.id)] } },
+        orderBy: [{ postedAt: 'desc' }, { id: 'desc' }], take: remaining,
+      })
+    : []
+
+  const items = await buildListingCards([...sameMakeAndCategory, ...sameCategory], me)
+  res.json({ items })
+})
+
+// Spec: 03-api.md §4. "Active ads" means selling available/reserved only, same
+// interpretation already established for getActiveAdsCounts (Step 0.6/DECISIONS-MADE.md)
+// — not wanted requests. Hidden (empty) when the viewer is the seller themself.
+router.get('/:listingId/more-from-seller', async (req: AuthRequest, res) => {
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing) { res.json({ items: [] }); return }
+
+  const me = req.phoneNumber!
+  if (listing.ownerPhone === me) { res.json({ items: [] }); return }
+
+  const rows = await prisma.martListing.findMany({
+    where: {
+      ownerPhone: listing.ownerPhone, type: 'selling', status: { in: ['available', 'reserved'] },
+      removedAt: null, id: { not: listing.id },
+    },
+    orderBy: [{ postedAt: 'desc' }, { id: 'desc' }], take: MART_LIMITS.MORE_FROM_SELLER_MAX,
+  })
+  const items = await buildListingCards(rows, me)
+  res.json({ items })
 })
 
 export default router
