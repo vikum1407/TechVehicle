@@ -1,6 +1,7 @@
 import express from 'express'
 import meRoutes from './me'
 import rulesRoutes from './rules'
+import listingsRoutes from './listings'
 
 // Mounted in src/index.ts as: app.use('/mart', authMiddleware, martGate, martRouter)
 // — every /mart route already has req.phoneNumber set and has passed the beta gate
@@ -11,5 +12,6 @@ const martRouter = express.Router()
 
 martRouter.use('/me', meRoutes)
 martRouter.use('/rules', rulesRoutes)
+martRouter.use('/listings', listingsRoutes)
 
 export default martRouter
