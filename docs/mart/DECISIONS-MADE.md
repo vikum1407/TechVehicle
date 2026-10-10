@@ -4,6 +4,57 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-10 — Milestone 1 Step 1.2: Post ad (mobile) + a package-internal contradiction resolved
+
+- **Resolved a contradiction in the handoff package itself: Mart mobile text stays plain
+  English (no i18n keys) through Milestone 1 and 2, added only at Step 3.7.** The build
+  plan's own "Rules for the whole build" section says to "add every user-facing string as
+  an i18n key (en) from Milestone 1; step 3.7 only adds si/ta text" — but Step 3.7's own
+  row in the same table describes its own deliverable as "i18n keys for all Mart text;
+  English fallback," which only makes sense if the keys don't already exist before then.
+  Treated 3.7's specific, later-listed description as the one that wins, the same way
+  `04-screens.md` §23 already explicitly overrides its own earlier sections — rather than
+  stopping to ask, since this is exactly the kind of build-time judgment call the package
+  asks the developer to make and log. Every Mart string built so far (Step 1.1's pickers/
+  sheet/rules screen, Step 1.2's Post Ad form) uses plain English, consistent with this.
+- **Post Ad screen posts Selling only** — no Selling/Wanted segmented control. Wanted
+  posting is Milestone 2 Step 2.1; the control has nothing meaningful to disable yet
+  (there's no Wanted form behind it at all), so it's simply not rendered rather than shown
+  disabled.
+- **One "Compatible Vehicle" row opens the full Step 1.1 vehicle picker as a single unit**,
+  not 3 separate Make / Model / Year rows as the mockup's literal layout shows — reuses the
+  already-built 3-step component outright; the spec itself calls this area a build-time
+  decision to confirm.
+- **Photo source choice (camera vs. gallery) is a plain `Alert.alert` action sheet**, not a
+  custom UI — cheapest way to satisfy "multi-select from gallery or camera." Gallery supports
+  `allowsMultipleSelection`; camera is always a single shot (a camera can't multi-select).
+- **"Can arrange delivery" reuses the existing native `Switch`** (same component
+  `NotificationPrefsScreen` already uses) rather than a new pixel-matched 42×24 toggle.
+- **No auto-scroll-to-first-error on submit** — inline red text under each invalid field is
+  built, but scrolling the view to the first error would need per-field layout measurement
+  across a 10-field form; judged not worth the complexity for a first pass. Can add later
+  if it's actually missed in use.
+- **`api.uploadPhoto()` gained an optional 3rd parameter (`folder?: string`)** instead of a
+  new function, since it's the exact same upload mechanics either way — confirmed all 6
+  existing call sites still pass only 2 arguments, so nothing about their behavior changes.
+
+---
+
+## 2026-10-10 — Milestone 1 Step 1.2: Post ad (backend)
+
+- **`POST /mart/listings` validates both `selling` and `wanted` bodies now**, even though
+  the build plan scopes this step's mobile screen to Selling only (Wanted posting is
+  Milestone 2 Step 2.1). `03-api.md` §4 already documents one endpoint contract for both
+  types, and the wanted-specific rules (budget, optional make) are fully specified in
+  `02-data-model.md` §4.1 today — writing them once now avoids reopening this file later
+  to retrofit rules that don't need any new information to implement. The mobile Post Ad
+  screen in this step only ever sends `type: "selling"`.
+- **`validateListingCreate()` takes `r2PublicUrl` as a parameter, not read from
+  `process.env` internally** — same reasoning as `me.ts`'s exported pure functions: keeps
+  it callable from a standalone verification script with no server/env setup needed.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.1: pickers, gate sheet, rules screen (mobile)
 
 - **Vehicle picker returns `{make, model, yearFrom, yearTo}` using the already-shared

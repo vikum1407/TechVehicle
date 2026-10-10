@@ -18,6 +18,7 @@ import VehiclePickerScreen from './mart/VehiclePickerScreen'
 import DistrictPickerScreen from './mart/DistrictPickerScreen'
 import NameDistrictSheet from './mart/NameDistrictSheet'
 import MartRulesScreen from './mart/MartRulesScreen'
+import PostAdScreen from './mart/PostAdScreen'
 
 // Step 0.10 done-check: "a hidden dev screen renders each [component] in light + dark."
 // Not wired into navigation yet — the app follows the phone's system light/dark setting
@@ -41,6 +42,7 @@ export default function MartDevPreviewScreen({ onBack, token }: { onBack: () => 
   const [districtPickerVisible, setDistrictPickerVisible] = useState(false)
   const [nameDistrictVisible, setNameDistrictVisible] = useState(false)
   const [rulesMode, setRulesMode] = useState<'firstAction' | 'readOnly' | null>(null)
+  const [postAdVisible, setPostAdVisible] = useState(false)
   const [lastPickResult, setLastPickResult] = useState('')
 
   const samplePhotos = ['https://picsum.photos/seed/mart1/800', 'https://picsum.photos/seed/mart2/800']
@@ -77,6 +79,15 @@ export default function MartDevPreviewScreen({ onBack, token }: { onBack: () => 
         token={token}
         onBack={() => setRulesMode(null)}
         onAccepted={() => { setLastPickResult('rules accepted'); setRulesMode(null) }}
+      />
+    )
+  }
+  if (postAdVisible) {
+    return (
+      <PostAdScreen
+        token={token}
+        onBack={() => setPostAdVisible(false)}
+        onPosted={id => { setLastPickResult(`posted listing ${id}`); setPostAdVisible(false) }}
       />
     )
   }
@@ -161,6 +172,11 @@ export default function MartDevPreviewScreen({ onBack, token }: { onBack: () => 
           <Text style={styles.link} onPress={() => setNameDistrictVisible(true)}>Name+district sheet</Text>
           <Text style={styles.link} onPress={() => setRulesMode('firstAction')}>Mart rules (first-action)</Text>
           <Text style={styles.link} onPress={() => setRulesMode('readOnly')}>Mart rules (read-only)</Text>
+        </View>
+
+        <Text style={styles.section}>Step 1.2 — Post ad</Text>
+        <View style={styles.row}>
+          <Text style={styles.link} onPress={() => setPostAdVisible(true)}>Post Ad screen</Text>
         </View>
         {lastPickResult ? <Text style={styles.resultText}>Last result: {lastPickResult}</Text> : null}
       </ScrollView>

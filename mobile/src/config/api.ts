@@ -63,6 +63,12 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to accept rules')
     return data
   },
+  postMartListing: async (token: string, body: Record<string, unknown>): Promise<{ id: string }> => {
+    const res = await fetch(`${API_URL}/mart/listings`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to post ad')
+    return data
+  },
 
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
@@ -1036,7 +1042,10 @@ export const api = {
     return data
   },
 
-  uploadPhoto: async (token: string, uri: string): Promise<string> => {
+  // `folder` is optional and additive — every existing call site omits it and keeps
+  // uploading to the default (non-Mart) location exactly as before. Mart passes 'mart'
+  // so the backend (Step 0.12) stores it under the mart-photos/ R2 prefix.
+  uploadPhoto: async (token: string, uri: string, folder?: string): Promise<string> => {
     // Manual FormData + fetch fails with "Unsupported FormDataPart implementation"
     // on some Android devices/versions under React Native's New Architecture.
     // expo-file-system's native multipart uploader sidesteps that bridge entirely.
@@ -1053,6 +1062,7 @@ export const api = {
       fieldName: 'photo',
       mimeType,
       headers: { Authorization: `Bearer ${token}` },
+      ...(folder ? { parameters: { folder } } : {}),
     })
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Upload timed out — check your connection and try again')), 30000)
