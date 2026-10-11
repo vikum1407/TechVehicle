@@ -3,6 +3,7 @@ import meRoutes from './me'
 import rulesRoutes from './rules'
 import listingsRoutes from './listings'
 import myAdsRoutes from './myAds'
+import favoritesRoutes from './favorites'
 
 // Mounted in src/index.ts as: app.use('/mart', authMiddleware, martGate, martRouter)
 // — every /mart route already has req.phoneNumber set and has passed the beta gate
@@ -15,5 +16,6 @@ martRouter.use('/me', meRoutes)
 martRouter.use('/rules', rulesRoutes)
 martRouter.use('/listings', listingsRoutes)
 martRouter.use('/my-ads', myAdsRoutes)
+martRouter.use('/favorites', favoritesRoutes)
 
 export default martRouter
