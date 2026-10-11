@@ -4,6 +4,29 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-11 — Milestone 1 Step 1.9: Push for messages
+
+- **`mart_message` rows go into the existing, shared `AppNotification` table with no
+  type filter on the existing `/notifications` route** — meaning they're currently
+  visible in the app's main (non-Mart) Notifications screen and count toward the main
+  Vehicles-tab bell too. `03-api.md` §9 only promises the existing route's *code* stays
+  untouched, and Mart's own separate, filtered notification center
+  (`GET /mart/notifications`) is explicitly Milestone 2 Step 2.9 — not built yet.
+  Flagged clearly to Vikum directly, not just here, since it's a real (if low-risk and
+  currently self-limiting to beta phones messaging each other) visible change to an
+  existing shared screen.
+- **`mart_wanted`/`mart_rating` notification-settings switches exist now with no real
+  trigger behind them yet** — `03-api.md` §23 point 21 explicitly asks for all three
+  switches in this step, even though Wanted (2.1) and Ratings (2.5) aren't built.
+- **si translations added for the 3 new switches now (matching this screen's existing
+  full-i18n convention); ta left as the existing English-fallback gap** — this is an
+  existing, shared, already-fully-translated screen gaining 3 rows, not new Mart-only
+  UI, so it follows ITS established convention (full i18n immediately) rather than
+  Mart's own "plain English until Step 3.7" rule, which only applies to genuinely new
+  Mart-specific screens.
+
+---
+
 ## 2026-10-11 — Milestone 1 Step 1.8: Chat (mobile)
 
 - **One `ChatThreadScreen` handles both a brand-new "draft" conversation and an

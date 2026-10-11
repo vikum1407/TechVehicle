@@ -106,6 +106,7 @@ export default function App() {
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
   const [martEnabled, setMartEnabled] = useState(false) // Step 0.11: GET /app-config below decides this
   const [martFullScreen, setMartFullScreen] = useState(false) // Step 1.3: MartNavigator reports Posting/Filters/etc. so the tab bar can hide, per 04-screens.md §0.2
+  const [focusMartThreadId, setFocusMartThreadId] = useState<string | null>(null) // Step 1.9: a martThread notification tap deep-links here
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -469,7 +470,13 @@ export default function App() {
               />
             )}
             {screen === 'mart' && (
-              <MartNavigator onExit={() => setScreen('vehicles')} token={token} onFullScreenChange={setMartFullScreen} />
+              <MartNavigator
+                onExit={() => setScreen('vehicles')}
+                token={token}
+                onFullScreenChange={setMartFullScreen}
+                focusThreadId={focusMartThreadId}
+                onFocusHandled={() => setFocusMartThreadId(null)}
+              />
             )}
           </View>
           {!(screen === 'mart' && martFullScreen) && (
@@ -743,7 +750,11 @@ export default function App() {
           onNavigate={(linkTo) => {
             if (!linkTo) { setScreen('vehicles'); return }
             try {
-              const { screen: target, vehicleId, bookingId } = JSON.parse(linkTo)
+              const { screen: target, vehicleId, bookingId, threadId } = JSON.parse(linkTo)
+              if (target === 'martThread' && threadId) {
+                setFocusMartThreadId(threadId)
+                setScreen('mart'); return
+              }
               if (target === 'garage') {
                 if (bookingId) setFocusBookingId(bookingId)
                 setScreen('garage'); return

@@ -522,6 +522,12 @@ const si: Record<TranslationKey, string> = {
   'notificationPrefs.submission.desc': 'ගරාජයක් සම්පූර්ණ කළ සේවා සටහනක් ඉදිරිපත් කළ විට දැනුම් දෙනු ලැබේ',
   'notificationPrefs.garageReminder.title': 'ගරාජ සේවා මතක් කිරීම්',
   'notificationPrefs.garageReminder.desc': 'ඔබ භාවිතා කළ ගරාජයක් ඔබේ වාහනය සේවාවක් සඳහා අවශ්‍ය බව සලකුණු කළ විට දැනුම් දෙනු ලැබේ',
+  'notificationPrefs.martMessage.title': 'පණිවිඩ සහ දීමනා',
+  'notificationPrefs.martMessage.desc': 'Vocksy Mart හි ඔබට නව පණිවිඩයක් හෝ දීමනාවක් ලැබුණු විට දැනුම් දෙනු ලැබේ',
+  'notificationPrefs.martWanted.title': 'ඔබ අසල නව ඉල්ලීම්',
+  'notificationPrefs.martWanted.desc': 'ඔබ කලින් විකුණූ කොටසක් සඳහා ගැනුම්කරුවෙකු සොයන විට දැනුම් දෙනු ලැබේ',
+  'notificationPrefs.martRating.title': 'නව සමාලෝචන',
+  'notificationPrefs.martRating.desc': 'Vocksy Mart හි කෙනෙකු ඔබව විකුණුම්කරුවෙකු ලෙස ශ්‍රේණිගත කළ විට දැනුම් දෙනු ලැබේ',
 
   'onboarding.milestone.oil.label': 'එන්ජින් තෙල් වෙනස් කිරීම',
   'onboarding.milestone.oil.question': 'ඔබ අවසන් වරට එන්ජින් තෙල් වෙනස් කළේ කවදාද?',

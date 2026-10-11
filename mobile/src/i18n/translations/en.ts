@@ -520,6 +520,12 @@ const en = {
   'notificationPrefs.submission.desc': 'Notify when a garage submits a completed service record',
   'notificationPrefs.garageReminder.title': 'Garage Service Reminders',
   'notificationPrefs.garageReminder.desc': "Notify when a garage you've used flags your vehicle as due for service",
+  'notificationPrefs.martMessage.title': 'Messages and Offers',
+  'notificationPrefs.martMessage.desc': 'Notify when you get a new message or offer on Vocksy Mart',
+  'notificationPrefs.martWanted.title': 'New Requests Near You',
+  'notificationPrefs.martWanted.desc': "Notify when a buyer is looking for a part you've sold before",
+  'notificationPrefs.martRating.title': 'New Reviews',
+  'notificationPrefs.martRating.desc': 'Notify when someone rates you as a seller on Vocksy Mart',
 
   'onboarding.milestone.oil.label': 'Engine Oil Change',
   'onboarding.milestone.oil.question': 'When did you last change your engine oil?',

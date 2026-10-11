@@ -56,6 +56,25 @@ const PREFS: { key: string; titleKey: TranslationKey; descKey: TranslationKey }[
     titleKey: 'notificationPrefs.garageReminder.title',
     descKey: 'notificationPrefs.garageReminder.desc',
   },
+  // Step 1.9 — Vocksy Mart. mart_wanted/mart_rating have no backend trigger yet (Wanted
+  // posting is Milestone 2 Step 2.1, Ratings is 2.5) but the pref keys already exist
+  // (Step 0.3) and 03-api.md §23 point 21 asks for the switches now, ahead of the
+  // features that will use them.
+  {
+    key: 'mart_message',
+    titleKey: 'notificationPrefs.martMessage.title',
+    descKey: 'notificationPrefs.martMessage.desc',
+  },
+  {
+    key: 'mart_wanted',
+    titleKey: 'notificationPrefs.martWanted.title',
+    descKey: 'notificationPrefs.martWanted.desc',
+  },
+  {
+    key: 'mart_rating',
+    titleKey: 'notificationPrefs.martRating.title',
+    descKey: 'notificationPrefs.martRating.desc',
+  },
 ]
 
 export default function NotificationPrefsScreen({ token, onBack }: Props) {
@@ -68,6 +87,9 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
     transfer: true,
     submission: true,
     garage_reminder: true,
+    mart_message: true,
+    mart_wanted: true,
+    mart_rating: true,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)

@@ -47,10 +47,12 @@ type MartStackEntry =
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
+  focusThreadId?: string | null
+  onFocusHandled?: () => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -63,6 +65,17 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
   useEffect(() => {
     onFullScreenChange?.(FULL_SCREEN.includes(current.screen))
   }, [current.screen])
+
+  // Step 1.9: a mart_message push notification tap, routed in from App.tsx (same
+  // focusBookingId-style prop + "handled" callback pattern already used for Garage/
+  // Vehicle Dashboard deep links) — pushes straight to the thread, same mount every
+  // time this stack opens fresh (it always starts at 'home').
+  useEffect(() => {
+    if (focusThreadId) {
+      push({ screen: 'thread', entry: { kind: 'thread', threadId: focusThreadId } })
+      onFocusHandled?.()
+    }
+  }, [focusThreadId])
 
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
