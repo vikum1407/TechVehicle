@@ -10,6 +10,8 @@ import { getSellerTags } from '../../utils/sellerInfo'
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
+import { parsePrefs } from '../../utils/notificationPrefs'
+import { sendPush } from '../../utils/push'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -64,6 +66,47 @@ async function resolveOtherInfo(phones: string[]) {
   return map
 }
 
+// Spec: 02-data-model.md §7.1 "One row per thread for messages": if an unread
+// mart_message row already exists for this thread (matched on the exact `linkTo` JSON
+// text this file always builds the same way), update it in place instead of creating
+// a second one — a burst of messages in one thread shows as one notification, not many.
+async function upsertMartMessageNotification(threadId: string, recipientPhone: string, title: string, body: string) {
+  try {
+    const linkTo = JSON.stringify({ screen: 'martThread', threadId })
+    const existing = await prisma.appNotification.findFirst({
+      where: { userPhone: recipientPhone, type: 'mart_message', read: false, linkTo },
+    })
+    if (existing) {
+      await prisma.appNotification.update({ where: { id: existing.id }, data: { title, body, createdAt: new Date() } })
+    } else {
+      await prisma.appNotification.create({ data: { userPhone: recipientPhone, type: 'mart_message', title, body, linkTo } })
+    }
+  } catch {
+    // never let a notification failure break the message send itself
+  }
+}
+
+// Spec: 02-data-model.md §7.1 mart_message row + 03-api.md §8 "sends push in the
+// background (never block the request)" — called without `await` at both call sites
+// below, after the response has already been sent.
+async function notifyNewMessage(threadId: string, senderPhone: string, recipientPhone: string, messageBody: string) {
+  try {
+    const [recipient, senderInfoMap] = await Promise.all([
+      prisma.user.findUnique({ where: { phoneNumber: recipientPhone } }),
+      resolveOtherInfo([senderPhone]),
+    ])
+    const senderName = senderInfoMap.get(senderPhone)?.name || publicName(null, 'casual')
+    const notifBody = capText(messageBody, 80)
+    await upsertMartMessageNotification(threadId, recipientPhone, senderName, notifBody)
+    const prefs = parsePrefs(recipient?.notificationPrefs)
+    if (prefs.mart_message) {
+      await sendPush(recipient?.pushToken, senderName, notifBody, { screen: 'martThread', threadId })
+    }
+  } catch {
+    // background task — a failure here must never surface to the caller
+  }
+}
+
 // Spec: 03-api.md §8 POST /mart/threads. "The thread is created only on the first
 // send" — the app only ever calls this when no thread exists yet (Detail's
 // `myThreadId` short-circuits straight to GET /:threadId otherwise), but the upsert
@@ -101,8 +144,8 @@ router.post('/', requireProfile, requireRules, async (req: AuthRequest, res) => 
     },
   })
   await prisma.martMessage.create({ data: { threadId: thread.id, senderPhone: me, kind: 'text', body } })
-  // mart_message notification + push: Milestone 1 Step 1.9, not this step.
   res.json({ threadId: thread.id, created: true })
+  notifyNewMessage(thread.id, me, listing.ownerPhone, body)
 })
 
 router.get('/', async (req: AuthRequest, res) => {
@@ -299,7 +342,6 @@ router.post('/:threadId/messages', requireProfile, requireRules, async (req: Aut
       ...(isMeOwner ? { otherHiddenAt: null } : { ownerHiddenAt: null }),
     },
   })
-  // mart_message notification + push: Milestone 1 Step 1.9, not this step.
   res.status(201).json({
     message: {
       id: message.id, mine: true, kind: message.kind, body: message.body,
@@ -307,6 +349,7 @@ router.post('/:threadId/messages', requireProfile, requireRules, async (req: Aut
       createdAt: message.createdAt.toISOString(),
     },
   })
+  notifyNewMessage(thread.id, me, otherPhone, body)
 })
 
 // Spec: 03-api.md §8 POST /:threadId/read.
@@ -320,8 +363,8 @@ router.post('/:threadId/read', async (req: AuthRequest, res) => {
     where: { id: thread.id },
     data: isMeOwner ? { ownerReadAt: new Date() } : { otherReadAt: new Date() },
   })
-  // Marks matching mart_message notifications read — none can exist yet (Step 1.9 is
-  // what creates them), so this is a correct no-op for now rather than a deferred TODO.
+  // Marks matching mart_message notifications read (now real since Step 1.9 added
+  // notifyNewMessage() above).
   await prisma.appNotification.updateMany({
     where: { userPhone: me, type: 'mart_message', read: false, linkTo: { contains: thread.id } },
     data: { read: true },
