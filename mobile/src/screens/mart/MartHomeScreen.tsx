@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Alert, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
@@ -149,28 +149,33 @@ export default function MartHomeScreen({
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        horizontal showsHorizontalScrollIndicator={false}
-        style={styles.chipStrip}
-        data={MART_CATEGORIES}
-        keyExtractor={c => c.id}
-        ListHeaderComponent={() => (
+      {/* A plain ScrollView, not FlatList: only 12 categories, no virtualization
+          needed, and this sidesteps the on-device FlatList cross-axis stretch bug
+          found testing this screen for real (Oct 11) — simpler and more predictable
+          for a short, static list like this one. The outer View (fixed height +
+          overflow:hidden) is a second on-device fix from the same session: the
+          ScrollView's own `style.height` was confirmed (via a red-background test on
+          the physical device) to NOT actually constrain it here — wrapping it in a
+          plain View that forcibly clips to 44px is what actually works. */}
+      <View style={styles.chipStripWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipStripContent}>
           <TouchableOpacity
             style={[styles.chip, !filters.categoryId && styles.chipActive]}
             onPress={() => toggleCategoryChip(null)}
           >
             <Text style={[styles.chipText, !filters.categoryId && styles.chipTextActive]}>All</Text>
           </TouchableOpacity>
-        )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.chip, filters.categoryId === item.id && styles.chipActive]}
-            onPress={() => toggleCategoryChip(filters.categoryId === item.id ? null : item.id)}
-          >
-            <Text style={[styles.chipText, filters.categoryId === item.id && styles.chipTextActive]}>{item.en}</Text>
-          </TouchableOpacity>
-        )}
-      />
+          {MART_CATEGORIES.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.chip, filters.categoryId === item.id && styles.chipActive]}
+              onPress={() => toggleCategoryChip(filters.categoryId === item.id ? null : item.id)}
+            >
+              <Text style={[styles.chipText, filters.categoryId === item.id && styles.chipTextActive]}>{item.en}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
@@ -250,7 +255,9 @@ function makeStyles(c: Colors, topInset: number) {
     },
     filterBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
-    chipStrip: { backgroundColor: c.surface, paddingBottom: 12 },
+    // See the on-device fix notes above this row's JSX.
+    chipStripWrap: { height: 44, marginBottom: 12, overflow: 'hidden', backgroundColor: c.surface },
+    chipStripContent: { alignItems: 'center' },
     chip: {
       marginLeft: 8, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7,
       backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.borderMid,
