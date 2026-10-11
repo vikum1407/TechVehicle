@@ -105,6 +105,12 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to load similar ads')
     return data
   },
+  getMartMoreFromSeller: async (token: string, listingId: string): Promise<{ items: any[] }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/more-from-seller`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load more from this seller')
+    return data
+  },
   setMartListingStatus: async (token: string, listingId: string, status: 'available' | 'reserved'): Promise<{ ok: true }> => {
     const res = await fetch(`${API_URL}/mart/listings/${listingId}/status`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ status }) })
     const data = await res.json()
@@ -135,6 +141,51 @@ export const api = {
     const res = await fetch(`${API_URL}/mart/favorites?${qs.toString()}`, { headers: authHeaders(token) })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to load favorites')
+    return data
+  },
+  openMartThread: async (token: string, listingId: string, text: string): Promise<{ threadId: string; created: boolean }> => {
+    const res = await fetch(`${API_URL}/mart/threads`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ listingId, text }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to open conversation')
+    return data
+  },
+  getMartThreads: async (token: string, params: { role?: 'buying' | 'selling'; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/threads?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load messages')
+    return data
+  },
+  getMartThreadsUnreadCount: async (token: string): Promise<{ count: number }> => {
+    const res = await fetch(`${API_URL}/mart/threads/unread-count`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load unread count')
+    return data
+  },
+  getMartThread: async (token: string, threadId: string, cursor?: string): Promise<any> => {
+    const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+    const res = await fetch(`${API_URL}/mart/threads/${threadId}${qs}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "This conversation is no longer available")
+    return data
+  },
+  sendMartMessage: async (token: string, threadId: string, text: string): Promise<{ message: any }> => {
+    const res = await fetch(`${API_URL}/mart/threads/${threadId}/messages`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ text }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to send')
+    return data
+  },
+  markMartThreadRead: async (token: string, threadId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/threads/${threadId}/read`, { method: 'POST', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to mark as read')
+    return data
+  },
+  deleteMartThread: async (token: string, threadId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/threads/${threadId}`, { method: 'DELETE', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to delete conversation')
     return data
   },
   getMyMartAds: async (token: string, params: { type: 'selling' | 'wanted'; tab: string; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null; counts: Record<string, number> }> => {

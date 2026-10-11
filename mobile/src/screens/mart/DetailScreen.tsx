@@ -17,6 +17,7 @@ import MartEmptyState from '../../components/mart/MartEmptyState'
 import { formatLKR, timeAgo } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
+import { ChatThreadEntry } from './ChatThreadScreen'
 
 const W = Dimensions.get('window').width
 
@@ -25,12 +26,13 @@ const W = Dimensions.get('window').width
 // strip. "Message Seller" (Chat, Step 1.8), "Mark Sold" (Step 2.4), Report (Step 3.1)
 // and Seller profile (Step 2.7) are still stubbed with a plain "Coming soon" alert, same
 // reasoning as Mart Home (Step 1.3) — honest about nothing real happening there yet.
-export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit }: {
+export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread }: {
   token: string
   listingId: string
   onBack: () => void
   onOpenListing: (id: string) => void
   onEdit: (listing: any) => void
+  onOpenThread: (entry: ChatThreadEntry) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -83,6 +85,16 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
     } catch {
       setSimilar(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: wasFavorited } : i)))
     }
+  }
+
+  const handleMessageSeller = () => {
+    if (!detail) return
+    if (detail.myThreadId) { onOpenThread({ kind: 'thread', threadId: detail.myThreadId }); return }
+    onOpenThread({
+      kind: 'draft', listingId: detail.id, title: detail.title, coverUrl: detail.photoUrls[0] || null,
+      price: detail.price, status: detail.status, otherName: detail.seller.name,
+      prefilledText: 'Hi, is this still available?',
+    })
   }
 
   const handleShare = () => {
@@ -267,7 +279,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         ) : detail.status === 'sold' ? (
           <View style={styles.soldBar}><Text style={styles.soldBarText}>This item was sold</Text></View>
         ) : (
-          <TouchableOpacity style={styles.messageBtn} onPress={comingSoon}>
+          <TouchableOpacity style={styles.messageBtn} onPress={handleMessageSeller}>
             <AppIcon icon={{ lib: 'ion', name: 'chatbubble-outline' }} size={18} color="#fff" />
             <Text style={styles.messageBtnText}>Message Seller</Text>
           </TouchableOpacity>

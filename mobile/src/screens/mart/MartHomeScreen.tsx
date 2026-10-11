@@ -19,12 +19,12 @@ type Card = {
 }
 
 // Spec: 04-screens.md §1. Selling only for now — the Selling|Wanted switch is Milestone 2
-// Step 2.1, so it isn't rendered. Messages/Notifications icons are present (matching the
-// header layout) but not yet wired to anything real — those screens don't exist until
-// Steps 1.8/2.9, so tapping them is a harmless no-op for now. Favorites (heart icon and
-// heart button, Step 1.7), My Mart (Step 1.6) and card taps (Step 1.4) open real screens.
+// Step 2.1, so it isn't rendered. Notifications icon is present (matching the header
+// layout) but not yet wired to anything real — that screen doesn't exist until Step 2.9,
+// so tapping it is a harmless no-op for now. Favorites, My Mart, Messages (Step 1.8,
+// including its unread dot) and card taps all open real screens.
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites,
+  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages,
 }: {
   token: string
   filters: MartFilters
@@ -34,6 +34,7 @@ export default function MartHomeScreen({
   onOpenListing: (id: string) => void
   onOpenMyMart: () => void
   onOpenFavorites: () => void
+  onOpenMessages: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -42,6 +43,7 @@ export default function MartHomeScreen({
   const [searchText, setSearchText] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [items, setItems] = useState<Card[]>([])
+  const [unreadMessages, setUnreadMessages] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -82,6 +84,9 @@ export default function MartHomeScreen({
   }, [queryParams, token])
 
   useEffect(() => { load() }, [submittedQuery, filters])
+  useEffect(() => {
+    api.getMartThreadsUnreadCount(token).then(r => setUnreadMessages(r.count > 0)).catch(() => {})
+  }, [token])
 
   const toggleCategoryChip = (categoryId: string | null) => onFiltersChange({ ...filters, categoryId })
 
@@ -110,8 +115,9 @@ export default function MartHomeScreen({
           <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenFavorites} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'heart-outline' }} size={22} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenMessages} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'chatbubble-outline' }} size={22} color={colors.primary} />
+            {unreadMessages ? <View style={styles.headerUnreadDot} /> : null}
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'notifications-outline' }} size={22} color={colors.primary} />
@@ -223,6 +229,10 @@ function makeStyles(c: Colors, topInset: number) {
     headerTitle: { fontSize: 20, fontWeight: '700', color: c.primary },
     headerIcons: { flexDirection: 'row', gap: 2 },
     headerIconBtn: { padding: 6 },
+    headerUnreadDot: {
+      position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4,
+      backgroundColor: c.error, borderWidth: 1.5, borderColor: '#fff',
+    },
 
     searchRow: { flexDirection: 'row', gap: 10, padding: 16, backgroundColor: c.surface },
     searchBox: {

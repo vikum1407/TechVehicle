@@ -4,6 +4,46 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-11 — Milestone 1 Step 1.8: Chat (mobile)
+
+- **One `ChatThreadScreen` handles both a brand-new "draft" conversation and an
+  existing thread**, switching entirely on whether local `threadId` state is still
+  null, rather than two separate screens or a parent-driven navigation swap. Detail's
+  "Message Seller" already resolves which case applies via the `myThreadId` field
+  built in Step 1.4, so the draft snapshot it hands over is enough for the pinned bar
+  to render with zero extra network round-trips before the thread exists.
+- **The confirm-purchase banner and `canRate` plumbing are fully coded now even though
+  they're unreachable** (dealState is always null until Mark Sold ships at Milestone 2
+  Step 2.4) — same reasoning applied throughout this build to backend-ahead-of-UI
+  pieces, just on the mobile side this time: correct dead code beats a TODO that
+  someone has to remember to come back and write later.
+- **Send failures show one inline error line, not a per-message retry UI** — the typed
+  text stays in the compose box either way (nothing is lost), so a simple error banner
+  covers the same practical need as the mockup's fuller retry affordance.
+
+---
+
+## 2026-10-11 — Milestone 1 Step 1.8: Chat (backend)
+
+- **`mart_message` notification rows and push are NOT created by `POST /mart/threads`
+  or `POST /:threadId/messages` in this step** — the build plan's own table lists
+  "mart_message notification + push" as Step 1.9's deliverable, separate from Chat
+  itself. Sending a message fully works (thread/message rows, previews, unread
+  tracking); only the notification side is deferred one step, deliberately, not missed.
+- **Thread visibility (the 7-day closed-window rule) and the blocked-pair exclusion are
+  computed in application code, not a single Prisma `where` filter** — the window rule
+  needs the *minimum* of two possibly-null date columns, and the blocked check needs to
+  know which side of each row is "the other person" (it varies per row), neither of
+  which Prisma can express declaratively. Extracted as a pure, exported
+  `isThreadListingVisible()` so the logic is unit-tested directly rather than trusted
+  blind.
+- **A removed listing's title/thumbnail in the inbox fall back to the snapshot taken at
+  thread creation; an active-but-sold listing still shows its live, current title** —
+  read literally from `03-api.md` §8's own wording ("Snapshot title/thumb are used if
+  the listing is removed"), which only mentions the removed case.
+
+---
+
 ## 2026-10-11 — Milestone 1 Step 1.7: Favorites
 
 - **Backend**: a removed ad's favorite card is deliberately minimal (`id`, `title`,

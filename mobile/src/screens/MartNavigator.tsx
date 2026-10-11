@@ -7,6 +7,8 @@ import DetailScreen from './mart/DetailScreen'
 import MyMartScreen from './mart/MyMartScreen'
 import MyAdsScreen from './mart/MyAdsScreen'
 import FavoritesScreen from './mart/FavoritesScreen'
+import ChatInboxScreen from './mart/ChatInboxScreen'
+import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -23,10 +25,13 @@ import FavoritesScreen from './mart/FavoritesScreen'
 // Parts strip, so tapping a similar ad stacks another Detail rather than replacing it).
 // Step 1.5: 'postAd' optionally carries `editing`, pushed from Detail's Edit button —
 // same screen, prefilled, PATCH instead of POST. Step 1.6 adds 'myMart' and 'myAds'.
-// Step 1.7 adds 'favorites' (also keeps the bottom tab bar visible, per §0.2 — none of
-// these three are in FULL_SCREEN below). Screens whose destination isn't built yet
-// (Messages, Notifications, Mark Sold, Relist, Message Seller) are stubbed with a plain
-// Alert from inside the relevant screen itself for now.
+// Step 1.7 adds 'favorites'. Step 1.8 adds 'inbox' and 'thread' — 'thread' carries a
+// ChatThreadEntry (an existing threadId, or a "draft" with a listing snapshot for
+// Message Seller's first-ever message, per 03-api.md §8). None of these 5 are in
+// FULL_SCREEN below, so the bottom tab bar stays visible on all of them except
+// 'thread' (a full-screen chat, same as the real app's existing booking chat).
+// Notifications and Mark Sold/Relist/Confirm-purchase/Report/Block are still stubbed
+// with a plain Alert from inside the relevant screen itself for now.
 type MartStackEntry =
   | { screen: 'home' }
   | { screen: 'filters' }
@@ -35,10 +40,12 @@ type MartStackEntry =
   | { screen: 'myMart' }
   | { screen: 'myAds' }
   | { screen: 'favorites' }
+  | { screen: 'inbox' }
+  | { screen: 'thread'; entry: ChatThreadEntry }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
-const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange }: {
   onExit: () => void
@@ -79,6 +86,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onOpenMyMart={() => push({ screen: 'myMart' })}
         onOpenFavorites={() => push({ screen: 'favorites' })}
+        onOpenMessages={() => push({ screen: 'inbox' })}
       />
     )
   }
@@ -118,6 +126,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onEdit={listing => push({ screen: 'postAd', editing: { listingId: current.listingId, listing } })}
+        onOpenThread={entry => push({ screen: 'thread', entry })}
       />
     )
   }
@@ -149,6 +158,27 @@ export default function MartNavigator({ onExit, token, onFullScreenChange }: {
     return (
       <FavoritesScreen
         token={token}
+        onBack={pop}
+        onOpenListing={id => push({ screen: 'detail', listingId: id })}
+      />
+    )
+  }
+
+  if (current.screen === 'inbox') {
+    return (
+      <ChatInboxScreen
+        token={token}
+        onBack={pop}
+        onOpenThread={threadId => push({ screen: 'thread', entry: { kind: 'thread', threadId } })}
+      />
+    )
+  }
+
+  if (current.screen === 'thread') {
+    return (
+      <ChatThreadScreen
+        token={token}
+        entry={current.entry}
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
       />
