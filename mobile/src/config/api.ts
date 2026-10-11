@@ -117,6 +117,26 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to delete ad')
     return data
   },
+  favoriteMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/favorites`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ listingId }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to save')
+    return data
+  },
+  unfavoriteMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/favorites/${listingId}`, { method: 'DELETE', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to remove')
+    return data
+  },
+  getMartFavorites: async (token: string, params: { filter: 'all' | 'available' | 'closed'; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null; count: number }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/favorites?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load favorites')
+    return data
+  },
   getMyMartAds: async (token: string, params: { type: 'selling' | 'wanted'; tab: string; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null; counts: Record<string, number> }> => {
     const qs = new URLSearchParams()
     for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }

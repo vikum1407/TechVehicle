@@ -19,13 +19,12 @@ type Card = {
 }
 
 // Spec: 04-screens.md §1. Selling only for now — the Selling|Wanted switch is Milestone 2
-// Step 2.1, so it isn't rendered. Favorites/Messages/Notifications icons and the heart
-// button are present (matching the header layout) but not yet wired to anything real —
-// those screens don't exist until Steps 1.7/1.8/2.9, so tapping them is a harmless no-op
-// for now rather than a fake, unpersisted favorite toggle. My Mart (Step 1.6) and card
-// taps (Step 1.4) open real screens.
+// Step 2.1, so it isn't rendered. Messages/Notifications icons are present (matching the
+// header layout) but not yet wired to anything real — those screens don't exist until
+// Steps 1.8/2.9, so tapping them is a harmless no-op for now. Favorites (heart icon and
+// heart button, Step 1.7), My Mart (Step 1.6) and card taps (Step 1.4) open real screens.
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart,
+  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites,
 }: {
   token: string
   filters: MartFilters
@@ -34,6 +33,7 @@ export default function MartHomeScreen({
   onOpenPostAd: () => void
   onOpenListing: (id: string) => void
   onOpenMyMart: () => void
+  onOpenFavorites: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -90,12 +90,24 @@ export default function MartHomeScreen({
   const filterCount = activeFilterCount(filters)
   const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
 
+  // "Toggle, optimistic, revert on error. No navigation." (04-screens.md §1 Behavior)
+  const toggleFavorite = async (item: Card) => {
+    const wasFavorited = item.isFavorited
+    setItems(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: !wasFavorited } : i)))
+    try {
+      if (wasFavorited) await api.unfavoriteMartListing(token, item.id)
+      else await api.favoriteMartListing(token, item.id)
+    } catch {
+      setItems(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: wasFavorited } : i)))
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.headerTitle}>Vocksy Mart</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenFavorites} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'heart-outline' }} size={22} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -187,7 +199,7 @@ export default function MartHomeScreen({
               status={item.status === 'reserved' ? 'reserved' : 'available'}
               isFavorited={item.isFavorited}
               onPress={() => onOpenListing(item.id)}
-              onToggleFavorite={comingSoon}
+              onToggleFavorite={() => toggleFavorite(item)}
             />
           )}
         />

@@ -13,13 +13,14 @@ import NameDistrictSheet from './NameDistrictSheet'
 
 // Spec: 04-screens.md §8. Edit reuses Step 1.1's NameDistrictSheet (name + district
 // only — no photo picker here; the full Edit screen with a photo picker and the
-// account-deletion row stays Milestone 3, per Step 0.13's deferral). Favorites,
-// Followings and Reviews rows are "Coming soon" — no backend data source exists for
-// any of them until their own steps (1.7, 2.8, 2.7).
-export default function MyMartScreen({ token, onBack, onOpenMyAds }: {
+// account-deletion row stays Milestone 3, per Step 0.13's deferral). Favorites (Step
+// 1.7) opens a real screen now; Followings and Reviews stay "Coming soon" — no backend
+// data source exists for either until their own steps (2.8, 2.7).
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
+  onOpenFavorites: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -69,7 +70,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds }: {
       sub: `${me.counts.available} available · ${me.counts.reserved} reserved · ${me.counts.sold} sold`,
       onPress: onOpenMyAds,
     },
-    { icon: { lib: 'ion', name: 'heart-outline' }, label: 'Favorites', sub: `${me.counts.favorites} saved ads`, onPress: comingSoon },
+    { icon: { lib: 'ion', name: 'heart-outline' }, label: 'Favorites', sub: `${me.counts.favorites} saved ads`, onPress: onOpenFavorites },
     { icon: { lib: 'ion', name: 'people-outline' }, label: 'Followings', sub: `${me.counts.followings} sellers and shops`, onPress: comingSoon },
     {
       icon: { lib: 'ion', name: 'star-outline' }, label: 'Reviews',

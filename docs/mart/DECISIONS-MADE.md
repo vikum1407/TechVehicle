@@ -4,6 +4,30 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-11 — Milestone 1 Step 1.7: Favorites
+
+- **Backend**: a removed ad's favorite card is deliberately minimal (`id`, `title`,
+  `coverUrl`, `unavailable: 'removed'` — no price/seller/condition), unlike a sold ad
+  which keeps the full card. The spec text says "removed ads return a minimal card"
+  without fully spelling out why; the sensible reading is that a removed ad may have
+  been taken down for a reason (policy, report) that the person who favorited it has no
+  particular need to see more detail about.
+- **Backend**: the favorites list's `count` (the "N saved" header number) is computed
+  across **all** favorites regardless of the currently-selected filter chip, but still
+  excludes ads from blocked sellers — consistent with the list itself always excluding
+  them regardless of filter.
+- **Mobile**: tapping a Favorites row for a removed ad just opens Detail like any other
+  row, relying on Detail's own existing 404 state (built in Step 1.4) rather than
+  special-casing "removed" locally — one source of truth for what "no longer available"
+  looks like.
+- **Mobile**: the optimistic favorite-toggle logic is implemented independently in
+  `MartHomeScreen` and `DetailScreen` rather than extracted into a shared hook — each
+  manages a different shape of local state (a card list vs. a single detail object plus
+  a similar-ads list), and with only 2-3 call sites total, a shared abstraction wasn't
+  worth the indirection yet.
+
+---
+
 ## 2026-10-10 — Milestone 1 Step 1.6: My Ads + My Mart
 
 - **`GET /mart/my-ads` lives in its own router file (`myAds.ts`), mounted at

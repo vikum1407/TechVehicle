@@ -21,10 +21,10 @@ import { STORE_URL } from '../../constants/appLinks'
 const W = Dimensions.get('window').width
 
 // Spec: 04-screens.md §3. Edit (Step 1.5) opens the real posting screen, prefilled, via
-// `onEdit`. "Message Seller" (Chat, Step 1.8), "Mark Sold" (Step 2.4), Report (Step 3.1),
-// Favorite persistence (Step 1.7) and Seller profile (Step 2.7) are still stubbed with a
-// plain "Coming soon" alert, same reasoning as Mart Home (Step 1.3) — honest about
-// nothing real happening there yet, rather than faking it.
+// `onEdit`. Favorite (Step 1.7) is real, on both the header heart and the Similar Parts
+// strip. "Message Seller" (Chat, Step 1.8), "Mark Sold" (Step 2.4), Report (Step 3.1)
+// and Seller profile (Step 2.7) are still stubbed with a plain "Coming soon" alert, same
+// reasoning as Mart Home (Step 1.3) — honest about nothing real happening there yet.
 export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit }: {
   token: string
   listingId: string
@@ -61,6 +61,29 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   useEffect(() => { load() }, [listingId])
 
   const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
+
+  const toggleFavorite = async () => {
+    if (!detail) return
+    const wasFavorited = detail.isFavorited
+    setDetail((prev: any) => ({ ...prev, isFavorited: !wasFavorited }))
+    try {
+      if (wasFavorited) await api.unfavoriteMartListing(token, detail.id)
+      else await api.favoriteMartListing(token, detail.id)
+    } catch {
+      setDetail((prev: any) => ({ ...prev, isFavorited: wasFavorited }))
+    }
+  }
+
+  const toggleSimilarFavorite = async (item: any) => {
+    const wasFavorited = item.isFavorited
+    setSimilar(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: !wasFavorited } : i)))
+    try {
+      if (wasFavorited) await api.unfavoriteMartListing(token, item.id)
+      else await api.favoriteMartListing(token, item.id)
+    } catch {
+      setSimilar(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: wasFavorited } : i)))
+    }
+  }
 
   const handleShare = () => {
     if (!detail) return
@@ -108,8 +131,8 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
             <AppIcon icon={{ lib: 'ion', name: 'share-outline' }} size={20} color={colors.text} />
           </TouchableOpacity>
           {!detail.isOwner && (
-            <TouchableOpacity onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <AppIcon icon={{ lib: detail.isFavorited ? 'ion' : 'ion', name: detail.isFavorited ? 'heart' : 'heart-outline' }} size={20} color={colors.accent} />
+            <TouchableOpacity onPress={toggleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <AppIcon icon={{ lib: 'ion', name: detail.isFavorited ? 'heart' : 'heart-outline' }} size={20} color={colors.accent} />
             </TouchableOpacity>
           )}
           {!detail.isOwner && (
@@ -222,7 +245,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                     status={item.status === 'reserved' ? 'reserved' : 'available'}
                     isFavorited={item.isFavorited}
                     onPress={() => onOpenListing(item.id)}
-                    onToggleFavorite={comingSoon}
+                    onToggleFavorite={() => toggleSimilarFavorite(item)}
                   />
                 </View>
               )}
