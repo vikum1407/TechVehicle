@@ -194,7 +194,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           </View>
           {detail.deliveryAvailable ? (
             <View style={styles.metaRow}>
-              <AppIcon icon={{ lib: 'ion', name: 'car-outline' }} size={13} color={colors.success} />
+              <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />
               <Text style={[styles.metaText, { color: colors.success }]}>Delivery available</Text>
             </View>
           ) : null}
@@ -256,6 +256,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                     districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
                     status={item.status === 'reserved' ? 'reserved' : 'available'}
                     isFavorited={item.isFavorited}
+                    deliveryAvailable={item.deliveryAvailable}
                     onPress={() => onOpenListing(item.id)}
                     onToggleFavorite={() => toggleSimilarFavorite(item)}
                   />

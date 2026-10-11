@@ -9,7 +9,7 @@ import { formatLKR } from '../../utils/martHelpers'
 // Spec: 04-screens.md §1 "Mart Home (Browse Feed)" — the 2-column grid card. Selling
 // ads only (Wanted has its own distinct card design, §12 — not this component).
 export default function MartListingCard({
-  title, coverUrl, price, condition, districtLabel, status, isFavorited, onPress, onToggleFavorite,
+  title, coverUrl, price, condition, districtLabel, status, isFavorited, deliveryAvailable, onPress, onToggleFavorite,
 }: {
   title: string
   coverUrl: string | null
@@ -18,6 +18,7 @@ export default function MartListingCard({
   districtLabel: string
   status: 'available' | 'reserved'
   isFavorited: boolean
+  deliveryAvailable?: boolean
   onPress: () => void
   onToggleFavorite: () => void
 }) {
@@ -48,6 +49,12 @@ export default function MartListingCard({
             <MartTag label={condition === 'new' ? 'New' : 'Used'} variant={condition === 'new' ? 'amber-soft' : 'gray'} />
           </View>
         ) : null}
+
+        {deliveryAvailable ? (
+          <View style={styles.deliveryBadge}>
+            <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color="#fff" />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.info}>
@@ -74,6 +81,10 @@ function makeStyles(c: Colors) {
     },
     reservedWrap: { position: 'absolute', top: 8, left: 8 },
     conditionWrap: { position: 'absolute', bottom: 8, left: 8 },
+    deliveryBadge: {
+      position: 'absolute', bottom: 8, right: 8, width: 24, height: 24, borderRadius: 12,
+      backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
+    },
     info: { padding: 10 },
     title: { fontSize: 13, fontWeight: '600', color: c.text, lineHeight: 17, minHeight: 34 },
     price: { fontSize: 15, fontWeight: '700', color: c.accent, marginTop: 4 },

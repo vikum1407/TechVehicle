@@ -323,6 +323,7 @@ export async function buildListingCards(listings: any[], viewerPhone: string) {
       price: listing.price, budgetMin: listing.budgetMin, budgetMax: listing.budgetMax,
       condition: listing.condition, district: listing.district,
       make: listing.make, model: listing.model,
+      deliveryAvailable: listing.deliveryAvailable,
       status: listing.status, postedAt: listing.postedAt.toISOString(),
       isFavorited: favoritedIds.has(listing.id),
       seller: {

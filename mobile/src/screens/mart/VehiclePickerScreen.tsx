@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, Keyboard, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
@@ -42,6 +42,7 @@ export default function VehiclePickerScreen({
   const finish = (f: number | null, t: number | null) => {
     if (!make) return
     onSelect({ make, model, yearFrom: f, yearTo: t })
+    onClose()
   }
 
   const back = () => {
@@ -56,6 +57,7 @@ export default function VehiclePickerScreen({
   const makeMatches = (m: string) => !makeQ || m.toLowerCase().includes(makeQ)
 
   const chooseMake = (m: string) => {
+    Keyboard.dismiss()
     setMake(m)
     setModel(null)
     setCustomModel('')
@@ -108,6 +110,7 @@ export default function VehiclePickerScreen({
   const sortedModels = [...models].sort((a, b) => a.localeCompare(b)).filter(m => !modelQ || m.toLowerCase().includes(modelQ))
 
   const chooseModel = (m: string | null) => {
+    Keyboard.dismiss()
     setModel(m)
     if (m === null) { finish(null, null); return }
     setStep(3)
@@ -128,7 +131,7 @@ export default function VehiclePickerScreen({
           />
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={() => { setModel(customModel.trim() || null); setStep(3) }}
+            onPress={() => { Keyboard.dismiss(); setModel(customModel.trim() || null); setStep(3) }}
           >
             <Text style={styles.primaryBtnText}>Next</Text>
           </TouchableOpacity>

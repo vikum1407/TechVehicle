@@ -16,6 +16,7 @@ import { MartFilters, DEFAULT_MART_FILTERS, activeFilterCount } from './FiltersS
 type Card = {
   id: string; title: string; coverUrl: string | null; price: number | null
   condition: 'new' | 'used' | null; district: string; status: string; isFavorited: boolean
+  deliveryAvailable: boolean
 }
 
 // Spec: 04-screens.md §1. Selling only for now — the Selling|Wanted switch is Milestone 2
@@ -209,6 +210,7 @@ export default function MartHomeScreen({
               districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
               status={item.status === 'reserved' ? 'reserved' : 'available'}
               isFavorited={item.isFavorited}
+              deliveryAvailable={item.deliveryAvailable}
               onPress={() => onOpenListing(item.id)}
               onToggleFavorite={() => toggleFavorite(item)}
             />
