@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, Image, Switch,
-  ActivityIndicator, Alert, Modal, StyleSheet,
+  ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -288,7 +288,8 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
         <Text style={styles.label}>What are you posting?</Text>
@@ -466,6 +467,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
           </Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       <Modal visible={categoryPickerOpen} animationType="slide" onRequestClose={() => setCategoryPickerOpen(false)}>
         <CategoryPickerScreen onSelect={setCategory} onClose={() => setCategoryPickerOpen(false)} />

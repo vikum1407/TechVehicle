@@ -168,8 +168,15 @@ router.post('/', requireProfile, requireRules, async (req: AuthRequest, res) => 
   const result = validateListingCreate(req.body, process.env.R2_PUBLIC_URL || '')
   if (!result.ok) { res.status(400).json({ error: result.error, code: result.code }); return }
 
+  // Prisma's schema default (`status @default("available")`) is only correct for
+  // selling ads — a wanted ad's initial status is "open" (02-data-model.md §3.2).
+  // Set explicitly here (create only); PATCH must never touch status, which is why this
+  // isn't in validateListingCreate()'s shared return (PATCH reuses that same validator).
   const listing = await prisma.martListing.create({
-    data: { ...result.data, ownerPhone: req.phoneNumber! } satisfies Prisma.MartListingUncheckedCreateInput,
+    data: {
+      ...result.data, ownerPhone: req.phoneNumber!,
+      status: result.data.type === 'selling' ? 'available' : 'open',
+    } satisfies Prisma.MartListingUncheckedCreateInput,
   })
 
   res.status(201).json({ id: listing.id })
