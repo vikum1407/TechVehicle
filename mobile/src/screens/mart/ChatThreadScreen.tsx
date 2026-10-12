@@ -10,6 +10,8 @@ import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
 import { formatLKR } from '../../utils/martHelpers'
+import NameDistrictSheet from './NameDistrictSheet'
+import MartRulesScreen from './MartRulesScreen'
 
 const MESSAGE_MAX = 1000
 const CLOSED_VISIBLE_DAYS = 7
@@ -44,6 +46,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   const [composeText, setComposeText] = useState(entry.kind === 'draft' ? entry.prefilledText : '')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
+  const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -93,6 +96,8 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
         setComposeText('')
       }
     } catch (e: any) {
+      if (e.code === 'PROFILE_REQUIRED') { setGateStep('nameDistrict'); return }
+      if (e.code === 'RULES_REQUIRED') { setGateStep('rules'); return }
       setSendError(e.message || "Couldn't send. Check your connection and try again.")
     } finally {
       setSending(false)
@@ -142,6 +147,22 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
     )
   }
 
+  // Spec parity with PostAdScreen's first-action gate (04-screens.md §22): sending a
+  // message hits the same requireProfile/requireRules backend checks as posting an ad,
+  // but unlike Post Ad this screen is reached from many places (not just one entry
+  // point), so the gate is handled lazily here — only shown once a send actually fails
+  // with PROFILE_REQUIRED/RULES_REQUIRED — rather than checked eagerly on every open.
+  if (gateStep === 'rules') {
+    return (
+      <MartRulesScreen
+        mode="firstAction"
+        token={token}
+        onBack={() => setGateStep(null)}
+        onAccepted={() => { setGateStep(null); handleSend() }}
+      />
+    )
+  }
+
   // Unified view of the pinned-bar fields, whichever mode we're in. `threadData.listing
   // .title` is already resolved server-side to the snapshot (if removed) or live title.
   const title = threadData ? threadData.listing.title : (entry as any).title
@@ -162,7 +183,8 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   })()
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
@@ -290,6 +312,14 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
         </View>
       )}
     </KeyboardAvoidingView>
+
+    <NameDistrictSheet
+      visible={gateStep === 'nameDistrict'}
+      token={token}
+      onDone={() => { setGateStep(null); handleSend() }}
+      onClose={() => setGateStep(null)}
+    />
+    </>
   )
 }
 

@@ -22,6 +22,15 @@ Response.prototype.json = function (this: Response) {
   })
 }
 
+// Preserves the backend's `code` field (e.g. PROFILE_REQUIRED, RULES_REQUIRED) on the
+// thrown Error so callers that need to react to a specific failure (not just show the
+// message) can check `err.code` instead of string-matching `err.message`.
+function apiFail(data: any, fallback: string): Error {
+  const err = new Error(data?.error || fallback) as Error & { code?: string }
+  if (data?.code) err.code = data.code
+  return err
+}
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'
 
 const authHeaders = (token: string) => ({
@@ -146,7 +155,7 @@ export const api = {
   openMartThread: async (token: string, listingId: string, text: string): Promise<{ threadId: string; created: boolean }> => {
     const res = await fetch(`${API_URL}/mart/threads`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ listingId, text }) })
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to open conversation')
+    if (!res.ok) throw apiFail(data, 'Failed to open conversation')
     return data
   },
   getMartThreads: async (token: string, params: { role?: 'buying' | 'selling'; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null }> => {
@@ -173,7 +182,7 @@ export const api = {
   sendMartMessage: async (token: string, threadId: string, text: string): Promise<{ message: any }> => {
     const res = await fetch(`${API_URL}/mart/threads/${threadId}/messages`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ text }) })
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Failed to send')
+    if (!res.ok) throw apiFail(data, 'Failed to send')
     return data
   },
   markMartThreadRead: async (token: string, threadId: string): Promise<{ ok: true }> => {
