@@ -35,7 +35,7 @@ import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
 type MartStackEntry =
   | { screen: 'home' }
   | { screen: 'filters' }
-  | { screen: 'postAd'; editing?: EditingListing }
+  | { screen: 'postAd'; editing?: EditingListing; initialType?: 'selling' | 'wanted' }
   | { screen: 'detail'; listingId: string }
   | { screen: 'myMart' }
   | { screen: 'myAds' }
@@ -95,7 +95,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         filters={filters}
         onFiltersChange={setFilters}
         onOpenFilters={() => push({ screen: 'filters' })}
-        onOpenPostAd={() => push({ screen: 'postAd' })}
+        onOpenPostAd={initialType => push({ screen: 'postAd', initialType })}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onOpenMyMart={() => push({ screen: 'myMart' })}
         onOpenFavorites={() => push({ screen: 'favorites' })}
@@ -120,6 +120,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
       <PostAdScreen
         token={token}
         editing={current.editing}
+        initialType={current.initialType}
         onBack={pop}
         onPosted={id => {
           // Spec: "success -> the new ad's Detail." Replace the postAd entry with

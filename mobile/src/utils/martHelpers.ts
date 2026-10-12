@@ -23,6 +23,14 @@ export function timeAgo(t: (key: any, params?: Record<string, string | number>) 
   return t('notifications.daysAgo', { days })
 }
 
+// Wanted budget display per 04-screens.md §12/§19: "Rs. 25,000 – 35,000" (both given),
+// "Up to Rs. 20,000" (min omitted), "Open budget" (neither given).
+export function formatBudget(min: number | null | undefined, max: number | null | undefined): string {
+  if (max === null || max === undefined) return 'Open budget'
+  if (min === null || min === undefined) return `Up to ${formatLKR(max)}`
+  return `${formatLKR(min)} – ${formatLKR(max)}`
+}
+
 export function openPhone(phone: string) {
   Linking.openURL(`tel:${phone}`)
 }

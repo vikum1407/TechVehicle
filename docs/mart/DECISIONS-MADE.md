@@ -4,6 +4,18 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-12 — Milestone 2 Step 2.1: Wanted ads
+
+- **`repliesCount` added to `buildListingCards()` generally, not just `GET /mart/my-ads`.** `03-api.md`'s shared `ListingCard` type comments it as "wanted cards, owner's My Ads only," but `04-screens.md` §12's own Wanted feed card mockup shows "· 3 replies" in every card's meta line, not just the owner's. Went with the screens spec (what's actually testable/visible this step) — one extra `groupBy` query on the page's wanted listing ids, same pattern already used by `my-ads.ts`.
+- **Delivery row dropped from the Wanted ad detail's spec card.** §19 literally lists "Delivery (informational)" as one of the spec card rows, but `deliveryAvailable` is always `false`/ignored for wanted ads (`02-data-model.md` §4.1) — showing a delivery row that can never be anything but "not available" seemed like spec copy-paste residue from the Selling detail screen rather than an intentional row, so it's omitted.
+- **Wanted detail reuses the same full-width paging photo carousel as Selling**, not a separate 150×130 horizontal strip component as §19 describes. Lower-risk reuse of an already-built, already-tested component; the visual difference is minor since Wanted photos are optional reference photos, not the main selling point of the screen.
+- **No "Similar Requests" section on Wanted detail.** §19 doesn't define one (only Selling's §3 has "Similar Parts"), and `MartListingCard` is built for a photo-forward selling card, not a request card — would need a second component for a section the spec never asked for.
+- **"I have this" / "Your request" buttons on Wanted feed cards (`MartRequestCard`) both just open the Wanted Detail screen for now**, same as tapping the card. The real behaviors — opening the Offer sheet, and navigating to "My Ads > Wanted" — depend on Step 2.2 (Offers) and a Wanted tab on My Ads, neither built yet. Detail's own sticky "I have this" button is the one that's honestly stubbed "Coming soon," consistent with every other not-yet-built action this build.
+- **My Ads and Filters stay Selling-only this step**, even though `my-ads.ts`'s backend was already fully wanted-aware since Step 1.6. Step 2.1's own "Done when" check (`05-build-plan.md`) only requires posting, the Wanted feed, and `matchesYou` — not a My Ads Wanted tab or Wanted-aware Filters UI. Revisit when Step 2.2 (Offers list is entered via "My Ads > Wanted") needs it.
+- **Filters screen's Price fields can theoretically leak into Wanted mode's budget-overlap filter** if a tester sets a Selling price filter, then switches to Wanted without clearing it (the backend already treats the same `priceMin`/`priceMax` params as budget overlap for `type=wanted`, by original design). Known, low-probability edge case given Filters stays Selling-only this step — not fixed now, would be resolved naturally once Filters gets Wanted-awareness.
+
+---
+
 ## 2026-10-11 — Milestone 1 Step 1.9: Push for messages
 
 - **`mart_message` rows go into the existing, shared `AppNotification` table with no

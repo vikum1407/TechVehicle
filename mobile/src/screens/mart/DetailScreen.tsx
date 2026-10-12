@@ -14,18 +14,28 @@ import RatingBadge from '../../components/mart/RatingBadge'
 import MartPhotoViewer from '../../components/mart/MartPhotoViewer'
 import MartListingCard from '../../components/mart/MartListingCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
-import { formatLKR, timeAgo } from '../../utils/martHelpers'
+import { formatLKR, formatBudget, timeAgo } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
+import { MART_CATEGORIES } from '../../constants/martCategories'
 import { ChatThreadEntry } from './ChatThreadScreen'
 
 const W = Dimensions.get('window').width
 
-// Spec: 04-screens.md §3. Edit (Step 1.5) opens the real posting screen, prefilled, via
-// `onEdit`. Favorite (Step 1.7) is real, on both the header heart and the Similar Parts
-// strip. "Message Seller" (Chat, Step 1.8), "Mark Sold" (Step 2.4), Report (Step 3.1)
-// and Seller profile (Step 2.7) are still stubbed with a plain "Coming soon" alert, same
-// reasoning as Mart Home (Step 1.3) — honest about nothing real happening there yet.
+// Spec: 04-screens.md §3 (Selling) + §19 (Wanted, Milestone 2 Step 2.1) — one screen,
+// branched on `detail.type === 'wanted'` since both are "A ListingDetail with a
+// different top section" rather than two unrelated screens (shared header, carousel/
+// photo strip, photo viewer, Favorite, Share, Edit). Edit (Step 1.5) opens the real
+// posting screen, prefilled, via `onEdit`, now type-aware too. Favorite (Step 1.7) is
+// real, on both the header heart and the Similar Parts strip (selling only — Wanted has
+// no Similar section, per §19 not defining one and MartListingCard not fitting a request
+// card's shape). "Message Seller"/"I have this" (needs Chat for selling, the Offer sheet
+// for wanted — Step 2.2), "Mark Sold"/"Mark Fulfilled" (Step 2.4), Report (Step 3.1) and
+// Seller profile (Step 2.7) are still stubbed with a plain "Coming soon" alert, same
+// reasoning as Mart Home (Step 1.3) — honest about nothing real happening there yet. The
+// owner "Offers banner" always shows the 0-offers empty state for the same reason
+// (offersCount isn't computed until 2.2, same deferral pattern as Step 1.1's
+// unreadThreads/Step 1.4's deal fields).
 export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread }: {
   token: string
   listingId: string
@@ -100,9 +110,16 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const handleShare = () => {
     if (!detail) return
     const districtLabel = DISTRICTS.find(d => d.id === detail.district)?.en || detail.district
-    const priceText = detail.price !== null ? formatLKR(detail.price) : ''
+    const priceText = detail.type === 'wanted' ? formatBudget(detail.budgetMin, detail.budgetMax) : (detail.price !== null ? formatLKR(detail.price) : '')
     const message = [detail.title, priceText, districtLabel].filter(Boolean).join(' • ') + ' — on Vocksy Mart' + (STORE_URL ? `\n${STORE_URL}` : '')
     Share.share({ message })
+  }
+
+  const categoryPathLabel = (categoryId: string, categoryTypeId: string | null) => {
+    const cat = MART_CATEGORIES.find(c => c.id === categoryId)
+    if (!cat) return ''
+    const type = categoryTypeId ? cat.types.find(t => t.id === categoryTypeId) : null
+    return type ? `${cat.en} › ${type.en}` : cat.en
   }
 
   if (loading) {
@@ -123,14 +140,19 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
     )
   }
 
-  const statusTag = detail.status === 'sold'
-    ? <MartTag label="Sold" variant="gray" />
+  const isWanted = detail.type === 'wanted'
+
+  const statusTag = detail.status === 'sold' || detail.status === 'fulfilled'
+    ? <MartTag label={isWanted ? 'Fulfilled' : 'Sold'} variant="gray" />
     : detail.status === 'reserved'
     ? <MartTag label="Reserved" variant="amber-soft" />
     : <MartTag label="Available" variant="success-outline" />
 
   const districtLabel = DISTRICTS.find(d => d.id === detail.district)?.en || detail.district
   const sellerSub = [districtLabel, `${detail.seller.activeAdsCount} active ad${detail.seller.activeAdsCount === 1 ? '' : 's'}`].join(' • ')
+  const vehicleSpecLabel = detail.make
+    ? `${detail.make}${detail.model ? ` ${detail.model}` : ''}${detail.yearFrom ? ` ${detail.yearFrom}${detail.yearTo && detail.yearTo !== detail.yearFrom ? `–${detail.yearTo}` : ''}` : ''}`
+    : 'Any'
 
   return (
     <View style={styles.container}>
@@ -156,60 +178,97 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.carouselWrap}>
-          {detail.photoUrls.length > 0 ? (
-            <FlatList
-              data={detail.photoUrls}
-              keyExtractor={(_, i) => String(i)}
-              horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={e => setCarouselIndex(Math.round(e.nativeEvent.contentOffset.x / W))}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity activeOpacity={0.95} onPress={() => setPhotoViewerIndex(index)}>
-                  <Image source={{ uri: item }} style={[styles.carouselImage, detail.status === 'sold' && styles.grayedImage]} resizeMode="cover" />
-                </TouchableOpacity>
-              )}
-            />
+        {(!isWanted || detail.photoUrls.length > 0) ? (
+          <View style={styles.carouselWrap}>
+            {detail.photoUrls.length > 0 ? (
+              <FlatList
+                data={detail.photoUrls}
+                keyExtractor={(_, i) => String(i)}
+                horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={e => setCarouselIndex(Math.round(e.nativeEvent.contentOffset.x / W))}
+                renderItem={({ item, index }) => (
+                  <TouchableOpacity activeOpacity={0.95} onPress={() => setPhotoViewerIndex(index)}>
+                    <Image source={{ uri: item }} style={[styles.carouselImage, (detail.status === 'sold' || detail.status === 'fulfilled') && styles.grayedImage]} resizeMode="cover" />
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <View style={[styles.carouselImage, styles.imagePlaceholder]}>
+                <AppIcon icon={{ lib: 'ion', name: 'cog-outline' }} size={48} color={colors.textFaint} />
+              </View>
+            )}
+            {!isWanted ? <View style={styles.statusPillWrap}>{statusTag}</View> : null}
+            {detail.photoUrls.length > 1 && (
+              <View style={styles.dotsRow}>
+                {detail.photoUrls.map((_: string, i: number) => (
+                  <View key={i} style={[styles.dot, i === carouselIndex && styles.dotActive]} />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        <View style={styles.infoBlock}>
+          {isWanted ? (
+            <>
+              <View style={styles.chipRow}>
+                <MartTag label="Wanted" variant="amber-soft" />
+                {detail.status === 'fulfilled' ? <MartTag label="Fulfilled" variant="gray" /> : null}
+                {detail.matchesYou && !detail.isOwner ? <MartTag label="Matches you" variant="amber-soft" /> : null}
+                {detail.isOwner ? <MartTag label="Your request" variant="gray" /> : null}
+              </View>
+              <Text style={styles.metaText}>Posted {timeAgo(t, detail.postedAt)}</Text>
+              <Text style={styles.title}>{detail.title}</Text>
+              <Text style={styles.budgetLabel}>Budget</Text>
+              <Text style={styles.price}>{formatBudget(detail.budgetMin, detail.budgetMax)}</Text>
+            </>
           ) : (
-            <View style={[styles.carouselImage, styles.imagePlaceholder]}>
-              <AppIcon icon={{ lib: 'ion', name: 'cog-outline' }} size={48} color={colors.textFaint} />
-            </View>
-          )}
-          <View style={styles.statusPillWrap}>{statusTag}</View>
-          {detail.photoUrls.length > 1 && (
-            <View style={styles.dotsRow}>
-              {detail.photoUrls.map((_: string, i: number) => (
-                <View key={i} style={[styles.dot, i === carouselIndex && styles.dotActive]} />
-              ))}
-            </View>
+            <>
+              {detail.condition ? <MartTag label={detail.condition === 'new' ? 'New' : 'Used'} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : null}
+              <Text style={styles.price}>{detail.price !== null ? formatLKR(detail.price) : ''}</Text>
+              <Text style={styles.title}>{detail.title}</Text>
+              <View style={styles.metaRow}>
+                <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
+                <Text style={styles.metaText}>{districtLabel} • Posted {timeAgo(t, detail.postedAt)}</Text>
+              </View>
+              {detail.deliveryAvailable ? (
+                <View style={styles.metaRow}>
+                  <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />
+                  <Text style={[styles.metaText, { color: colors.success }]}>Delivery available</Text>
+                </View>
+              ) : null}
+              {detail.make ? (
+                <View style={styles.chipRow}>
+                  <View style={styles.vehicleChip}><Text style={styles.vehicleChipText}>{detail.make}</Text></View>
+                  {detail.model ? <View style={styles.vehicleChip}><Text style={styles.vehicleChipText}>{detail.model}</Text></View> : null}
+                  {detail.yearFrom ? (
+                    <View style={styles.vehicleChip}>
+                      <Text style={styles.vehicleChipText}>{detail.yearFrom}{detail.yearTo && detail.yearTo !== detail.yearFrom ? `–${detail.yearTo}` : ''}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+            </>
           )}
         </View>
 
-        <View style={styles.infoBlock}>
-          {detail.condition ? <MartTag label={detail.condition === 'new' ? 'New' : 'Used'} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : null}
-          <Text style={styles.price}>{detail.price !== null ? formatLKR(detail.price) : ''}</Text>
-          <Text style={styles.title}>{detail.title}</Text>
-          <View style={styles.metaRow}>
-            <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
-            <Text style={styles.metaText}>{districtLabel} • Posted {timeAgo(t, detail.postedAt)}</Text>
+        {isWanted ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.infoBlock}>
+              <View style={styles.specRow}><Text style={styles.specLabel}>Category</Text><Text style={styles.specValue}>{categoryPathLabel(detail.categoryId, detail.categoryTypeId)}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>Vehicle</Text><Text style={styles.specValue}>{vehicleSpecLabel}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>Condition</Text><Text style={styles.specValue}>Either</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>District</Text><Text style={styles.specValue}>{districtLabel}</Text></View>
+            </View>
+          </>
+        ) : null}
+
+        {isWanted && detail.isOwner ? (
+          <View style={styles.infoBlock}>
+            <View style={styles.offersBannerEmpty}><Text style={styles.offersBannerEmptyText}>No offers yet</Text></View>
           </View>
-          {detail.deliveryAvailable ? (
-            <View style={styles.metaRow}>
-              <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />
-              <Text style={[styles.metaText, { color: colors.success }]}>Delivery available</Text>
-            </View>
-          ) : null}
-          {detail.make ? (
-            <View style={styles.chipRow}>
-              <View style={styles.vehicleChip}><Text style={styles.vehicleChipText}>{detail.make}</Text></View>
-              {detail.model ? <View style={styles.vehicleChip}><Text style={styles.vehicleChipText}>{detail.model}</Text></View> : null}
-              {detail.yearFrom ? (
-                <View style={styles.vehicleChip}>
-                  <Text style={styles.vehicleChipText}>{detail.yearFrom}{detail.yearTo && detail.yearTo !== detail.yearFrom ? `–${detail.yearTo}` : ''}</Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
+        ) : null}
 
         {detail.description ? (
           <>
@@ -235,7 +294,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={18} color={colors.textMuted} />
         </TouchableOpacity>
 
-        {similar.length > 0 ? (
+        {!isWanted && similar.length > 0 ? (
           <>
             <View style={styles.divider} />
             <View style={styles.infoBlock}>
@@ -274,9 +333,17 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.markSoldBtn} onPress={comingSoon}>
-              <Text style={styles.markSoldBtnText}>Mark Sold</Text>
+              <Text style={styles.markSoldBtnText}>{isWanted ? 'Mark Fulfilled' : 'Mark Sold'}</Text>
             </TouchableOpacity>
           </View>
+        ) : isWanted ? (
+          detail.status === 'fulfilled' ? (
+            <View style={styles.soldBar}><Text style={styles.soldBarText}>This request is closed</Text></View>
+          ) : (
+            <TouchableOpacity style={styles.messageBtn} onPress={comingSoon}>
+              <Text style={styles.messageBtnText}>I have this</Text>
+            </TouchableOpacity>
+          )
         ) : detail.status === 'sold' ? (
           <View style={styles.soldBar}><Text style={styles.soldBarText}>This item was sold</Text></View>
         ) : (
@@ -320,6 +387,12 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
 
     infoBlock: { padding: 16, gap: 6 },
     price: { fontSize: 22, fontWeight: '700', color: c.accent },
+    budgetLabel: { fontSize: 12, color: c.textMuted, marginTop: 6 },
+    specRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    specLabel: { fontSize: 13, color: c.textMuted },
+    specValue: { fontSize: 13, fontWeight: '600', color: c.textBody, flexShrink: 1, textAlign: 'right' },
+    offersBannerEmpty: { backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 14, alignItems: 'center' },
+    offersBannerEmptyText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
     title: { fontSize: 16, fontWeight: '700', color: c.text },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     metaText: { fontSize: 12.5, color: c.textMuted },

@@ -305,14 +305,37 @@ function orderBy(sort: SortMode, type: string): Prisma.MartListingOrderByWithRel
 export async function buildListingCards(listings: any[], viewerPhone: string) {
   if (listings.length === 0) return []
   const ownerPhones = [...new Set(listings.map(r => r.ownerPhone))]
-  const [users, tagMap, ratingMap, favoriteRows] = await Promise.all([
+  const hasWanted = listings.some(r => r.type === 'wanted')
+  const wantedIds = listings.filter(r => r.type === 'wanted').map(r => r.id)
+  const [users, tagMap, ratingMap, favoriteRows, myAdPairs, replyGroups] = await Promise.all([
     prisma.user.findMany({ where: { phoneNumber: { in: ownerPhones } }, select: { id: true, phoneNumber: true, displayName: true } }),
     getSellerTags(prisma, ownerPhones),
     getSellerRatings(prisma, ownerPhones),
     prisma.martFavorite.findMany({ where: { userPhone: viewerPhone, listingId: { in: listings.map(r => r.id) } }, select: { listingId: true } }),
+    // Spec: 02-data-model.md §8 "Matches you" — one query for the whole page, not one
+    // per wanted card. Only run it when the page actually has a wanted listing to check.
+    hasWanted
+      ? prisma.martListing.findMany({
+          where: { ownerPhone: viewerPhone, type: 'selling', removedAt: null },
+          select: { categoryId: true, makeNorm: true },
+          distinct: ['categoryId', 'makeNorm'],
+        })
+      : Promise.resolve([] as { categoryId: string; makeNorm: string | null }[]),
+    // "Replies" shown on every Wanted request card (04-screens.md §12's meta line), not
+    // just My Ads — a thread only exists once it has >= 1 message (03-api.md §23 point
+    // 11), so a plain groupBy count needs no extra message-count filter.
+    wantedIds.length > 0
+      ? prisma.martThread.groupBy({ by: ['listingId'], where: { listingId: { in: wantedIds } }, _count: { _all: true } })
+      : Promise.resolve([] as { listingId: string; _count: { _all: number } }[]),
   ])
   const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
   const favoritedIds = new Set(favoriteRows.map(f => f.listingId))
+  const replyCountMap = new Map(replyGroups.map(g => [g.listingId, g._count._all]))
+  const matchesYou = (listing: any) =>
+    listing.type === 'wanted' && myAdPairs.some(ad =>
+      ad.categoryId === listing.categoryId &&
+      (listing.makeNorm === null || ad.makeNorm === null || ad.makeNorm === listing.makeNorm)
+    )
 
   return listings.map(listing => {
     const owner = userByPhone.get(listing.ownerPhone)
@@ -334,6 +357,9 @@ export async function buildListingCards(listings: any[], viewerPhone: string) {
       categoryId: listing.categoryId,
       statusChangedAt: listing.statusChangedAt.toISOString(),
       closedAt: listing.closedAt ? listing.closedAt.toISOString() : null,
+      ...(listing.type === 'wanted'
+        ? { matchesYou: matchesYou(listing), repliesCount: replyCountMap.get(listing.id) || 0 }
+        : {}),
     }
   })
 }

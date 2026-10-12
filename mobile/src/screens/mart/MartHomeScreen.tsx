@@ -6,24 +6,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
 import { api } from '../../config/api'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../../components/AppIcon'
 import MartListingCard from '../../components/mart/MartListingCard'
+import MartRequestCard from '../../components/mart/MartRequestCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { DISTRICTS } from '../../constants/districts'
+import { timeAgo } from '../../utils/martHelpers'
 import { MartFilters, DEFAULT_MART_FILTERS, activeFilterCount } from './FiltersScreen'
+
+type MartType = 'selling' | 'wanted'
 
 type Card = {
   id: string; title: string; coverUrl: string | null; price: number | null
   condition: 'new' | 'used' | null; district: string; status: string; isFavorited: boolean
   deliveryAvailable: boolean
+  // Wanted-only fields (03-api.md §0 ListingCard)
+  make: string | null; model: string | null; yearFrom: number | null; yearTo: number | null
+  categoryId: string; budgetMin: number | null; budgetMax: number | null
+  matchesYou?: boolean; repliesCount?: number; postedAt: string
+  seller: { id: string; name: string }
 }
 
-// Spec: 04-screens.md §1. Selling only for now — the Selling|Wanted switch is Milestone 2
-// Step 2.1, so it isn't rendered. Notifications icon is present (matching the header
-// layout) but not yet wired to anything real — that screen doesn't exist until Step 2.9,
-// so tapping it is a harmless no-op for now. Favorites, My Mart, Messages (Step 1.8,
-// including its unread dot) and card taps all open real screens.
+// Spec: 04-screens.md §1 + §12. Milestone 2 Step 2.1 adds the Selling|Wanted switch —
+// Wanted mode swaps the 2-column grid for a single-column request-card list (§12),
+// everything else (header, search, category chips, bottom bar) stays the same component.
+// Notifications icon is present (matching the header layout) but not yet wired to
+// anything real — that screen doesn't exist until Step 2.9, so tapping it is a harmless
+// no-op for now. Favorites, My Mart, Messages (Step 1.8, including its unread dot) and
+// card taps all open real screens.
 export default function MartHomeScreen({
   token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages,
 }: {
@@ -31,7 +43,7 @@ export default function MartHomeScreen({
   filters: MartFilters
   onFiltersChange: (f: MartFilters) => void
   onOpenFilters: () => void
-  onOpenPostAd: () => void
+  onOpenPostAd: (initialType: MartType) => void
   onOpenListing: (id: string) => void
   onOpenMyMart: () => void
   onOpenFavorites: () => void
@@ -39,8 +51,11 @@ export default function MartHomeScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
+  const [martType, setMartType] = useState<MartType>('selling')
+  const [myId, setMyId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [items, setItems] = useState<Card[]>([])
@@ -52,19 +67,19 @@ export default function MartHomeScreen({
   const [error, setError] = useState(false)
 
   const queryParams = useCallback((cursor?: string) => ({
-    type: 'selling' as const,
+    type: martType,
     q: submittedQuery || undefined,
     categoryId: filters.categoryId || undefined,
     make: filters.make || undefined,
     model: filters.model || undefined,
     yearFrom: filters.yearFrom || undefined,
     yearTo: filters.yearTo || undefined,
-    condition: filters.condition || undefined,
+    condition: martType === 'selling' ? filters.condition || undefined : undefined,
     priceMin: filters.priceMin ?? undefined,
     priceMax: filters.priceMax ?? undefined,
     district: filters.district || undefined,
     cursor,
-  }), [submittedQuery, filters])
+  }), [martType, submittedQuery, filters])
 
   const load = useCallback(async (opts: { cursor?: string; isRefresh?: boolean } = {}) => {
     if (opts.cursor) setLoadingMore(true)
@@ -84,9 +99,12 @@ export default function MartHomeScreen({
     }
   }, [queryParams, token])
 
-  useEffect(() => { load() }, [submittedQuery, filters])
+  useEffect(() => { load() }, [martType, submittedQuery, filters])
   useEffect(() => {
     api.getMartThreadsUnreadCount(token).then(r => setUnreadMessages(r.count > 0)).catch(() => {})
+    // Only needed to tell "Your request" apart from "I have this" on Wanted cards
+    // (04-screens.md §12) — cheap, already-existing endpoint, fetched once on mount.
+    api.getMartMe(token).then(me => setMyId(me.id)).catch(() => {})
   }, [token])
 
   const toggleCategoryChip = (categoryId: string | null) => onFiltersChange({ ...filters, categoryId })
@@ -134,7 +152,7 @@ export default function MartHomeScreen({
           <AppIcon icon={{ lib: 'ion', name: 'search' }} size={16} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search parts, brand, model…"
+            placeholder={martType === 'wanted' ? 'Search wanted requests…' : 'Search parts, brand, model…'}
             placeholderTextColor={colors.textFaint}
             value={searchText}
             onChangeText={setSearchText}
@@ -148,6 +166,24 @@ export default function MartHomeScreen({
             <View style={styles.filterBadge}><Text style={styles.filterBadgeText}>{filterCount}</Text></View>
           ) : null}
         </TouchableOpacity>
+      </View>
+
+      {/* Spec: 04-screens.md §12 "Under the search row: Selling | Wanted segmented
+          switch (gray track, white selected pill)." */}
+      <View style={styles.typeSwitchWrap}>
+        <View style={styles.typeSwitchTrack}>
+          {(['selling', 'wanted'] as const).map(mt => (
+            <TouchableOpacity
+              key={mt}
+              style={[styles.typeSwitchPill, martType === mt && styles.typeSwitchPillActive]}
+              onPress={() => setMartType(mt)}
+            >
+              <Text style={[styles.typeSwitchText, martType === mt && styles.typeSwitchTextActive]}>
+                {mt === 'selling' ? 'Selling' : 'Wanted'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* A plain ScrollView, not FlatList: only 12 categories, no virtualization
@@ -184,13 +220,46 @@ export default function MartHomeScreen({
         <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
-          icon={{ lib: 'ion', name: 'file-tray-outline' }}
-          title="No ads match your search"
-          actionLabel={submittedQuery || filterCount > 0 ? 'Clear filters' : undefined}
-          onAction={submittedQuery || filterCount > 0 ? clearAll : undefined}
+          icon={{ lib: 'ion', name: martType === 'wanted' ? 'search-outline' : 'file-tray-outline' }}
+          title={martType === 'wanted' ? 'No requests yet' : 'No ads match your search'}
+          actionLabel={martType === 'wanted' ? 'Post a request' : (submittedQuery || filterCount > 0 ? 'Clear filters' : undefined)}
+          onAction={martType === 'wanted' ? () => onOpenPostAd('wanted') : (submittedQuery || filterCount > 0 ? clearAll : undefined)}
+        />
+      ) : martType === 'wanted' ? (
+        <FlatList
+          key="wanted"
+          data={items}
+          keyExtractor={i => i.id}
+          contentContainerStyle={styles.requestListContent}
+          refreshing={refreshing}
+          onRefresh={() => load({ isRefresh: true })}
+          onEndReached={() => { if (nextCursor && !loadingMore) load({ cursor: nextCursor }) }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} /> : null}
+          renderItem={({ item }) => (
+            <MartRequestCard
+              title={item.title}
+              matchesYou={!!item.matchesYou}
+              make={item.make}
+              model={item.model}
+              yearFrom={item.yearFrom}
+              yearTo={item.yearTo}
+              categoryId={item.categoryId}
+              budgetMin={item.budgetMin}
+              budgetMax={item.budgetMax}
+              sellerName={item.seller.name}
+              districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
+              ageLabel={timeAgo(t, item.postedAt)}
+              repliesCount={item.repliesCount || 0}
+              isOwner={!!myId && item.seller.id === myId}
+              onPress={() => onOpenListing(item.id)}
+              onAction={() => onOpenListing(item.id)}
+            />
+          )}
         />
       ) : (
         <FlatList
+          key="selling"
           data={items}
           keyExtractor={i => i.id}
           numColumns={2}
@@ -218,7 +287,7 @@ export default function MartHomeScreen({
         />
       )}
 
-      <TouchableOpacity style={styles.postBtn} onPress={onOpenPostAd}>
+      <TouchableOpacity style={styles.postBtn} onPress={() => onOpenPostAd(martType)}>
         <AppIcon icon={{ lib: 'ion', name: 'add' }} size={26} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -240,6 +309,16 @@ function makeStyles(c: Colors, topInset: number) {
       position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4,
       backgroundColor: c.error, borderWidth: 1.5, borderColor: '#fff',
     },
+
+    typeSwitchWrap: { backgroundColor: c.surface, paddingHorizontal: 16, paddingBottom: 12 },
+    typeSwitchTrack: { flexDirection: 'row', backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 3 },
+    typeSwitchPill: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+    typeSwitchPillActive: {
+      backgroundColor: c.surface, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3,
+      shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    },
+    typeSwitchText: { fontSize: 13.5, fontWeight: '600', color: c.textMuted },
+    typeSwitchTextActive: { color: c.text, fontWeight: '700' },
 
     searchRow: { flexDirection: 'row', gap: 10, padding: 16, backgroundColor: c.surface },
     searchBox: {
@@ -271,6 +350,7 @@ function makeStyles(c: Colors, topInset: number) {
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     gridRow: { gap: 12, paddingHorizontal: 16 },
     gridContent: { paddingTop: 12, paddingBottom: 100, gap: 12 },
+    requestListContent: { paddingTop: 12, paddingBottom: 100, paddingHorizontal: 16, gap: 10 },
 
     postBtn: {
       position: 'absolute', right: 16, bottom: 84, width: 52, height: 52, borderRadius: 26,

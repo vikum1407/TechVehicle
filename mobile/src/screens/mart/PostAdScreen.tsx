@@ -25,26 +25,31 @@ const PRICE_MAX = 100_000_000
 
 type Photo = { localUri: string; url: string | null; uploading: boolean; error: string | null }
 
-// Spec: 04-screens.md §2 (Selling only — Wanted posting is Milestone 2 Step 2.1, so the
-// Selling|Wanted switch isn't built yet; this screen always posts type:"selling"). This is
-// also the first real caller of the Step 1.1 pickers and the first-action gate (§22) —
-// the gate runs here before the form is shown at all.
+// Spec: 04-screens.md §2. Milestone 2 Step 2.1 adds the Selling|Wanted switch at the top
+// of this form (disabled in edit mode, same as the spec says) and the Wanted-mode field
+// differences: Condition and delivery toggle hidden, photos optional (0 allowed), Price
+// becomes a Budget Range (min optional, max required if any budget given). This is also
+// the first real caller of the Step 1.1 pickers and the first-action gate (§22) — the
+// gate runs here before the form is shown at all.
 //
 // Step 1.5: `editing` turns this into the Edit screen (same form, prefilled, PATCH
 // instead of POST) per §2's "Entry: ... also used for Edit (same form, prefilled)."
 export type EditingListing = {
   listingId: string
   listing: {
+    type: 'selling' | 'wanted'
     categoryId: string; categoryTypeId: string | null; condition: string | null
     make: string | null; model: string | null; yearFrom: number | null; yearTo: number | null
     title: string; description: string | null; price: number | null
+    budgetMin: number | null; budgetMax: number | null
     district: string; deliveryAvailable: boolean; photoUrls: string[]
   }
 }
 
-export default function PostAdScreen({ token, editing, onBack, onPosted }: {
+export default function PostAdScreen({ token, editing, initialType, onBack, onPosted }: {
   token: string
   editing?: EditingListing
+  initialType?: 'selling' | 'wanted'
   onBack: () => void
   onPosted: (listingId: string) => void
 }) {
@@ -54,6 +59,8 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
 
   const [gateStep, setGateStep] = useState<'loading' | 'nameDistrict' | 'rules' | 'form'>('loading')
 
+  const [type, setType] = useState<'selling' | 'wanted'>(editing?.listing.type ?? initialType ?? 'selling')
+  const isSelling = type === 'selling'
   const [category, setCategory] = useState<CategoryPickerResult | null>(
     editing ? { categoryId: editing.listing.categoryId, categoryTypeId: editing.listing.categoryTypeId } : null
   )
@@ -66,6 +73,8 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
   const [title, setTitle] = useState(editing?.listing.title ?? '')
   const [description, setDescription] = useState(editing?.listing.description ?? '')
   const [price, setPrice] = useState(editing?.listing.price != null ? String(editing.listing.price) : '')
+  const [budgetMin, setBudgetMin] = useState(editing?.listing.budgetMin != null ? String(editing.listing.budgetMin) : '')
+  const [budgetMax, setBudgetMax] = useState(editing?.listing.budgetMax != null ? String(editing.listing.budgetMax) : '')
   const [district, setDistrict] = useState<string | null>(editing?.listing.district ?? null)
   const [districtPickerOpen, setDistrictPickerOpen] = useState(false)
   const [deliveryAvailable, setDeliveryAvailable] = useState(editing?.listing.deliveryAvailable ?? false)
@@ -176,15 +185,24 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
   // ---- Submit ----
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {}
-    if (photos.length === 0) e.photos = 'Add at least 1 photo'
+    if (isSelling && photos.length === 0) e.photos = 'Add at least 1 photo'
     else if (photos.some(p => p.uploading)) e.photos = 'Wait for photos to finish uploading'
     else if (photos.some(p => p.error)) e.photos = 'Remove or retry the failed photo'
     if (!category) e.category = 'Select a category'
-    if (!condition) e.condition = 'Select New or Used'
-    if (!vehicle) e.vehicle = 'Select a vehicle make'
+    if (isSelling && !condition) e.condition = 'Select New or Used'
+    if (isSelling && !vehicle) e.vehicle = 'Select a vehicle make'
     if (!title.trim()) e.title = 'Enter a title'
-    const priceNum = Number(price)
-    if (!price || !Number.isInteger(priceNum) || priceNum < 1 || priceNum > PRICE_MAX) e.price = 'Enter a valid price'
+    if (isSelling) {
+      const priceNum = Number(price)
+      if (!price || !Number.isInteger(priceNum) || priceNum < 1 || priceNum > PRICE_MAX) e.price = 'Enter a valid price'
+    } else if (budgetMin || budgetMax) {
+      const maxNum = Number(budgetMax)
+      if (!budgetMax || !Number.isInteger(maxNum) || maxNum < 1 || maxNum > PRICE_MAX) e.price = 'Enter a valid maximum budget'
+      else if (budgetMin) {
+        const minNum = Number(budgetMin)
+        if (!Number.isInteger(minNum) || minNum < 1 || minNum > maxNum) e.price = 'Minimum budget must not be above the maximum'
+      }
+    }
     if (!district) e.district = 'Select a district'
     return e
   }
@@ -196,19 +214,21 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
     setSubmitting(true)
     setSubmitError('')
     const body = {
-      type: 'selling',
+      type,
       title: title.trim(),
       description: description.trim() || undefined,
       categoryId: category!.categoryId,
       categoryTypeId: category!.categoryTypeId,
-      condition,
-      make: vehicle!.make,
-      model: vehicle!.model,
-      yearFrom: vehicle!.yearFrom,
-      yearTo: vehicle!.yearTo,
-      price: Number(price),
+      condition: isSelling ? condition : undefined,
+      make: vehicle?.make,
+      model: vehicle?.model,
+      yearFrom: vehicle?.yearFrom,
+      yearTo: vehicle?.yearTo,
+      price: isSelling ? Number(price) : undefined,
+      budgetMin: !isSelling && budgetMin ? Number(budgetMin) : undefined,
+      budgetMax: !isSelling && budgetMax ? Number(budgetMax) : undefined,
       district,
-      deliveryAvailable,
+      deliveryAvailable: isSelling ? deliveryAvailable : false,
       photoUrls: photos.map(p => p.url!),
     }
     try {
@@ -264,14 +284,30 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>{editing ? 'Edit Ad' : 'Post Ad'}</Text>
+        <Text style={styles.title}>{editing ? 'Edit Ad' : isSelling ? 'Post Ad' : 'Post Wanted Ad'}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
-        <Text style={styles.label}>Photos (up to {MAX_PHOTOS})</Text>
+        <Text style={styles.label}>What are you posting?</Text>
+        <View style={[styles.segmentRow, editing && { opacity: 0.6 }]}>
+          {(['selling', 'wanted'] as const).map(ty => (
+            <TouchableOpacity
+              key={ty}
+              style={[styles.segmentBtn, type === ty && styles.segmentBtnActive]}
+              disabled={!!editing}
+              onPress={() => setType(ty)}
+            >
+              <Text style={[styles.segmentText, type === ty && styles.segmentTextActive]}>
+                {ty === 'selling' ? 'Selling' : 'Wanted'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.label}>Photos (up to {MAX_PHOTOS}){!isSelling ? ' — optional' : ''}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
           {photos.map((p, i) => (
             <View key={i} style={styles.photoTile}>
@@ -304,21 +340,25 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
         </TouchableOpacity>
         {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
 
-        <Text style={styles.label}>Condition</Text>
-        <View style={styles.segmentRow}>
-          {(['new', 'used'] as const).map(c => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.segmentBtn, condition === c && styles.segmentBtnActive]}
-              onPress={() => setCondition(c)}
-            >
-              <Text style={[styles.segmentText, condition === c && styles.segmentTextActive]}>
-                {c === 'new' ? 'New' : 'Used'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {errors.condition ? <Text style={styles.errorText}>{errors.condition}</Text> : null}
+        {isSelling ? (
+          <>
+            <Text style={styles.label}>Condition</Text>
+            <View style={styles.segmentRow}>
+              {(['new', 'used'] as const).map(c => (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.segmentBtn, condition === c && styles.segmentBtnActive]}
+                  onPress={() => setCondition(c)}
+                >
+                  <Text style={[styles.segmentText, condition === c && styles.segmentTextActive]}>
+                    {c === 'new' ? 'New' : 'Used'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {errors.condition ? <Text style={styles.errorText}>{errors.condition}</Text> : null}
+          </>
+        ) : null}
 
         <Text style={styles.label}>Compatible Vehicle</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setVehiclePickerOpen(true)}>
@@ -350,18 +390,50 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
           numberOfLines={4}
         />
 
-        <Text style={styles.label}>Price</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.pricePrefix}>Rs.</Text>
-          <TextInput
-            style={styles.priceInput}
-            placeholder="0.00"
-            placeholderTextColor={colors.textFaint}
-            value={price}
-            onChangeText={t => setPrice(t.replace(/[^0-9]/g, ''))}
-            keyboardType="number-pad"
-          />
-        </View>
+        {isSelling ? (
+          <>
+            <Text style={styles.label}>Price</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.pricePrefix}>Rs.</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="0.00"
+                placeholderTextColor={colors.textFaint}
+                value={price}
+                onChangeText={t => setPrice(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Budget Range</Text>
+            <View style={styles.budgetRow}>
+              <View style={[styles.priceRow, { flex: 1 }]}>
+                <Text style={styles.pricePrefix}>Rs.</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="Min (optional)"
+                  placeholderTextColor={colors.textFaint}
+                  value={budgetMin}
+                  onChangeText={t => setBudgetMin(t.replace(/[^0-9]/g, ''))}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={[styles.priceRow, { flex: 1 }]}>
+                <Text style={styles.pricePrefix}>Rs.</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="e.g. 20,000"
+                  placeholderTextColor={colors.textFaint}
+                  value={budgetMax}
+                  onChangeText={t => setBudgetMax(t.replace(/[^0-9]/g, ''))}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+          </>
+        )}
         {errors.price ? <Text style={styles.errorText}>{errors.price}</Text> : null}
 
         <Text style={styles.label}>Location</Text>
@@ -371,23 +443,27 @@ export default function PostAdScreen({ token, editing, onBack, onPosted }: {
         </TouchableOpacity>
         {errors.district ? <Text style={styles.errorText}>{errors.district}</Text> : null}
 
-        <View style={styles.deliveryRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Can arrange delivery</Text>
-            <Text style={styles.deliveryHint}>You'll coordinate delivery directly with the buyer</Text>
+        {isSelling ? (
+          <View style={styles.deliveryRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Can arrange delivery</Text>
+              <Text style={styles.deliveryHint}>You'll coordinate delivery directly with the buyer</Text>
+            </View>
+            <Switch
+              value={deliveryAvailable}
+              onValueChange={setDeliveryAvailable}
+              trackColor={{ false: colors.borderMid, true: colors.primaryTint }}
+              thumbColor={deliveryAvailable ? colors.primary : colors.surfaceAlt}
+            />
           </View>
-          <Switch
-            value={deliveryAvailable}
-            onValueChange={setDeliveryAvailable}
-            trackColor={{ false: colors.borderMid, true: colors.primaryTint }}
-            thumbColor={deliveryAvailable ? colors.primary : colors.surfaceAlt}
-          />
-        </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitBtnDisabled]} disabled={submitting} onPress={handleSubmit}>
-          <Text style={styles.submitBtnText}>{submitting ? (editing ? 'Saving…' : 'Posting…') : (editing ? 'Save Changes' : 'Post Ad')}</Text>
+          <Text style={styles.submitBtnText}>
+            {submitting ? (editing ? 'Saving…' : 'Posting…') : (editing ? 'Save Changes' : isSelling ? 'Post Ad' : 'Post Wanted Ad')}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -466,6 +542,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     },
     pricePrefix: { fontSize: 14.5, color: c.textMuted, marginRight: 6 },
     priceInput: { flex: 1, paddingVertical: 12, fontSize: 14.5, color: c.text },
+    budgetRow: { flexDirection: 'row', gap: 10 },
 
     deliveryRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18, gap: 12 },
     deliveryHint: { fontSize: 11.5, color: c.textMuted, marginTop: 2 },
