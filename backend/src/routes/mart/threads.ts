@@ -101,10 +101,12 @@ export async function notifyNewMessage(threadId: string, senderPhone: string, re
     const notifBody = capText(messageBody, 80)
     await upsertMartMessageNotification(threadId, recipientPhone, senderName, notifBody)
     const prefs = parsePrefs(recipient?.notificationPrefs)
+    console.log('[notifyNewMessage] diag', { threadId, recipientPhone, senderName, hasPushToken: !!recipient?.pushToken, mart_message: prefs.mart_message })
     if (prefs.mart_message) {
       await sendPush(recipient?.pushToken, senderName, notifBody, { screen: 'martThread', threadId })
     }
-  } catch {
+  } catch (err) {
+    console.error('[notifyNewMessage] threw', err)
     // background task — a failure here must never surface to the caller
   }
 }
