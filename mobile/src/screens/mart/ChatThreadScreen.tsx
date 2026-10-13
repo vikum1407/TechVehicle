@@ -286,11 +286,13 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
                   </Text>
                 </View>
                 {item.message.offerPhotos && item.message.offerPhotos.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerPhotoStrip}>
-                    {item.message.offerPhotos.map((url: string, pi: number) => (
-                      <Image key={pi} source={{ uri: url }} style={styles.offerPhoto} />
-                    ))}
-                  </ScrollView>
+                  <View style={styles.offerPhotoStripWrap}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {item.message.offerPhotos.map((url: string, pi: number) => (
+                        <Image key={pi} source={{ uri: url }} style={styles.offerPhoto} />
+                      ))}
+                    </ScrollView>
+                  </View>
                 ) : null}
                 {item.message.body ? (
                   <Text style={item.message.mine ? styles.bubbleTextMine : styles.bubbleTextOther}>{item.message.body}</Text>
@@ -441,7 +443,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     offerCard: { paddingHorizontal: 12, paddingVertical: 10, gap: 6, maxWidth: 240 },
     offerHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     offerHeaderText: { fontSize: 14, fontWeight: '700' },
-    offerPhotoStrip: { flexDirection: 'row' },
+    offerPhotoStripWrap: { height: 64, overflow: 'hidden' },
     offerPhoto: { width: 64, height: 64, borderRadius: 8, marginRight: 6 },
     bubbleTime: { fontSize: 10.5, color: c.textFaint, marginTop: 3 },
 

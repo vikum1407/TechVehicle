@@ -84,6 +84,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
+  const [isPicking, setIsPicking] = useState(false)
 
   useEffect(() => { checkGate() }, [])
 
@@ -152,26 +153,41 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
   }
 
   const pickFromLibrary = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.7, mediaTypes: ['images'],
-      allowsMultipleSelection: true, selectionLimit: remainingSlots,
-    })
-    if (result.canceled || result.assets.length === 0) return
-    await addAssets(result.assets.map(a => a.uri))
+    if (isPicking) return
+    setIsPicking(true)
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        quality: 0.7, mediaTypes: ['images'],
+        allowsMultipleSelection: true, selectionLimit: remainingSlots,
+      })
+      if (result.canceled || result.assets.length === 0) return
+      await addAssets(result.assets.map(a => a.uri))
+    } finally {
+      setIsPicking(false)
+    }
   }
 
   const pickFromCamera = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync()
-    if (!permission.granted) { Alert.alert('Permission needed', 'Allow camera access to take a photo.'); return }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.7, mediaTypes: ['images'] })
-    if (result.canceled || result.assets.length === 0) return
-    await addAssets([result.assets[0].uri])
+    if (isPicking) return
+    setIsPicking(true)
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) { Alert.alert('Permission needed', 'Allow camera access to take a photo.'); return }
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.7, mediaTypes: ['images'] })
+      if (result.canceled || result.assets.length === 0) return
+      await addAssets([result.assets[0].uri])
+    } finally {
+      setIsPicking(false)
+    }
   }
 
   const addPhotoPressed = () => {
-    if (remainingSlots <= 0) return
+    // Same isPicking guard as the Profile photo picker's "opening twice" fix (2026-09-05)
+    // and OfferSheet's own copy of this pattern — `remainingSlots` alone can't block a
+    // fast re-tap since `photos.length` doesn't change until the picker has resolved.
+    if (remainingSlots <= 0 || isPicking) return
     Alert.alert('Add photos', undefined, [
       { text: 'Take Photo', onPress: pickFromCamera },
       { text: 'Choose from Library', onPress: pickFromLibrary },
@@ -327,7 +343,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
             </View>
           ))}
           {remainingSlots > 0 && (
-            <TouchableOpacity style={styles.photoAddTile} onPress={addPhotoPressed}>
+            <TouchableOpacity style={styles.photoAddTile} onPress={addPhotoPressed} disabled={isPicking}>
               <AppIcon icon={{ lib: 'ion', name: 'add' }} size={22} color={colors.textMuted} />
             </TouchableOpacity>
           )}

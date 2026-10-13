@@ -43,6 +43,7 @@ export default function OfferSheet({
   const [photos, setPhotos] = useState<Photo[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [isPicking, setIsPicking] = useState(false)
 
   const remainingSlots = PHOTOS_MAX - photos.length
 
@@ -68,12 +69,21 @@ export default function OfferSheet({
   }
 
   const addPhotoPressed = async () => {
-    if (remainingSlots <= 0) return
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remainingSlots })
-    if (result.canceled || result.assets.length === 0) return
-    await addAssets(result.assets.map(a => a.uri))
+    // Guards against a second tap re-opening the picker while the first pick is still
+    // resolving — same fix as the Profile photo picker's "opening twice" bug (2026-09-05):
+    // `photos.length` (what `remainingSlots` is derived from) doesn't update until the
+    // picker has already resolved, so it can't be relied on alone to block a fast re-tap.
+    if (remainingSlots <= 0 || isPicking) return
+    setIsPicking(true)
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remainingSlots })
+      if (result.canceled || result.assets.length === 0) return
+      await addAssets(result.assets.map(a => a.uri))
+    } finally {
+      setIsPicking(false)
+    }
   }
 
   const removePhoto = (index: number) => setPhotos(prev => prev.filter((_, i) => i !== index))
@@ -147,7 +157,7 @@ export default function OfferSheet({
           </View>
         ))}
         {remainingSlots > 0 && (
-          <TouchableOpacity style={styles.photoAddTile} onPress={addPhotoPressed}>
+          <TouchableOpacity style={styles.photoAddTile} onPress={addPhotoPressed} disabled={isPicking}>
             <AppIcon icon={{ lib: 'ion', name: 'camera-outline' }} size={20} color={colors.textMuted} />
           </TouchableOpacity>
         )}
