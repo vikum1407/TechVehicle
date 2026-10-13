@@ -252,8 +252,10 @@ export default function MartHomeScreen({
               ageLabel={timeAgo(t, item.postedAt)}
               repliesCount={item.repliesCount || 0}
               isOwner={!!myId && item.seller.id === myId}
+              isFavorited={item.isFavorited}
               onPress={() => onOpenListing(item.id)}
               onAction={() => onOpenListing(item.id)}
+              onToggleFavorite={() => toggleFavorite(item)}
             />
           )}
         />

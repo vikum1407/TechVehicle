@@ -8,6 +8,7 @@ import AppIcon from '../../components/AppIcon'
 import MartListingRow from '../../components/mart/MartListingRow'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import { DISTRICTS } from '../../constants/districts'
+import { formatBudget } from '../../utils/martHelpers'
 
 type FavFilter = 'all' | 'available' | 'closed'
 
@@ -127,6 +128,7 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
                 title={item.title}
                 coverUrl={item.coverUrl}
                 price={item.unavailable === 'removed' ? null : item.price}
+                priceText={item.unavailable !== 'removed' && item.type === 'wanted' ? formatBudget(item.budgetMin, item.budgetMax) : undefined}
                 metaLine={row.metaLine}
                 statusTag={row.statusTag}
                 grayedOut={row.grayedOut}

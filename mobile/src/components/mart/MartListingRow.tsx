@@ -11,11 +11,12 @@ import { formatLKR } from '../../utils/martHelpers'
 // composes its own extra bits around it: Favorites just needs the heart; My Ads adds
 // a stats line + action buttons below, passed in via `footer`.
 export default function MartListingRow({
-  title, coverUrl, price, metaLine, statusTag, grayedOut, onPress, favoriteButton, footer,
+  title, coverUrl, price, priceText, metaLine, statusTag, grayedOut, onPress, favoriteButton, footer,
 }: {
   title: string
   coverUrl: string | null
   price: number | null
+  priceText?: string // overrides the formatLKR(price) text — e.g. a Wanted ad's budget
   metaLine: string // e.g. "Colombo 5 · Used" or "Posted 3 days ago"
   statusTag?: { label: string; variant: 'success-outline' | 'amber-soft' | 'amber-solid' | 'gray' }
   grayedOut?: boolean // sold / removed rows
@@ -40,7 +41,7 @@ export default function MartListingRow({
         <View style={styles.info}>
           <Text style={[styles.title, grayedOut && styles.textGray]} numberOfLines={2}>{title}</Text>
           <View style={styles.priceRow}>
-            <Text style={[styles.price, grayedOut && styles.textGray]}>{price !== null ? formatLKR(price) : ''}</Text>
+            <Text style={[styles.price, grayedOut && styles.textGray]}>{priceText !== undefined ? priceText : (price !== null ? formatLKR(price) : '')}</Text>
             {statusTag ? <MartTag label={statusTag.label} variant={statusTag.variant} /> : null}
           </View>
           <Text style={[styles.meta, grayedOut && styles.textGrayFaint]} numberOfLines={1}>{metaLine}</Text>

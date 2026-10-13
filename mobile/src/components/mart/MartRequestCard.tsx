@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import AppIcon from '../AppIcon'
 import MartTag from './MartTag'
 import { formatBudget } from '../../utils/martHelpers'
 import { MART_CATEGORIES } from '../../constants/martCategories'
@@ -11,7 +12,7 @@ import { MART_CATEGORIES } from '../../constants/martCategories'
 // have no photo-first layout and instead lead with the budget/vehicle/category text).
 export default function MartRequestCard({
   title, matchesYou, make, model, yearFrom, yearTo, categoryId, budgetMin, budgetMax,
-  sellerName, districtLabel, ageLabel, repliesCount, isOwner, onPress, onAction,
+  sellerName, districtLabel, ageLabel, repliesCount, isOwner, isFavorited, onPress, onAction, onToggleFavorite,
 }: {
   title: string
   matchesYou: boolean
@@ -27,8 +28,10 @@ export default function MartRequestCard({
   ageLabel: string
   repliesCount: number
   isOwner: boolean
+  isFavorited: boolean
   onPress: () => void
   onAction: () => void
+  onToggleFavorite: () => void
 }) {
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
@@ -40,7 +43,14 @@ export default function MartRequestCard({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
-        {matchesYou ? <MartTag label="Matches you" variant="amber-soft" /> : null}
+        <View style={styles.titleRowRight}>
+          {matchesYou ? <MartTag label="Matches you" variant="amber-soft" /> : null}
+          {!isOwner ? (
+            <TouchableOpacity onPress={onToggleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <AppIcon icon={{ lib: 'ion', name: isFavorited ? 'heart' : 'heart-outline' }} size={18} color={colors.accent} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {(vehicleLabel || categoryLabel) ? (
@@ -75,6 +85,7 @@ function makeStyles(c: Colors) {
     card: { backgroundColor: c.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: c.border },
     titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
     title: { flex: 1, fontSize: 14, fontWeight: '700', color: c.text, lineHeight: 18 },
+    titleRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
     chip: { backgroundColor: c.surfaceAlt, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
     chipText: { fontSize: 11.5, fontWeight: '600', color: c.textBody },
