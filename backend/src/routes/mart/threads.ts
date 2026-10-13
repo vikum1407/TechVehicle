@@ -88,8 +88,10 @@ async function upsertMartMessageNotification(threadId: string, recipientPhone: s
 
 // Spec: 02-data-model.md §7.1 mart_message row + 03-api.md §8 "sends push in the
 // background (never block the request)" — called without `await` at both call sites
-// below, after the response has already been sent.
-async function notifyNewMessage(threadId: string, senderPhone: string, recipientPhone: string, messageBody: string) {
+// below, after the response has already been sent. Exported so listings.ts's offer
+// endpoint (04-screens.md §14.1: "push mart_message to the owner") can reuse the exact
+// same notification path rather than a parallel implementation.
+export async function notifyNewMessage(threadId: string, senderPhone: string, recipientPhone: string, messageBody: string) {
   try {
     const [recipient, senderInfoMap] = await Promise.all([
       prisma.user.findUnique({ where: { phoneNumber: recipientPhone } }),

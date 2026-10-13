@@ -4,6 +4,16 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-13 — Milestone 2 Step 2.2: Offers
+
+- **Offer Sheet's photo upload is its own inline copy of Post Ad's one-by-one-upload-with-retry pattern**, not a shared component — only one other screen needs this exact shape (max 3 photos, all-optional) and extracting a shared component now would mean guessing its API before a second real caller exists, same reasoning already used elsewhere in this build (e.g. Step 1.1's pickers waiting for Step 1.2 before being wired into real navigation).
+- **"Mark Fulfilled" is a stub everywhere it appears** (Detail's owner bottom bar, Offers List's header button) — the real "Who gave you the part?" flow is Step 2.4, not built yet. Same honest-placeholder pattern as "Mark Sold" throughout Milestone 1.
+- **No special "Offer" indicator in the Chat Inbox list** — an offer thread looks like any other thread there (preview text is "Offer: Rs. X" or "Sent an offer", which already communicates it). The offer card with photos/price only renders inside the thread itself. Spec doesn't ask for an inbox-level distinction.
+- **Offers List's seller row uses the same minimal seller shape as everywhere else** (`id`, `name`, `tag`, `rating` — not the full `Seller` type's `photoUrl`/`district`/`verified`), since §14.2's own described layout never shows those fields. No `buildFullSellerObject()` helper built yet; that's Step 2.7 (Seller public profile)'s job once something actually needs the extra fields.
+- **`GET /:listingId/offers` 404s for a non-owner** (same NOT_FOUND pattern as PATCH/DELETE elsewhere), rather than a 403 — keeps the response uninformative about whether the listing exists versus just "not yours," consistent with how ownership checks already work on every other listing route.
+
+---
+
 ## 2026-10-12 — Milestone 2 Step 2.1: Wanted ads
 
 - **`repliesCount` added to `buildListingCards()` generally, not just `GET /mart/my-ads`.** `03-api.md`'s shared `ListingCard` type comments it as "wanted cards, owner's My Ads only," but `04-screens.md` §12's own Wanted feed card mockup shows "· 3 replies" in every card's meta line, not just the owner's. Went with the screens spec (what's actually testable/visible this step) — one extra `groupBy` query on the page's wanted listing ids, same pattern already used by `my-ads.ts`.

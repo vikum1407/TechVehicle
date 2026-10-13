@@ -9,6 +9,7 @@ import MyAdsScreen from './mart/MyAdsScreen'
 import FavoritesScreen from './mart/FavoritesScreen'
 import ChatInboxScreen from './mart/ChatInboxScreen'
 import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
+import OffersListScreen from './mart/OffersListScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -42,10 +43,11 @@ type MartStackEntry =
   | { screen: 'favorites' }
   | { screen: 'inbox' }
   | { screen: 'thread'; entry: ChatThreadEntry }
+  | { screen: 'offers'; listingId: string; title: string; budgetMin: number | null; budgetMax: number | null }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
-const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled }: {
   onExit: () => void
@@ -141,6 +143,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onEdit={listing => push({ screen: 'postAd', editing: { listingId: current.listingId, listing } })}
         onOpenThread={entry => push({ screen: 'thread', entry })}
+        onOpenOffers={(listingId, title, budgetMin, budgetMax) => push({ screen: 'offers', listingId, title, budgetMin, budgetMax })}
       />
     )
   }
@@ -195,6 +198,20 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         entry={current.entry}
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
+      />
+    )
+  }
+
+  if (current.screen === 'offers') {
+    return (
+      <OffersListScreen
+        token={token}
+        listingId={current.listingId}
+        title={current.title}
+        budgetMin={current.budgetMin}
+        budgetMax={current.budgetMax}
+        onBack={pop}
+        onOpenThread={entry => push({ screen: 'thread', entry })}
       />
     )
   }

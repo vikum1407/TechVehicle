@@ -19,6 +19,7 @@ import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { ChatThreadEntry } from './ChatThreadScreen'
+import OfferSheet from './OfferSheet'
 
 const W = Dimensions.get('window').width
 
@@ -36,13 +37,14 @@ const W = Dimensions.get('window').width
 // owner "Offers banner" always shows the 0-offers empty state for the same reason
 // (offersCount isn't computed until 2.2, same deferral pattern as Step 1.1's
 // unreadThreads/Step 1.4's deal fields).
-export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread }: {
+export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread, onOpenOffers }: {
   token: string
   listingId: string
   onBack: () => void
   onOpenListing: (id: string) => void
   onEdit: (listing: any) => void
   onOpenThread: (entry: ChatThreadEntry) => void
+  onOpenOffers: (listingId: string, title: string, budgetMin: number | null, budgetMax: number | null) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -56,6 +58,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const [notFound, setNotFound] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
+  const [offerSheetOpen, setOfferSheetOpen] = useState(false)
 
   const load = async () => {
     setLoading(true); setNetworkError(false); setNotFound(false)
@@ -266,7 +269,20 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
 
         {isWanted && detail.isOwner ? (
           <View style={styles.infoBlock}>
-            <View style={styles.offersBannerEmpty}><Text style={styles.offersBannerEmptyText}>No offers yet</Text></View>
+            {detail.offersCount > 0 ? (
+              <TouchableOpacity
+                style={styles.offersBanner}
+                onPress={() => onOpenOffers(detail.id, detail.title, detail.budgetMin, detail.budgetMax)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.offersBannerText}>{detail.offersCount} offer{detail.offersCount === 1 ? '' : 's'} received</Text>
+                  {detail.newOffersCount > 0 ? <Text style={styles.offersBannerSub}>{detail.newOffersCount} new · tap to view</Text> : null}
+                </View>
+                <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={18} color={colors.accentTintText} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.offersBannerEmpty}><Text style={styles.offersBannerEmptyText}>No offers yet</Text></View>
+            )}
           </View>
         ) : null}
 
@@ -340,7 +356,10 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           detail.status === 'fulfilled' ? (
             <View style={styles.soldBar}><Text style={styles.soldBarText}>This request is closed</Text></View>
           ) : (
-            <TouchableOpacity style={styles.messageBtn} onPress={comingSoon}>
+            <TouchableOpacity
+              style={styles.messageBtn}
+              onPress={() => (detail.myOfferThreadId ? onOpenThread({ kind: 'thread', threadId: detail.myOfferThreadId }) : setOfferSheetOpen(true))}
+            >
               <Text style={styles.messageBtnText}>I have this</Text>
             </TouchableOpacity>
           )
@@ -361,6 +380,21 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         label={detail.title}
         onClose={() => setPhotoViewerIndex(null)}
       />
+
+      {isWanted ? (
+        <OfferSheet
+          visible={offerSheetOpen}
+          token={token}
+          listingId={detail.id}
+          title={detail.title}
+          districtLabel={districtLabel}
+          ownerName={detail.seller.name}
+          budgetMin={detail.budgetMin}
+          budgetMax={detail.budgetMax}
+          onClose={() => setOfferSheetOpen(false)}
+          onSent={threadId => { setOfferSheetOpen(false); onOpenThread({ kind: 'thread', threadId }) }}
+        />
+      ) : null}
     </View>
   )
 }
@@ -392,6 +426,12 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     specLabel: { fontSize: 13, color: c.textMuted },
     specValue: { fontSize: 13, fontWeight: '600', color: c.textBody, flexShrink: 1, textAlign: 'right' },
     offersBannerEmpty: { backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 14, alignItems: 'center' },
+    offersBanner: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: c.accentTint,
+      borderWidth: 1, borderColor: c.accent, borderRadius: 10, padding: 14,
+    },
+    offersBannerText: { fontSize: 13.5, fontWeight: '700', color: c.accentTintText },
+    offersBannerSub: { fontSize: 12, color: c.accentTintText, marginTop: 2 },
     offersBannerEmptyText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
     title: { fontSize: 16, fontWeight: '700', color: c.text },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -276,6 +276,28 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
             <View key={`day-${i}`} style={styles.daySeparatorWrap}><Text style={styles.daySeparatorText}>{item.label}</Text></View>
           ) : item.message.kind === 'system' ? (
             <View key={item.message.id} style={styles.systemLineWrap}><Text style={styles.systemLineText}>{item.message.body}</Text></View>
+          ) : item.message.kind === 'offer' ? (
+            <View key={item.message.id} style={[styles.bubbleWrap, item.message.mine ? styles.bubbleWrapMine : styles.bubbleWrapOther]}>
+              <View style={[styles.offerCard, item.message.mine ? styles.bubbleMine : styles.bubbleOther]}>
+                <View style={styles.offerHeaderRow}>
+                  <AppIcon icon={{ lib: 'ion', name: 'pricetag' }} size={14} color={item.message.mine ? '#fff' : colors.accent} />
+                  <Text style={[styles.offerHeaderText, item.message.mine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
+                    {item.message.offerPrice !== null ? `Offer: ${formatLKR(item.message.offerPrice)}` : 'Sent an offer'}
+                  </Text>
+                </View>
+                {item.message.offerPhotos && item.message.offerPhotos.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerPhotoStrip}>
+                    {item.message.offerPhotos.map((url: string, pi: number) => (
+                      <Image key={pi} source={{ uri: url }} style={styles.offerPhoto} />
+                    ))}
+                  </ScrollView>
+                ) : null}
+                {item.message.body ? (
+                  <Text style={item.message.mine ? styles.bubbleTextMine : styles.bubbleTextOther}>{item.message.body}</Text>
+                ) : null}
+              </View>
+              <Text style={styles.bubbleTime}>{formatTime(item.message.createdAt)}</Text>
+            </View>
           ) : (
             <View key={item.message.id} style={[styles.bubbleWrap, item.message.mine ? styles.bubbleWrapMine : styles.bubbleWrapOther]}>
               <View style={[styles.bubble, item.message.mine ? styles.bubbleMine : styles.bubbleOther]}>
@@ -416,6 +438,11 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     bubbleOther: { backgroundColor: c.surfaceAlt, borderRadius: 14, borderBottomLeftRadius: 4 },
     bubbleTextMine: { color: '#fff', fontSize: 14 },
     bubbleTextOther: { color: c.text, fontSize: 14 },
+    offerCard: { paddingHorizontal: 12, paddingVertical: 10, gap: 6, maxWidth: 240 },
+    offerHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    offerHeaderText: { fontSize: 14, fontWeight: '700' },
+    offerPhotoStrip: { flexDirection: 'row' },
+    offerPhoto: { width: 64, height: 64, borderRadius: 8, marginRight: 6 },
     bubbleTime: { fontSize: 10.5, color: c.textFaint, marginTop: 3 },
 
     composeBar: { borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surface, padding: 10, paddingBottom: bottomInset + 10 },

@@ -14,6 +14,7 @@ import { blockedSet } from '../../utils/blockedSet'
 import { getSellerTags, getSellerRatings, getActiveAdsCounts } from '../../utils/sellerInfo'
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
+import { notifyNewMessage } from './threads'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -459,11 +460,18 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
   if (isOwner) {
     favoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
     if (listing.type === 'wanted') {
-      // Offers (Milestone 2 Step 2.2) can't exist yet — no caller can create one. "New"
-      // needs the same cross-column unread comparison deferred for unreadThreads in Step
-      // 1.1; returning 0 now rather than shipping an unverifiable query. Revisit at 2.2.
-      offersCount = 0
-      newOffersCount = 0
+      // Offers (Milestone 2 Step 2.2). "New" = offer threads unread for the owner — same
+      // cross-column comparison deferred for unreadThreads in Step 1.1, now done in
+      // application code the same way threads.ts's own unread checks already do it.
+      const offerThreads = await prisma.martThread.findMany({
+        where: { listingId: listing.id, messages: { some: { kind: 'offer' } } },
+        select: { lastMessageAt: true, lastMessageSenderPhone: true, ownerReadAt: true },
+      })
+      offersCount = offerThreads.length
+      newOffersCount = offerThreads.filter(t =>
+        t.lastMessageSenderPhone !== listing.ownerPhone &&
+        (!t.ownerReadAt || t.lastMessageAt > t.ownerReadAt)
+      ).length
     }
   }
 
@@ -622,6 +630,112 @@ router.delete('/:listingId', async (req: AuthRequest, res) => {
     await prisma.martListing.update({ where: { id: listing.id }, data: { removedAt: new Date() } })
   }
   res.json({ ok: true })
+})
+
+// Spec: 03-api.md §4 POST /:listingId/offer + 02-data-model.md §4.3. Mirrors
+// threads.ts's POST / (find-or-create thread) but inserts an `offer` kind message
+// instead of `text`, and enforces "one offer per (request, seller)" — a second attempt
+// returns the existing thread id with code OFFER_EXISTS rather than erroring hard,
+// since the natural UI response (open the existing chat) needs the id either way.
+router.post('/:listingId/offer', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.type !== 'wanted') { res.status(400).json({ error: 'Not a wanted request', code: 'VALIDATION' }); return }
+  if (listing.ownerPhone === me) { res.status(400).json({ error: "You can't offer on your own request", code: 'VALIDATION' }); return }
+  if (listing.status !== 'open') { res.status(409).json({ error: 'This request is no longer open', code: 'LISTING_CLOSED' }); return }
+
+  const blocked = await blockedSet(prisma, me)
+  if (blocked.has(listing.ownerPhone)) { res.status(403).json({ error: "You can't offer on this request", code: 'BLOCKED' }); return }
+
+  const body = req.body || {}
+  let price: number | null = null
+  if (body.price !== undefined && body.price !== null) {
+    const p = Number(body.price)
+    if (!Number.isInteger(p) || p < 1 || p > MART_LIMITS.PRICE_MAX) { res.status(400).json({ error: 'Enter a valid price', code: 'VALIDATION' }); return }
+    price = p
+  }
+  let note: string | null = null
+  if (body.note !== undefined && body.note !== null) {
+    const trimmed = capText(body.note, MART_LIMITS.OFFER_NOTE_MAX).trim()
+    note = trimmed.length > 0 ? trimmed : null
+  }
+  const photos: string[] = Array.isArray(body.photos) ? body.photos.filter((u: unknown) => typeof u === 'string') : []
+  if (photos.length > MART_LIMITS.OFFER_PHOTOS_MAX) { res.status(400).json({ error: `Up to ${MART_LIMITS.OFFER_PHOTOS_MAX} photos`, code: 'VALIDATION' }); return }
+  const prefix = `${process.env.R2_PUBLIC_URL || ''}/mart-photos/`
+  if (photos.some(u => !u.startsWith(prefix))) { res.status(400).json({ error: 'Invalid photo', code: 'VALIDATION' }); return }
+
+  const limit = checkRateLimit('mart-offer', me, MART_RATE_LIMITS.SEND_OFFER.max, MART_RATE_LIMITS.SEND_OFFER.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  let thread = await prisma.martThread.findUnique({ where: { listingId_otherPhone: { listingId: listing.id, otherPhone: me } } })
+  if (thread) {
+    const existingOffer = await prisma.martMessage.findFirst({ where: { threadId: thread.id, kind: 'offer', senderPhone: me } })
+    if (existingOffer) { res.status(409).json({ error: "You've already made an offer on this request", code: 'OFFER_EXISTS', threadId: thread.id }); return }
+  } else {
+    thread = await prisma.martThread.create({
+      data: {
+        listingId: listing.id, ownerPhone: listing.ownerPhone, otherPhone: me,
+        listingType: listing.type, listingTitle: listing.title, listingThumbUrl: listing.photoUrls[0] || null,
+        lastMessageAt: new Date(), lastMessageSenderPhone: null, lastMessagePreview: '',
+      },
+    })
+  }
+
+  const preview = price !== null ? `Offer: Rs. ${price.toLocaleString()}` : 'Sent an offer'
+  const message = await prisma.martMessage.create({
+    data: { threadId: thread.id, senderPhone: me, kind: 'offer', body: note || '', offerPrice: price, offerPhotos: photos },
+  })
+  await prisma.martThread.update({
+    where: { id: thread.id },
+    data: { lastMessageAt: message.createdAt, lastMessagePreview: preview, lastMessageSenderPhone: me, ownerHiddenAt: null },
+  })
+
+  res.status(201).json({ threadId: thread.id })
+  notifyNewMessage(thread.id, me, listing.ownerPhone, 'New offer on your request')
+})
+
+// Spec: 03-api.md §4 GET /:listingId/offers — request owner only. "Offers = MartMessage
+// kind=offer in threads of this ad" — at most one offer message per thread by
+// construction (POST /offer above refuses a second), so findFirst per thread is safe.
+router.get('/:listingId/offers', async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== me) { res.status(404).json(NOT_FOUND); return }
+
+  const threads = await prisma.martThread.findMany({
+    where: { listingId: listing.id, messages: { some: { kind: 'offer' } } },
+    orderBy: { lastMessageAt: 'desc' },
+  })
+  if (threads.length === 0) { res.json({ items: [], closed: listing.status === 'fulfilled' }); return }
+
+  const [offerMessages, tagMap, ratingMap, users] = await Promise.all([
+    Promise.all(threads.map(t => prisma.martMessage.findFirst({ where: { threadId: t.id, kind: 'offer' }, orderBy: { createdAt: 'asc' } }))),
+    getSellerTags(prisma, threads.map(t => t.otherPhone)),
+    getSellerRatings(prisma, threads.map(t => t.otherPhone)),
+    prisma.user.findMany({ where: { phoneNumber: { in: threads.map(t => t.otherPhone) } }, select: { id: true, phoneNumber: true, displayName: true } }),
+  ])
+  const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
+
+  const items = threads.map((t, i) => {
+    const offer = offerMessages[i]
+    const tag = tagMap.get(t.otherPhone) || 'casual'
+    const owner = userByPhone.get(t.otherPhone)
+    return {
+      threadId: t.id,
+      seller: {
+        id: owner?.id || '', name: publicName(owner?.displayName, tag), tag,
+        rating: ratingMap.get(t.otherPhone) || { avg: null, count: 0 },
+      },
+      offerPrice: offer?.offerPrice ?? null,
+      note: offer?.body || null,
+      photos: offer?.offerPhotos || [],
+      createdAt: (offer?.createdAt || t.createdAt).toISOString(),
+    }
+  })
+
+  res.json({ items, closed: listing.status === 'fulfilled' })
 })
 
 export default router
