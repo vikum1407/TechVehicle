@@ -147,6 +147,30 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to load offers')
     return data
   },
+  markMartSold: async (token: string, listingId: string, body: { partnerThreadId?: string; outside?: boolean }): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/mark-sold`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't complete this")
+    return data
+  },
+  getMartBuyers: async (token: string, listingId: string): Promise<{ items: any[] }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/buyers`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load')
+    return data
+  },
+  relistMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/relist`, { method: 'POST', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Couldn't relist")
+    return data
+  },
+  confirmMartDeal: async (token: string, listingId: string, confirm: boolean): Promise<{ ok: true; canRate: boolean }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/deal/confirm`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ confirm }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Couldn't confirm")
+    return data
+  },
   favoriteMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
     const res = await fetch(`${API_URL}/mart/favorites`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ listingId }) })
     const data = await res.json()

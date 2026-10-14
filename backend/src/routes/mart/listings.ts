@@ -14,7 +14,7 @@ import { blockedSet } from '../../utils/blockedSet'
 import { getSellerTags, getSellerRatings, getActiveAdsCounts } from '../../utils/sellerInfo'
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
-import { notifyNewMessage } from './threads'
+import { notifyNewMessage, resolveOtherInfo } from './threads'
 import { createNotification } from '../../utils/appNotifications'
 import { sendPush } from '../../utils/push'
 import { parsePrefs } from '../../utils/notificationPrefs'
@@ -700,6 +700,181 @@ router.post('/:listingId/status', async (req: AuthRequest, res) => {
 
   await prisma.martListing.update({ where: { id: listing.id }, data: { status, statusChangedAt: new Date() } })
   res.json({ ok: true })
+})
+
+// Spec: 02-data-model.md §4.6 "both participants must have sent at least one message
+// (text or offer; the seller's offer counts as the seller's message)". Shared by
+// GET /buyers and POST /deal/confirm below — both need this exact guard.
+async function threadCanRate(threadId: string, ownerPhone: string, otherPhone: string): Promise<boolean> {
+  const [ownerMsg, otherMsg] = await Promise.all([
+    prisma.martMessage.findFirst({ where: { threadId, senderPhone: ownerPhone, kind: { in: ['text', 'offer'] } } }),
+    prisma.martMessage.findFirst({ where: { threadId, senderPhone: otherPhone, kind: { in: ['text', 'offer'] } } }),
+  ])
+  return !!ownerMsg && !!otherMsg
+}
+
+// Spec: 03-api.md §4 POST /:listingId/mark-sold + 02-data-model.md §3.1/§3.2. Selling
+// and wanted share this one route ("wanted = Mark Fulfilled"). System message insertion
+// deliberately does NOT touch the thread's lastMessageAt/lastMessagePreview/
+// lastMessageSenderPhone (02-data-model.md §2 MartMessage comment: "system lines do NOT
+// change lastMessage* or unread") — every OTHER open thread of this ad picking up the
+// Sold/Fulfilled banner is handled automatically at read time by the existing
+// isThreadListingVisible()/listingSnapshotStatus() logic, no extra writes needed there.
+router.post('/:listingId/mark-sold', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== me) { res.status(404).json(NOT_FOUND); return }
+
+  const activeStatuses = listing.type === 'selling' ? ['available', 'reserved'] : ['open']
+  if (!activeStatuses.includes(listing.status)) { res.status(409).json({ error: 'This ad is already closed', code: 'LISTING_CLOSED' }); return }
+
+  const { partnerThreadId, outside } = (req.body || {}) as { partnerThreadId?: string; outside?: boolean }
+  const hasThread = typeof partnerThreadId === 'string' && partnerThreadId.length > 0
+  const hasOutside = outside === true
+  if (hasThread === hasOutside) { res.status(400).json({ error: 'Choose a buyer or "Sold outside Vocksy"', code: 'VALIDATION' }); return }
+
+  let thread: Awaited<ReturnType<typeof prisma.martThread.findUnique>> = null
+  if (hasThread) {
+    thread = await prisma.martThread.findUnique({ where: { id: partnerThreadId! } })
+    if (!thread || thread.listingId !== listing.id || thread.ownerPhone !== me) {
+      res.status(400).json({ error: 'Invalid thread', code: 'VALIDATION' }); return
+    }
+    const blocked = await blockedSet(prisma, me)
+    if (blocked.has(thread.otherPhone)) { res.status(403).json({ error: "You can't complete this with a blocked user", code: 'BLOCKED' }); return }
+  }
+
+  const limit = checkRateLimit('mart-misc', me, MART_RATE_LIMITS.MISC_WRITE.max, MART_RATE_LIMITS.MISC_WRITE.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  const isSelling = listing.type === 'selling'
+  const partnerPhone = thread?.otherPhone ?? null
+  await prisma.martListing.update({
+    where: { id: listing.id },
+    data: {
+      status: isSelling ? 'sold' : 'fulfilled', statusChangedAt: new Date(), closedAt: new Date(),
+      dealPartnerPhone: partnerPhone, dealOutside: hasOutside, dealState: partnerPhone ? 'pending' : null, dealDecidedAt: null,
+    },
+  })
+
+  if (thread && partnerPhone) {
+    const systemBody = isSelling ? 'Marked as sold' : 'Marked as fulfilled'
+    await prisma.martMessage.create({
+      data: { threadId: thread.id, senderPhone: me, kind: 'system', body: systemBody, systemCode: isSelling ? 'sold' : 'fulfilled' },
+    })
+
+    const ownerInfoMap = await resolveOtherInfo([me])
+    const ownerName = ownerInfoMap.get(me)?.name || publicName(null, 'casual')
+    const title = isSelling ? `${ownerName} marked ${listing.title} as sold to you` : `Confirm you sold ${listing.title}`
+    const pushBody = isSelling ? 'Tap to confirm your purchase and leave a review.' : 'Tap to confirm.'
+    const linkTo = { screen: 'martThread', threadId: thread.id }
+    await createNotification(prisma, partnerPhone, 'mart_sale_confirm', title, pushBody, linkTo)
+    const partnerUser = await prisma.user.findUnique({ where: { phoneNumber: partnerPhone } })
+    if (parsePrefs(partnerUser?.notificationPrefs).mart_message) {
+      await sendPush(partnerUser?.pushToken, title, pushBody, linkTo)
+    }
+  }
+
+  res.json({ ok: true })
+})
+
+// Spec: 03-api.md §4 GET /:listingId/buyers — owner only, "Who bought it?" sheet source.
+router.get('/:listingId/buyers', async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== me) { res.status(404).json(NOT_FOUND); return }
+
+  const blocked = await blockedSet(prisma, me)
+  const threads = await prisma.martThread.findMany({
+    where: {
+      listingId: listing.id, ownerHiddenAt: null, lastMessageSenderPhone: { not: null },
+      ...(blocked.size > 0 ? { otherPhone: { notIn: [...blocked] } } : {}),
+    },
+    orderBy: { lastMessageAt: 'desc' },
+  })
+  if (threads.length === 0) { res.json({ items: [] }); return }
+
+  const otherInfoMap = await resolveOtherInfo(threads.map(t => t.otherPhone))
+  const items = await Promise.all(threads.map(async t => {
+    const [messageCount, canRate] = await Promise.all([
+      prisma.martMessage.count({ where: { threadId: t.id, kind: { not: 'system' } } }),
+      threadCanRate(t.id, listing.ownerPhone, t.otherPhone),
+    ])
+    const info = otherInfoMap.get(t.otherPhone)
+    return {
+      threadId: t.id, name: info?.name || publicName(null, 'casual'), photoUrl: info?.photoUrl || null,
+      lastMessageAt: t.lastMessageAt.toISOString(), lastMessagePreview: t.lastMessagePreview,
+      messageCount, canRate,
+    }
+  }))
+  res.json({ items })
+})
+
+// Spec: 03-api.md §4 POST /:listingId/relist + 02-data-model.md §3.1/§3.2. "Works like a
+// bump" — postedAt reset puts it back at the top of the feed, same as a fresh post.
+router.post('/:listingId/relist', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.ownerPhone !== me) { res.status(404).json(NOT_FOUND); return }
+  if (listing.status !== 'sold' && listing.status !== 'fulfilled') { res.status(409).json({ error: 'This ad is not closed', code: 'VALIDATION' }); return }
+
+  const limit = checkRateLimit('mart-edit', me, MART_RATE_LIMITS.EDIT_LISTING.max, MART_RATE_LIMITS.EDIT_LISTING.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  await prisma.martListing.update({
+    where: { id: listing.id },
+    data: {
+      status: listing.type === 'selling' ? 'available' : 'open', statusChangedAt: new Date(), postedAt: new Date(),
+      closedAt: null, dealPartnerPhone: null, dealState: null, dealDecidedAt: null, dealOutside: false,
+    },
+  })
+  res.json({ ok: true })
+})
+
+// Spec: 03-api.md §4 POST /:listingId/deal/confirm + 02-data-model.md §3.3.
+router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+  if (listing.dealPartnerPhone !== me) { res.status(404).json(NOT_FOUND); return }
+  if (listing.dealState !== 'pending') { res.status(409).json({ error: 'This was already decided', code: 'VALIDATION' }); return }
+
+  const { confirm } = (req.body || {}) as { confirm?: boolean }
+  if (typeof confirm !== 'boolean') { res.status(400).json({ error: 'Invalid request', code: 'VALIDATION' }); return }
+
+  const limit = checkRateLimit('mart-misc', me, MART_RATE_LIMITS.MISC_WRITE.max, MART_RATE_LIMITS.MISC_WRITE.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  await prisma.martListing.update({
+    where: { id: listing.id },
+    data: { dealState: confirm ? 'confirmed' : 'declined', dealDecidedAt: new Date() },
+  })
+
+  let canRate = false
+  if (confirm) {
+    const thread = await prisma.martThread.findUnique({ where: { listingId_otherPhone: { listingId: listing.id, otherPhone: me } } })
+    const isSelling = listing.type === 'selling'
+    if (thread) {
+      await prisma.martMessage.create({
+        data: { threadId: thread.id, senderPhone: me, kind: 'system', body: 'Purchase confirmed', systemCode: 'deal_confirmed' },
+      })
+      canRate = await threadCanRate(thread.id, listing.ownerPhone, me)
+    }
+
+    const partnerInfoMap = await resolveOtherInfo([me])
+    const partnerName = partnerInfoMap.get(me)?.name || publicName(null, 'casual')
+    const title = isSelling ? `${partnerName} confirmed the purchase` : `${partnerName} confirmed the sale`
+    const linkTo = isSelling ? { screen: 'martMyAds', tab: 'sold' } : { screen: 'martThread', threadId: thread?.id }
+    await createNotification(prisma, listing.ownerPhone, 'mart_sale_confirmed', title, listing.title, linkTo)
+    const ownerUser = await prisma.user.findUnique({ where: { phoneNumber: listing.ownerPhone } })
+    if (parsePrefs(ownerUser?.notificationPrefs).mart_message) {
+      await sendPush(ownerUser?.pushToken, title, listing.title, linkTo)
+    }
+  }
+
+  res.json({ ok: true, canRate })
 })
 
 // Spec: 03-api.md §4 DELETE. Soft delete, idempotent — a second delete (or deleting an

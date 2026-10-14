@@ -108,6 +108,7 @@ export default function App() {
   const [martFullScreen, setMartFullScreen] = useState(false) // Step 1.3: MartNavigator reports Posting/Filters/etc. so the tab bar can hide, per 04-screens.md §0.2
   const [focusMartThreadId, setFocusMartThreadId] = useState<string | null>(null) // Step 1.9: a martThread notification tap deep-links here
   const [focusMartListingId, setFocusMartListingId] = useState<string | null>(null) // Step 2.3: a martWanted notification tap deep-links here
+  const [focusMartMyAdsTab, setFocusMartMyAdsTab] = useState<'available' | 'reserved' | 'sold' | null>(null) // Step 2.4: a martMyAds notification tap deep-links here
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -161,6 +162,7 @@ export default function App() {
     const vehicleId = data?.vehicleId as string | undefined
     const threadId = data?.threadId as string | undefined
     const listingId = data?.listingId as string | undefined
+    const martTab = data?.tab as 'available' | 'reserved' | 'sold' | undefined
 
     // Pre-existing gap found while wiring Step 2.3's martWanted push: this handler
     // (real system push taps — cold start + background tap) never had ANY Mart routing
@@ -172,6 +174,9 @@ export default function App() {
       setScreen('mart')
     } else if (targetScreen === 'martWanted' && listingId) {
       setFocusMartListingId(listingId)
+      setScreen('mart')
+    } else if (targetScreen === 'martMyAds') {
+      setFocusMartMyAdsTab(martTab || 'sold')
       setScreen('mart')
     } else if (targetScreen === 'garage') {
       if (bookingId) setFocusBookingId(bookingId)
@@ -492,6 +497,8 @@ export default function App() {
                 onFocusHandled={() => setFocusMartThreadId(null)}
                 focusListingId={focusMartListingId}
                 onListingFocusHandled={() => setFocusMartListingId(null)}
+                focusMyAdsTab={focusMartMyAdsTab}
+                onMyAdsFocusHandled={() => setFocusMartMyAdsTab(null)}
               />
             )}
           </View>
@@ -766,13 +773,17 @@ export default function App() {
           onNavigate={(linkTo) => {
             if (!linkTo) { setScreen('vehicles'); return }
             try {
-              const { screen: target, vehicleId, bookingId, threadId, listingId } = JSON.parse(linkTo)
+              const { screen: target, vehicleId, bookingId, threadId, listingId, tab } = JSON.parse(linkTo)
               if (target === 'martThread' && threadId) {
                 setFocusMartThreadId(threadId)
                 setScreen('mart'); return
               }
               if (target === 'martWanted' && listingId) {
                 setFocusMartListingId(listingId)
+                setScreen('mart'); return
+              }
+              if (target === 'martMyAds') {
+                setFocusMartMyAdsTab(tab || 'sold')
                 setScreen('mart'); return
               }
               if (target === 'garage') {

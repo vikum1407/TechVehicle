@@ -7,6 +7,7 @@ import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartEmptyState from '../../components/mart/MartEmptyState'
+import WhoBoughtItSheet from './WhoBoughtItSheet'
 import { formatLKR, timeAgo } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
@@ -14,11 +15,13 @@ import { STORE_URL } from '../../constants/appLinks'
 type Tab = 'available' | 'reserved' | 'sold'
 
 // Spec: 04-screens.md §7. Selling only — same reasoning as every step since 1.2 (no
-// Selling|Wanted switch rendered; Wanted posting/browsing doesn't exist anywhere yet).
-// "Mark Sold" and "Relist" are "Coming soon" (both need Milestone 2 Step 2.4); Mark
-// Reserved/Available (Step 1.5's /status) and Delete (Step 1.5's DELETE) are real.
-export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing, onOpenEdit }: {
+// Selling|Wanted switch rendered; a Wanted tab here is deferred per the Step 2.1
+// decision log, revisited if a future step needs it). Mark Sold/Relist are real as of
+// Step 2.4; Mark Reserved/Available (Step 1.5's /status) and Delete (Step 1.5's DELETE)
+// were already real.
+export default function MyAdsScreen({ token, initialTab, onBack, onOpenPostAd, onOpenListing, onOpenEdit }: {
   token: string
+  initialTab?: Tab
   onBack: () => void
   onOpenPostAd: () => void
   onOpenListing: (id: string) => void
@@ -29,7 +32,7 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
   const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
-  const [tab, setTab] = useState<Tab>('available')
+  const [tab, setTab] = useState<Tab>(initialTab || 'available')
   const [items, setItems] = useState<any[]>([])
   const [counts, setCounts] = useState({ available: 0, reserved: 0, sold: 0 })
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -38,6 +41,7 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [whoBoughtItListingId, setWhoBoughtItListingId] = useState<string | null>(null)
 
   const load = useCallback(async (opts: { cursor?: string; isRefresh?: boolean } = {}) => {
     if (opts.cursor) setLoadingMore(true)
@@ -60,8 +64,6 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
 
   useEffect(() => { load() }, [tab])
 
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
-
   const changeStatus = async (listingId: string, status: 'available' | 'reserved') => {
     setBusyId(listingId)
     try {
@@ -69,6 +71,18 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
       load()
     } catch (e: any) {
       Alert.alert('Couldn\'t update', e.message || 'Check your connection and try again.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const relist = async (listingId: string) => {
+    setBusyId(listingId)
+    try {
+      await api.relistMartListing(token, listingId)
+      load()
+    } catch (e: any) {
+      Alert.alert("Couldn't relist", e.message || 'Check your connection and try again.')
     } finally {
       setBusyId(null)
     }
@@ -184,7 +198,7 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => changeStatus(item.id, 'reserved')}>
                       <Text style={styles.outlinedBtnText}>Mark Reserved</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.navyBtn} onPress={comingSoon}>
+                    <TouchableOpacity style={styles.navyBtn} onPress={() => setWhoBoughtItListingId(item.id)}>
                       <Text style={styles.navyBtnText}>Mark Sold</Text>
                     </TouchableOpacity>
                   </>
@@ -194,14 +208,14 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => changeStatus(item.id, 'available')}>
                       <Text style={styles.outlinedBtnText}>Mark Available</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.navyBtn} onPress={comingSoon}>
+                    <TouchableOpacity style={styles.navyBtn} onPress={() => setWhoBoughtItListingId(item.id)}>
                       <Text style={styles.navyBtnText}>Mark Sold</Text>
                     </TouchableOpacity>
                   </>
                 )}
                 {tab === 'sold' && (
                   <>
-                    <TouchableOpacity style={styles.outlinedBtn} onPress={comingSoon}>
+                    <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => relist(item.id)}>
                       <Text style={styles.outlinedBtnText}>Relist</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navyBtn} disabled={busyId === item.id} onPress={() => confirmDelete(item.id)}>
@@ -218,6 +232,17 @@ export default function MyAdsScreen({ token, onBack, onOpenPostAd, onOpenListing
       <TouchableOpacity style={styles.postBtn} onPress={onOpenPostAd}>
         <AppIcon icon={{ lib: 'ion', name: 'add' }} size={26} color="#fff" />
       </TouchableOpacity>
+
+      {whoBoughtItListingId ? (
+        <WhoBoughtItSheet
+          visible
+          token={token}
+          listingId={whoBoughtItListingId}
+          type="selling"
+          onClose={() => setWhoBoughtItListingId(null)}
+          onDone={() => { setWhoBoughtItListingId(null); load() }}
+        />
+      ) : null}
     </View>
   )
 }

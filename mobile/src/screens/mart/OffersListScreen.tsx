@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
@@ -9,12 +9,12 @@ import AppIcon from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
 import RatingBadge from '../../components/mart/RatingBadge'
 import MartEmptyState from '../../components/mart/MartEmptyState'
+import WhoBoughtItSheet from './WhoBoughtItSheet'
 import { formatLKR, formatBudget, timeAgo } from '../../utils/martHelpers'
 import { ChatThreadEntry } from './ChatThreadScreen'
 
 // Spec: 04-screens.md §14.2. Entry: Wanted Detail's owner-only Offers banner. "Mark
-// Fulfilled" (the "Who sold it?" flow) is Milestone 2 Step 2.4 — stubbed "Coming soon"
-// here, same honest-placeholder pattern as every other not-yet-built action this build.
+// Fulfilled" (the "Who gave you the part?" flow) is real as of Step 2.4.
 export default function OffersListScreen({
   token, listingId, title, budgetMin, budgetMax, onBack, onOpenThread,
 }: {
@@ -35,6 +35,7 @@ export default function OffersListScreen({
   const [closed, setClosed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [whoGaveItOpen, setWhoGaveItOpen] = useState(false)
 
   const load = async () => {
     setLoading(true); setError(false)
@@ -49,8 +50,6 @@ export default function OffersListScreen({
     }
   }
   useEffect(() => { load() }, [listingId])
-
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
 
   return (
     <View style={styles.container}>
@@ -68,7 +67,7 @@ export default function OffersListScreen({
           <Text style={styles.subBudget}>{formatBudget(budgetMin, budgetMax)}</Text>
         </View>
         {!closed && items.length > 0 ? (
-          <TouchableOpacity style={styles.fulfilledBtn} onPress={comingSoon}>
+          <TouchableOpacity style={styles.fulfilledBtn} onPress={() => setWhoGaveItOpen(true)}>
             <Text style={styles.fulfilledBtnText}>Mark Fulfilled</Text>
           </TouchableOpacity>
         ) : null}
@@ -121,6 +120,15 @@ export default function OffersListScreen({
           />
         </>
       )}
+
+      <WhoBoughtItSheet
+        visible={whoGaveItOpen}
+        token={token}
+        listingId={listingId}
+        type="wanted"
+        onClose={() => setWhoGaveItOpen(false)}
+        onDone={() => { setWhoGaveItOpen(false); load() }}
+      />
     </View>
   )
 }

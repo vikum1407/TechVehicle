@@ -4,6 +4,16 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-14 — Milestone 2 Step 2.4: Mark Sold/Fulfilled + confirm
+
+- **`mark-sold`'s system message insertion deliberately does not update the thread's `lastMessageAt`/`lastMessagePreview`/`lastMessageSenderPhone`** — the schema comment on `MartMessage.systemCode` says system lines "do NOT change lastMessage* or unread," and every other open thread on the ad already picks up the Sold/Fulfilled banner at read time via the existing `isThreadListingVisible()`/`listingSnapshotStatus()` logic, so no extra write was needed to make that work.
+- **One `WhoBoughtItSheet` component for both "Who bought it?" (selling) and "Who gave you the part?" (wanted)**, not two — same sheet, same `POST /mark-sold` route (spec: "Selling and wanted use the same route"), just type-aware copy. Wired into three entry points: Detail's owner bottom bar, My Ads' per-item Mark Sold buttons, and the Offers List's Mark Fulfilled button.
+- **`canRate` computed for real** in `GET /buyers` and `POST /deal/confirm` (both explicitly return it per spec) **but left stubbed (`false`) in `GET /:listingId` and `GET /:threadId`**, same as before — those two were already documented as deferred to Step 2.5 since nothing in the UI acts on them yet; the two new endpoints needed the real value now because their own spec explicitly asks for it.
+- **"Confirm purchase" doesn't open the Rate modal** (§9.2 says it should) — that's §9.3, Milestone 2 Step 2.5. Confirming now just resolves the deal and the banner disappears (thread reloads, `dealBanner` is no longer `confirm_sale`). Added the spec's own documented fallback instead: a small "Rate seller" link, shown whenever the deal is confirmed and I'm the partner, stubbed "Coming soon" like every other not-yet-built action.
+- **Found and fixed a second pre-existing gap in the same family as Step 2.3's**: `martMyAds` notification routing (needed for `mart_sale_confirmed`'s selling-side `linkTo`) didn't exist anywhere — not in `App.tsx`'s real push-tap handler, not in the in-app Notifications screen's `onNavigate`, and `MyAdsScreen` had no way to open on a specific tab at all. Added all three (the tab-focus prop pattern mirrors Step 2.3's `focusListingId`), and gave `MyAdsScreen` an optional `initialTab` prop.
+
+---
+
 ## 2026-10-14 — Milestone 2 Step 2.3: Wanted match alerts
 
 - **`runWantedMatchAlerts()` lives in `listings.ts`, not `src/jobs/`**, and isn't registered with `setInterval` like every other job there. Every existing job in `src/jobs/` is schedule-driven (runs hourly/daily against the whole database); this one is event-driven — it runs exactly once, fired directly from the `POST /` handler right after a wanted listing is created, same fire-and-forget pattern as `threads.ts`'s `notifyNewMessage()`. Putting it in `src/jobs/` would have implied a schedule that doesn't apply here.

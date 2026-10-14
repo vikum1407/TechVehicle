@@ -47,6 +47,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
   const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
+  const [dealResponding, setDealResponding] = useState(false)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -78,6 +79,24 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   }, [messages.length])
 
   const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
+
+  // Spec: 04-screens.md §9.2. "Confirm purchase" normally opens the Rate modal (§9.3) —
+  // that's Milestone 2 Step 2.5 (Ratings), not built yet, so this just confirms and
+  // reloads; the banner disappears once dealState is no longer 'pending'. The "Rate
+  // seller" fallback link it describes ("the buyer can rate later from the chat") is
+  // stubbed below rather than wired, for the same reason.
+  const handleDealConfirm = async (confirm: boolean) => {
+    if (!threadId || !listingId) return
+    setDealResponding(true)
+    try {
+      await api.confirmMartDeal(token, listingId, confirm)
+      await loadThread(threadId)
+    } catch (e: any) {
+      Alert.alert("Couldn't confirm", e.message || 'Check your connection and try again.')
+    } finally {
+      setDealResponding(false)
+    }
+  }
 
   const handleSend = async () => {
     const text = composeText.trim()
@@ -241,13 +260,24 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
 
       {threadData?.dealBanner === 'confirm_sale' ? (
         <View style={styles.confirmBanner}>
-          <Text style={styles.confirmBannerText}>{otherName} marked this as sold to you</Text>
+          <Text style={styles.confirmBannerText}>
+            {threadData.listing.type === 'wanted' ? `Confirm you sold this to ${otherName}` : `${otherName} marked this as sold to you`}
+          </Text>
           <Text style={styles.confirmBannerSub}>Confirming lets you leave a review.</Text>
           <View style={styles.confirmBannerRow}>
-            <TouchableOpacity style={styles.confirmOutlinedBtn} onPress={comingSoon}><Text style={styles.confirmOutlinedBtnText}>Not me</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.confirmNavyBtn} onPress={comingSoon}><Text style={styles.confirmNavyBtnText}>Confirm purchase</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.confirmOutlinedBtn} disabled={dealResponding} onPress={() => handleDealConfirm(false)}>
+              <Text style={styles.confirmOutlinedBtnText}>Not me</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.confirmNavyBtn} disabled={dealResponding} onPress={() => handleDealConfirm(true)}>
+              <Text style={styles.confirmNavyBtnText}>{threadData.listing.type === 'wanted' ? 'Confirm sale' : 'Confirm purchase'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      ) : threadData?.listing.deal?.state === 'confirmed' && threadData.listing.deal.iAmPartner ? (
+        <TouchableOpacity style={styles.rateSellerLink} onPress={comingSoon}>
+          <AppIcon icon={{ lib: 'ion', name: 'star-outline' }} size={14} color={colors.primary} />
+          <Text style={styles.rateSellerLinkText}>Rate seller</Text>
+        </TouchableOpacity>
       ) : null}
 
       {moreFromSeller.length > 0 && threadData?.role !== 'selling' ? (
@@ -426,6 +456,8 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     confirmOutlinedBtnText: { color: c.primary, fontWeight: '700', fontSize: 13 },
     confirmNavyBtn: { flex: 1, backgroundColor: c.primary, borderRadius: 8, paddingVertical: 9, alignItems: 'center' },
     confirmNavyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+    rateSellerLink: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 12, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
+    rateSellerLinkText: { color: c.primary, fontWeight: '700', fontSize: 13 },
 
     moreStripWrap: { paddingTop: 10, paddingBottom: 6, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
     moreStripLabel: { fontSize: 10.5, fontWeight: '700', color: c.textMuted, letterSpacing: 0.5, paddingHorizontal: 16, marginBottom: 6 },

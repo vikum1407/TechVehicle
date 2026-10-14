@@ -51,7 +51,9 @@ function listingSnapshotStatus(listing: MartListing): 'active' | 'sold' | 'fulfi
   return 'active'
 }
 
-async function resolveOtherInfo(phones: string[]) {
+// Exported so listings.ts's mark-sold/deal-confirm endpoints (Step 2.4) can reuse the
+// same name+photo+tag lookup instead of a parallel copy.
+export async function resolveOtherInfo(phones: string[]) {
   const uniquePhones = [...new Set(phones)]
   if (uniquePhones.length === 0) return new Map<string, { id: string; name: string; photoUrl: string | null; tag: 'shop' | 'casual' }>()
   const [users, tagMap] = await Promise.all([

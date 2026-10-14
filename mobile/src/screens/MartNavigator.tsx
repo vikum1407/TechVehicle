@@ -39,7 +39,7 @@ type MartStackEntry =
   | { screen: 'postAd'; editing?: EditingListing; initialType?: 'selling' | 'wanted' }
   | { screen: 'detail'; listingId: string }
   | { screen: 'myMart' }
-  | { screen: 'myAds' }
+  | { screen: 'myAds'; initialTab?: 'available' | 'reserved' | 'sold' }
   | { screen: 'favorites' }
   | { screen: 'inbox' }
   | { screen: 'thread'; entry: ChatThreadEntry }
@@ -49,7 +49,7 @@ type MartStackEntry =
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
@@ -57,6 +57,8 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   onFocusHandled?: () => void
   focusListingId?: string | null
   onListingFocusHandled?: () => void
+  focusMyAdsTab?: 'available' | 'reserved' | 'sold' | null
+  onMyAdsFocusHandled?: () => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -82,6 +84,15 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
       onListingFocusHandled?.()
     }
   }, [focusListingId])
+
+  // Step 2.4: mart_sale_confirmed (selling) lands the owner on My Ads > Sold, same
+  // focus-prop pattern as above.
+  useEffect(() => {
+    if (focusMyAdsTab) {
+      push({ screen: 'myAds', initialTab: focusMyAdsTab })
+      onMyAdsFocusHandled?.()
+    }
+  }, [focusMyAdsTab])
 
   useEffect(() => {
     if (focusThreadId) {
@@ -174,6 +185,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
     return (
       <MyAdsScreen
         token={token}
+        initialTab={current.initialTab}
         onBack={pop}
         onOpenPostAd={() => push({ screen: 'postAd' })}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}

@@ -20,6 +20,7 @@ import { STORE_URL } from '../../constants/appLinks'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { ChatThreadEntry } from './ChatThreadScreen'
 import OfferSheet from './OfferSheet'
+import WhoBoughtItSheet from './WhoBoughtItSheet'
 
 const W = Dimensions.get('window').width
 
@@ -59,6 +60,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
   const [offerSheetOpen, setOfferSheetOpen] = useState(false)
+  const [whoBoughtItOpen, setWhoBoughtItOpen] = useState(false)
 
   const load = async () => {
     setLoading(true); setNetworkError(false); setNotFound(false)
@@ -348,7 +350,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
             <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(detail)}>
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.markSoldBtn} onPress={comingSoon}>
+            <TouchableOpacity style={styles.markSoldBtn} onPress={() => setWhoBoughtItOpen(true)}>
               <Text style={styles.markSoldBtnText}>{isWanted ? 'Mark Fulfilled' : 'Mark Sold'}</Text>
             </TouchableOpacity>
           </View>
@@ -393,6 +395,17 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           budgetMax={detail.budgetMax}
           onClose={() => setOfferSheetOpen(false)}
           onSent={threadId => { setOfferSheetOpen(false); onOpenThread({ kind: 'thread', threadId }) }}
+        />
+      ) : null}
+
+      {detail.isOwner ? (
+        <WhoBoughtItSheet
+          visible={whoBoughtItOpen}
+          token={token}
+          listingId={detail.id}
+          type={isWanted ? 'wanted' : 'selling'}
+          onClose={() => setWhoBoughtItOpen(false)}
+          onDone={() => { setWhoBoughtItOpen(false); load() }}
         />
       ) : null}
     </View>
