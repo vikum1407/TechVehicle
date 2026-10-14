@@ -18,6 +18,7 @@ import { notifyNewMessage, resolveOtherInfo } from './threads'
 import { createNotification } from '../../utils/appNotifications'
 import { sendPush } from '../../utils/push'
 import { parsePrefs } from '../../utils/notificationPrefs'
+import { threadCanRate } from '../../utils/dealRating'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -702,17 +703,6 @@ router.post('/:listingId/status', async (req: AuthRequest, res) => {
   res.json({ ok: true })
 })
 
-// Spec: 02-data-model.md §4.6 "both participants must have sent at least one message
-// (text or offer; the seller's offer counts as the seller's message)". Shared by
-// GET /buyers and POST /deal/confirm below — both need this exact guard.
-async function threadCanRate(threadId: string, ownerPhone: string, otherPhone: string): Promise<boolean> {
-  const [ownerMsg, otherMsg] = await Promise.all([
-    prisma.martMessage.findFirst({ where: { threadId, senderPhone: ownerPhone, kind: { in: ['text', 'offer'] } } }),
-    prisma.martMessage.findFirst({ where: { threadId, senderPhone: otherPhone, kind: { in: ['text', 'offer'] } } }),
-  ])
-  return !!ownerMsg && !!otherMsg
-}
-
 // Spec: 03-api.md §4 POST /:listingId/mark-sold + 02-data-model.md §3.1/§3.2. Selling
 // and wanted share this one route ("wanted = Mark Fulfilled"). System message insertion
 // deliberately does NOT touch the thread's lastMessageAt/lastMessagePreview/
@@ -799,7 +789,7 @@ router.get('/:listingId/buyers', async (req: AuthRequest, res) => {
   const items = await Promise.all(threads.map(async t => {
     const [messageCount, canRate] = await Promise.all([
       prisma.martMessage.count({ where: { threadId: t.id, kind: { not: 'system' } } }),
-      threadCanRate(t.id, listing.ownerPhone, t.otherPhone),
+      threadCanRate(prisma, t.id, listing.ownerPhone, t.otherPhone),
     ])
     const info = otherInfoMap.get(t.otherPhone)
     return {
@@ -860,7 +850,7 @@ router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req
       await prisma.martMessage.create({
         data: { threadId: thread.id, senderPhone: me, kind: 'system', body: 'Purchase confirmed', systemCode: 'deal_confirmed' },
       })
-      canRate = await threadCanRate(thread.id, listing.ownerPhone, me)
+      canRate = await threadCanRate(prisma, thread.id, listing.ownerPhone, me)
     }
 
     const partnerInfoMap = await resolveOtherInfo([me])
@@ -875,6 +865,61 @@ router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req
   }
 
   res.json({ ok: true, canRate })
+})
+
+// Spec: 03-api.md §4 POST /:listingId/rate + 02-data-model.md §4.6/§3.3. "Who may rate:
+// raterPhone = selling → dealPartnerPhone (the buyer); wanted → ownerPhone (the
+// requester). sellerPhone (rated person) = selling → ownerPhone; wanted →
+// dealPartnerPhone" — the two roles swap by type, same as mark-sold/deal-confirm.
+router.post('/:listingId/rate', requireProfile, requireRules, async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
+  if (!listing || listing.removedAt) { res.status(404).json(NOT_FOUND); return }
+
+  const isSelling = listing.type === 'selling'
+  const raterPhone = isSelling ? listing.dealPartnerPhone : listing.ownerPhone
+  const sellerPhone = isSelling ? listing.ownerPhone : listing.dealPartnerPhone
+  if (!raterPhone || me !== raterPhone || !sellerPhone) { res.status(404).json(NOT_FOUND); return }
+  if (listing.dealState !== 'confirmed') { res.status(403).json({ error: 'This purchase is not confirmed yet', code: 'VALIDATION' }); return }
+
+  const { rating, comment } = (req.body || {}) as { rating?: number; comment?: string }
+  if (!Number.isInteger(rating) || rating! < 1 || rating! > 5) { res.status(400).json({ error: 'Select a rating', code: 'VALIDATION' }); return }
+  let commentText: string | null = null
+  if (comment !== undefined && comment !== null) {
+    const trimmed = capText(comment, MART_LIMITS.RATING_COMMENT_MAX).trim()
+    commentText = trimmed.length > 0 ? trimmed : null
+  }
+
+  // The thread's `otherPhone` is always the non-owner side (02-data-model.md §2): for
+  // selling that's the buyer (me); for wanted that's the seller who answered.
+  const thread = await prisma.martThread.findUnique({
+    where: { listingId_otherPhone: { listingId: listing.id, otherPhone: isSelling ? me : sellerPhone } },
+  })
+  if (!thread || !(await threadCanRate(prisma, thread.id, listing.ownerPhone, thread.otherPhone))) {
+    res.status(400).json({ error: 'Chat with the seller before rating', code: 'NOT_ENOUGH_CHAT' }); return
+  }
+
+  const existing = await prisma.martSellerRating.findFirst({
+    where: { OR: [{ listingId: listing.id, raterPhone: me }, { raterPhone: me, sellerPhone }] },
+  })
+  if (existing) { res.status(409).json({ error: 'You already rated this seller', code: 'ALREADY_RATED' }); return }
+
+  const limit = checkRateLimit('mart-rate', me, MART_RATE_LIMITS.RATE_SELLER.max, MART_RATE_LIMITS.RATE_SELLER.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  await prisma.martSellerRating.create({
+    data: { listingId: listing.id, raterPhone: me, sellerPhone, rating: rating!, comment: commentText, listingTitle: listing.title },
+  })
+
+  const title = `New ${rating}-star review`
+  const linkTo = { screen: 'martReviews' }
+  await createNotification(prisma, sellerPhone, 'mart_rating', title, commentText || '', linkTo)
+  const sellerUser = await prisma.user.findUnique({ where: { phoneNumber: sellerPhone } })
+  if (parsePrefs(sellerUser?.notificationPrefs).mart_rating) {
+    await sendPush(sellerUser?.pushToken, title, commentText || '', linkTo)
+  }
+
+  res.status(201).json({ ok: true })
 })
 
 // Spec: 03-api.md §4 DELETE. Soft delete, idempotent — a second delete (or deleting an

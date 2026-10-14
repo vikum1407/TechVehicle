@@ -12,6 +12,7 @@ import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
 import { parsePrefs } from '../../utils/notificationPrefs'
 import { sendPush } from '../../utils/push'
+import { threadCanRate } from '../../utils/dealRating'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -258,16 +259,27 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
   const isListingOwner = thread.listing.ownerPhone === me
   const canSend = !removed && !closed && !isBlocked
 
-  // deal/canRate/dealBanner: Mark Sold (Milestone 2 Step 2.4) and Ratings (2.5) don't
-  // exist yet, so dealState is always null right now — computed correctly from the
-  // real column rather than hardcoded, so nothing here needs to change once those ship.
+  // deal/canRate/dealBanner. canRate needs both sides of 02-data-model.md §4.6 (both
+  // participants messaged) AND that I haven't already rated this seller — only computed
+  // when it could possibly matter (I'm the partner, deal confirmed), to avoid two extra
+  // queries on every other thread load.
   let deal: { state: string; iAmPartner: boolean; outside: boolean; canRate: boolean } | null = null
   let dealBanner: 'confirm_sale' | 'rate' | null = null
   if (thread.listing.dealState) {
     const iAmPartner = thread.listing.dealPartnerPhone === me
     if (isListingOwner || iAmPartner) {
-      deal = { state: thread.listing.dealState, iAmPartner, outside: thread.listing.dealOutside, canRate: false }
+      let canRateFlag = false
+      if (iAmPartner && thread.listing.dealState === 'confirmed') {
+        const sellerPhone = thread.listing.type === 'selling' ? thread.listing.ownerPhone : thread.listing.dealPartnerPhone!
+        const [alreadyRated, messagedEnough] = await Promise.all([
+          prisma.martSellerRating.findFirst({ where: { raterPhone: me, sellerPhone } }),
+          threadCanRate(prisma, thread.id, thread.listing.ownerPhone, thread.otherPhone),
+        ])
+        canRateFlag = !alreadyRated && messagedEnough
+      }
+      deal = { state: thread.listing.dealState, iAmPartner, outside: thread.listing.dealOutside, canRate: canRateFlag }
       if (iAmPartner && thread.listing.dealState === 'pending') dealBanner = 'confirm_sale'
+      else if (canRateFlag) dealBanner = 'rate'
     }
   }
 
@@ -310,7 +322,7 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
         removedAt: thread.listing.removedAt ? thread.listing.removedAt.toISOString() : null,
         deal, isOwner: isListingOwner,
       },
-      other, canSend, canRate: false, dealBanner,
+      other, canSend, canRate: deal?.canRate || false, dealBanner,
     },
     messages, nextCursor,
   })

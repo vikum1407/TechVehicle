@@ -4,6 +4,15 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-14 — Milestone 2 Step 2.5: Ratings
+
+- **`threadCanRate()` moved to a new shared file, `backend/src/utils/dealRating.ts`**, instead of staying local to `listings.ts` (where Step 2.4 first put it) or being duplicated into `threads.ts`. `threads.ts`'s `GET /:threadId` now needs it too (for the real `canRate`/`dealBanner: 'rate'` this step adds), and `listings.ts` already imports from `threads.ts` — a reverse import would have been circular.
+- **`dealBanner: 'rate'` was already a declared type in `threads.ts` since Step 1.8**, just never assigned (`'confirm_sale' | 'rate' | null`, with only `'confirm_sale'` ever set) — confirms the original build anticipated exactly this. Implemented it now rather than inventing a new mechanism: `dealBanner === 'rate'` is what `ChatThreadScreen`'s "Rate seller" link is gated on, replacing the cruder `deal.state === 'confirmed'` check from Step 2.4 (which didn't account for "already rated" or "didn't chat enough").
+- **A failed rating submission in `RateSellerModal` closes the modal instead of showing an inline error and letting the user retry.** The deal is already confirmed at this point — the rating is a nice-to-have, not a required step the user is blocked on, so failing open (same as Skip) is friendlier than trapping them on an error for something optional.
+- **No new UI needed to actually display a seller's aggregate rating** — `RatingBadge` (Detail's seller row, Offers List, the Seller type's own `rating` field from `getSellerRatings()`) already reads live `MartSellerRating` data since Step 0.6; it's just been showing "No reviews yet" because no real ratings existed until this step. Submitting one lights it up everywhere automatically.
+
+---
+
 ## 2026-10-14 — Milestone 2 Step 2.4: Mark Sold/Fulfilled + confirm
 
 - **`mark-sold`'s system message insertion deliberately does not update the thread's `lastMessageAt`/`lastMessagePreview`/`lastMessageSenderPhone`** — the schema comment on `MartMessage.systemCode` says system lines "do NOT change lastMessage* or unread," and every other open thread on the ad already picks up the Sold/Fulfilled banner at read time via the existing `isThreadListingVisible()`/`listingSnapshotStatus()` logic, so no extra write was needed to make that work.

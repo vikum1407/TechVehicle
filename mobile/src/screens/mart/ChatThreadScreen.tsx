@@ -12,6 +12,7 @@ import MartTag from '../../components/mart/MartTag'
 import { formatLKR } from '../../utils/martHelpers'
 import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
+import RateSellerModal from './RateSellerModal'
 
 const MESSAGE_MAX = 1000
 const CLOSED_VISIBLE_DAYS = 7
@@ -48,6 +49,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   const [sendError, setSendError] = useState('')
   const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
   const [dealResponding, setDealResponding] = useState(false)
+  const [rateModalOpen, setRateModalOpen] = useState(false)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -273,8 +275,8 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
             </TouchableOpacity>
           </View>
         </View>
-      ) : threadData?.listing.deal?.state === 'confirmed' && threadData.listing.deal.iAmPartner ? (
-        <TouchableOpacity style={styles.rateSellerLink} onPress={comingSoon}>
+      ) : threadData?.dealBanner === 'rate' ? (
+        <TouchableOpacity style={styles.rateSellerLink} onPress={() => setRateModalOpen(true)}>
           <AppIcon icon={{ lib: 'ion', name: 'star-outline' }} size={14} color={colors.primary} />
           <Text style={styles.rateSellerLinkText}>Rate seller</Text>
         </TouchableOpacity>
@@ -379,6 +381,17 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
       onDone={() => { setGateStep(null); handleSend() }}
       onClose={() => setGateStep(null)}
     />
+
+    {listingId ? (
+      <RateSellerModal
+        visible={rateModalOpen}
+        token={token}
+        listingId={listingId}
+        sellerName={otherName}
+        onClose={() => setRateModalOpen(false)}
+        onDone={() => { setRateModalOpen(false); if (threadId) loadThread(threadId) }}
+      />
+    ) : null}
     </>
   )
 }

@@ -171,6 +171,12 @@ export const api = {
     if (!res.ok) throw new Error(data.error || "Couldn't confirm")
     return data
   },
+  rateMartSeller: async (token: string, listingId: string, rating: number, comment?: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/listings/${listingId}/rate`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ rating, comment }) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't submit rating")
+    return data
+  },
   favoriteMartListing: async (token: string, listingId: string): Promise<{ ok: true }> => {
     const res = await fetch(`${API_URL}/mart/favorites`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ listingId }) })
     const data = await res.json()
