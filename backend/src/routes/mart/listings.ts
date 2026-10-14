@@ -692,7 +692,6 @@ router.post('/:listingId/offer', requireProfile, requireRules, async (req: AuthR
   })
 
   res.status(201).json({ threadId: thread.id })
-  console.log('[offer] about to notify owner', { threadId: thread.id, me, owner: listing.ownerPhone })
   notifyNewMessage(thread.id, me, listing.ownerPhone, 'New offer on your request')
 })
 
