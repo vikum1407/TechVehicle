@@ -232,6 +232,8 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
           <Text style={styles.noticeText}>
             {removed
               ? `This listing was removed by the seller. This conversation is available for ${daysLeft} more days.`
+              : rawStatus === 'fulfilled'
+              ? `This request was marked as fulfilled. This conversation is available for ${daysLeft} more days.`
               : `This item was marked as sold. This conversation is available for ${daysLeft} more days.`}
           </Text>
         </View>
@@ -331,7 +333,11 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
       ) : (
         <View style={styles.closedBar}>
           <Text style={styles.closedBarText}>
-            {removed ? 'Messaging closed — this listing was removed' : 'Messaging closed — this item has been sold'}
+            {removed
+              ? 'Messaging closed — this listing was removed'
+              : rawStatus === 'fulfilled'
+              ? 'Messaging closed — this request was fulfilled'
+              : 'Messaging closed — this item has been sold'}
           </Text>
         </View>
       )}
