@@ -4,6 +4,15 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-14 — Milestone 2 Step 2.3: Wanted match alerts
+
+- **`runWantedMatchAlerts()` lives in `listings.ts`, not `src/jobs/`**, and isn't registered with `setInterval` like every other job there. Every existing job in `src/jobs/` is schedule-driven (runs hourly/daily against the whole database); this one is event-driven — it runs exactly once, fired directly from the `POST /` handler right after a wanted listing is created, same fire-and-forget pattern as `threads.ts`'s `notifyNewMessage()`. Putting it in `src/jobs/` would have implied a schedule that doesn't apply here.
+- **Found and fixed a real pre-existing gap while wiring this step's `martWanted` push routing**: `App.tsx`'s `handleNotificationData()` — the handler for an actual tapped system push notification (cold start or background tap) — never had any Mart routing at all, not even for `martThread` from Step 1.9. Only the in-app Notifications screen's own `onNavigate` prop had it. A real push tap for a Mart message has been silently doing nothing since Step 1.9 shipped. Fixed both `martThread` and the new `martWanted` in the same pass, since they're the same gap.
+- **`WANTED_ALERT_LOOKBACK_MONTHS` (12) applied as `months * 30 days`**, not a calendar-month calculation — the spec just says "12 months," and a flat 30-day approximation is simpler and close enough for a lookback window that's just filtering "roughly how recently this seller was active," not something requiring calendar precision.
+- **One seller's alert uses their single most-recently-posted matching ad** for ranking (makeNorm/district comparison), not all of their ads — a seller is only ever notified once per request regardless of how many matching ads they have, so only one needs to be picked for the ranking comparison.
+
+---
+
 ## 2026-10-13 — Milestone 2 Step 2.2: Offers
 
 - **Offer Sheet's photo upload is its own inline copy of Post Ad's one-by-one-upload-with-retry pattern**, not a shared component — only one other screen needs this exact shape (max 3 photos, all-optional) and extracting a shared component now would mean guessing its API before a second real caller exists, same reasoning already used elsewhere in this build (e.g. Step 1.1's pickers waiting for Step 1.2 before being wired into real navigation).

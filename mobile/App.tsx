@@ -107,6 +107,7 @@ export default function App() {
   const [martEnabled, setMartEnabled] = useState(false) // Step 0.11: GET /app-config below decides this
   const [martFullScreen, setMartFullScreen] = useState(false) // Step 1.3: MartNavigator reports Posting/Filters/etc. so the tab bar can hide, per 04-screens.md §0.2
   const [focusMartThreadId, setFocusMartThreadId] = useState<string | null>(null) // Step 1.9: a martThread notification tap deep-links here
+  const [focusMartListingId, setFocusMartListingId] = useState<string | null>(null) // Step 2.3: a martWanted notification tap deep-links here
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -158,8 +159,21 @@ export default function App() {
     const targetScreen = data?.screen as string | undefined
     const bookingId = data?.bookingId as string | undefined
     const vehicleId = data?.vehicleId as string | undefined
+    const threadId = data?.threadId as string | undefined
+    const listingId = data?.listingId as string | undefined
 
-    if (targetScreen === 'garage') {
+    // Pre-existing gap found while wiring Step 2.3's martWanted push: this handler
+    // (real system push taps — cold start + background tap) never had ANY Mart routing
+    // at all, even for martThread (Step 1.9) — only the in-app NotificationsScreen's own
+    // onNavigate handler (below, in the JSX) had it. A tapped push notification for a
+    // Mart message or a wanted-match alert silently did nothing. Fixed both here.
+    if (targetScreen === 'martThread' && threadId) {
+      setFocusMartThreadId(threadId)
+      setScreen('mart')
+    } else if (targetScreen === 'martWanted' && listingId) {
+      setFocusMartListingId(listingId)
+      setScreen('mart')
+    } else if (targetScreen === 'garage') {
       if (bookingId) setFocusBookingId(bookingId)
       setScreen('garage')
     } else if (targetScreen === 'predictions') {
@@ -476,6 +490,8 @@ export default function App() {
                 onFullScreenChange={setMartFullScreen}
                 focusThreadId={focusMartThreadId}
                 onFocusHandled={() => setFocusMartThreadId(null)}
+                focusListingId={focusMartListingId}
+                onListingFocusHandled={() => setFocusMartListingId(null)}
               />
             )}
           </View>
@@ -750,9 +766,13 @@ export default function App() {
           onNavigate={(linkTo) => {
             if (!linkTo) { setScreen('vehicles'); return }
             try {
-              const { screen: target, vehicleId, bookingId, threadId } = JSON.parse(linkTo)
+              const { screen: target, vehicleId, bookingId, threadId, listingId } = JSON.parse(linkTo)
               if (target === 'martThread' && threadId) {
                 setFocusMartThreadId(threadId)
+                setScreen('mart'); return
+              }
+              if (target === 'martWanted' && listingId) {
+                setFocusMartListingId(listingId)
                 setScreen('mart'); return
               }
               if (target === 'garage') {

@@ -15,6 +15,9 @@ import { getSellerTags, getSellerRatings, getActiveAdsCounts } from '../../utils
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 import { notifyNewMessage } from './threads'
+import { createNotification } from '../../utils/appNotifications'
+import { sendPush } from '../../utils/push'
+import { parsePrefs } from '../../utils/notificationPrefs'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -181,10 +184,90 @@ router.post('/', requireProfile, requireRules, async (req: AuthRequest, res) => 
   })
 
   res.status(201).json({ id: listing.id })
-  // Wanted match alerts (02-data-model.md §7.3) run here once Milestone 2 Step 2.1 adds
-  // real Wanted posting from the app — no caller can reach type:"wanted" yet, so there's
-  // nothing to wire up before then.
+  if (listing.type === 'wanted') runWantedMatchAlerts(listing).catch(() => {})
 })
+
+function formatBudgetForPush(min: number | null, max: number | null): string {
+  if (max === null) return 'Open budget'
+  const fmt = (n: number) => `Rs. ${n.toLocaleString()}`
+  return min === null ? `Up to ${fmt(max)}` : `${fmt(min)} – ${fmt(max)}`
+}
+
+// Spec: 02-data-model.md §7.3. Runs once, in the background, right after a wanted
+// request is created — never on a schedule (unlike every other job in src/jobs/), since
+// there's exactly one moment this is relevant: the instant the request exists. Fire-
+// and-forget from the POST handler above, same pattern as threads.ts's notifyNewMessage.
+async function runWantedMatchAlerts(listing: {
+  id: string; ownerPhone: string; categoryId: string; makeNorm: string | null
+  district: string; title: string; budgetMin: number | null; budgetMax: number | null
+}) {
+  const lookbackMs = MART_LIMITS.WANTED_ALERT_LOOKBACK_MONTHS * 30 * 24 * 60 * 60 * 1000
+  const since = new Date(Date.now() - lookbackMs)
+
+  // Step 1: candidate sellers — distinct ownerPhone of selling ads in the same category,
+  // posted within the lookback window. Keep each seller's single most relevant ad (for
+  // ranking) rather than every ad, since only the seller is notified, once.
+  const candidateAds = await prisma.martListing.findMany({
+    where: {
+      type: 'selling', removedAt: null, categoryId: listing.categoryId,
+      createdAt: { gte: since }, ownerPhone: { not: listing.ownerPhone },
+    },
+    select: { ownerPhone: true, makeNorm: true, district: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (candidateAds.length === 0) return
+
+  const bestAdBySeller = new Map<string, (typeof candidateAds)[number]>()
+  for (const ad of candidateAds) {
+    if (!bestAdBySeller.has(ad.ownerPhone)) bestAdBySeller.set(ad.ownerPhone, ad)
+  }
+
+  // Step 2: remove blocked-either-way and already-alerted sellers.
+  const [blocked, alertedRows] = await Promise.all([
+    blockedSet(prisma, listing.ownerPhone),
+    prisma.martWantedAlert.findMany({ where: { listingId: listing.id }, select: { sellerPhone: true } }),
+  ])
+  const alerted = new Set(alertedRows.map(r => r.sellerPhone))
+  const candidates = [...bestAdBySeller.entries()].filter(([phone]) => !blocked.has(phone) && !alerted.has(phone))
+  if (candidates.length === 0) return
+
+  // Step 3: rank — same makeNorm first (only meaningful when the request has one), then
+  // same district, then newest ad. Take 20.
+  candidates.sort(([, a], [, b]) => {
+    if (listing.makeNorm) {
+      const aMake = a.makeNorm === listing.makeNorm ? 1 : 0
+      const bMake = b.makeNorm === listing.makeNorm ? 1 : 0
+      if (aMake !== bMake) return bMake - aMake
+    }
+    const aDistrict = a.district === listing.district ? 1 : 0
+    const bDistrict = b.district === listing.district ? 1 : 0
+    if (aDistrict !== bDistrict) return bDistrict - aDistrict
+    return b.createdAt.getTime() - a.createdAt.getTime()
+  })
+  const chosen = candidates.slice(0, MART_LIMITS.WANTED_ALERT_MAX_SELLERS)
+
+  // Step 4: one notification per chosen seller. Insert MartWantedAlert first (its unique
+  // constraint makes this safe against ever double-alerting the same seller for the same
+  // request, even if this job somehow ran twice) — ignore the duplicate-key error rather
+  // than letting it abort the loop for every other seller.
+  const districtLabel = DISTRICTS.find(d => d.id === listing.district)?.en || listing.district
+  const title = 'New request near you'
+  const body = `${listing.title} · ${formatBudgetForPush(listing.budgetMin, listing.budgetMax)} · ${districtLabel}`
+  const linkTo = { screen: 'martWanted', listingId: listing.id }
+
+  for (const [sellerPhone] of chosen) {
+    try {
+      await prisma.martWantedAlert.create({ data: { listingId: listing.id, sellerPhone } })
+    } catch {
+      continue // unique constraint hit — already alerted, skip
+    }
+    await createNotification(prisma, sellerPhone, 'mart_wanted_match', title, body, linkTo)
+    const seller = await prisma.user.findUnique({ where: { phoneNumber: sellerPhone } })
+    if (parsePrefs(seller?.notificationPrefs).mart_wanted) {
+      await sendPush(seller?.pushToken, title, body, linkTo)
+    }
+  }
+}
 
 // Spec: 03-api.md §4 GET /mart/listings. Exported as a pure function (no DB) so the
 // filter/search logic is unit-testable without a live database. `blockedPhones` is

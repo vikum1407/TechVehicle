@@ -49,12 +49,14 @@ type MartStackEntry =
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
   focusThreadId?: string | null
   onFocusHandled?: () => void
+  focusListingId?: string | null
+  onListingFocusHandled?: () => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -72,6 +74,15 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   // focusBookingId-style prop + "handled" callback pattern already used for Garage/
   // Vehicle Dashboard deep links) — pushes straight to the thread, same mount every
   // time this stack opens fresh (it always starts at 'home').
+  // Step 2.3: a mart_wanted_match push notification tap — same pattern as focusThreadId
+  // above, pushes straight to the matching request's Detail screen.
+  useEffect(() => {
+    if (focusListingId) {
+      push({ screen: 'detail', listingId: focusListingId })
+      onListingFocusHandled?.()
+    }
+  }, [focusListingId])
+
   useEffect(() => {
     if (focusThreadId) {
       push({ screen: 'thread', entry: { kind: 'thread', threadId: focusThreadId } })
