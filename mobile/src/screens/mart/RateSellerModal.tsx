@@ -28,20 +28,30 @@ export default function RateSellerModal({
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  const reset = () => { setRating(0); setComment('') }
+  const reset = () => { setRating(0); setComment(''); setError('') }
 
   const submit = async () => {
     if (rating === 0) return
     setSubmitting(true)
+    setError('')
     try {
       await api.rateMartSeller(token, listingId, rating, comment.trim() || undefined)
       reset()
       onDone()
     } catch (e: any) {
-      // Rating is a nice-to-have at this point in the flow (the deal is already
-      // confirmed) — a failed submit shouldn't trap the user, so this just closes
-      // like Skip rather than blocking on an inline error.
+      if (e.code === 'ALREADY_RATED') {
+        // Previously this closed silently (same as success) for any error, which made
+        // a second attempt on the same deal look like it worked every time, even
+        // though the backend correctly rejected it — no feedback meant no way to tell
+        // the difference. Show it instead.
+        setError("You've already rated this seller.")
+        return
+      }
+      // Any other failure (connectivity, validation) — rating is a nice-to-have at
+      // this point (the deal's already confirmed), so don't trap the user on an error
+      // for something optional; just close like Skip.
       reset()
       onDone()
     } finally {
@@ -79,6 +89,8 @@ export default function RateSellerModal({
                   numberOfLines={3}
                 />
 
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+
                 <View style={styles.btnRow}>
                   <TouchableOpacity style={styles.skipBtn} onPress={skip} disabled={submitting}>
                     <Text style={styles.skipBtnText}>Skip</Text>
@@ -111,6 +123,7 @@ function makeStyles(c: Colors) {
       backgroundColor: c.surfaceAlt, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
       fontSize: 14, color: c.text, minHeight: 72, textAlignVertical: 'top',
     },
+    error: { fontSize: 12.5, color: c.error, marginTop: 10, textAlign: 'center' },
     btnRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
     skipBtn: { flex: 1, paddingVertical: 13, alignItems: 'center' },
     skipBtnText: { color: c.textMuted, fontWeight: '700', fontSize: 14 },
