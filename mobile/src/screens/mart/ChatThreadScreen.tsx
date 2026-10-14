@@ -91,8 +91,12 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
     if (!threadId || !listingId) return
     setDealResponding(true)
     try {
-      await api.confirmMartDeal(token, listingId, confirm)
+      const result = await api.confirmMartDeal(token, listingId, confirm)
       await loadThread(threadId)
+      // Spec: 04-screens.md §9.2 "Confirm purchase → opens 9.3 [the rate modal]" — opens
+      // automatically right on confirm rather than needing a second tap on the "Rate
+      // seller" link (which stays as the fallback entry point for rating later).
+      if (confirm && result.canRate) setRateModalOpen(true)
     } catch (e: any) {
       Alert.alert("Couldn't confirm", e.message || 'Check your connection and try again.')
     } finally {

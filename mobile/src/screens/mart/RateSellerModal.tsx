@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator, StyleSheet } from 'react-native'
+import {
+  View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Modal,
+  KeyboardAvoidingView, Platform, ActivityIndicator, StyleSheet,
+} from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
 import AppIcon from '../../components/AppIcon'
@@ -50,43 +53,49 @@ export default function RateSellerModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={skip}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Purchase confirmed</Text>
-          <Text style={styles.subtitle}>How was your experience with {sellerName}?</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <TouchableWithoutFeedback onPress={skip}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.card}>
+                <Text style={styles.title}>Purchase confirmed</Text>
+                <Text style={styles.subtitle}>How was your experience with {sellerName}?</Text>
 
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <TouchableOpacity key={n} onPress={() => setRating(n)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                <AppIcon icon={{ lib: 'mci', name: n <= rating ? 'star' : 'star-outline' }} size={38} color={colors.accent} />
-              </TouchableOpacity>
-            ))}
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <TouchableOpacity key={n} onPress={() => setRating(n)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                      <AppIcon icon={{ lib: 'mci', name: n <= rating ? 'star' : 'star-outline' }} size={38} color={colors.accent} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={styles.commentInput}
+                  value={comment}
+                  onChangeText={t => setComment(t.slice(0, COMMENT_MAX))}
+                  placeholder="Add a comment (optional)"
+                  placeholderTextColor={colors.textFaint}
+                  multiline
+                  numberOfLines={3}
+                />
+
+                <View style={styles.btnRow}>
+                  <TouchableOpacity style={styles.skipBtn} onPress={skip} disabled={submitting}>
+                    <Text style={styles.skipBtnText}>Skip</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.submitBtn, (rating === 0 || submitting) && styles.submitBtnDisabled]}
+                    onPress={submit}
+                    disabled={rating === 0 || submitting}
+                  >
+                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Submit</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-
-          <TextInput
-            style={styles.commentInput}
-            value={comment}
-            onChangeText={t => setComment(t.slice(0, COMMENT_MAX))}
-            placeholder="Add a comment (optional)"
-            placeholderTextColor={colors.textFaint}
-            multiline
-            numberOfLines={3}
-          />
-
-          <View style={styles.btnRow}>
-            <TouchableOpacity style={styles.skipBtn} onPress={skip} disabled={submitting}>
-              <Text style={styles.skipBtnText}>Skip</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.submitBtn, (rating === 0 || submitting) && styles.submitBtnDisabled]}
-              onPress={submit}
-              disabled={rating === 0 || submitting}
-            >
-              {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Submit</Text>}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }
