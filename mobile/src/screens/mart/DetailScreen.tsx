@@ -38,7 +38,7 @@ const W = Dimensions.get('window').width
 // owner "Offers banner" always shows the 0-offers empty state for the same reason
 // (offersCount isn't computed until 2.2, same deferral pattern as Step 1.1's
 // unreadThreads/Step 1.4's deal fields).
-export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread, onOpenOffers }: {
+export default function DetailScreen({ token, listingId, onBack, onOpenListing, onEdit, onOpenThread, onOpenOffers, onOpenSeller }: {
   token: string
   listingId: string
   onBack: () => void
@@ -46,6 +46,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   onEdit: (listing: any) => void
   onOpenThread: (entry: ChatThreadEntry) => void
   onOpenOffers: (listingId: string, title: string, budgetMin: number | null, budgetMax: number | null) => void
+  onOpenSeller: (sellerId: string) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -299,7 +300,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         ) : null}
 
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.sellerRow} onPress={comingSoon}>
+        <TouchableOpacity style={styles.sellerRow} onPress={() => onOpenSeller(detail.seller.id)}>
           {detail.seller.photoUrl ? (
             <Image source={{ uri: detail.seller.photoUrl }} style={styles.avatarImage} />
           ) : (

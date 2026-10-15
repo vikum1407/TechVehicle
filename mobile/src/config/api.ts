@@ -301,6 +301,46 @@ export const api = {
     return data
   },
 
+  // Spec: 03-api.md §7, 04-screens.md §16. `sellerId` is always User.id, never a phone.
+  getMartSeller: async (token: string, sellerId: string): Promise<any> => {
+    const res = await fetch(`${API_URL}/mart/sellers/${sellerId}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load this profile")
+    return data
+  },
+  getMartSellerListings: async (token: string, sellerId: string, params: { type: 'selling' | 'wanted'; cursor?: string }): Promise<{ items: any[]; nextCursor: string | null }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/sellers/${sellerId}/listings?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load this seller's ads")
+    return data
+  },
+  getMartSellerReviews: async (token: string, sellerId: string, params: { kind: 'parts' | 'service'; cursor?: string }): Promise<{
+    summary: { avg: number | null; count: number; distribution: Record<'5' | '4' | '3' | '2' | '1', number> }
+    items: { id: string; rating: number; comment: string | null; createdAt: string; listingTitle?: string }[]
+    nextCursor: string | null
+  }> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) { if (v !== undefined && v !== '') qs.set(k, String(v)) }
+    const res = await fetch(`${API_URL}/mart/sellers/${sellerId}/reviews?${qs.toString()}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load reviews")
+    return data
+  },
+  followMartSeller: async (token: string, sellerId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/follows`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ sellerId }) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't follow this seller")
+    return data
+  },
+  unfollowMartSeller: async (token: string, sellerId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/follows/${sellerId}`, { method: 'DELETE', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't unfollow this seller")
+    return data
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

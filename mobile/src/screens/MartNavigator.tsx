@@ -11,6 +11,7 @@ import ChatInboxScreen from './mart/ChatInboxScreen'
 import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
 import OffersListScreen from './mart/OffersListScreen'
 import ShopProfileScreen from './mart/ShopProfileScreen'
+import SellerProfileScreen from './mart/SellerProfileScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -46,10 +47,11 @@ type MartStackEntry =
   | { screen: 'inbox' }
   | { screen: 'thread'; entry: ChatThreadEntry }
   | { screen: 'offers'; listingId: string; title: string; budgetMin: number | null; budgetMax: number | null }
+  | { screen: 'sellerProfile'; sellerId: string }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
-const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled }: {
   onExit: () => void
@@ -168,6 +170,18 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onEdit={listing => push({ screen: 'postAd', editing: { listingId: current.listingId, listing } })}
         onOpenThread={entry => push({ screen: 'thread', entry })}
         onOpenOffers={(listingId, title, budgetMin, budgetMax) => push({ screen: 'offers', listingId, title, budgetMin, budgetMax })}
+        onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}
+      />
+    )
+  }
+
+  if (current.screen === 'sellerProfile') {
+    return (
+      <SellerProfileScreen
+        token={token}
+        sellerId={current.sellerId}
+        onBack={pop}
+        onOpenListing={id => push({ screen: 'detail', listingId: id })}
       />
     )
   }
@@ -234,6 +248,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         entry={current.entry}
         onBack={pop}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
+        onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}
       />
     )
   }

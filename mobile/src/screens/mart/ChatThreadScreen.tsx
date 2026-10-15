@@ -27,11 +27,12 @@ export type ChatThreadEntry =
   | { kind: 'thread'; threadId: string }
   | { kind: 'draft'; listingId: string; title: string; coverUrl: string | null; price: number | null; status: string; otherName: string; prefilledText: string }
 
-export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }: {
+export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, onOpenSeller }: {
   token: string
   entry: ChatThreadEntry
   onBack: () => void
   onOpenListing: (id: string) => void
+  onOpenSeller: (sellerId: string) => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -198,6 +199,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   const closed = threadData ? threadData.listing.closed : false
   const otherName = threadData ? threadData.other.name : (entry as any).otherName
   const otherPhotoUrl = threadData ? threadData.other.photoUrl : null
+  const otherId = threadData ? threadData.other.id : null
   const canSend = threadData ? threadData.canSend : true
 
   const daysLeft = (() => {
@@ -215,12 +217,18 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        {otherPhotoUrl ? (
-          <Image source={{ uri: otherPhotoUrl }} style={styles.headerAvatarImage} />
-        ) : (
-          <View style={styles.headerAvatar}><Text style={styles.headerAvatarText}>{(otherName || '?')[0]}</Text></View>
-        )}
-        <Text style={styles.headerName} numberOfLines={1}>{otherName}</Text>
+        <TouchableOpacity
+          style={styles.headerIdentityRow}
+          disabled={!otherId}
+          onPress={() => otherId && onOpenSeller(otherId)}
+        >
+          {otherPhotoUrl ? (
+            <Image source={{ uri: otherPhotoUrl }} style={styles.headerAvatarImage} />
+          ) : (
+            <View style={styles.headerAvatar}><Text style={styles.headerAvatarText}>{(otherName || '?')[0]}</Text></View>
+          )}
+          <Text style={styles.headerName} numberOfLines={1}>{otherName}</Text>
+        </TouchableOpacity>
         {threadId ? (
           <TouchableOpacity onPress={openMenu} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <AppIcon icon={{ lib: 'ion', name: 'ellipsis-vertical' }} size={20} color={colors.text} />
@@ -452,6 +460,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
       backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
       paddingTop: topInset + 12, paddingBottom: 12, paddingHorizontal: 16,
     },
+    headerIdentityRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
     headerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
     headerAvatarImage: { width: 36, height: 36, borderRadius: 18 },
     headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },

@@ -31,6 +31,12 @@ export function formatBudget(min: number | null | undefined, max: number | null 
   return `${formatLKR(min)} – ${formatLKR(max)}`
 }
 
+// "Member since Jan 2026" per 04-screens.md §16 Layout B.
+export function memberSinceLabel(iso: string): string {
+  const d = new Date(iso)
+  return `Member since ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+}
+
 export function openPhone(phone: string) {
   Linking.openURL(`tel:${phone}`)
 }
