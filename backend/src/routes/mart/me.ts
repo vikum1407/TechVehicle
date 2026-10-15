@@ -34,7 +34,7 @@ export async function buildMeResponse(phoneNumber: string) {
     getActiveAdsCounts(prisma, [phoneNumber]),
   ])
 
-  const [statusGroups, unreadNotifCount, followingsCount, favoritesCount, reviewsCount, blockedCount] = await Promise.all([
+  const [statusGroups, unreadNotifCount, followingsCount, followersCount, favoritesCount, reviewsCount, blockedCount] = await Promise.all([
     prisma.martListing.groupBy({
       by: ['status'],
       where: { ownerPhone: phoneNumber, type: 'selling', removedAt: null },
@@ -42,6 +42,7 @@ export async function buildMeResponse(phoneNumber: string) {
     }),
     prisma.appNotification.count({ where: { userPhone: phoneNumber, type: { startsWith: 'mart_' }, read: false } }),
     prisma.martFollow.count({ where: { followerPhone: phoneNumber } }),
+    prisma.martFollow.count({ where: { sellerPhone: phoneNumber } }),
     prisma.martFavorite.count({ where: { userPhone: phoneNumber } }),
     prisma.martSellerRating.count({ where: { sellerPhone: phoneNumber } }),
     prisma.martBlock.count({ where: { blockerPhone: phoneNumber } }),
@@ -78,6 +79,7 @@ export async function buildMeResponse(phoneNumber: string) {
       unreadThreads: unreadThreadCount,
       unreadNotifications: unreadNotifCount,
       followings: followingsCount,
+      followers: followersCount,
       available: statusCount('available'),
       reserved: statusCount('reserved'),
       sold: statusCount('sold'),

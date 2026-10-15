@@ -187,7 +187,37 @@ router.post('/', requireProfile, requireRules, async (req: AuthRequest, res) => 
 
   res.status(201).json({ id: listing.id })
   if (listing.type === 'wanted') runWantedMatchAlerts(listing).catch(() => {})
+  else notifyFollowersOfNewAd(listing).catch(() => {})
 })
+
+// Added 2026-10-15, Vikum's request: "give priority to following users" when a seller
+// posts a new ad. Fires once, right after creation, same fire-and-forget pattern as
+// runWantedMatchAlerts right above — never on a schedule, selling ads only ("list down
+// the product"), not on relist/edit (only a genuinely new post). Unlike the wanted-match
+// alert's ranked top-20, every follower is notified — following is an explicit opt-in
+// relationship chosen by the follower, not a guessed-relevance match, so there's no
+// reason to silently drop some.
+async function notifyFollowersOfNewAd(listing: { id: string; ownerPhone: string; title: string }) {
+  const follows = await prisma.martFollow.findMany({ where: { sellerPhone: listing.ownerPhone }, select: { followerPhone: true } })
+  if (follows.length === 0) return
+
+  const sellerInfoMap = await resolveOtherInfo([listing.ownerPhone])
+  const sellerName = sellerInfoMap.get(listing.ownerPhone)?.name || publicName(null, 'casual')
+  const title = `${sellerName} posted a new ad`
+  const linkTo = { screen: 'martNewAd', listingId: listing.id }
+
+  const followerPhones = follows.map(f => f.followerPhone)
+  const followers = await prisma.user.findMany({
+    where: { phoneNumber: { in: followerPhones } },
+    select: { phoneNumber: true, pushToken: true, notificationPrefs: true },
+  })
+  for (const follower of followers) {
+    await createNotification(prisma, follower.phoneNumber, 'mart_new_ad', title, listing.title, linkTo)
+    if (parsePrefs(follower.notificationPrefs).mart_follow) {
+      await sendPush(follower.pushToken, title, listing.title, linkTo)
+    }
+  }
+}
 
 function formatBudgetForPush(min: number | null, max: number | null): string {
   if (max === null) return 'Open budget'

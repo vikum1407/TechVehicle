@@ -24,13 +24,14 @@ import MartRulesScreen from './MartRulesScreen'
 // explicit second entry point into MartRulesScreen, alongside the first-action gate —
 // it was never wired in when My Mart itself was built, so there was no way to review
 // the rules again after accepting them once.
-export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings }: {
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings, onOpenFollowers }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
   onOpenFavorites: () => void
   onOpenShopProfile: () => void
   onOpenFollowings: () => void
+  onOpenFollowers: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -83,6 +84,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
     },
     { icon: { lib: 'ion', name: 'heart-outline' }, label: 'Favorites', sub: `${me.counts.favorites} saved ads`, onPress: onOpenFavorites },
     { icon: { lib: 'ion', name: 'people-outline' }, label: 'Followings', sub: `${me.counts.followings} sellers and shops`, onPress: onOpenFollowings },
+    { icon: { lib: 'ion', name: 'person-add-outline' }, label: 'Followers', sub: `${me.counts.followers} people following you`, onPress: onOpenFollowers },
     {
       icon: { lib: 'ion', name: 'star-outline' }, label: 'Reviews',
       sub: me.counts.reviews > 0 ? `${me.counts.reviews} reviews from buyers` : 'Reviews appear after your first confirmed sale',

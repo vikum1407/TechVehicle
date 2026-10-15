@@ -528,6 +528,8 @@ const si: Record<TranslationKey, string> = {
   'notificationPrefs.martWanted.desc': 'ඔබ කලින් විකුණූ කොටසක් සඳහා ගැනුම්කරුවෙකු සොයන විට දැනුම් දෙනු ලැබේ',
   'notificationPrefs.martRating.title': 'නව සමාලෝචන',
   'notificationPrefs.martRating.desc': 'Vocksy Mart හි කෙනෙකු ඔබව විකුණුම්කරුවෙකු ලෙස ශ්‍රේණිගත කළ විට දැනුම් දෙනු ලැබේ',
+  'notificationPrefs.martFollow.title': 'අනුගමනයන්',
+  'notificationPrefs.martFollow.desc': 'කවුරුන් හෝ ඔබව අනුගමනය කරන විට, හෝ ඔබ අනුගමනය කරන විකුණුම්කරුවෙකු නව දැන්වීමක් පළ කරන විට දැනුම් දෙනු ලැබේ',
 
   'onboarding.milestone.oil.label': 'එන්ජින් තෙල් වෙනස් කිරීම',
   'onboarding.milestone.oil.question': 'ඔබ අවසන් වරට එන්ජින් තෙල් වෙනස් කළේ කවදාද?',

@@ -17,6 +17,7 @@ export const NOTIFICATION_PREF_DEFAULTS: Record<string, boolean> = {
   mart_message: true,
   mart_wanted: true,
   mart_rating: true,
+  mart_follow: true,
 }
 
 export function parsePrefs(raw: string | null | undefined): Record<string, boolean> {

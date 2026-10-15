@@ -75,6 +75,11 @@ const PREFS: { key: string; titleKey: TranslationKey; descKey: TranslationKey }[
     titleKey: 'notificationPrefs.martRating.title',
     descKey: 'notificationPrefs.martRating.desc',
   },
+  {
+    key: 'mart_follow',
+    titleKey: 'notificationPrefs.martFollow.title',
+    descKey: 'notificationPrefs.martFollow.desc',
+  },
 ]
 
 export default function NotificationPrefsScreen({ token, onBack }: Props) {
@@ -90,6 +95,7 @@ export default function NotificationPrefsScreen({ token, onBack }: Props) {
     mart_message: true,
     mart_wanted: true,
     mart_rating: true,
+    mart_follow: true,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)

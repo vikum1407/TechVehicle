@@ -109,6 +109,7 @@ export default function App() {
   const [focusMartThreadId, setFocusMartThreadId] = useState<string | null>(null) // Step 1.9: a martThread notification tap deep-links here
   const [focusMartListingId, setFocusMartListingId] = useState<string | null>(null) // Step 2.3: a martWanted notification tap deep-links here
   const [focusMartMyAdsTab, setFocusMartMyAdsTab] = useState<'available' | 'reserved' | 'sold' | null>(null) // Step 2.4: a martMyAds notification tap deep-links here
+  const [focusMartSellerId, setFocusMartSellerId] = useState<string | null>(null) // 2026-10-15: a martSellerProfile (new follower) notification tap deep-links here
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -163,6 +164,7 @@ export default function App() {
     const threadId = data?.threadId as string | undefined
     const listingId = data?.listingId as string | undefined
     const martTab = data?.tab as 'available' | 'reserved' | 'sold' | undefined
+    const sellerId = data?.sellerId as string | undefined
 
     // Pre-existing gap found while wiring Step 2.3's martWanted push: this handler
     // (real system push taps — cold start + background tap) never had ANY Mart routing
@@ -172,11 +174,17 @@ export default function App() {
     if (targetScreen === 'martThread' && threadId) {
       setFocusMartThreadId(threadId)
       setScreen('mart')
-    } else if (targetScreen === 'martWanted' && listingId) {
+    } else if ((targetScreen === 'martWanted' || targetScreen === 'martNewAd') && listingId) {
+      // martNewAd (2026-10-15, new-ad-from-followed-seller) opens Detail the exact same
+      // way a Wanted match alert does — both just need "open this listing's detail" —
+      // so it reuses martWanted's routing rather than a parallel mechanism.
       setFocusMartListingId(listingId)
       setScreen('mart')
     } else if (targetScreen === 'martMyAds') {
       setFocusMartMyAdsTab(martTab || 'sold')
+      setScreen('mart')
+    } else if (targetScreen === 'martSellerProfile' && sellerId) {
+      setFocusMartSellerId(sellerId)
       setScreen('mart')
     } else if (targetScreen === 'garage') {
       if (bookingId) setFocusBookingId(bookingId)
@@ -499,6 +507,8 @@ export default function App() {
                 onListingFocusHandled={() => setFocusMartListingId(null)}
                 focusMyAdsTab={focusMartMyAdsTab}
                 onMyAdsFocusHandled={() => setFocusMartMyAdsTab(null)}
+                focusSellerId={focusMartSellerId}
+                onSellerFocusHandled={() => setFocusMartSellerId(null)}
               />
             )}
           </View>
@@ -773,17 +783,21 @@ export default function App() {
           onNavigate={(linkTo) => {
             if (!linkTo) { setScreen('vehicles'); return }
             try {
-              const { screen: target, vehicleId, bookingId, threadId, listingId, tab } = JSON.parse(linkTo)
+              const { screen: target, vehicleId, bookingId, threadId, listingId, tab, sellerId } = JSON.parse(linkTo)
               if (target === 'martThread' && threadId) {
                 setFocusMartThreadId(threadId)
                 setScreen('mart'); return
               }
-              if (target === 'martWanted' && listingId) {
+              if ((target === 'martWanted' || target === 'martNewAd') && listingId) {
                 setFocusMartListingId(listingId)
                 setScreen('mart'); return
               }
               if (target === 'martMyAds') {
                 setFocusMartMyAdsTab(tab || 'sold')
+                setScreen('mart'); return
+              }
+              if (target === 'martSellerProfile' && sellerId) {
+                setFocusMartSellerId(sellerId)
                 setScreen('mart'); return
               }
               if (target === 'garage') {

@@ -526,6 +526,8 @@ const en = {
   'notificationPrefs.martWanted.desc': "Notify when a buyer is looking for a part you've sold before",
   'notificationPrefs.martRating.title': 'New Reviews',
   'notificationPrefs.martRating.desc': 'Notify when someone rates you as a seller on Vocksy Mart',
+  'notificationPrefs.martFollow.title': 'Follows',
+  'notificationPrefs.martFollow.desc': 'Notify when someone follows you, or when a seller you follow posts a new ad',
 
   'onboarding.milestone.oil.label': 'Engine Oil Change',
   'onboarding.milestone.oil.question': 'When did you last change your engine oil?',

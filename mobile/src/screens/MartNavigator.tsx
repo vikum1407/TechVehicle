@@ -13,6 +13,7 @@ import OffersListScreen from './mart/OffersListScreen'
 import ShopProfileScreen from './mart/ShopProfileScreen'
 import SellerProfileScreen from './mart/SellerProfileScreen'
 import FollowingsScreen from './mart/FollowingsScreen'
+import FollowersScreen from './mart/FollowersScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -50,6 +51,7 @@ type MartStackEntry =
   | { screen: 'offers'; listingId: string; title: string; budgetMin: number | null; budgetMax: number | null }
   | { screen: 'sellerProfile'; sellerId: string }
   | { screen: 'followings' }
+  | { screen: 'followers' }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
@@ -57,7 +59,7 @@ type MartStackEntry =
 // (explicitly kept visible per §0.2's own list), not a full-screen detail flow.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
@@ -67,6 +69,8 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   onListingFocusHandled?: () => void
   focusMyAdsTab?: 'available' | 'reserved' | 'sold' | null
   onMyAdsFocusHandled?: () => void
+  focusSellerId?: string | null
+  onSellerFocusHandled?: () => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -101,6 +105,15 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
       onMyAdsFocusHandled?.()
     }
   }, [focusMyAdsTab])
+
+  // 2026-10-15: a mart_new_follower push notification tap — same pattern as above,
+  // pushes straight to the new follower's Seller Public Profile.
+  useEffect(() => {
+    if (focusSellerId) {
+      push({ screen: 'sellerProfile', sellerId: focusSellerId })
+      onSellerFocusHandled?.()
+    }
+  }, [focusSellerId])
 
   useEffect(() => {
     if (focusThreadId) {
@@ -199,6 +212,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenFavorites={() => push({ screen: 'favorites' })}
         onOpenShopProfile={() => push({ screen: 'shopProfile' })}
         onOpenFollowings={() => push({ screen: 'followings' })}
+        onOpenFollowers={() => push({ screen: 'followers' })}
       />
     )
   }
@@ -206,6 +220,16 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   if (current.screen === 'followings') {
     return (
       <FollowingsScreen
+        token={token}
+        onBack={pop}
+        onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}
+      />
+    )
+  }
+
+  if (current.screen === 'followers') {
+    return (
+      <FollowersScreen
         token={token}
         onBack={pop}
         onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}

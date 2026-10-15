@@ -347,6 +347,13 @@ export const api = {
     if (!res.ok) throw apiFail(data, "Couldn't load your followings")
     return data
   },
+  getMartFollowers: async (token: string, cursor?: string): Promise<{ items: any[]; nextCursor: string | null }> => {
+    const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+    const res = await fetch(`${API_URL}/mart/follows/followers${qs}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load your followers")
+    return data
+  },
 
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {

@@ -4,6 +4,17 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — Follow feature extended: new-follower notification, new-ad notification, Followers dashboard (Vikum's explicit request, discussed before building)
+
+None of this was in the original handoff spec at all — Vikum asked directly "are we notifying the seller someone followed them?" and "is there a dashboard showing followers?" after testing Step 2.8, found both were genuinely missing (not deferred, just never speced), and asked for all three to be built. Scoped with him via explicit questions before writing code, per his "discuss first" request:
+
+1. **New-follower notification**: in-app + push, same treatment as every other Mart notification type. `POST /mart/follows` only fires it on a genuinely NEW follow (checked via an `existing` lookup before the upsert) — an idempotent repeat follow never re-notifies. New type `mart_new_follower`, `linkTo: { screen: 'martSellerProfile', sellerId }` (the follower's own profile, so the seller can see who just followed them).
+2. **New-ad-from-followed-seller notification**: push + in-app, one per new ad per follower, fired fire-and-forget right after `POST /mart/listings` creates a **selling** ad only ("list down the product" — Wanted requests don't apply; also never fires on relist/edit, only a genuinely new post, same scope rule as `runWantedMatchAlerts`). **Deliberately uncapped** — notifies every follower, unlike the Wanted match alert's ranked top-20 — because following is an explicit opt-in relationship the follower chose, not a guessed-relevance match, so there's no "spam" concern in the same sense. New type `mart_new_ad`. Its `linkTo: { screen: 'martNewAd', listingId }` is routed identically to the existing `martWanted` case in both App.tsx notification-tap handlers (both just mean "open this listing's Detail") — reused rather than duplicated, with a comment explaining why a differently-named type shares the same routing branch.
+3. **Followers dashboard**: a `followers` count added to `GET /mart/me`'s `counts` (mirroring the existing `followings` count), a new `GET /mart/follows/followers` endpoint (same shape/pagination/enrichment as `GET /mart/follows`, just reversed — refactored the shared enrichment logic into `buildFollowRows()` so neither endpoint duplicates the other), and a new `FollowersScreen` (read-only mirror of `FollowingsScreen`'s row layout — no unfollow button, since that relationship isn't the seller's to control from this side). New "Followers" row added to My Mart, alongside the existing "Followings" row.
+4. **New shared preference key `mart_follow`** (NOT split into separate "new follower" vs "new ad" toggles) covers both notification types together — added to `NOTIFICATION_PREF_DEFAULTS` (default `true`, per the project's "add new keys only, never rename/remove" rule) and a new row in the existing, already-i18n'd `NotificationPrefsScreen` (same exception as Step 1.9's `mart_message`/`mart_wanted`/`mart_rating`: this is a shared, already-translated screen, so it got real en+si copy immediately rather than following Mart's own "plain English until 3.7" rule). si.ts translation is a first-pass, not native-speaker-checked, same caveat as every other si/ta Mart string so far.
+
+---
+
 ## 2026-10-15 — Milestone 2 Step 2.8: Followings
 
 - **`GET /mart/follows/feed` skipped**, per 03-api.md §7's own explicit line: "No screen uses it at launch... implement it last or skip." No screen in this build needs it, so it's left out rather than built unused.
