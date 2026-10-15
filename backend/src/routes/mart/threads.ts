@@ -257,7 +257,14 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
   const closed = isCanceled(thread.listing.status)
   const role = roleFor(thread.listing.type, thread.listing.ownerPhone, me)
   const isListingOwner = thread.listing.ownerPhone === me
-  const canSend = !removed && !closed && !isBlocked
+  // The winning buyer/seller's own thread (dealPartnerPhone === thread.otherPhone)
+  // stays sendable past the listing closing — they still need to coordinate pickup/
+  // payment/delivery after the deal, unlike every other thread on the same ad, which
+  // has nothing left to discuss once it's sold/fulfilled. Product decision 2026-10-15
+  // (Vikum): closing the deal thread immediately on mark-sold was blocking exactly the
+  // conversation that matters most at that point.
+  const isDealThread = !!thread.listing.dealPartnerPhone && thread.listing.dealPartnerPhone === thread.otherPhone
+  const canSend = !removed && !isBlocked && (!closed || isDealThread)
 
   // deal/canRate/dealBanner. The CONFIRMER is always dealPartnerPhone (iAmPartner)
   // regardless of type — but the RATER swaps by type (02-data-model.md §3.3): selling
@@ -344,7 +351,13 @@ router.post('/:threadId/messages', requireProfile, requireRules, async (req: Aut
   const otherPhone = thread.ownerPhone === me ? thread.otherPhone : thread.ownerPhone
   const blocked = await blockedSet(prisma, me)
   if (blocked.has(otherPhone)) { res.status(403).json({ error: "You can't message this user", code: 'BLOCKED' }); return }
-  if (thread.listing.removedAt || isCanceled(thread.listing.status)) { res.status(403).json({ error: 'This ad is no longer active', code: 'LISTING_CLOSED' }); return }
+  // Same exception as GET /:threadId's canSend: the winning buyer/seller's own thread
+  // stays sendable past the listing closing, so this check must mirror that logic
+  // rather than just the listing's own status.
+  const isDealThread = !!thread.listing.dealPartnerPhone && thread.listing.dealPartnerPhone === thread.otherPhone
+  if (thread.listing.removedAt || (isCanceled(thread.listing.status) && !isDealThread)) {
+    res.status(403).json({ error: 'This ad is no longer active', code: 'LISTING_CLOSED' }); return
+  }
 
   const { text } = req.body as { text?: string }
   const body = capText(text ?? '', MART_LIMITS.MESSAGE_MAX).trim()

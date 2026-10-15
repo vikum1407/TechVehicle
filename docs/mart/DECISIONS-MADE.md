@@ -4,6 +4,14 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — deal thread stays sendable after mark-sold (Vikum's product call)
+
+The spec's own rule ("sending is blocked when the listing is closed") closed every thread on an ad equally once it sold/fulfilled, including the winning buyer/seller's own thread — right when they most need to keep talking (pickup, payment, delivery). Vikum asked for the winning thread specifically to stay open; every other thread on that ad still closes immediately, since there's nothing left to negotiate on an item that's gone to someone else. Fixed in two places that both independently gated on listing status (`threads.ts`'s `GET /:threadId` canSend and `POST /:threadId/messages`), now both also check `dealPartnerPhone === thread.otherPhone` (the winning thread) as an exception.
+
+**Deliberately NOT touched: the existing 7-day inbox-visibility window** (`isThreadListingVisible()` / `CLOSED_VISIBLE_MS`) — this fix is about whether a message CAN be sent, not how long the thread stays easy to find in the inbox list. The deal thread still vanishes from the inbox after 7 days, same as every other closed thread, even though it stays sendable while it's still visible. Flagged to Vikum as a separate decision if he wants the deal thread's inbox visibility extended too — not assumed.
+
+---
+
 ## 2026-10-15 — real bug: "Rate seller" shown to the wrong person on Wanted deals
 
 Found testing on a real device: Vikum reported being able to rate the same seller repeatedly, with the modal always "succeeding." Root cause was two bugs stacking:
