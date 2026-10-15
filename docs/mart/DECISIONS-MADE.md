@@ -4,6 +4,13 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — two real bugs found testing Step 2.7, both fixed
+
+- **Seller Profile's "..." menu could get stuck open and unclosable.** Block user/Report user each called a second `Alert.alert(...)` from inside the first action-sheet Alert's own `onPress` — a known RN/Android issue where the first dialog's dismiss animation collides with the second one's show call. Fixed by deferring the second call with `setTimeout(..., 400)`, a standard workaround for this exact case.
+- **Casual layout's Follow button rendered as a tiny pill**, not a real-looking button. Root cause: `casualHeader`'s `alignItems: 'center'` shrinks children to their content size, unlike the Shop header card (plain column, default `alignItems: 'stretch'`) where the same button naturally fills the width. Added a `compact` variant (`followBtnCompact`: fixed horizontal padding, centered) used only for the Casual layout.
+
+---
+
 ## 2026-10-15 — Milestone 2 Step 2.7: Seller public profile + reviews
 
 - **Follow/unfollow (`POST`/`DELETE /mart/follows`) built now, not deferred to Step 2.8**, even though 05-build-plan.md's own table splits Followings into its own later step. The Follow button is a core, highly-visible part of Section 16's own screen — shipping it as a dead stub would leave this step genuinely incomplete per the project's "each feature 100% complete before the next starts" rule. `GET /mart/follows` (the Followings list screen) and `/follows/feed` are still left for Step 2.8 exactly as the build plan scopes them — those need their own screen, this doesn't.

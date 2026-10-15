@@ -155,12 +155,16 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     }
   }
 
+  // Showing a second Alert.alert from inside the first one's own onPress (Block/Report
+  // here) can leave the native Android dialog stuck/unclosable — the first dialog's
+  // dismiss animation and the second one's show call collide. Deferring the second call
+  // past that animation (a standard RN/Android workaround) fixes it.
   const openMenu = () => {
     if (!data) return
     Alert.alert(data.seller.name, undefined, [
       { text: 'Share profile', onPress: shareProfile },
-      { text: 'Block user', onPress: () => Alert.alert('Coming soon', 'Blocking is still being built.') },
-      { text: 'Report user', onPress: () => Alert.alert('Coming soon', 'Reporting is still being built.') },
+      { text: 'Block user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Blocking is still being built.'), 400) },
+      { text: 'Report user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Reporting is still being built.'), 400) },
       { text: 'Cancel', style: 'cancel' },
     ])
   }
@@ -394,7 +398,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
             <View style={{ marginTop: 10 }}>
               <RatingBadge avg={seller.rating.avg} count={seller.rating.count} onPress={openReviewsSheet} />
             </View>
-            {!isMe ? <FollowBtn following={following} busy={followBusy} onPress={toggleFollow} colors={colors} styles={styles} /> : null}
+            {!isMe ? <FollowBtn following={following} busy={followBusy} onPress={toggleFollow} colors={colors} styles={styles} compact /> : null}
           </View>
 
           <View style={styles.sectionHeaderRow}>
@@ -459,9 +463,13 @@ function BackBtn({ onBack, colors }: { onBack: () => void; colors: Colors }) {
   )
 }
 
-function FollowBtn({ following, busy, onPress, colors, styles }: { following: boolean; busy: boolean; onPress: () => void; colors: Colors; styles: any }) {
+function FollowBtn({ following, busy, onPress, colors, styles, compact }: { following: boolean; busy: boolean; onPress: () => void; colors: Colors; styles: any; compact?: boolean }) {
   return (
-    <TouchableOpacity style={[styles.followBtn, following && styles.followBtnActive]} onPress={onPress} disabled={busy}>
+    <TouchableOpacity
+      style={[styles.followBtn, compact && styles.followBtnCompact, following && styles.followBtnActive]}
+      onPress={onPress}
+      disabled={busy}
+    >
       <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>{following ? 'Following' : 'Follow'}</Text>
     </TouchableOpacity>
   )
@@ -493,6 +501,7 @@ function makeStyles(c: Colors, topInset: number) {
     areaText: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 
     followBtn: { borderRadius: 10, paddingVertical: 11, alignItems: 'center', backgroundColor: c.primary, marginTop: 14 },
+    followBtnCompact: { alignSelf: 'center', paddingHorizontal: 40, marginTop: 16 },
     followBtnActive: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.primary },
     followBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     followBtnTextActive: { color: c.primary },
