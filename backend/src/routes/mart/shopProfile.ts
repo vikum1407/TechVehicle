@@ -2,7 +2,6 @@ import express from 'express'
 import { PrismaClient } from '@prisma/client'
 import { AuthRequest } from '../../middleware/auth'
 import { capText } from '../../utils/validate'
-import { isValidPhone } from '../../utils/phone'
 import { DISTRICTS } from '../../data/districts'
 import { MART_LIMITS } from '../../data/martLimits'
 import { getSellerTags } from '../../utils/sellerInfo'
@@ -77,8 +76,11 @@ router.put('/', async (req: AuthRequest, res) => {
   const name = capText(typeof body.name === 'string' ? body.name : '', MART_LIMITS.SHOP_NAME_MAX).trim()
   if (name.length < 1) { res.status(400).json({ error: 'Enter a shop name', code: 'VALIDATION' }); return }
 
+  // Local Sri Lankan format (e.g. "0773574828"), not E.164 — same as Garage.contactPhone
+  // (garages.ts), which this field mirrors. `isValidPhone`/`utils/phone.ts` is for the
+  // User.phoneNumber identity field (+94 international format) and doesn't apply here.
   const contactPhone = typeof body.contactPhone === 'string' ? body.contactPhone.trim() : ''
-  if (!contactPhone || !isValidPhone(contactPhone)) { res.status(400).json({ error: 'Enter a valid phone number', code: 'VALIDATION' }); return }
+  if (!contactPhone || !/^0?7\d{8}$/.test(contactPhone.replace(/[\s-]/g, ''))) { res.status(400).json({ error: 'Enter a valid phone number', code: 'VALIDATION' }); return }
 
   const district = DISTRICTS.find(d => d.id === body.district)
   if (!district) { res.status(400).json({ error: 'Select a valid district', code: 'VALIDATION' }); return }
