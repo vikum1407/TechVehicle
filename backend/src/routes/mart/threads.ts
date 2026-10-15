@@ -259,17 +259,24 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
   const isListingOwner = thread.listing.ownerPhone === me
   const canSend = !removed && !closed && !isBlocked
 
-  // deal/canRate/dealBanner. canRate needs both sides of 02-data-model.md §4.6 (both
-  // participants messaged) AND that I haven't already rated this seller — only computed
-  // when it could possibly matter (I'm the partner, deal confirmed), to avoid two extra
-  // queries on every other thread load.
+  // deal/canRate/dealBanner. The CONFIRMER is always dealPartnerPhone (iAmPartner)
+  // regardless of type — but the RATER swaps by type (02-data-model.md §3.3): selling
+  // -> the buyer (dealPartnerPhone, i.e. iAmPartner); wanted -> the requester
+  // (ownerPhone, i.e. isListingOwner). A bug here showed "Rate seller" to the Wanted
+  // seller (iAmPartner) instead of the requester (isListingOwner) — found testing on a
+  // real device (2026-10-15): the wrong person could open the rate modal repeatedly,
+  // and every attempt was silently treated as "success" by the client even though the
+  // backend correctly 404'd it every time (not actually the rater), because the modal's
+  // error handling only specifically recognized ALREADY_RATED and failed open for
+  // anything else. Both fixed together.
   let deal: { state: string; iAmPartner: boolean; outside: boolean; canRate: boolean } | null = null
   let dealBanner: 'confirm_sale' | 'rate' | null = null
   if (thread.listing.dealState) {
     const iAmPartner = thread.listing.dealPartnerPhone === me
     if (isListingOwner || iAmPartner) {
+      const iAmRater = thread.listing.type === 'selling' ? iAmPartner : isListingOwner
       let canRateFlag = false
-      if (iAmPartner && thread.listing.dealState === 'confirmed') {
+      if (iAmRater && thread.listing.dealState === 'confirmed') {
         const sellerPhone = thread.listing.type === 'selling' ? thread.listing.ownerPhone : thread.listing.dealPartnerPhone!
         const [alreadyRated, messagedEnough] = await Promise.all([
           prisma.martSellerRating.findFirst({ where: { raterPhone: me, sellerPhone } }),

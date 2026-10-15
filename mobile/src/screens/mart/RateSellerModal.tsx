@@ -41,17 +41,20 @@ export default function RateSellerModal({
       reset()
       onDone()
     } catch (e: any) {
-      if (e.code === 'ALREADY_RATED') {
-        // Previously this closed silently (same as success) for any error, which made
-        // a second attempt on the same deal look like it worked every time, even
-        // though the backend correctly rejected it — no feedback meant no way to tell
-        // the difference. Show it instead.
-        setError("You've already rated this seller.")
+      if (e.code) {
+        // The backend gave a specific, structured reason this failed (already rated,
+        // not actually the rater, deal not confirmed, not enough chat, etc.) — show it
+        // rather than silently treating it as success. Previously only ALREADY_RATED
+        // was special-cased and everything else failed open (closed exactly like a
+        // real success), which once hid a genuine bug: the wrong person (the Wanted
+        // seller instead of the requester) could tap this repeatedly and every attempt
+        // "succeeded" in the UI even though the backend correctly 404'd every one.
+        setError(e.code === 'ALREADY_RATED' ? "You've already rated this seller." : (e.message || "Couldn't submit."))
         return
       }
-      // Any other failure (connectivity, validation) — rating is a nice-to-have at
-      // this point (the deal's already confirmed), so don't trap the user on an error
-      // for something optional; just close like Skip.
+      // No code = a pure connectivity failure, not a specific rejection — rating is a
+      // nice-to-have at this point (the deal's already confirmed), so don't trap the
+      // user on it; just close like Skip.
       reset()
       onDone()
     } finally {

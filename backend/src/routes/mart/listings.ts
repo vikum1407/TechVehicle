@@ -850,7 +850,13 @@ router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req
       await prisma.martMessage.create({
         data: { threadId: thread.id, senderPhone: me, kind: 'system', body: 'Purchase confirmed', systemCode: 'deal_confirmed' },
       })
-      canRate = await threadCanRate(prisma, thread.id, listing.ownerPhone, me)
+      // This endpoint only ever runs for the confirmer (me === dealPartnerPhone,
+      // enforced above) — who is the real rater only for selling (the buyer). For
+      // wanted, the confirmer is the seller, and the rater is the requester
+      // (ownerPhone) — a different person who isn't the one calling this endpoint —
+      // so canRate must stay false here regardless of chat history; same bug and same
+      // fix as threads.ts's GET /:threadId (found testing on a real device, 2026-10-15).
+      if (isSelling) canRate = await threadCanRate(prisma, thread.id, listing.ownerPhone, me)
     }
 
     const partnerInfoMap = await resolveOtherInfo([me])
@@ -902,8 +908,6 @@ router.post('/:listingId/rate', requireProfile, requireRules, async (req: AuthRe
   const existing = await prisma.martSellerRating.findFirst({
     where: { OR: [{ listingId: listing.id, raterPhone: me }, { raterPhone: me, sellerPhone }] },
   })
-  const allMyRatings = await prisma.martSellerRating.findMany({ where: { raterPhone: me } })
-  console.log('[rate] diag', { listingId: listing.id, me, sellerPhone, existing, allMyRatings })
   if (existing) { res.status(409).json({ error: 'You already rated this seller', code: 'ALREADY_RATED' }); return }
 
   const limit = checkRateLimit('mart-rate', me, MART_RATE_LIMITS.RATE_SELLER.max, MART_RATE_LIMITS.RATE_SELLER.windowMs)

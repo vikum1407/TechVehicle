@@ -4,6 +4,17 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — real bug: "Rate seller" shown to the wrong person on Wanted deals
+
+Found testing on a real device: Vikum reported being able to rate the same seller repeatedly, with the modal always "succeeding." Root cause was two bugs stacking:
+
+1. **The rater role was computed wrong for Wanted deals.** 02-data-model.md §3.3's confirmer (`dealPartnerPhone`/`iAmPartner`) is the same person regardless of type, but the *rater* swaps: selling → the buyer (`dealPartnerPhone`); wanted → the requester (`ownerPhone`). Both `threads.ts`'s `GET /:threadId` (the "Rate seller" banner) and `listings.ts`'s `POST /deal/confirm` (the auto-open-on-confirm path) reused `iAmPartner` for both roles — so on a Wanted deal, the *seller* (the confirmer) kept seeing the Rate option instead of the requester who was actually allowed to use it.
+2. **`RateSellerModal` only recognized `ALREADY_RATED` as a real rejection** and failed open (closed exactly like success) for anything else — including the backend correctly 404'ing the wrong person every time. No error ever surfaced, so repeated "successful-looking" attempts were really repeated silent 404s, not duplicate ratings. Fixed to treat *any* backend-provided error code as a real rejection to show, keeping the fail-open behavior only for a true connectivity failure (no code at all).
+
+Net effect confirmed safe in hindsight: no duplicate `MartSellerRating` rows were ever actually created (the DB-level unique constraints were never reached, since the pre-check and the role check both rejected first) — this was a wrong-person/UI-masking bug, not a data-integrity one.
+
+---
+
 ## 2026-10-15 — proactive first-action gate on Mart Home (Vikum's request)
 
 - **Mart Home now checks the name/district/rules gate once on mount and shows it proactively**, instead of only ever surfacing when an action (Post Ad, Message Seller, an offer) happens to fail. Vikum found this confusing for a brand new account landing on Mart Home with zero indication that any setup was needed. Both steps stay dismissible (`onClose`/`onBack` just close them) — §22's "reading never needs this" still holds, browsing is invited into the setup, never blocked by it.
