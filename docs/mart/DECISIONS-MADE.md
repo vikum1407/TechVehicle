@@ -4,6 +4,14 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — proactive first-action gate on Mart Home (Vikum's request)
+
+- **Mart Home now checks the name/district/rules gate once on mount and shows it proactively**, instead of only ever surfacing when an action (Post Ad, Message Seller, an offer) happens to fail. Vikum found this confusing for a brand new account landing on Mart Home with zero indication that any setup was needed. Both steps stay dismissible (`onClose`/`onBack` just close them) — §22's "reading never needs this" still holds, browsing is invited into the setup, never blocked by it.
+- **Only wired into Mart Home**, not every other screen reachable before it — Mart Home is the one screen every path into Mart passes through first (the tab itself), so checking there covers the "brand new user" case this was about without adding the same check redundantly everywhere.
+- **`OfferSheet` separately got real gate handling in the same session** (not proactive — reactive, same pattern as `ChatThreadScreen`) after Vikum hit the raw "Please accept the Mart rules" backend error text on a first-ever "I have this" tap — it had never had `PROFILE_REQUIRED`/`RULES_REQUIRED` handling at all, unlike `ChatThreadScreen`/`PostAdScreen`. `WhoBoughtItSheet`/`RateSellerModal`/deal-confirm weren't given the same treatment since reaching any of them requires already having passed the gate via an earlier action.
+
+---
+
 ## 2026-10-14 — Milestone 2 Step 2.5: Ratings
 
 - **`threadCanRate()` moved to a new shared file, `backend/src/utils/dealRating.ts`**, instead of staying local to `listings.ts` (where Step 2.4 first put it) or being duplicated into `threads.ts`. `threads.ts`'s `GET /:threadId` now needs it too (for the real `canRate`/`dealBanner: 'rate'` this step adds), and `listings.ts` already imports from `threads.ts` — a reverse import would have been circular.

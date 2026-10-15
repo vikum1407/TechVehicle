@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Alert, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Alert, Modal, StyleSheet,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
@@ -15,6 +15,8 @@ import { MART_CATEGORIES } from '../../constants/martCategories'
 import { DISTRICTS } from '../../constants/districts'
 import { timeAgo } from '../../utils/martHelpers'
 import { MartFilters, DEFAULT_MART_FILTERS, activeFilterCount } from './FiltersScreen'
+import NameDistrictSheet from './NameDistrictSheet'
+import MartRulesScreen from './MartRulesScreen'
 
 type MartType = 'selling' | 'wanted'
 
@@ -56,6 +58,7 @@ export default function MartHomeScreen({
 
   const [martType, setMartType] = useState<MartType>('selling')
   const [myId, setMyId] = useState<string | null>(null)
+  const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
   const [searchText, setSearchText] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [items, setItems] = useState<Card[]>([])
@@ -100,11 +103,27 @@ export default function MartHomeScreen({
   }, [queryParams, token])
 
   useEffect(() => { load() }, [martType, submittedQuery, filters])
+  // Spec intent (04-screens.md §22): "reading never needs this" — browsing Mart Home
+  // itself is never blocked on name+district+rules. But before this, a brand new user
+  // had no way to discover that setup existed at all except by stumbling into it when
+  // some action happened to fail (Post Ad, Message Seller, an offer) — there was no
+  // proactive prompt anywhere. Checked once on mount; both steps are dismissible
+  // (onClose/onBack just close them), so browsing is never actually gated, just invited.
+  const checkGate = useCallback(async () => {
+    try {
+      const me = await api.getMartMe(token)
+      setMyId(me.id)
+      if (!me.displayName || !me.district) { setGateStep('nameDistrict'); return }
+      if (!me.rulesAccepted) { setGateStep('rules'); return }
+      setGateStep(null)
+    } catch {
+      setGateStep(null)
+    }
+  }, [token])
+
   useEffect(() => {
     api.getMartThreadsUnreadCount(token).then(r => setUnreadMessages(r.count > 0)).catch(() => {})
-    // Only needed to tell "Your request" apart from "I have this" on Wanted cards
-    // (04-screens.md §12) — cheap, already-existing endpoint, fetched once on mount.
-    api.getMartMe(token).then(me => setMyId(me.id)).catch(() => {})
+    checkGate()
   }, [token])
 
   const toggleCategoryChip = (categoryId: string | null) => onFiltersChange({ ...filters, categoryId })
@@ -292,6 +311,19 @@ export default function MartHomeScreen({
       <TouchableOpacity style={styles.postBtn} onPress={() => onOpenPostAd(martType)}>
         <AppIcon icon={{ lib: 'ion', name: 'add' }} size={26} color="#fff" />
       </TouchableOpacity>
+
+      <NameDistrictSheet
+        visible={gateStep === 'nameDistrict'}
+        token={token}
+        onDone={checkGate}
+        onClose={() => setGateStep(null)}
+      />
+
+      {gateStep === 'rules' ? (
+        <Modal visible animationType="slide" onRequestClose={() => setGateStep(null)}>
+          <MartRulesScreen mode="firstAction" token={token} onBack={() => setGateStep(null)} onAccepted={checkGate} />
+        </Modal>
+      ) : null}
     </View>
   )
 }
