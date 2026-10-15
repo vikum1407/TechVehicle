@@ -23,11 +23,12 @@ import MartRulesScreen from './MartRulesScreen'
 // explicit second entry point into MartRulesScreen, alongside the first-action gate —
 // it was never wired in when My Mart itself was built, so there was no way to review
 // the rules again after accepting them once.
-export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites }: {
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
   onOpenFavorites: () => void
+  onOpenShopProfile: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -112,10 +113,19 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
               {me.serviceRating ? <RatingBadge avg={me.serviceRating.avg} count={me.serviceRating.count} label="Service" /> : null}
             </View>
           </View>
-          <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => (me.tag === 'shop' ? onOpenShopProfile() : setEditVisible(true))}>
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
         </View>
+
+        {me.tag !== 'shop' ? (
+          <View style={styles.hintRow}>
+            <AppIcon icon={{ lib: 'ion', name: 'storefront-outline' }} size={16} color={colors.primary} />
+            <Text style={styles.hintText}>
+              Want a Shop profile? Register a Garage account, or post 5+ ads in 90 days to unlock one automatically.
+            </Text>
+          </View>
+        ) : null}
 
         <Text style={styles.groupLabel}>MY ACTIVITY</Text>
         <View style={styles.groupCard}>
@@ -211,6 +221,12 @@ function makeStyles(c: Colors, topInset: number) {
     districtText: { fontSize: 12.5, color: c.textMuted },
     editBtn: { borderWidth: 1, borderColor: c.primary, borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 14 },
     editBtnText: { color: c.primary, fontWeight: '700', fontSize: 14 },
+
+    hintRow: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: c.primaryTint,
+      borderRadius: 10, padding: 12, marginTop: 14,
+    },
+    hintText: { flex: 1, fontSize: 12, color: c.textSub, lineHeight: 17 },
 
     groupLabel: { fontSize: 11.5, fontWeight: '700', color: c.textMuted, letterSpacing: 0.5, marginTop: 22, marginBottom: 8 },
     groupCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: c.border, overflow: 'hidden' },

@@ -10,6 +10,7 @@ import FavoritesScreen from './mart/FavoritesScreen'
 import ChatInboxScreen from './mart/ChatInboxScreen'
 import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
 import OffersListScreen from './mart/OffersListScreen'
+import ShopProfileScreen from './mart/ShopProfileScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -39,6 +40,7 @@ type MartStackEntry =
   | { screen: 'postAd'; editing?: EditingListing; initialType?: 'selling' | 'wanted' }
   | { screen: 'detail'; listingId: string }
   | { screen: 'myMart' }
+  | { screen: 'shopProfile' }
   | { screen: 'myAds'; initialTab?: 'available' | 'reserved' | 'sold' }
   | { screen: 'favorites' }
   | { screen: 'inbox' }
@@ -47,7 +49,7 @@ type MartStackEntry =
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
-const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled }: {
   onExit: () => void
@@ -177,6 +179,17 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onBack={pop}
         onOpenMyAds={() => push({ screen: 'myAds' })}
         onOpenFavorites={() => push({ screen: 'favorites' })}
+        onOpenShopProfile={() => push({ screen: 'shopProfile' })}
+      />
+    )
+  }
+
+  if (current.screen === 'shopProfile') {
+    return (
+      <ShopProfileScreen
+        token={token}
+        onBack={pop}
+        onSaved={pop}
       />
     )
   }

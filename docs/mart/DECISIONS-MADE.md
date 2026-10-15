@@ -4,6 +4,17 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — Milestone 2 Step 2.6: Shop profile
+
+- **`GET/PUT /mart/shop-profile` has no `requireProfile`/`requireRules` gate** — confirmed by checking 03-api.md §0's endpoint-index table, which lists it as auth-only, unlike `POST /mart/listings`'s explicit "rules+profile". A Shop seller setting up their business details isn't itself a Mart "action" the rules are meant to gate.
+- **Garage prefill only covers text fields, never the logo.** `Garage` has no single logo field (only a `photos` array with a different purpose), so the Shop's logo always starts empty on first visit even when the rest of the form prefills from an existing Garage — the seller picks their own.
+- **Prefill's district is matched by case-insensitive name lookup against `DISTRICTS`**, since `Garage` stores town/village as free text with no district id of its own. No match → `null`, same as leaving it unset; the user just picks it manually in that case.
+- **The mobile form always resends the current `logoUrl` on every `PUT`, including when unchanged.** The backend's `PUT` has no "omit to keep existing" logic — any `PUT` without `logoUrl` set wipes a previously-saved logo. Since the mobile form's local state always holds the current logo (loaded or freshly uploaded), this falls out naturally rather than needing special-casing.
+- **The info box ("Filled from your Garage…") only shows when the GET returned a `prefill`** (i.e., first visit, no `MartShopProfile` row yet) — once saved, the data lives in `MartShopProfile` and reopening the screen loads `profile`, not `prefill`, so the box doesn't resurface. Matches the spec's "shown only when the data came from a Garage" literally: after the first save, the data on screen came from Mart's own storage, not the Garage.
+- **Casual sellers' "how to become a Shop" hint row was added directly to `MyMartScreen`**, not a separate screen, since the spec names it as that screen's own responsibility ("Casual sellers see a hint row in My Mart…"). My Mart's Edit button now branches on `me.tag` — Shop opens the new `ShopProfileScreen`, Casual keeps the existing name/district `NameDistrictSheet` unchanged.
+
+---
+
 ## 2026-10-15 — deal thread stays sendable after mark-sold (Vikum's product call)
 
 The spec's own rule ("sending is blocked when the listing is closed") closed every thread on an ad equally once it sold/fulfilled, including the winning buyer/seller's own thread — right when they most need to keep talking (pickup, payment, delivery). Vikum asked for the winning thread specifically to stay open; every other thread on that ad still closes immediately, since there's nothing left to negotiate on an item that's gone to someone else. Fixed in two places that both independently gated on listing status (`threads.ts`'s `GET /:threadId` canSend and `POST /:threadId/messages`), now both also check `dealPartnerPhone === thread.otherPhone` (the winning thread) as an exception.

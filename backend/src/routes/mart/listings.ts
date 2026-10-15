@@ -19,6 +19,7 @@ import { createNotification } from '../../utils/appNotifications'
 import { sendPush } from '../../utils/push'
 import { parsePrefs } from '../../utils/notificationPrefs'
 import { threadCanRate } from '../../utils/dealRating'
+import { getShopProfiles } from '../../utils/shopIdentity'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -399,10 +400,11 @@ export async function buildListingCards(listings: any[], viewerPhone: string) {
   const ownerPhones = [...new Set(listings.map(r => r.ownerPhone))]
   const hasWanted = listings.some(r => r.type === 'wanted')
   const wantedIds = listings.filter(r => r.type === 'wanted').map(r => r.id)
-  const [users, tagMap, ratingMap, favoriteRows, myAdPairs, replyGroups] = await Promise.all([
+  const [users, tagMap, ratingMap, shopMap, favoriteRows, myAdPairs, replyGroups] = await Promise.all([
     prisma.user.findMany({ where: { phoneNumber: { in: ownerPhones } }, select: { id: true, phoneNumber: true, displayName: true } }),
     getSellerTags(prisma, ownerPhones),
     getSellerRatings(prisma, ownerPhones),
+    getShopProfiles(prisma, ownerPhones),
     prisma.martFavorite.findMany({ where: { userPhone: viewerPhone, listingId: { in: listings.map(r => r.id) } }, select: { listingId: true } }),
     // Spec: 02-data-model.md §8 "Matches you" — one query for the whole page, not one
     // per wanted card. Only run it when the page actually has a wanted listing to check.
@@ -432,6 +434,7 @@ export async function buildListingCards(listings: any[], viewerPhone: string) {
   return listings.map(listing => {
     const owner = userByPhone.get(listing.ownerPhone)
     const tag = tagMap.get(listing.ownerPhone) || 'casual'
+    const shop = shopMap.get(listing.ownerPhone)
     return {
       id: listing.id, type: listing.type,
       title: listing.title, coverUrl: listing.photoUrls[0] || null,
@@ -442,7 +445,10 @@ export async function buildListingCards(listings: any[], viewerPhone: string) {
       status: listing.status, postedAt: listing.postedAt.toISOString(),
       isFavorited: favoritedIds.has(listing.id),
       seller: {
-        id: owner?.id || '', name: publicName(owner?.displayName, tag),
+        // Spec: 04-screens.md §24 point 24 "a Shop shows MartShopProfile.name (else the
+        // full displayName, never Garage.name)" — shop.name already comes from
+        // MartShopProfile here, never Garage, so that rule holds automatically.
+        id: owner?.id || '', name: shop?.name || publicName(owner?.displayName, tag),
         tag, rating: ratingMap.get(listing.ownerPhone) || { avg: null, count: 0 },
       },
       yearFrom: listing.yearFrom, yearTo: listing.yearTo,
@@ -532,9 +538,11 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
     if (!isActive && !withinClosedWindow) { res.status(404).json(NOT_FOUND); return }
   }
 
-  const [cards, activeAdsMap] = await Promise.all([
+  const [cards, activeAdsMap, shopMap, ownerUser] = await Promise.all([
     buildListingCards([listing], me),
     getActiveAdsCounts(prisma, [listing.ownerPhone]),
+    getShopProfiles(prisma, [listing.ownerPhone]),
+    prisma.user.findUnique({ where: { phoneNumber: listing.ownerPhone }, select: { profilePhotoUrl: true } }),
   ])
   const card = cards[0]
 
@@ -588,7 +596,11 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
     deliveryAvailable: listing.deliveryAvailable,
     photoUrls: listing.photoUrls,
     favoritesCount, offersCount, newOffersCount,
-    seller: { ...card.seller, activeAdsCount: activeAdsMap.get(listing.ownerPhone) || 0 },
+    seller: {
+      // Spec: 03-api.md §0 Seller type "photoUrl: shop logo, else User.profilePhotoUrl".
+      ...card.seller, activeAdsCount: activeAdsMap.get(listing.ownerPhone) || 0,
+      photoUrl: shopMap.get(listing.ownerPhone)?.logoUrl || ownerUser?.profilePhotoUrl || null,
+    },
     isOwner, myThreadId, myOfferThreadId, deal,
   })
 })

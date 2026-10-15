@@ -7,6 +7,7 @@ import { checkRateLimit } from '../../utils/rateLimit'
 import { capText } from '../../utils/validate'
 import { blockedSet } from '../../utils/blockedSet'
 import { getSellerTags } from '../../utils/sellerInfo'
+import { getShopProfiles } from '../../utils/shopIdentity'
 import { publicName } from '../../utils/publicName'
 import { encodeCursor, decodeCursor, clampLimit } from '../../utils/pagination'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
@@ -57,14 +58,16 @@ function listingSnapshotStatus(listing: MartListing): 'active' | 'sold' | 'fulfi
 export async function resolveOtherInfo(phones: string[]) {
   const uniquePhones = [...new Set(phones)]
   if (uniquePhones.length === 0) return new Map<string, { id: string; name: string; photoUrl: string | null; tag: 'shop' | 'casual' }>()
-  const [users, tagMap] = await Promise.all([
+  const [users, tagMap, shopMap] = await Promise.all([
     prisma.user.findMany({ where: { phoneNumber: { in: uniquePhones } }, select: { id: true, phoneNumber: true, displayName: true, profilePhotoUrl: true } }),
     getSellerTags(prisma, uniquePhones),
+    getShopProfiles(prisma, uniquePhones),
   ])
   const map = new Map<string, { id: string; name: string; photoUrl: string | null; tag: 'shop' | 'casual' }>()
   for (const u of users) {
     const tag = tagMap.get(u.phoneNumber) || 'casual'
-    map.set(u.phoneNumber, { id: u.id, name: publicName(u.displayName, tag), photoUrl: u.profilePhotoUrl, tag })
+    const shop = shopMap.get(u.phoneNumber)
+    map.set(u.phoneNumber, { id: u.id, name: shop?.name || publicName(u.displayName, tag), photoUrl: shop?.logoUrl || u.profilePhotoUrl, tag })
   }
   return map
 }

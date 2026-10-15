@@ -31,6 +31,26 @@ function apiFail(data: any, fallback: string): Error {
   return err
 }
 
+export type ShopProfileDTO = {
+  name: string
+  logoUrl: string | null
+  about: string | null
+  contactPhone: string
+  district: string
+  townAddress: string | null
+  websiteUrl: string | null
+  googleMapsUrl: string | null
+}
+export type ShopProfilePrefill = {
+  name: string
+  contactPhone: string | null
+  district: string | null
+  townAddress: string | null
+  websiteUrl: string | null
+  googleMapsUrl: string | null
+  about: string | null
+}
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'
 
 const authHeaders = (token: string) => ({
@@ -248,6 +268,36 @@ export const api = {
     const res = await fetch(`${API_URL}/mart/my-ads?${qs.toString()}`, { headers: authHeaders(token) })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to load your ads')
+    return data
+  },
+
+  // Spec: 03-api.md §0, 04-screens.md §15. `eligible` is false for Casual sellers
+  // (screen shouldn't be reachable then, but the caller checks it defensively);
+  // `profile` is set once a MartShopProfile row exists, otherwise `prefill` carries
+  // best-effort values read from the user's own Garage (never written back there).
+  getMartShopProfile: async (token: string): Promise<{
+    eligible: boolean
+    profile: ShopProfileDTO | null
+    prefill: ShopProfilePrefill | null
+  }> => {
+    const res = await fetch(`${API_URL}/mart/shop-profile`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, 'Failed to load shop profile')
+    return data
+  },
+  putMartShopProfile: async (token: string, body: {
+    name: string
+    logoUrl: string | null
+    about: string | null
+    contactPhone: string
+    district: string
+    townAddress: string | null
+    websiteUrl: string | null
+    googleMapsUrl: string | null
+  }): Promise<ShopProfileDTO> => {
+    const res = await fetch(`${API_URL}/mart/shop-profile`, { method: 'PUT', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't save your shop details")
     return data
   },
 
