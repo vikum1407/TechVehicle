@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
@@ -10,12 +10,19 @@ import RatingBadge from '../../components/mart/RatingBadge'
 import { openWhatsApp } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import NameDistrictSheet from './NameDistrictSheet'
+import MartRulesScreen from './MartRulesScreen'
 
 // Spec: 04-screens.md §8. Edit reuses Step 1.1's NameDistrictSheet (name + district
 // only — no photo picker here; the full Edit screen with a photo picker and the
 // account-deletion row stays Milestone 3, per Step 0.13's deferral). Favorites (Step
 // 1.7) opens a real screen now; Followings and Reviews stay "Coming soon" — no backend
 // data source exists for either until their own steps (2.8, 2.7).
+//
+// "Mart rules" row added later (found missing while answering a question about it):
+// 04-screens.md §20.4 names "My Mart > Mart rules (read only)" as this screen's own
+// explicit second entry point into MartRulesScreen, alongside the first-action gate —
+// it was never wired in when My Mart itself was built, so there was no way to review
+// the rules again after accepting them once.
 export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites }: {
   token: string
   onBack: () => void
@@ -31,6 +38,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [editVisible, setEditVisible] = useState(false)
+  const [rulesVisible, setRulesVisible] = useState(false)
 
   const load = async () => {
     setLoading(true); setError(false)
@@ -138,7 +146,22 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
             </View>
           </>
         ) : null}
+
+        <Text style={styles.groupLabel}>ABOUT</Text>
+        <View style={styles.groupCard}>
+          <TouchableOpacity style={styles.row} onPress={() => setRulesVisible(true)}>
+            <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'document-text-outline' }} size={18} color={colors.primary} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>Mart rules</Text>
+            </View>
+            <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
+      <Modal visible={rulesVisible} animationType="slide" onRequestClose={() => setRulesVisible(false)}>
+        <MartRulesScreen mode="readOnly" onBack={() => setRulesVisible(false)} />
+      </Modal>
 
       <NameDistrictSheet
         visible={editVisible}
