@@ -300,7 +300,11 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
 
         <View style={styles.divider} />
         <TouchableOpacity style={styles.sellerRow} onPress={comingSoon}>
-          <View style={styles.avatar}><Text style={styles.avatarText}>{(detail.seller.name || '?')[0]}</Text></View>
+          {detail.seller.photoUrl ? (
+            <Image source={{ uri: detail.seller.photoUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}><Text style={styles.avatarText}>{(detail.seller.name || '?')[0]}</Text></View>
+          )}
           <View style={{ flex: 1 }}>
             <View style={styles.sellerNameRow}>
               <Text style={styles.sellerName}>{detail.seller.name}</Text>
@@ -459,6 +463,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
 
     sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
     avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+    avatarImage: { width: 44, height: 44, borderRadius: 22 },
     avatarText: { color: '#fff', fontSize: 17, fontWeight: '700' },
     sellerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     sellerName: { fontSize: 14.5, fontWeight: '700', color: c.text },

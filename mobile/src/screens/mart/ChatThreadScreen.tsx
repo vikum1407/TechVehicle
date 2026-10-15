@@ -197,6 +197,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
   const removed = threadData ? threadData.listing.removed : false
   const closed = threadData ? threadData.listing.closed : false
   const otherName = threadData ? threadData.other.name : (entry as any).otherName
+  const otherPhotoUrl = threadData ? threadData.other.photoUrl : null
   const canSend = threadData ? threadData.canSend : true
 
   const daysLeft = (() => {
@@ -214,7 +215,11 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing }
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerAvatar}><Text style={styles.headerAvatarText}>{(otherName || '?')[0]}</Text></View>
+        {otherPhotoUrl ? (
+          <Image source={{ uri: otherPhotoUrl }} style={styles.headerAvatarImage} />
+        ) : (
+          <View style={styles.headerAvatar}><Text style={styles.headerAvatarText}>{(otherName || '?')[0]}</Text></View>
+        )}
         <Text style={styles.headerName} numberOfLines={1}>{otherName}</Text>
         {threadId ? (
           <TouchableOpacity onPress={openMenu} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -448,6 +453,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
       paddingTop: topInset + 12, paddingBottom: 12, paddingHorizontal: 16,
     },
     headerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+    headerAvatarImage: { width: 36, height: 36, borderRadius: 18 },
     headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     headerName: { flex: 1, fontSize: 15, fontWeight: '700', color: c.text },
 

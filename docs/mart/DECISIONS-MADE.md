@@ -4,6 +4,14 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — real bug: shop logo saved but never shown (screenshots confirmed name was fine)
+
+Vikum tested Step 2.6 end to end (screenshots from a real Wanted ad + chat): the Shop **name** ("Nipun Auto") was already showing correctly everywhere — ad detail seller row, the Wanted ad as seen by another account, and the chat header. Only the **logo photo** was missing; every one of those avatar circles fell back to the initial "N" instead of the uploaded image, even though the logo was correctly saved (visible in Shop details' own edit screen).
+
+Root cause: `DetailScreen.tsx`'s seller row and `ChatThreadScreen.tsx`'s header avatar never had an `Image` branch at all — they always rendered the initial `Text`, because before this step the seller/other-party API responses had no real photo to show. Step 2.6 added `seller.photoUrl` / `other.photoUrl` to those backend responses, but the two screens were never updated to read them. `WhoBoughtItSheet.tsx` had the same gap for its buyer rows (also fixed, for consistency, even though the backend's `/buyers` endpoint already returned `photoUrl`). `MyMartScreen.tsx` (personal photo) and `OffersListScreen.tsx` (offer's own attached photo, not a seller avatar) didn't need this — they already handled their own cases correctly. `MartHomeScreen`'s feed cards and `ChatInboxScreen`'s rows don't show a seller avatar at all by design (04-screens.md §5: inbox rows use the product thumbnail, not the other person's photo), so neither needed a fix.
+
+---
+
 ## 2026-10-15 — Milestone 2 Step 2.6: Shop profile
 
 - **`GET/PUT /mart/shop-profile` has no `requireProfile`/`requireRules` gate** — confirmed by checking 03-api.md §0's endpoint-index table, which lists it as auth-only, unlike `POST /mart/listings`'s explicit "rules+profile". A Shop seller setting up their business details isn't itself a Mart "action" the rules are meant to gate.

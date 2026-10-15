@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
 import { useTranslation } from '../../i18n/LanguageContext'
@@ -79,7 +79,11 @@ export default function WhoBoughtItSheet({
               style={[styles.row, selected === b.threadId && styles.rowSelected]}
               onPress={() => setSelected(b.threadId)}
             >
-              <View style={styles.avatar}><Text style={styles.avatarText}>{(b.name || '?')[0]}</Text></View>
+              {b.photoUrl ? (
+                <Image source={{ uri: b.photoUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}><Text style={styles.avatarText}>{(b.name || '?')[0]}</Text></View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowName}>{b.name}</Text>
                 <Text style={styles.rowSub}>{b.messageCount} message{b.messageCount === 1 ? '' : 's'} · last chat {timeAgo(t, b.lastMessageAt)}</Text>
@@ -130,6 +134,7 @@ function makeStyles(c: Colors) {
     },
     rowSelected: { borderColor: c.primary, backgroundColor: c.surfaceAlt },
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+    avatarImage: { width: 40, height: 40, borderRadius: 20 },
     avatarOutside: { backgroundColor: c.surfaceAlt },
     avatarText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     rowName: { fontSize: 14, fontWeight: '700', color: c.text },
