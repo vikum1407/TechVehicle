@@ -4,6 +4,16 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-15 — Milestone 2 Step 2.8: Followings
+
+- **`GET /mart/follows/feed` skipped**, per 03-api.md §7's own explicit line: "No screen uses it at launch... implement it last or skip." No screen in this build needs it, so it's left out rather than built unused.
+- **The response adds a `townAddress` field beyond the documented minimal shape** (`{ seller, activeAdsCount, newestAdAt }`), since 04-screens.md §18 point 3 explicitly requires it for a Shop's area line ("For Shops use `MartShopProfile` town; else district") and the data was already one query away (`MartShopProfile.findMany` alongside the existing `getShopProfiles()` helper, which only returns name/logoUrl).
+- **`FollowingsScreen` is NOT added to `MartNavigator`'s `FULL_SCREEN` list** (tab bar stays visible), matching `FavoritesScreen`'s own precedent — both are simple back-header list screens reached from My Mart, explicitly named together in 04-screens.md §0.2's "tab bar visible on" list, unlike `shopProfile`/`sellerProfile` (treated as full-screen detail flows in earlier steps).
+- **Unfollow is optimistic with a 4s Undo toast** (`MartToast`, built empty in Step 0.10 specifically for this screen — first real use here): the row fades out and the DELETE fires immediately on tap, matching the spec's "Tap = unfollow immediately" wording. A failed DELETE silently stays removed from this list view only (same fallback `FavoritesScreen`'s own remove-favorite already uses) — the follow still exists server-side and reappears next time the screen loads fresh.
+- **"Blocking a user removes the follow both ways" (04-screens.md §18) was not implemented** — `MartBlock` has no UI yet (Milestone 3), so there's nothing to wire this into. Noted for whoever builds Block later.
+
+---
+
 ## 2026-10-15 — two real bugs found testing Step 2.7, both fixed
 
 - **Seller Profile's "..." menu could get stuck open and unclosable.** Block user/Report user each called a second `Alert.alert(...)` from inside the first action-sheet Alert's own `onPress` — a known RN/Android issue where the first dialog's dismiss animation collides with the second one's show call. Fixed by deferring the second call with `setTimeout(..., 400)`, a standard workaround for this exact case.

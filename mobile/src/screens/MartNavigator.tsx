@@ -12,6 +12,7 @@ import ChatThreadScreen, { ChatThreadEntry } from './mart/ChatThreadScreen'
 import OffersListScreen from './mart/OffersListScreen'
 import ShopProfileScreen from './mart/ShopProfileScreen'
 import SellerProfileScreen from './mart/SellerProfileScreen'
+import FollowingsScreen from './mart/FollowingsScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -48,9 +49,12 @@ type MartStackEntry =
   | { screen: 'thread'; entry: ChatThreadEntry }
   | { screen: 'offers'; listingId: string; title: string; budgetMin: number | null; budgetMax: number | null }
   | { screen: 'sellerProfile'; sellerId: string }
+  | { screen: 'followings' }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
+// 'followings' is NOT included — same simple-list-with-back-header shape as 'favorites'
+// (explicitly kept visible per §0.2's own list), not a full-screen detail flow.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
 
 export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled }: {
@@ -194,6 +198,17 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenMyAds={() => push({ screen: 'myAds' })}
         onOpenFavorites={() => push({ screen: 'favorites' })}
         onOpenShopProfile={() => push({ screen: 'shopProfile' })}
+        onOpenFollowings={() => push({ screen: 'followings' })}
+      />
+    )
+  }
+
+  if (current.screen === 'followings') {
+    return (
+      <FollowingsScreen
+        token={token}
+        onBack={pop}
+        onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}
       />
     )
   }

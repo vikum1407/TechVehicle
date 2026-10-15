@@ -15,20 +15,22 @@ import MartRulesScreen from './MartRulesScreen'
 // Spec: 04-screens.md §8. Edit reuses Step 1.1's NameDistrictSheet (name + district
 // only — no photo picker here; the full Edit screen with a photo picker and the
 // account-deletion row stays Milestone 3, per Step 0.13's deferral). Favorites (Step
-// 1.7) opens a real screen now; Followings and Reviews stay "Coming soon" — no backend
-// data source exists for either until their own steps (2.8, 2.7).
+// 1.7) and Followings (Step 2.8) open real screens now; Reviews stays "Coming soon" —
+// no dedicated "my own reviews" screen exists yet (Step 2.7 built the Seller Public
+// Profile's reviews, not a standalone "my reviews" list).
 //
 // "Mart rules" row added later (found missing while answering a question about it):
 // 04-screens.md §20.4 names "My Mart > Mart rules (read only)" as this screen's own
 // explicit second entry point into MartRulesScreen, alongside the first-action gate —
 // it was never wired in when My Mart itself was built, so there was no way to review
 // the rules again after accepting them once.
-export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile }: {
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
   onOpenFavorites: () => void
   onOpenShopProfile: () => void
+  onOpenFollowings: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -80,7 +82,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
       onPress: onOpenMyAds,
     },
     { icon: { lib: 'ion', name: 'heart-outline' }, label: 'Favorites', sub: `${me.counts.favorites} saved ads`, onPress: onOpenFavorites },
-    { icon: { lib: 'ion', name: 'people-outline' }, label: 'Followings', sub: `${me.counts.followings} sellers and shops`, onPress: comingSoon },
+    { icon: { lib: 'ion', name: 'people-outline' }, label: 'Followings', sub: `${me.counts.followings} sellers and shops`, onPress: onOpenFollowings },
     {
       icon: { lib: 'ion', name: 'star-outline' }, label: 'Reviews',
       sub: me.counts.reviews > 0 ? `${me.counts.reviews} reviews from buyers` : 'Reviews appear after your first confirmed sale',
