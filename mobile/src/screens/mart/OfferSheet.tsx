@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, Modal, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { useColors } from '../../theme/ThemeContext'
@@ -8,6 +8,8 @@ import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import AppIcon from '../../components/AppIcon'
 import { api } from '../../config/api'
 import { formatBudget } from '../../utils/martHelpers'
+import NameDistrictSheet from './NameDistrictSheet'
+import MartRulesScreen from './MartRulesScreen'
 
 const PHOTOS_MAX = 3
 const NOTE_MAX = 300
@@ -43,6 +45,7 @@ export default function OfferSheet({
   const [photos, setPhotos] = useState<Photo[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
   const [isPicking, setIsPicking] = useState(false)
 
   const remainingSlots = PHOTOS_MAX - photos.length
@@ -111,6 +114,11 @@ export default function OfferSheet({
       reset()
       onSent(result.threadId)
     } catch (e: any) {
+      // Same gate pattern as ChatThreadScreen (and PostAdScreen's own gate) — this
+      // sheet never had it, so a first-ever "I have this" tap showed the raw backend
+      // error text ("Please accept the Mart rules") instead of the real gate sheet.
+      if (e.code === 'PROFILE_REQUIRED') { setGateStep('nameDistrict'); return }
+      if (e.code === 'RULES_REQUIRED') { setGateStep('rules'); return }
       setError(e.message || "Couldn't send. Check your connection and try again.")
     } finally {
       setSending(false)
@@ -118,7 +126,8 @@ export default function OfferSheet({
   }
 
   return (
-    <MartBottomSheet visible={visible} onClose={onClose} topOffset={140}>
+    <>
+    <MartBottomSheet visible={visible && !gateStep} onClose={onClose} topOffset={140}>
       <Text style={styles.title}>Send an offer</Text>
 
       <View style={styles.summaryBox}>
@@ -190,6 +199,25 @@ export default function OfferSheet({
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
     </MartBottomSheet>
+
+    <NameDistrictSheet
+      visible={gateStep === 'nameDistrict'}
+      token={token}
+      onDone={() => { setGateStep(null); handleSend() }}
+      onClose={() => setGateStep(null)}
+    />
+
+    {gateStep === 'rules' ? (
+      <Modal visible animationType="slide" onRequestClose={() => setGateStep(null)}>
+        <MartRulesScreen
+          mode="firstAction"
+          token={token}
+          onBack={() => setGateStep(null)}
+          onAccepted={() => { setGateStep(null); handleSend() }}
+        />
+      </Modal>
+    ) : null}
+    </>
   )
 }
 
