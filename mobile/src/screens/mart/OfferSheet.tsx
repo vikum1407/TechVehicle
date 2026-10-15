@@ -62,17 +62,11 @@ export default function OfferSheet({
 
   const addAssets = async (uris: string[]) => {
     const startIndex = photos.length
-    console.log('[OfferSheet] addAssets start', { uris, startIndex })
     setPhotos(prev => [...prev, ...uris.map(() => ({ localUri: '', url: null, uploading: true, error: null }))])
     for (let i = 0; i < uris.length; i++) {
       const compressed = await ImageManipulator.manipulateAsync(uris[i], [{ resize: { width: 1280 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG })
-      console.log('[OfferSheet] compressed', { i, inputUri: uris[i], outputUri: compressed.uri })
       const index = startIndex + i
-      setPhotos(prev => {
-        const next = prev.map((p, idx) => (idx === index ? { ...p, localUri: compressed.uri } : p))
-        console.log('[OfferSheet] photos after setting localUri', next)
-        return next
-      })
+      setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, localUri: compressed.uri } : p)))
       await uploadAt(index, compressed.uri)
     }
   }
