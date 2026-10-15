@@ -902,6 +902,8 @@ router.post('/:listingId/rate', requireProfile, requireRules, async (req: AuthRe
   const existing = await prisma.martSellerRating.findFirst({
     where: { OR: [{ listingId: listing.id, raterPhone: me }, { raterPhone: me, sellerPhone }] },
   })
+  const allMyRatings = await prisma.martSellerRating.findMany({ where: { raterPhone: me } })
+  console.log('[rate] diag', { listingId: listing.id, me, sellerPhone, existing, allMyRatings })
   if (existing) { res.status(409).json({ error: 'You already rated this seller', code: 'ALREADY_RATED' }); return }
 
   const limit = checkRateLimit('mart-rate', me, MART_RATE_LIMITS.RATE_SELLER.max, MART_RATE_LIMITS.RATE_SELLER.windowMs)
