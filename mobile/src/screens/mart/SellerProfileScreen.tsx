@@ -166,7 +166,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       { text: 'Block user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Blocking is still being built.', [{ text: 'OK' }]), 400) },
       { text: 'Report user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Reporting is still being built.', [{ text: 'OK' }]), 400) },
       { text: 'Cancel', style: 'cancel' },
-    ])
+    ], { cancelable: true })
   }
   const shareProfile = () => {
     if (!data) return
