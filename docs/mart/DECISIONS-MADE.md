@@ -4,6 +4,17 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — Report threshold notice (Vikum's request, scoped via explicit questions before building)
+
+After testing Step 3.1, Vikum asked for the reported seller/user to be informed once a target has built up multiple reports, rather than only admins knowing. Scoped with him directly (his answers in parens) before writing code: exactly **3** (not just an example), counted by **distinct reporters** (not raw report rows — one person re-reporting after the 24h dedup window shouldn't alone trigger this), and the notification text is **generic** — no reasons, no reporter count, no names, just a reminder to review the Mart rules, so it can't be used to infer exactly what's being watched or by whom.
+
+- New `notifyTargetIfThreshold()` in `safety.ts`, runs after every new report (any one could be the one that crosses 3). Counts **open** reports only — an admin marking reports reviewed effectively resets the count, since there's no point re-flagging something already looked at.
+- **Fires once per target, not on every report past the threshold** — dedup by checking for a prior `mart_report_threshold` notification whose `linkTo` contains this exact `targetId`. No new schema field needed; same string-match-on-`linkTo` approach the existing non-Mart `/notifications/read-booking/:bookingId` route already uses.
+- **`linkTo` is deliberately not a real navigable target** (`{ screen: 'martReportThreshold', targetType, targetId }`) — there's nothing useful to deep-link to for a generic "review the rules" notice, and no routing branch matches that screen name, so tapping it just stays on the notification list (same practical effect as `linkTo: null` elsewhere in Mart, but still carries `targetId` for the dedup check above).
+- **Not gated by a notification preference** — same "always" reasoning as the existing `mart_report_received` (admin) notification: this is an account-standing notice, not optional social noise.
+
+---
+
 ## 2026-10-16 — Milestone 3 Step 3.1: Report (first step of Milestone 3 — Milestone 2 is fully closed out)
 
 - **`ADMIN_PHONES` fails CLOSED, unlike `MART_BETA_PHONES`'s fail-open default.** New `adminGate` middleware (mirrors `martGate`'s shape) treats empty/unset `ADMIN_PHONES` as "nobody is admin" — the opposite default from the beta gate, since this guards genuinely sensitive data (report contents, reporter identities), not just an unshipped feature. 404 (not 403) on rejection, same reasoning as the beta gate: don't reveal the surface exists.

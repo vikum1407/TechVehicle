@@ -18,6 +18,7 @@ const TYPE_ICON: Record<string, AppIconSpec> = {
   mart_rating: { lib: 'ion', name: 'star-outline' },
   mart_new_follower: { lib: 'ion', name: 'person-add-outline' },
   mart_new_ad: { lib: 'ion', name: 'pricetag-outline' },
+  mart_report_threshold: { lib: 'ion', name: 'alert-circle-outline' },
 }
 const DEFAULT_ICON: AppIconSpec = { lib: 'ion', name: 'notifications-outline' }
 

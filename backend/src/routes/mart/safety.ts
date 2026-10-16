@@ -16,6 +16,13 @@ const router = express.Router()
 const REASONS = ['scam', 'fake', 'prohibited', 'spam', 'abuse', 'other']
 const TARGET_TYPES = ['listing', 'user', 'message']
 
+// Vikum's request 2026-10-16 (discussed first): once a listing or user has 3 *distinct*
+// reporters (not just 3 report rows — one person re-reporting after the 24h window
+// shouldn't alone trigger this), send the reported person a one-time, generic heads-up.
+// No reasons, no reporter count, no mention of who — just a reminder to review the
+// rules, so the notice can't be used to infer exactly what's being watched or by whom.
+const REPORT_THRESHOLD = 3
+
 // Spec: 03-api.md §0 file list names this `safety.ts` (Report + Block together) —
 // Block is Step 3.2, not built yet; this file starts with Report only.
 //
@@ -80,6 +87,7 @@ router.post('/reports', requireProfile, requireRules, async (req: AuthRequest, r
   })
 
   notifyAdmins(reason, targetTitle).catch(() => {})
+  notifyTargetIfThreshold(targetType, targetId, targetPhone, targetTitle).catch(() => {})
 
   res.status(201).json({ ok: true })
 })
@@ -98,6 +106,42 @@ async function notifyAdmins(reason: string, targetTitle: string | null) {
     const user = await prisma.user.findUnique({ where: { phoneNumber: phone }, select: { pushToken: true } })
     await sendPush(user?.pushToken, title, body)
   }
+}
+
+// Threshold check runs after every new report, since any report could be the one that
+// crosses it. "Open" reports only — once an admin marks them reviewed the count resets
+// (no point re-flagging something already looked at). Dedup is by checking for a prior
+// `mart_report_threshold` notification carrying this exact `targetId` in its `linkTo` —
+// no new schema field needed, same string-match-on-linkTo approach already used
+// elsewhere (e.g. the existing non-Mart `/notifications/read-booking/:bookingId`).
+// `linkTo` isn't a real navigable target (deliberately — there's nothing useful to jump
+// to for a generic "review the rules" notice) but still carries targetId so this dedup
+// check works; tapping it just stays on the notification list, same as `linkTo: null`
+// elsewhere in Mart.
+async function notifyTargetIfThreshold(targetType: string, targetId: string, targetPhone: string, targetTitle: string | null) {
+  const distinctReporters = await prisma.martReport.findMany({
+    where: { targetType, targetId, status: 'open' },
+    select: { reporterPhone: true },
+    distinct: ['reporterPhone'],
+  })
+  if (distinctReporters.length < REPORT_THRESHOLD) return
+
+  const already = await prisma.appNotification.findFirst({
+    where: { userPhone: targetPhone, type: 'mart_report_threshold', linkTo: { contains: targetId } },
+  })
+  if (already) return
+
+  const title = 'Please review the Mart rules'
+  const body = targetType === 'listing'
+    ? `Your ad${targetTitle ? ` "${targetTitle}"` : ''} has received multiple reports. Please make sure it follows the Mart rules.`
+    : 'Your account has received multiple reports. Please make sure your activity follows the Mart rules.'
+  const linkTo = { screen: 'martReportThreshold', targetType, targetId }
+
+  // Same "always" reasoning as notifyAdmins — this is an account-standing notice, not
+  // optional social noise, so it isn't gated behind a notification preference.
+  await createNotification(prisma, targetPhone, 'mart_report_threshold', title, body, linkTo)
+  const user = await prisma.user.findUnique({ where: { phoneNumber: targetPhone }, select: { pushToken: true } })
+  await sendPush(user?.pushToken, title, body, linkTo)
 }
 
 export default router
