@@ -34,12 +34,11 @@ type Card = {
 // Spec: 04-screens.md §1 + §12. Milestone 2 Step 2.1 adds the Selling|Wanted switch —
 // Wanted mode swaps the 2-column grid for a single-column request-card list (§12),
 // everything else (header, search, category chips, bottom bar) stays the same component.
-// Notifications icon is present (matching the header layout) but not yet wired to
-// anything real — that screen doesn't exist until Step 2.9, so tapping it is a harmless
-// no-op for now. Favorites, My Mart, Messages (Step 1.8, including its unread dot) and
-// card taps all open real screens.
+// Notifications icon (Step 2.9) now opens the real Notification Center, same unread-dot
+// pattern as Messages. Favorites, My Mart, Messages (Step 1.8) and card taps all open
+// real screens.
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages,
+  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages, onOpenNotifications,
 }: {
   token: string
   filters: MartFilters
@@ -50,6 +49,7 @@ export default function MartHomeScreen({
   onOpenMyMart: () => void
   onOpenFavorites: () => void
   onOpenMessages: () => void
+  onOpenNotifications: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -63,6 +63,7 @@ export default function MartHomeScreen({
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [items, setItems] = useState<Card[]>([])
   const [unreadMessages, setUnreadMessages] = useState(false)
+  const [unreadNotifs, setUnreadNotifs] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -123,6 +124,7 @@ export default function MartHomeScreen({
 
   useEffect(() => {
     api.getMartThreadsUnreadCount(token).then(r => setUnreadMessages(r.count > 0)).catch(() => {})
+    api.getMartNotificationsUnreadCount(token).then(r => setUnreadNotifs(r.count > 0)).catch(() => {})
     checkGate()
   }, [token])
 
@@ -157,8 +159,9 @@ export default function MartHomeScreen({
             <AppIcon icon={{ lib: 'ion', name: 'chatbubble-outline' }} size={22} color={colors.primary} />
             {unreadMessages ? <View style={styles.headerUnreadDot} /> : null}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenNotifications} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'notifications-outline' }} size={22} color={colors.primary} />
+            {unreadNotifs ? <View style={styles.headerUnreadDot} /> : null}
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn} onPress={onOpenMyMart} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <AppIcon icon={{ lib: 'ion', name: 'person-outline' }} size={22} color={colors.primary} />

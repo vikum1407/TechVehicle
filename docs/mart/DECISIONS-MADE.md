@@ -4,6 +4,16 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — Milestone 2 Step 2.9: Notification center
+
+- **New `backend/src/routes/mart/notifications.ts`**, a thin Mart-only view over the existing shared `AppNotification` table (same table every mart_* type across Steps 1.9–2.8 already writes to) — filtered to `type startsWith 'mart_'`, matching 02-data-model.md §7.2 exactly. No new table, no new write path.
+- **Row tap reuses `App.tsx`'s own `handleNotificationData`** (the dispatcher built for real push-notification taps) instead of writing a third copy of the linkTo routing chain — that function already takes a flat `{screen, threadId, ...}` object, which is exactly a parsed `linkTo`'s shape. Threaded through as a new `onNavigateNotification` prop on `MartNavigator`.
+- **Closed a real pre-existing dead link found while wiring this**: `mart_rating`'s own `linkTo` (`{ screen: 'martReviews' }`, built in Step 2.5) was never routed anywhere, in either `handleNotificationData` or the existing `NotificationsScreen`'s own `onNavigate`. There's no dedicated "my reviews" screen/modal in My Mart, but `SellerProfileScreen` already shows a seller's own reviews correctly when viewing your own id (`isMe: true`) — reused that (fetches the viewer's own Mart `User.id` via `GET /mart/me` on demand, then opens their own Seller Profile) rather than building new UI just for this one link.
+- **Excluded `mart_*` types from the existing (non-Mart) `/notifications` routes** (`GET /`, `/unread-count`, `POST /read-all`) — this was explicitly flagged, not fixed, back in Step 1.9's own decision log ("naturally self-limiting for now... until Mart's own separate notification center ships at Milestone 2 Step 2.9"). Without this, a Mart row would show up — and could be bulk-marked-read, or counted toward the bell dot — in both notification centers at once. `POST /read-booking/:bookingId` already filtered `type: 'message'` specifically (the non-Mart message type), so Mart's own `mart_message` rows never matched it anyway — left untouched.
+- **Bell icon was already present in `MartHomeScreen`'s header** (built ahead of time in Step 1.3 as an intentional no-op stub, per its own code comment) — just wired to the real screen and a real unread-count badge, same pattern as the existing Messages icon right next to it.
+
+---
+
 ## 2026-10-16 — real bug: Seller Profile's ad grid cards weren't equal width
 
 Vikum spotted the two cards in a row of the Seller Profile's Ads tab (Shop layout) rendering at visibly different sizes, and correctly guessed it tracked the photo. Root cause: `renderAdCard()`'s wrapping `<View>` had no size hint at all for the 2-column grid case (only the Casual layout's fixed-width horizontal strip passed an explicit `width`) — `MartListingCard`'s own root is `flex: 1`, which only distributes evenly when its direct parent already has a determinate width to flex against. Mart Home's own grid never wraps `MartListingCard` in an extra View at all (renders it directly as the row child), so this never came up there. Fixed by giving the wrapper `flex: 1` whenever no fixed `width` is passed.

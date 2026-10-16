@@ -355,6 +355,34 @@ export const api = {
     return data
   },
 
+  // Spec: 03-api.md §0, 04-screens.md §13. Mart's own notification list, filtered to
+  // mart_* types server-side — separate from the existing (non-Mart) /notifications.
+  getMartNotifications: async (token: string, cursor?: string): Promise<{ items: any[]; nextCursor: string | null }> => {
+    const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+    const res = await fetch(`${API_URL}/mart/notifications${qs}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load notifications")
+    return data
+  },
+  getMartNotificationsUnreadCount: async (token: string): Promise<{ count: number }> => {
+    const res = await fetch(`${API_URL}/mart/notifications/unread-count`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) return { count: 0 }
+    return data
+  },
+  markMartNotificationsReadAll: async (token: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/notifications/read-all`, { method: 'POST', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't update")
+    return data
+  },
+  markMartNotificationRead: async (token: string, id: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/notifications/${id}/read`, { method: 'POST', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't update")
+    return data
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

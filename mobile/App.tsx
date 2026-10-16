@@ -187,6 +187,16 @@ export default function App() {
     } else if (targetScreen === 'martSellerProfile' && sellerId) {
       setFocusMartSellerId(sellerId)
       setScreen('mart')
+    } else if (targetScreen === 'martReviews') {
+      // Step 2.9: pre-existing dead link found while wiring the Notification Center —
+      // mart_rating's own linkTo (`{ screen: 'martReviews' }`, Step 2.5) was never
+      // routed anywhere at all, in either this handler or NotificationsScreen's own
+      // onNavigate. There's no dedicated "my reviews" screen/modal built into My Mart,
+      // but Seller Profile already shows a seller's own reviews correctly when viewing
+      // your own id (`isMe: true`) — reusing that instead of building new UI just for
+      // this. Needs my own Mart User.id first, which isn't tracked elsewhere in
+      // App.tsx's state (only phoneNumber is), so it's fetched on demand here.
+      api.getMartMe(token).then(me => { setFocusMartSellerId(me.id); setScreen('mart') }).catch(() => {})
     } else if (targetScreen === 'garage') {
       if (bookingId) setFocusBookingId(bookingId)
       setScreen('garage')
@@ -511,6 +521,7 @@ export default function App() {
                 focusSellerId={focusMartSellerId}
                 onSellerFocusHandled={() => setFocusMartSellerId(null)}
                 resetSignal={martResetSignal}
+                onNavigateNotification={handleNotificationData}
               />
             )}
           </View>

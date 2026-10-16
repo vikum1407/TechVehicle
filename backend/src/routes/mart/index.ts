@@ -8,6 +8,7 @@ import threadsRoutes from './threads'
 import shopProfileRoutes from './shopProfile'
 import sellersRoutes from './sellers'
 import socialRoutes from './social'
+import notificationsRoutes from './notifications'
 
 // Mounted in src/index.ts as: app.use('/mart', authMiddleware, martGate, martRouter)
 // — every /mart route already has req.phoneNumber set and has passed the beta gate
@@ -25,5 +26,6 @@ martRouter.use('/threads', threadsRoutes)
 martRouter.use('/shop-profile', shopProfileRoutes)
 martRouter.use('/sellers', sellersRoutes)
 martRouter.use('/follows', socialRoutes)
+martRouter.use('/notifications', notificationsRoutes)
 
 export default martRouter

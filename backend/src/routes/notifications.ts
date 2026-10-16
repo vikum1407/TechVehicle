@@ -7,11 +7,19 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+// Vocksy Mart (Step 1.9) writes mart_* notification types into this same shared table,
+// but has had its own separate list/bell/mark-read since Step 2.9 (backend/src/routes/
+// mart/notifications.ts). Without this exclusion a Mart row would show up — and could
+// be bulk-marked-read, or counted toward the bell dot — in both notification centers at
+// once, which is exactly the cross-contamination flagged (not fixed) back in Step 1.9's
+// own decision log as "worth revisiting... once Mart's own center ships." This is that.
+const NOT_MART = { type: { not: { startsWith: 'mart_' } } }
+
 // GET /notifications — fetch all notifications for the logged-in user, newest first
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const notifications = await prisma.appNotification.findMany({
-      where: { userPhone: req.phoneNumber! },
+      where: { userPhone: req.phoneNumber!, ...NOT_MART },
       orderBy: { createdAt: 'desc' },
       take: 50,
     })
@@ -25,7 +33,7 @@ router.get('/', async (req: AuthRequest, res) => {
 router.get('/unread-count', async (req: AuthRequest, res) => {
   try {
     const count = await prisma.appNotification.count({
-      where: { userPhone: req.phoneNumber!, read: false },
+      where: { userPhone: req.phoneNumber!, read: false, ...NOT_MART },
     })
     res.json({ count })
   } catch {
@@ -60,7 +68,7 @@ router.post('/read-booking/:bookingId', async (req: AuthRequest, res) => {
 router.post('/read-all', async (req: AuthRequest, res) => {
   try {
     await prisma.appNotification.updateMany({
-      where: { userPhone: req.phoneNumber!, read: false },
+      where: { userPhone: req.phoneNumber!, read: false, ...NOT_MART },
       data: { read: true },
     })
     res.json({ success: true })

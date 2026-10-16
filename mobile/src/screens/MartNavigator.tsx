@@ -14,6 +14,7 @@ import ShopProfileScreen from './mart/ShopProfileScreen'
 import SellerProfileScreen from './mart/SellerProfileScreen'
 import FollowingsScreen from './mart/FollowingsScreen'
 import FollowersScreen from './mart/FollowersScreen'
+import NotificationCenterScreen from './mart/NotificationCenterScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -52,14 +53,17 @@ type MartStackEntry =
   | { screen: 'sellerProfile'; sellerId: string }
   | { screen: 'followings' }
   | { screen: 'followers' }
+  | { screen: 'notifications' }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
 // 'followings' is NOT included — same simple-list-with-back-header shape as 'favorites'
 // (explicitly kept visible per §0.2's own list), not a full-screen detail flow.
+// 'notifications' is NOT included either — 04-screens.md §13 says explicitly "Bottom
+// bar visible."
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled, resetSignal }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled, resetSignal, onNavigateNotification }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
@@ -72,6 +76,9 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   focusSellerId?: string | null
   onSellerFocusHandled?: () => void
   resetSignal?: number
+  // Step 2.9: App.tsx's own `handleNotificationData` passed straight through, reused
+  // by NotificationCenterScreen so there's no third copy of the linkTo routing chain.
+  onNavigateNotification: (linkTo: any) => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -156,6 +163,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenMyMart={() => push({ screen: 'myMart' })}
         onOpenFavorites={() => push({ screen: 'favorites' })}
         onOpenMessages={() => push({ screen: 'inbox' })}
+        onOpenNotifications={() => push({ screen: 'notifications' })}
       />
     )
   }
@@ -244,6 +252,16 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         token={token}
         onBack={pop}
         onOpenSeller={sellerId => push({ screen: 'sellerProfile', sellerId })}
+      />
+    )
+  }
+
+  if (current.screen === 'notifications') {
+    return (
+      <NotificationCenterScreen
+        token={token}
+        onBack={pop}
+        onNavigate={onNavigateNotification}
       />
     )
   }
