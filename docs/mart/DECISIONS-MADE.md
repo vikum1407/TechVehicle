@@ -4,6 +4,12 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — real gap: no feedback re-blocking someone already blocked
+
+Vikum found that tapping "Block user" again on an already-blocked profile did nothing visible — `POST /mart/blocks` is an upsert, so it silently succeeded again with no indication anything changed. Seller Profile is the one place a blocked person's profile stays reachable at all (deliberately, per Step 2.7's `iBlockedThem` design, specifically so there's a way back to unblock someone) — so rather than just adding an "already blocked" message, the "..." menu now reflects the real state: it offers **"Unblock user"** instead of "Block user" once `iBlockedThem` is true, calling the existing unblock endpoint directly (no sheet — the consequences sheet is specifically about the decision to block, not relevant to undoing it). Detail and Chat thread don't need the same fix: once you've blocked someone, their listings 404 for you (symmetric `blockedSet` filtering) and chat threads vanish from both inboxes, so neither screen stays reachable for an already-blocked person the way the profile does.
+
+---
+
 ## 2026-10-16 — Milestone 3 Step 3.2: Block
 
 - **The enforcement side was already fully built back in Step 0.6** — `blockedSet()` has been called from every feed/thread/profile/message-send query since day one (per its own original comment, and confirmed by grep: already used in 5+ places in `threads.ts` alone, including the exact `POST /:threadId/messages` 403 the spec describes). This step only adds the WRITE side: nothing ever populated `MartBlock` until now, so none of that existing enforcement had anything to act on. `follows` already rejected a blocked pair too (`POST /mart/follows`, Step 2.7), confirming this was genuinely designed and built ahead of time throughout, not a gap.

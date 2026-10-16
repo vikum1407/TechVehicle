@@ -159,6 +159,20 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     }
   }
 
+  // Vikum's feedback (2026-10-16): re-tapping "Block user" on someone already blocked
+  // silently upserted with no feedback at all — SellerProfileScreen is the one place a
+  // blocked person's profile stays reachable at all (deliberately, per Step 2.7's own
+  // `iBlockedThem` design, so you can get back here to unblock), so this menu needs to
+  // reflect that state instead of always offering "Block user".
+  const unblockUser = async () => {
+    try {
+      await api.deleteMartBlock(token, sellerId)
+      load()
+    } catch (e: any) {
+      Alert.alert("Couldn't unblock", e.message || 'Check your connection and try again.')
+    }
+  }
+
   // Showing a second Alert.alert from inside the first one's own onPress (Block/Report
   // here) can leave the native Android dialog stuck/unclosable — the first dialog's
   // dismiss animation and the second one's show call collide. Deferring the second call
@@ -167,7 +181,9 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     if (!data) return
     Alert.alert(data.seller.name, undefined, [
       { text: 'Share profile', onPress: shareProfile },
-      { text: 'Block user', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
+      data.iBlockedThem
+        ? { text: 'Unblock user', onPress: () => setTimeout(unblockUser, 400) }
+        : { text: 'Block user', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
       { text: 'Report user', onPress: () => setTimeout(() => setReportOpen(true), 400) },
       { text: 'Cancel', style: 'cancel' },
     ], { cancelable: true })
