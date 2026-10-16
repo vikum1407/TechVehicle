@@ -4,6 +4,14 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — real gap found via a discussion question: no way to relist a Wanted ad at all
+
+Vikum asked how to relist a Wanted ad that got declined. Checked: there was no way — `MyAdsScreen` (where Relist lives) was hardcoded `type: 'selling'` since Step 2.1, and `DetailScreen` has no Relist button of its own. The backend's `POST /:listingId/relist` already fully supports Wanted (resets `status` to `'open'`, same as selling does to `'available'`) — nothing backend needed changing, only that no mobile screen ever called it for that type.
+
+**Fixed by extending `MyAdsScreen` to support both types** (Vikum's choice over the smaller "just add Relist to Detail" option, since this also gives Wanted ads visibility they never had at all): a Selling|Wanted segmented switch reusing Mart Home's own styling, Wanted gets its own two tabs (Open/Fulfilled, mirroring Selling's three), a "Mark Fulfilled" action on the Open tab (same `WhoBoughtItSheet`, `type="wanted"`), and Relist/Delete on the Fulfilled tab. Card display branches on type (budget range vs price, replies count vs saved/chats count, "Fulfilled" vs "Sold" wording). `onOpenPostAd`/`onOpenEdit` already supported a type param elsewhere in the stack — just needed forwarding through from My Ads, which never passed one.
+
+---
+
 ## 2026-10-16 — real gap found via a discussion question: "Not me" told the seller nothing
 
 Vikum asked what happens today when the other side taps "Not me" on the confirm banner. Checked the code: `dealState` becomes `'declined'`, but the listing's `status` never reverts (stays permanently sold/fulfilled), no system message was added to the chat, and no notification was sent to the seller at all — the confirm/decline endpoint only ever notified on the `confirm: true` branch. The seller had no way to find out a deal fell through short of noticing the confirm banner had quietly vanished from that one thread. The only recovery path, Relist, already existed and still works the same (resets `dealPartnerPhone`/`dealState`/`status` and bumps the ad back to the feed) — this was purely a missing-notification gap, not a missing-recovery one.

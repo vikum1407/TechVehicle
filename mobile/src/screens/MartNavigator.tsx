@@ -264,7 +264,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         token={token}
         initialTab={current.initialTab}
         onBack={pop}
-        onOpenPostAd={() => push({ screen: 'postAd' })}
+        onOpenPostAd={type => push({ screen: 'postAd', initialType: type })}
         onOpenListing={id => push({ screen: 'detail', listingId: id })}
         onOpenEdit={listing => push({ screen: 'postAd', editing: { listingId: listing.id, listing } })}
       />
