@@ -4,6 +4,12 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — real bug: Seller Profile's ad grid cards weren't equal width
+
+Vikum spotted the two cards in a row of the Seller Profile's Ads tab (Shop layout) rendering at visibly different sizes, and correctly guessed it tracked the photo. Root cause: `renderAdCard()`'s wrapping `<View>` had no size hint at all for the 2-column grid case (only the Casual layout's fixed-width horizontal strip passed an explicit `width`) — `MartListingCard`'s own root is `flex: 1`, which only distributes evenly when its direct parent already has a determinate width to flex against. Mart Home's own grid never wraps `MartListingCard` in an extra View at all (renders it directly as the row child), so this never came up there. Fixed by giving the wrapper `flex: 1` whenever no fixed `width` is passed.
+
+---
+
 ## 2026-10-16 — "DECLINED" fix retested, still showed "FULFILLED" for the requester
 
 Same directional bug class hit twice already today, a third time: the chat thread's pinned header used `deal.iAmPartner` to decide whether to show "NEED TO CONFIRM"/"DECLINED", but `iAmPartner` is only true for whoever `dealPartnerPhone` equals — the chosen seller, never the requester (the Wanted ad's owner). The requester viewing their own deal thread is `isListingOwner`, not `iAmPartner`, so the condition never matched for them and it fell through to the plain "FULFILLED" label. Fixed by exposing the already-computed `isDealThread` (`dealPartnerPhone === me || dealPartnerPhone === thread.otherPhone` — already used earlier the same day for the deal-thread-stays-sendable logic) on the `deal` object instead, which is correct from either side.

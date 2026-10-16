@@ -196,8 +196,16 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const districtLabel = seller.district ? DISTRICTS.find(d => d.id === seller.district)?.en : null
   const shopAreaLabel = shop?.townAddress || (shop?.district ? DISTRICTS.find(d => d.id === shop.district)?.en : null)
 
+  // `width` is only given for the Casual layout's fixed-width horizontal preview strip.
+  // The 2-column grid cases (Shop's Ads tab, "see all") need `flex: 1` here instead of
+  // leaving this wrapper unsized — MartListingCard's own root is `flex: 1`, which only
+  // distributes evenly when its direct parent already has a determinate width to flex
+  // against. Mart Home's own grid renders MartListingCard directly as the row child (no
+  // wrapping View) so this never came up there; wrapping it with no size hint here made
+  // each column's width fall back to being driven by its own content (effectively the
+  // photo), which is exactly the "cards aren't the same size" bug Vikum found.
   const renderAdCard = (item: any, width?: number) => (
-    <View key={item.id} style={width ? { width } : undefined}>
+    <View key={item.id} style={width ? { width } : { flex: 1 }}>
       <MartListingCard
         title={item.title} coverUrl={item.coverUrl} price={item.price} condition={item.condition}
         districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
