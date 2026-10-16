@@ -4,6 +4,12 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — "DECLINED" fix retested, still showed "FULFILLED" for the requester
+
+Same directional bug class hit twice already today, a third time: the chat thread's pinned header used `deal.iAmPartner` to decide whether to show "NEED TO CONFIRM"/"DECLINED", but `iAmPartner` is only true for whoever `dealPartnerPhone` equals — the chosen seller, never the requester (the Wanted ad's owner). The requester viewing their own deal thread is `isListingOwner`, not `iAmPartner`, so the condition never matched for them and it fell through to the plain "FULFILLED" label. Fixed by exposing the already-computed `isDealThread` (`dealPartnerPhone === me || dealPartnerPhone === thread.otherPhone` — already used earlier the same day for the deal-thread-stays-sendable logic) on the `deal` object instead, which is correct from either side.
+
+---
+
 ## 2026-10-16 — two more real bugs found testing the decline notification fix
 
 1. **Detail's own owner bottom bar never checked listing status at all.** It always showed Edit + Mark Sold/Fulfilled to the owner, even on an already-closed (sold/fulfilled, including declined) ad — only `MyAdsScreen`'s own Sold/Fulfilled tab had status-aware buttons; `DetailScreen`'s bottom bar had no equivalent check and had been like this since Mark Sold first shipped (Step 2.4). Fixed: when `detail.isOwner` and `status` is sold/fulfilled, shows Relist + Delete instead.

@@ -296,7 +296,7 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
   // backend correctly 404'd it every time (not actually the rater), because the modal's
   // error handling only specifically recognized ALREADY_RATED and failed open for
   // anything else. Both fixed together.
-  let deal: { state: string; iAmPartner: boolean; outside: boolean; canRate: boolean } | null = null
+  let deal: { state: string; iAmPartner: boolean; isDealThread: boolean; outside: boolean; canRate: boolean } | null = null
   let dealBanner: 'confirm_sale' | 'rate' | null = null
   if (thread.listing.dealState) {
     const iAmPartner = thread.listing.dealPartnerPhone === me
@@ -311,7 +311,7 @@ router.get('/:threadId', async (req: AuthRequest, res) => {
         ])
         canRateFlag = !alreadyRated && messagedEnough
       }
-      deal = { state: thread.listing.dealState, iAmPartner, outside: thread.listing.dealOutside, canRate: canRateFlag }
+      deal = { state: thread.listing.dealState, iAmPartner, isDealThread, outside: thread.listing.dealOutside, canRate: canRateFlag }
       if (iAmPartner && thread.listing.dealState === 'pending') dealBanner = 'confirm_sale'
       else if (canRateFlag) dealBanner = 'rate'
     }

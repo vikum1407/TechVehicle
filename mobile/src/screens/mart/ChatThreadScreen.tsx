@@ -254,17 +254,19 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
                   it — dealState stays 'pending' separately until the other side actually
                   confirms (and can even decline). Showing "SOLD" here while a confirm
                   action still sits right below it read as contradictory (Vikum's
-                  feedback, 2026-10-16) — so only the deal thread itself (iAmPartner, both
-                  directions) shows "NEED TO CONFIRM" while pending. A decline leaves
-                  `status` sitting at sold/fulfilled forever (until Relist) even though
-                  nothing was actually sold — found via a follow-up bug report: the header
-                  kept saying "FULFILLED" right next to "Seller said they didn't sell
-                  this," which is just as contradictory as the pending case was. So the
-                  deal thread also shows "DECLINED" once dealState is 'declined'; every
-                  other (non-deal) thread on the same ad still just says "SOLD". */}
-              {threadData?.listing?.deal?.iAmPartner && threadData?.listing?.deal?.state === 'pending'
+                  feedback, 2026-10-16) — so only the deal thread itself shows "NEED TO
+                  CONFIRM" while pending, "DECLINED" once declined (same contradiction,
+                  found via a follow-up bug report — `status` stays sold/fulfilled forever
+                  after a decline too, until Relist); every other (non-deal) thread on the
+                  same ad still just says "SOLD". Uses `isDealThread`, not `iAmPartner` —
+                  `iAmPartner` is only true for the chosen seller/buyer specifically, which
+                  misses the listing OWNER's own view of this same thread on a Wanted ad
+                  (the requester is isListingOwner, never iAmPartner, since dealPartnerPhone
+                  there is the seller they picked, not themselves) — same directional bug
+                  already hit once today in the inbox's own equivalent check. */}
+              {threadData?.listing?.deal?.isDealThread && threadData?.listing?.deal?.state === 'pending'
                 ? 'NEED TO CONFIRM'
-                : threadData?.listing?.deal?.iAmPartner && threadData?.listing?.deal?.state === 'declined'
+                : threadData?.listing?.deal?.isDealThread && threadData?.listing?.deal?.state === 'declined'
                 ? 'DECLINED'
                 : (rawStatus === 'fulfilled' ? 'FULFILLED' : 'SOLD')}
             </Text>
