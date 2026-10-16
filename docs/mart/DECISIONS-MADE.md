@@ -4,6 +4,12 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — Milestone 3 Step 3.3: Rules re-ask test (verification only, no feature built)
+
+`requireRules` already compared `user.martRulesVersion !== MART_RULES_VERSION` (not just presence of acceptance) since it was first built across Steps 1.2/1.8/2.2 — this step's own "done when" is purely proving that mechanism actually re-prompts, not building anything new. Temporarily bumped `MART_RULES_VERSION` 1→2 in both the backend (`data/martRules.ts`) and mobile (`constants/martRules.ts`, the documented "duplicate, keep in sync" copy — both must move together since the mobile accept call sends its own local constant's value, not a value read from the backend). Confirmed on-device with an account that had already accepted v1: posting/messaging/offering correctly re-triggered the gate, re-accepting worked, and the original action completed normally afterward. Reverted back to version 1 immediately after confirming — the rules text itself isn't actually changing, this was only testing the version-comparison mechanism.
+
+---
+
 ## 2026-10-16 — real gap: no feedback re-blocking someone already blocked
 
 Vikum found that tapping "Block user" again on an already-blocked profile did nothing visible — `POST /mart/blocks` is an upsert, so it silently succeeded again with no indication anything changed. Seller Profile is the one place a blocked person's profile stays reachable at all (deliberately, per Step 2.7's `iBlockedThem` design, specifically so there's a way back to unblock someone) — so rather than just adding an "already blocked" message, the "..." menu now reflects the real state: it offers **"Unblock user"** instead of "Block user" once `iBlockedThem` is true, calling the existing unblock endpoint directly (no sheet — the consequences sheet is specifically about the decision to block, not relevant to undoing it). Detail and Chat thread don't need the same fix: once you've blocked someone, their listings 404 for you (symmetric `blockedSet` filtering) and chat threads vanish from both inboxes, so neither screen stays reachable for an already-blocked person the way the profile does.
