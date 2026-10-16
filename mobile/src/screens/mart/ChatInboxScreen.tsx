@@ -86,7 +86,8 @@ export default function ChatInboxScreen({ token, onBack, onOpenThread }: {
           ItemSeparatorComponent={() => <View style={styles.divider} />}
           renderItem={({ item }) => {
             const closed = item.listing.status !== 'active'
-            const closedLabel = item.listing.status === 'removed' ? 'Listing removed' : 'Sold'
+            const needsConfirm = closed && item.listing.dealPending
+            const closedLabel = item.listing.status === 'removed' ? 'Listing removed' : needsConfirm ? 'Need to confirm' : 'Sold'
             return (
               <TouchableOpacity style={styles.row} onPress={() => onOpenThread(item.id)}>
                 {item.listing.thumbUrl ? (
@@ -104,7 +105,7 @@ export default function ChatInboxScreen({ token, onBack, onOpenThread }: {
                   <Text style={styles.otherName} numberOfLines={1}>{item.other.name}</Text>
                   {closed ? (
                     <View style={styles.previewRow}>
-                      <MartTag label={item.listing.status === 'removed' ? 'Removed' : 'Sold'} variant="gray" />
+                      <MartTag label={item.listing.status === 'removed' ? 'Removed' : needsConfirm ? 'Need to confirm' : 'Sold'} variant="gray" />
                       <Text style={styles.previewGray} numberOfLines={1}> {closedLabel} · 7 days left to view</Text>
                     </View>
                   ) : (

@@ -59,7 +59,7 @@ type MartStackEntry =
 // (explicitly kept visible per §0.2's own list), not a full-screen detail flow.
 const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled, resetSignal }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
@@ -71,6 +71,7 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   onMyAdsFocusHandled?: () => void
   focusSellerId?: string | null
   onSellerFocusHandled?: () => void
+  resetSignal?: number
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -83,6 +84,16 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   useEffect(() => {
     onFullScreenChange?.(FULL_SCREEN.includes(current.screen))
   }, [current.screen])
+
+  // 2026-10-16, Vikum's request: re-tapping the Mart tab while already inside Mart jumps
+  // straight back to Mart Home, same pattern as most tab-based apps (e.g. Instagram) —
+  // there was previously no quick way back from several screens deep. `resetSignal` is a
+  // counter App.tsx increments on every such re-tap; skip the no-op reset on first mount
+  // (0) and whenever already at Home, to avoid an unnecessary extra render.
+  useEffect(() => {
+    if (!resetSignal) return
+    setStack(prev => (prev.length === 1 && prev[0].screen === 'home' ? prev : [{ screen: 'home' }]))
+  }, [resetSignal])
 
   // Step 1.9: a mart_message push notification tap, routed in from App.tsx (same
   // focusBookingId-style prop + "handled" callback pattern already used for Garage/

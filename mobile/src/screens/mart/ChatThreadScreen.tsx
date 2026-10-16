@@ -249,7 +249,18 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
           {removed ? (
             <Text style={styles.pinnedClosedText}>LISTING REMOVED</Text>
           ) : rawStatus === 'sold' || rawStatus === 'fulfilled' ? (
-            <Text style={styles.pinnedClosedText}>SOLD</Text>
+            <Text style={styles.pinnedClosedText}>
+              {/* The listing itself flips to sold/fulfilled the instant the seller marks
+                  it — dealState stays 'pending' separately until the other side actually
+                  confirms (and can even decline). Showing "SOLD" here while a confirm
+                  action still sits right below it read as contradictory (Vikum's
+                  feedback, 2026-10-16) — so only the deal thread itself (iAmPartner, both
+                  directions) shows "NEED TO CONFIRM" while pending; every other thread on
+                  the same ad (which has nothing left to confirm) still just says "SOLD". */}
+              {threadData?.listing?.deal?.iAmPartner && threadData?.listing?.deal?.state === 'pending'
+                ? 'NEED TO CONFIRM'
+                : (rawStatus === 'fulfilled' ? 'FULFILLED' : 'SOLD')}
+            </Text>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.pinnedPrice}>{price !== null ? formatLKR(price) : ''}</Text>

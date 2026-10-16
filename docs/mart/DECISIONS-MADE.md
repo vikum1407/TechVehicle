@@ -4,6 +4,13 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — two UX fixes, discussed before building per Vikum's request
+
+1. **"SOLD" shown next to a still-pending confirm action read as contradictory.** The listing's `status` flips to sold/fulfilled the instant the seller marks it, but `dealState` stays `'pending'` separately until the other side actually confirms (and can decline). Both the chat thread's pinned header and the Messages inbox list showed a flat "Sold" the whole time, including right next to (or right after getting a push for) a pending "Confirm sale" action. Fixed in both places: shows "Need to confirm"/"NEED TO CONFIRM" while `dealState === 'pending'` for the specific deal thread (`dealPartnerPhone === otherPhone`, i.e. `iAmPartner`), switching to "Sold"/"Fulfilled" once actually confirmed. Every other (non-winning) thread on the same ad still just says "Sold" — nothing to confirm there. The inbox list needed a new `dealPending` field added to `GET /mart/threads`'s response (computed the same way), since it didn't carry deal state at all before.
+2. **No quick way back to Mart Home from deep inside Mart.** Re-tapping the "Mart" bottom-tab icon while already inside Mart now resets its internal navigation stack back to Home — same pattern most tab apps use (e.g. Instagram: tapping your current tab again returns to its root). Implemented with the same "signal prop" pattern `MartNavigator` already uses for notification deep-links (`focusListingId` etc.) — App.tsx increments a counter on a Mart-tab re-tap, `MartNavigator` resets its stack when that counter changes.
+
+---
+
 ## 2026-10-16 — real bug: photo picker broken on-device, "Uri lacks 'file' scheme"
 
 Vikum reported Post Ad's photo picker opening fine, letting him select a photo, then showing nothing — no thumbnail, no spinner, no error. Diagnostic logging (temporary, added then removed) showed the native call itself rejecting: `java.lang.IllegalArgumentException: Uri lacks 'file' scheme: content://media/external/file/48293`. A device reboot didn't fix it, and the identical bug reproduced in the Offer sheet's photo picker too — both use byte-identical `ImagePicker.launchImageLibraryAsync()` calls that had worked fine on this same device (Samsung J5) just days earlier.

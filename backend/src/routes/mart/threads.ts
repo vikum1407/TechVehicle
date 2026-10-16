@@ -202,6 +202,11 @@ router.get('/', async (req: AuthRequest, res) => {
     const myReadAt = r.ownerPhone === me ? r.ownerReadAt : r.otherReadAt
     const unread = r.lastMessageSenderPhone !== me && (!myReadAt || r.lastMessageAt > myReadAt)
     const removed = !!r.listing.removedAt
+    // 2026-10-16, Vikum's feedback: the inbox showed "Sold" for the winning thread even
+    // while still waiting on the other side's confirmation (dealState 'pending'), which
+    // read as contradictory right after he'd gotten a "confirm sale" push for that exact
+    // thread — same fix as the chat thread's own pinned header, applied here too.
+    const dealPending = r.listing.dealState === 'pending' && r.listing.dealPartnerPhone === otherPhone
     return {
       id: r.id,
       listing: {
@@ -209,6 +214,7 @@ router.get('/', async (req: AuthRequest, res) => {
         title: removed ? r.listingTitle : r.listing.title,
         thumbUrl: removed ? r.listingThumbUrl : (r.listing.photoUrls[0] || null),
         status: listingSnapshotStatus(r.listing),
+        dealPending,
       },
       other: otherInfoMap.get(otherPhone) || { id: '', name: publicName(null, 'casual'), photoUrl: null, tag: 'casual' as const },
       lastMessagePreview: r.lastMessagePreview, lastMessageAt: r.lastMessageAt.toISOString(),

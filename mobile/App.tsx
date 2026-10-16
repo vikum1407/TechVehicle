@@ -110,6 +110,7 @@ export default function App() {
   const [focusMartListingId, setFocusMartListingId] = useState<string | null>(null) // Step 2.3: a martWanted notification tap deep-links here
   const [focusMartMyAdsTab, setFocusMartMyAdsTab] = useState<'available' | 'reserved' | 'sold' | null>(null) // Step 2.4: a martMyAds notification tap deep-links here
   const [focusMartSellerId, setFocusMartSellerId] = useState<string | null>(null) // 2026-10-15: a martSellerProfile (new follower) notification tap deep-links here
+  const [martResetSignal, setMartResetSignal] = useState(0) // 2026-10-16: re-tapping the Mart tab while already in Mart resets its stack to Mart Home (Vikum's request — no quick way back from several screens deep)
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -509,13 +510,17 @@ export default function App() {
                 onMyAdsFocusHandled={() => setFocusMartMyAdsTab(null)}
                 focusSellerId={focusMartSellerId}
                 onSellerFocusHandled={() => setFocusMartSellerId(null)}
+                resetSignal={martResetSignal}
               />
             )}
           </View>
           {!(screen === 'mart' && martFullScreen) && (
             <BottomTabBar
               activeTab={screen === 'garage' ? 'garage' : screen === 'mart' ? 'mart' : 'vehicles'}
-              onTabPress={(tab) => { setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token) }}
+              onTabPress={(tab) => {
+                if (tab === 'mart' && screen === 'mart') setMartResetSignal(n => n + 1)
+                setGarageEntryFrom('tab'); setGarageReturnTab('profile'); setScreen(tab); loadNotifCount(token)
+              }}
               vehiclesBadge={vehiclesBadge}
               garageBadge={garageBadge}
               showGarageTab={hasGarage || screen === 'garage'}
