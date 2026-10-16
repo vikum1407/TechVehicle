@@ -9,6 +9,9 @@ import { normalizePhone } from '../../utils/phone'
 import { MART_LIMITS, MART_RATE_LIMITS } from '../../data/martLimits'
 import { createNotification } from '../../utils/appNotifications'
 import { sendPush } from '../../utils/push'
+import { getSellerTags } from '../../utils/sellerInfo'
+import { getShopProfiles } from '../../utils/shopIdentity'
+import { publicName } from '../../utils/publicName'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -143,5 +146,86 @@ async function notifyTargetIfThreshold(targetType: string, targetId: string, tar
   const user = await prisma.user.findUnique({ where: { phoneNumber: targetPhone }, select: { pushToken: true } })
   await sendPush(user?.pushToken, title, body, linkTo)
 }
+
+// Spec: 03-api.md §0 "POST/DELETE /mart/blocks" + 04-screens.md §20.2. Milestone 3
+// Step 3.2. No `requireProfile`/`requireRules` — same lighter gate as `POST /mart/
+// follows` (social.ts), which this mirrors closely; the spec's own endpoint-index
+// table doesn't list "rules+profile" for either, unlike e.g. `POST /mart/listings`.
+// The actual enforcement this unlocks (hidden listings/threads/profiles, blocked
+// message-send) was already built "ahead of time" back in Step 0.6 — `blockedSet()`
+// has been called from every feed/thread/profile query since day one, per its own
+// original comment. This step only adds the write side: nothing populated
+// `MartBlock` until now.
+router.post('/blocks', async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const { sellerId } = (req.body || {}) as { sellerId?: string }
+  if (!sellerId || typeof sellerId !== 'string') { res.status(400).json({ error: 'Invalid user', code: 'VALIDATION' }); return }
+
+  const limit = checkRateLimit('mart-social', me, MART_RATE_LIMITS.FOLLOW_BLOCK.max, MART_RATE_LIMITS.FOLLOW_BLOCK.windowMs)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many tries. Please wait a few minutes.' }); return }
+
+  const target = await prisma.user.findUnique({ where: { id: sellerId }, select: { phoneNumber: true } })
+  if (!target) { res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' }); return }
+  if (target.phoneNumber === me) { res.status(400).json({ error: "You can't block yourself", code: 'VALIDATION' }); return }
+
+  await prisma.martBlock.upsert({
+    where: { blockerPhone_blockedPhone: { blockerPhone: me, blockedPhone: target.phoneNumber } },
+    create: { blockerPhone: me, blockedPhone: target.phoneNumber },
+    update: {},
+  })
+  // "On block: delete MartFollow rows both directions" (04-screens.md §20.2).
+  await prisma.martFollow.deleteMany({
+    where: {
+      OR: [
+        { followerPhone: me, sellerPhone: target.phoneNumber },
+        { followerPhone: target.phoneNumber, sellerPhone: me },
+      ],
+    },
+  })
+
+  res.json({ ok: true })
+})
+
+router.delete('/blocks/:sellerId', async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const target = await prisma.user.findUnique({ where: { id: req.params.sellerId as string }, select: { phoneNumber: true } })
+  if (target) {
+    await prisma.martBlock.deleteMany({ where: { blockerPhone: me, blockedPhone: target.phoneNumber } })
+  }
+  res.json({ ok: true })
+})
+
+// No pagination per the spec's own response shape (`{ items: [...] }`, no `nextCursor`)
+// — a blocked list is expected to stay short in practice.
+router.get('/blocks', async (req: AuthRequest, res) => {
+  const me = req.phoneNumber!
+  const rows = await prisma.martBlock.findMany({ where: { blockerPhone: me }, orderBy: { createdAt: 'desc' } })
+  if (rows.length === 0) { res.json({ items: [] }); return }
+
+  const phones = rows.map(r => r.blockedPhone)
+  const [users, tagMap, shopMap] = await Promise.all([
+    prisma.user.findMany({ where: { phoneNumber: { in: phones } }, select: { id: true, phoneNumber: true, displayName: true, profilePhotoUrl: true } }),
+    getSellerTags(prisma, phones),
+    getShopProfiles(prisma, phones),
+  ])
+  const userByPhone = new Map(users.map(u => [u.phoneNumber, u]))
+
+  const items = rows.map(r => {
+    const user = userByPhone.get(r.blockedPhone)
+    const tag = tagMap.get(r.blockedPhone) || 'casual'
+    const shop = shopMap.get(r.blockedPhone)
+    return {
+      seller: {
+        id: user?.id || '',
+        name: shop?.name || publicName(user?.displayName, tag),
+        photoUrl: shop?.logoUrl || user?.profilePhotoUrl || null,
+        tag,
+      },
+      blockedAt: r.createdAt.toISOString(),
+    }
+  })
+
+  res.json({ items })
+})
 
 export default router

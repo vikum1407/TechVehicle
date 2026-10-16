@@ -24,7 +24,7 @@ import MartRulesScreen from './MartRulesScreen'
 // explicit second entry point into MartRulesScreen, alongside the first-action gate —
 // it was never wired in when My Mart itself was built, so there was no way to review
 // the rules again after accepting them once.
-export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings, onOpenFollowers }: {
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings, onOpenFollowers, onOpenBlockedUsers }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
@@ -32,6 +32,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
   onOpenShopProfile: () => void
   onOpenFollowings: () => void
   onOpenFollowers: () => void
+  onOpenBlockedUsers: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -154,6 +155,22 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowLabel}>Customer Service</Text>
                   <Text style={styles.rowSub}>Chat with us on WhatsApp</Text>
+                </View>
+                <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : null}
+
+        {me.counts.blocked > 0 ? (
+          <>
+            <Text style={styles.groupLabel}>PRIVACY</Text>
+            <View style={styles.groupCard}>
+              <TouchableOpacity style={styles.row} onPress={onOpenBlockedUsers}>
+                <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'person-remove-outline' }} size={18} color={colors.primary} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>Blocked users</Text>
+                  <Text style={styles.rowSub}>{me.counts.blocked} blocked</Text>
                 </View>
                 <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
               </TouchableOpacity>

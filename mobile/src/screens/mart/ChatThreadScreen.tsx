@@ -14,6 +14,7 @@ import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
 import RateSellerModal from './RateSellerModal'
 import MartReportSheet from './MartReportSheet'
+import MartBlockSheet from './MartBlockSheet'
 
 const MESSAGE_MAX = 1000
 const CLOSED_VISIBLE_DAYS = 7
@@ -53,6 +54,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   const [dealResponding, setDealResponding] = useState(false)
   const [rateModalOpen, setRateModalOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState<{ type: 'user' | 'listing' | 'wanted'; id: string } | null>(null)
+  const [blockOpen, setBlockOpen] = useState(false)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -159,6 +161,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
     Alert.alert('', undefined, [
       { text: 'Report User', onPress: () => setTimeout(() => setReportTarget({ type: 'user', id: otherId! }), 400) },
       { text: 'Report Ad', onPress: () => setTimeout(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }), 400) },
+      { text: 'Block User', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
       { text: 'Delete Conversation', style: 'destructive', onPress: confirmDelete },
       { text: 'Cancel', style: 'cancel' },
     ])
@@ -443,6 +446,18 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
         targetId={reportTarget.id}
         onClose={() => setReportTarget(null)}
         onDone={() => setReportTarget(null)}
+        onBlock={() => { setReportTarget(null); setBlockOpen(true) }}
+      />
+    ) : null}
+
+    {otherId ? (
+      <MartBlockSheet
+        visible={blockOpen}
+        token={token}
+        sellerId={otherId}
+        sellerName={otherName}
+        onClose={() => setBlockOpen(false)}
+        onDone={() => { setBlockOpen(false); onBack() }}
       />
     ) : null}
     </>

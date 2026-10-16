@@ -14,6 +14,7 @@ import MartListingCard from '../../components/mart/MartListingCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import ReviewsModal, { ReviewSummary, ReviewItem } from '../../components/mart/ReviewsModal'
 import MartReportSheet from './MartReportSheet'
+import MartBlockSheet from './MartBlockSheet'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
 import { openPhone, openWhatsApp, timeAgo, memberSinceLabel } from '../../utils/martHelpers'
@@ -64,6 +65,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const [casualPreviewReviews, setCasualPreviewReviews] = useState<ReviewRow[] | null>(null)
   const [reviewsSheetOpen, setReviewsSheetOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [blockOpen, setBlockOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setNotFound(false)
@@ -165,7 +167,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     if (!data) return
     Alert.alert(data.seller.name, undefined, [
       { text: 'Share profile', onPress: shareProfile },
-      { text: 'Block user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Blocking is still being built.', [{ text: 'OK' }]), 400) },
+      { text: 'Block user', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
       { text: 'Report user', onPress: () => setTimeout(() => setReportOpen(true), 400) },
       { text: 'Cancel', style: 'cancel' },
     ], { cancelable: true })
@@ -455,6 +457,17 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
         targetId={sellerId}
         onClose={() => setReportOpen(false)}
         onDone={() => setReportOpen(false)}
+        onBlock={() => { setReportOpen(false); setBlockOpen(true) }}
+      />
+
+      <MartBlockSheet
+        visible={blockOpen}
+        token={token}
+        sellerId={sellerId}
+        sellerName={seller.name}
+        sellerSubtitle={[districtLabel, isShop ? 'Shop' : 'Casual seller'].filter(Boolean).join(' · ')}
+        onClose={() => setBlockOpen(false)}
+        onDone={() => { setBlockOpen(false); load() }}
       />
     </View>
   )

@@ -393,6 +393,26 @@ export const api = {
     return data
   },
 
+  // Spec: 03-api.md §0 "POST/DELETE/GET /mart/blocks", 04-screens.md §20.2/20.3.
+  postMartBlock: async (token: string, sellerId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/blocks`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify({ sellerId }) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't block this user")
+    return data
+  },
+  deleteMartBlock: async (token: string, sellerId: string): Promise<{ ok: true }> => {
+    const res = await fetch(`${API_URL}/mart/blocks/${sellerId}`, { method: 'DELETE', headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't unblock this user")
+    return data
+  },
+  getMartBlocks: async (token: string): Promise<{ items: any[] }> => {
+    const res = await fetch(`${API_URL}/mart/blocks`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't load blocked users")
+    return data
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

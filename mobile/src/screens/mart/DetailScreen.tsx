@@ -22,6 +22,7 @@ import { ChatThreadEntry } from './ChatThreadScreen'
 import OfferSheet from './OfferSheet'
 import WhoBoughtItSheet from './WhoBoughtItSheet'
 import MartReportSheet from './MartReportSheet'
+import MartBlockSheet from './MartBlockSheet'
 
 const W = Dimensions.get('window').width
 
@@ -65,6 +66,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const [whoBoughtItOpen, setWhoBoughtItOpen] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [blockOpen, setBlockOpen] = useState(false)
 
   const load = async () => {
     setLoading(true); setNetworkError(false); setNotFound(false)
@@ -215,6 +217,11 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           {!detail.isOwner && (
             <TouchableOpacity onPress={() => setReportOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <AppIcon icon={{ lib: 'ion', name: 'flag-outline' }} size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+          {!detail.isOwner && (
+            <TouchableOpacity onPress={() => setBlockOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <AppIcon icon={{ lib: 'ion', name: 'person-remove-outline' }} size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -467,6 +474,17 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         targetId={detail.id}
         onClose={() => setReportOpen(false)}
         onDone={() => setReportOpen(false)}
+        onBlock={() => { setReportOpen(false); setBlockOpen(true) }}
+      />
+
+      <MartBlockSheet
+        visible={blockOpen}
+        token={token}
+        sellerId={detail.seller.id}
+        sellerName={detail.seller.name}
+        sellerSubtitle={[districtLabel, detail.seller.tag === 'shop' ? 'Shop' : 'Casual seller'].filter(Boolean).join(' · ')}
+        onClose={() => setBlockOpen(false)}
+        onDone={() => { setBlockOpen(false); load() }}
       />
     </View>
   )

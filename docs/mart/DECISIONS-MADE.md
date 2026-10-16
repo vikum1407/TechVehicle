@@ -4,6 +4,18 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — Milestone 3 Step 3.2: Block
+
+- **The enforcement side was already fully built back in Step 0.6** — `blockedSet()` has been called from every feed/thread/profile/message-send query since day one (per its own original comment, and confirmed by grep: already used in 5+ places in `threads.ts` alone, including the exact `POST /:threadId/messages` 403 the spec describes). This step only adds the WRITE side: nothing ever populated `MartBlock` until now, so none of that existing enforcement had anything to act on. `follows` already rejected a blocked pair too (`POST /mart/follows`, Step 2.7), confirming this was genuinely designed and built ahead of time throughout, not a gap.
+- **`POST/DELETE/GET /mart/blocks` added to the same `safety.ts`** as Report (no new file) — mirrors `POST /mart/follows`'s own lighter gate (no `requireProfile`/`requireRules`), and reuses `FOLLOW_BLOCK` from `MART_RATE_LIMITS` (already named for both together since Step 0.6/0.7).
+- **`GET /mart/blocks` has no cursor/pagination**, matching the spec's own response shape (`{ items: [...] }`, no `nextCursor`) — a blocked list is expected to stay short in practice.
+- **Detail's "..." menu doesn't exist as a combined menu** (Share/Favorite/Report are each their own direct header icon, an established pattern on this screen predating this step) — rather than restructure the just-shipped, just-tested Report icon into a combined overflow menu, Block was added as a 4th standalone icon (`person-remove-outline`) next to it, lower risk, same interaction pattern already on the screen.
+- **`MartBlockSheet`'s `sellerSubtitle` is caller-formatted, not computed inside the sheet** — each of the three callers (Seller Profile, Detail, Chat thread) has seller context in a different shape (full `Seller` object vs. just `{id,name,photoUrl,tag}` from a thread's `other`), so the sheet takes one pre-formatted optional string instead of assuming a specific data shape.
+- **After blocking from Chat thread, the screen navigates back** (`onBack()`) rather than trying to reload the now-blocked thread — the blocked pair's thread becomes invisible to both inboxes per spec, so there's nothing useful left to show there.
+- **The "Also block" button on `MartReportSheet`'s success screen is wired for real now** in all three callers (Detail, Seller Profile, Chat thread) — it was built but deliberately left hidden in Step 3.1 since Block didn't exist yet; now it opens the real `MartBlockSheet`.
+
+---
+
 ## 2026-10-16 — Report threshold notice (Vikum's request, scoped via explicit questions before building)
 
 After testing Step 3.1, Vikum asked for the reported seller/user to be informed once a target has built up multiple reports, rather than only admins knowing. Scoped with him directly (his answers in parens) before writing code: exactly **3** (not just an example), counted by **distinct reporters** (not raw report rows — one person re-reporting after the 24h dedup window shouldn't alone trigger this), and the notification text is **generic** — no reasons, no reporter count, no names, just a reminder to review the Mart rules, so it can't be used to infer exactly what's being watched or by whom.

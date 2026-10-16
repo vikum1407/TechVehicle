@@ -15,6 +15,7 @@ import SellerProfileScreen from './mart/SellerProfileScreen'
 import FollowingsScreen from './mart/FollowingsScreen'
 import FollowersScreen from './mart/FollowersScreen'
 import NotificationCenterScreen from './mart/NotificationCenterScreen'
+import BlockedUsersScreen from './mart/BlockedUsersScreen'
 
 // Step 0.11 — Mart's OWN internal navigation, deliberately separate from App.tsx's
 // global `Screen`/`backMap` system rather than adding 15+ entries there. App.tsx only
@@ -54,6 +55,7 @@ type MartStackEntry =
   | { screen: 'followings' }
   | { screen: 'followers' }
   | { screen: 'notifications' }
+  | { screen: 'blockedUsers' }
 
 // Screens where the spec (04-screens.md §0.2) hides the bottom tab bar. App.tsx can't
 // see inside this component's own stack, so it's told via `onFullScreenChange`.
@@ -232,6 +234,16 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenShopProfile={() => push({ screen: 'shopProfile' })}
         onOpenFollowings={() => push({ screen: 'followings' })}
         onOpenFollowers={() => push({ screen: 'followers' })}
+        onOpenBlockedUsers={() => push({ screen: 'blockedUsers' })}
+      />
+    )
+  }
+
+  if (current.screen === 'blockedUsers') {
+    return (
+      <BlockedUsersScreen
+        token={token}
+        onBack={pop}
       />
     )
   }
