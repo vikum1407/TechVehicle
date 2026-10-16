@@ -9,6 +9,7 @@ import shopProfileRoutes from './shopProfile'
 import sellersRoutes from './sellers'
 import socialRoutes from './social'
 import notificationsRoutes from './notifications'
+import safetyRoutes from './safety'
 
 // Mounted in src/index.ts as: app.use('/mart', authMiddleware, martGate, martRouter)
 // — every /mart route already has req.phoneNumber set and has passed the beta gate
@@ -27,5 +28,9 @@ martRouter.use('/shop-profile', shopProfileRoutes)
 martRouter.use('/sellers', sellersRoutes)
 martRouter.use('/follows', socialRoutes)
 martRouter.use('/notifications', notificationsRoutes)
+// Mounted at the root (not a sub-prefix like the other area routers above) because
+// safety.ts owns two independent top-level paths under /mart — /reports (this step)
+// and /blocks (Step 3.2) — each already includes its own full path internally.
+martRouter.use('/', safetyRoutes)
 
 export default martRouter

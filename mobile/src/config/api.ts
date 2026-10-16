@@ -383,6 +383,16 @@ export const api = {
     return data
   },
 
+  // Spec: 03-api.md "POST /mart/reports", 04-screens.md §20.1. `targetType` is always
+  // 'listing'|'user'|'message' on the wire — the Report sheet's own 'wanted' variant is
+  // UI copy only (a Wanted ad is still a MartListing row), never a 4th API value.
+  postMartReport: async (token: string, body: { targetType: 'listing' | 'user' | 'message'; targetId: string; reason: string; note?: string }): Promise<{ ok: true; code?: string }> => {
+    const res = await fetch(`${API_URL}/mart/reports`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (!res.ok) throw apiFail(data, "Couldn't send report")
+    return data
+  },
+
   sendOTP: async (phoneNumber: string) => {
     const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: 'POST',

@@ -4,6 +4,17 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — Milestone 3 Step 3.1: Report (first step of Milestone 3 — Milestone 2 is fully closed out)
+
+- **`ADMIN_PHONES` fails CLOSED, unlike `MART_BETA_PHONES`'s fail-open default.** New `adminGate` middleware (mirrors `martGate`'s shape) treats empty/unset `ADMIN_PHONES` as "nobody is admin" — the opposite default from the beta gate, since this guards genuinely sensitive data (report contents, reporter identities), not just an unshipped feature. 404 (not 403) on rejection, same reasoning as the beta gate: don't reveal the surface exists.
+- **New top-level `/admin` mount** (`backend/src/routes/martAdmin.ts`, `app.use('/admin', authMiddleware, adminGate, martAdminRouter)`), separate from `/mart` entirely — `GET /admin/reports`, `POST /admin/reports/:id/reviewed`, `POST /admin/mart/listings/:id/remove`. No mobile admin screen built (not in this step's own Mobile column of the build plan) — these are backend-only for Vikum to use directly for now, per the spec's own "Admin actions on accounts are manual... in Phase 1."
+- **`safety.ts` is mounted at `/mart`'s root** (`martRouter.use('/', safetyRoutes)`), not a sub-prefix like every other area router — it's the one file in 03-api.md §0's own file list that owns two independent top-level paths (`/mart/reports` now, `/mart/blocks` once Step 3.2 adds it to the same file).
+- **`targetType: 'wanted'` is UI-only**, never sent to the API — `MartReportSheet`'s prop accepts it (04-screens.md §20.1's own component signature lists it) purely to pick the right sheet title ("Report this request"), but the wire body always sends `'listing'` for both selling and wanted ads, matching 03-api.md's literal 3-value `targetType` union (the data model has no separate "wanted report" concept — both are `MartListing` rows).
+- **Chat thread header's single "Report" stub became two real menu items**, "Report User" and "Report Ad" — 04-screens.md §20.1 names the chat header as reporting "the user or the ad" (two targets from one entry point), not a single generic report.
+- **The "Also block" button on the success screen is entirely omitted (not shown disabled/stubbed) wherever Block doesn't exist yet** — `MartReportSheet`'s `onBlock` prop is optional and no current caller passes it (Step 3.2 isn't built). Matches the spec's own "Not shown for own content" precedent of the button being conditionally absent, not a dead stub.
+
+---
+
 ## 2026-10-16 — Milestone 2 Step 2.9: Notification center
 
 - **New `backend/src/routes/mart/notifications.ts`**, a thin Mart-only view over the existing shared `AppNotification` table (same table every mart_* type across Steps 1.9–2.8 already writes to) — filtered to `type startsWith 'mart_'`, matching 02-data-model.md §7.2 exactly. No new table, no new write path.

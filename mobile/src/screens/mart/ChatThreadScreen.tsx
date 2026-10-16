@@ -13,6 +13,7 @@ import { formatLKR } from '../../utils/martHelpers'
 import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
 import RateSellerModal from './RateSellerModal'
+import MartReportSheet from './MartReportSheet'
 
 const MESSAGE_MAX = 1000
 const CLOSED_VISIBLE_DAYS = 7
@@ -51,6 +52,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
   const [dealResponding, setDealResponding] = useState(false)
   const [rateModalOpen, setRateModalOpen] = useState(false)
+  const [reportTarget, setReportTarget] = useState<{ type: 'user' | 'listing' | 'wanted'; id: string } | null>(null)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -81,7 +83,6 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
     if (messages.length > 0) setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50)
   }, [messages.length])
 
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
 
   // Spec: 04-screens.md §9.2. "Confirm purchase" normally opens the Rate modal (§9.3) —
   // that's Milestone 2 Step 2.5 (Ratings), not built yet, so this just confirms and
@@ -152,9 +153,13 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   }
 
   const openMenu = () => {
+    // Spec: 04-screens.md §20.1 "Chat thread header... reports the user or the ad" —
+    // two separate report targets reachable from this one entry point, not a single
+    // generic "Report".
     Alert.alert('', undefined, [
+      { text: 'Report User', onPress: () => setTimeout(() => setReportTarget({ type: 'user', id: otherId! }), 400) },
+      { text: 'Report Ad', onPress: () => setTimeout(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }), 400) },
       { text: 'Delete Conversation', style: 'destructive', onPress: confirmDelete },
-      { text: 'Report', onPress: comingSoon },
       { text: 'Cancel', style: 'cancel' },
     ])
   }
@@ -427,6 +432,17 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
         sellerName={otherName}
         onClose={() => setRateModalOpen(false)}
         onDone={() => { setRateModalOpen(false); if (threadId) loadThread(threadId) }}
+      />
+    ) : null}
+
+    {reportTarget ? (
+      <MartReportSheet
+        visible
+        token={token}
+        targetType={reportTarget.type}
+        targetId={reportTarget.id}
+        onClose={() => setReportTarget(null)}
+        onDone={() => setReportTarget(null)}
       />
     ) : null}
     </>

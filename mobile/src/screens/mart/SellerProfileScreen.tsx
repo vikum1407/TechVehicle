@@ -13,6 +13,7 @@ import RatingBadge from '../../components/mart/RatingBadge'
 import MartListingCard from '../../components/mart/MartListingCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import ReviewsModal, { ReviewSummary, ReviewItem } from '../../components/mart/ReviewsModal'
+import MartReportSheet from './MartReportSheet'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
 import { openPhone, openWhatsApp, timeAgo, memberSinceLabel } from '../../utils/martHelpers'
@@ -62,6 +63,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [casualPreviewReviews, setCasualPreviewReviews] = useState<ReviewRow[] | null>(null)
   const [reviewsSheetOpen, setReviewsSheetOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setNotFound(false)
@@ -164,7 +166,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     Alert.alert(data.seller.name, undefined, [
       { text: 'Share profile', onPress: shareProfile },
       { text: 'Block user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Blocking is still being built.', [{ text: 'OK' }]), 400) },
-      { text: 'Report user', onPress: () => setTimeout(() => Alert.alert('Coming soon', 'Reporting is still being built.', [{ text: 'OK' }]), 400) },
+      { text: 'Report user', onPress: () => setTimeout(() => setReportOpen(true), 400) },
       { text: 'Cancel', style: 'cancel' },
     ], { cancelable: true })
   }
@@ -444,6 +446,15 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
         items={reviewItemsForModal}
         loading={reviewsLoading}
         onLoadMore={() => { if (reviewsCursor && !reviewsLoading) loadReviews('parts', reviewsCursor, true) }}
+      />
+
+      <MartReportSheet
+        visible={reportOpen}
+        token={token}
+        targetType="user"
+        targetId={sellerId}
+        onClose={() => setReportOpen(false)}
+        onDone={() => setReportOpen(false)}
       />
     </View>
   )

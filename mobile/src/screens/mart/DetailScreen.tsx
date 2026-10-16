@@ -21,6 +21,7 @@ import { MART_CATEGORIES } from '../../constants/martCategories'
 import { ChatThreadEntry } from './ChatThreadScreen'
 import OfferSheet from './OfferSheet'
 import WhoBoughtItSheet from './WhoBoughtItSheet'
+import MartReportSheet from './MartReportSheet'
 
 const W = Dimensions.get('window').width
 
@@ -63,6 +64,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const [offerSheetOpen, setOfferSheetOpen] = useState(false)
   const [whoBoughtItOpen, setWhoBoughtItOpen] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const load = async () => {
     setLoading(true); setNetworkError(false); setNotFound(false)
@@ -211,7 +213,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
             </TouchableOpacity>
           )}
           {!detail.isOwner && (
-            <TouchableOpacity onPress={comingSoon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={() => setReportOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <AppIcon icon={{ lib: 'ion', name: 'flag-outline' }} size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
@@ -457,6 +459,15 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           onDone={() => { setWhoBoughtItOpen(false); load() }}
         />
       ) : null}
+
+      <MartReportSheet
+        visible={reportOpen}
+        token={token}
+        targetType={isWanted ? 'wanted' : 'listing'}
+        targetId={detail.id}
+        onClose={() => setReportOpen(false)}
+        onDone={() => setReportOpen(false)}
+      />
     </View>
   )
 }

@@ -21,6 +21,7 @@ import vehicleKnowledgeRoutes from './routes/vehicleKnowledge'
 import serviceCategoryRoutes from './routes/serviceCategories'
 import vehicleShareRoutes from './routes/vehicleShares'
 import martRouter from './routes/mart'
+import martAdminRouter from './routes/martAdmin'
 import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
@@ -29,6 +30,7 @@ import { getJwtSecret } from './utils/jwtSecret'
 import { globalRateLimit } from './middleware/globalRateLimit'
 import { authMiddleware } from './middleware/auth'
 import { martGate, isMartBetaPhone } from './middleware/martGate'
+import { adminGate } from './middleware/adminGate'
 import jwt from 'jsonwebtoken'
 
 dotenv.config()
@@ -103,6 +105,7 @@ app.use('/vehicle-knowledge', vehicleKnowledgeRoutes)
 app.use('/service-categories', serviceCategoryRoutes)
 app.use('/vehicle-shares', vehicleShareRoutes)
 app.use('/mart', authMiddleware, martGate, martRouter)
+app.use('/admin', authMiddleware, adminGate, martAdminRouter)
 
 app.listen(PORT, () => {
   console.log(`Vocksy backend running on port ${PORT}`)
