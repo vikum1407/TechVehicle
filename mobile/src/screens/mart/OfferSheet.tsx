@@ -81,7 +81,9 @@ export default function OfferSheet({
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
-      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: remainingSlots })
+      // legacy:true — see PostAdScreen.tsx's pickFromLibrary for why (a real on-device
+      // "Uri lacks 'file' scheme" picker regression found 2026-10-16).
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], legacy: true, allowsMultipleSelection: true, selectionLimit: remainingSlots })
       if (result.canceled || result.assets.length === 0) return
       await addAssets(result.assets.map(a => a.uri))
     } finally {

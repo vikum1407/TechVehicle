@@ -4,6 +4,18 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — real bug: photo picker broken on-device, "Uri lacks 'file' scheme"
+
+Vikum reported Post Ad's photo picker opening fine, letting him select a photo, then showing nothing — no thumbnail, no spinner, no error. Diagnostic logging (temporary, added then removed) showed the native call itself rejecting: `java.lang.IllegalArgumentException: Uri lacks 'file' scheme: content://media/external/file/48293`. A device reboot didn't fix it, and the identical bug reproduced in the Offer sheet's photo picker too — both use byte-identical `ImagePicker.launchImageLibraryAsync()` calls that had worked fine on this same device (Samsung J5) just days earlier.
+
+**Root cause: a device/OS-level regression, not an app bug.** `expo-image-picker`'s default (non-`legacy`) Android code path relies on handing off to the system's Photo Picker component and resolving its result to a `file://` URI; something about that resolution broke on this device between sessions — most likely a background Google Play system update to the Photo Picker module itself, since nothing in the app's own code or package versions changed (`npx expo install --check` confirmed everything still matches the installed SDK).
+
+**Fix:** `expo-image-picker` ships exactly this escape hatch — `legacy: true` (Android-only, default `false`), which forces the older, more broadly-compatible picker intent instead. Applied to all three Mart photo pickers (`PostAdScreen.tsx`, `OfferSheet.tsx`, `ShopProfileScreen.tsx`). Confirmed fixed on-device.
+
+**Flagged to Vikum, not yet acted on:** this exact same `launchImageLibraryAsync()` pattern (no `legacy` option) also exists in 5 **existing, shipped production screens** — `AddServiceRecordScreen.tsx`, `AddVehicleScreen.tsx`, `GarageScreen.tsx`, `ProfileScreen.tsx`, `VehicleDashboardScreen.tsx` — none touched here, since those are live production code outside this Mart-dev branch's normal scope and changing them needs his explicit decision, not an assumption. If this is a real OS-level regression (not something unique to this one device), it is very likely breaking photo uploads for real production users on similarly-updated devices right now.
+
+---
+
 ## 2026-10-15 — Follow feature extended: new-follower notification, new-ad notification, Followers dashboard (Vikum's explicit request, discussed before building)
 
 None of this was in the original handoff spec at all — Vikum asked directly "are we notifying the seller someone followed them?" and "is there a dashboard showing followers?" after testing Step 2.8, found both were genuinely missing (not deferred, just never speced), and asked for all three to be built. Scoped with him via explicit questions before writing code, per his "discuss first" request:

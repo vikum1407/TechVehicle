@@ -108,7 +108,9 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to change your logo.'); return }
-      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] })
+      // legacy:true — see PostAdScreen.tsx's pickFromLibrary for why (a real on-device
+      // "Uri lacks 'file' scheme" picker regression found 2026-10-16).
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], legacy: true })
       if (result.canceled || result.assets.length === 0) return
       const compressed = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width: 600 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG })
       await uploadLogo(compressed.uri)

@@ -158,8 +158,17 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
+      // `legacy: true` found 2026-10-16: on at least one real device (Samsung J5), the
+      // default (non-legacy) Android picker started throwing a native
+      // "Uri lacks 'file' scheme" IllegalArgumentException after working fine for weeks
+      // — a device/OS-level regression (this device's system Photo Picker component,
+      // likely updated via a background Google Play system update, stopped handing off
+      // a URI expo-image-picker's modern code path can resolve to file://). `legacy`
+      // forces the older, more broadly-compatible picker intent. Confirmed fixed on
+      // that device; kept since it's zero-risk (Android-only, officially supported
+      // option) and protects against the same regression recurring elsewhere.
       const result = await ImagePicker.launchImageLibraryAsync({
-        quality: 0.7, mediaTypes: ['images'],
+        quality: 0.7, mediaTypes: ['images'], legacy: true,
         allowsMultipleSelection: true, selectionLimit: remainingSlots,
       })
       if (result.canceled || result.assets.length === 0) return
