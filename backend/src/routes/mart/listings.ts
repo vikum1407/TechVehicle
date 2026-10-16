@@ -884,10 +884,14 @@ router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req
     data: { dealState: confirm ? 'confirmed' : 'declined', dealDecidedAt: new Date() },
   })
 
+  const thread = await prisma.martThread.findUnique({ where: { listingId_otherPhone: { listingId: listing.id, otherPhone: me } } })
+  const isSelling = listing.type === 'selling'
+  const partnerInfoMap = await resolveOtherInfo([me])
+  const partnerName = partnerInfoMap.get(me)?.name || publicName(null, 'casual')
+  const ownerUser = await prisma.user.findUnique({ where: { phoneNumber: listing.ownerPhone } })
+
   let canRate = false
   if (confirm) {
-    const thread = await prisma.martThread.findUnique({ where: { listingId_otherPhone: { listingId: listing.id, otherPhone: me } } })
-    const isSelling = listing.type === 'selling'
     if (thread) {
       await prisma.martMessage.create({
         data: { threadId: thread.id, senderPhone: me, kind: 'system', body: 'Purchase confirmed', systemCode: 'deal_confirmed' },
@@ -901,14 +905,35 @@ router.post('/:listingId/deal/confirm', requireProfile, requireRules, async (req
       if (isSelling) canRate = await threadCanRate(prisma, thread.id, listing.ownerPhone, me)
     }
 
-    const partnerInfoMap = await resolveOtherInfo([me])
-    const partnerName = partnerInfoMap.get(me)?.name || publicName(null, 'casual')
     const title = isSelling ? `${partnerName} confirmed the purchase` : `${partnerName} confirmed the sale`
     const linkTo = isSelling ? { screen: 'martMyAds', tab: 'sold' } : { screen: 'martThread', threadId: thread?.id }
     await createNotification(prisma, listing.ownerPhone, 'mart_sale_confirmed', title, listing.title, linkTo)
-    const ownerUser = await prisma.user.findUnique({ where: { phoneNumber: listing.ownerPhone } })
     if (parsePrefs(ownerUser?.notificationPrefs).mart_message) {
       await sendPush(ownerUser?.pushToken, title, listing.title, linkTo)
+    }
+  } else {
+    // 2026-10-16, Vikum's request: "Not me" previously left the seller with zero
+    // indication anything happened — the listing stayed permanently marked sold/
+    // fulfilled with nobody able to buy it until the seller happened to notice and
+    // manually relisted. Now: a system message records it in the chat, and the seller
+    // gets a real notification pointing them at Relist (selling) or back to the thread
+    // (wanted, so they can keep talking with the requester about other options).
+    if (thread) {
+      await prisma.martMessage.create({
+        data: {
+          threadId: thread.id, senderPhone: me, kind: 'system',
+          body: isSelling ? "Buyer said they didn't buy this" : "Seller said they didn't sell this",
+          systemCode: 'deal_declined',
+        },
+      })
+    }
+
+    const title = isSelling ? `${partnerName} said they didn't buy this` : `${partnerName} said they didn't sell this`
+    const body = isSelling ? `Relist "${listing.title}" so other buyers can see it again.` : listing.title
+    const linkTo = isSelling ? { screen: 'martMyAds', tab: 'sold' } : { screen: 'martThread', threadId: thread?.id }
+    await createNotification(prisma, listing.ownerPhone, 'mart_sale_declined', title, body, linkTo)
+    if (parsePrefs(ownerUser?.notificationPrefs).mart_message) {
+      await sendPush(ownerUser?.pushToken, title, body, linkTo)
     }
   }
 

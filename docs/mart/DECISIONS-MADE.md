@@ -4,6 +4,14 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — real gap found via a discussion question: "Not me" told the seller nothing
+
+Vikum asked what happens today when the other side taps "Not me" on the confirm banner. Checked the code: `dealState` becomes `'declined'`, but the listing's `status` never reverts (stays permanently sold/fulfilled), no system message was added to the chat, and no notification was sent to the seller at all — the confirm/decline endpoint only ever notified on the `confirm: true` branch. The seller had no way to find out a deal fell through short of noticing the confirm banner had quietly vanished from that one thread. The only recovery path, Relist, already existed and still works the same (resets `dealPartnerPhone`/`dealState`/`status` and bumps the ad back to the feed) — this was purely a missing-notification gap, not a missing-recovery one.
+
+**Fixed**, mirroring the existing confirm-path pattern exactly (same `mart_message` pref gate, same `linkTo` shape — My Ads' Sold tab for selling so the seller can Relist from there, back to the thread for wanted): a chat system message ("Buyer said they didn't buy this" / "Seller said they didn't sell this") plus a real notification (new type `mart_sale_declined`) to the seller.
+
+---
+
 ## 2026-10-16 — two UX fixes, discussed before building per Vikum's request
 
 1. **"SOLD" shown next to a still-pending confirm action read as contradictory.** The listing's `status` flips to sold/fulfilled the instant the seller marks it, but `dealState` stays `'pending'` separately until the other side actually confirms (and can decline). Both the chat thread's pinned header and the Messages inbox list showed a flat "Sold" the whole time, including right next to (or right after getting a push for) a pending "Confirm sale" action. Fixed in both places: shows "Need to confirm"/"NEED TO CONFIRM" while `dealState === 'pending'` for the specific deal thread (`dealPartnerPhone === otherPhone`, i.e. `iAmPartner`), switching to "Sold"/"Fulfilled" once actually confirmed. Every other (non-winning) thread on the same ad still just says "Sold" — nothing to confirm there. The inbox list needed a new `dealPending` field added to `GET /mart/threads`'s response (computed the same way), since it didn't carry deal state at all before.
