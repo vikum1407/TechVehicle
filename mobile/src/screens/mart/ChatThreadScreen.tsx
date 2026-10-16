@@ -255,10 +255,17 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
                   confirms (and can even decline). Showing "SOLD" here while a confirm
                   action still sits right below it read as contradictory (Vikum's
                   feedback, 2026-10-16) — so only the deal thread itself (iAmPartner, both
-                  directions) shows "NEED TO CONFIRM" while pending; every other thread on
-                  the same ad (which has nothing left to confirm) still just says "SOLD". */}
+                  directions) shows "NEED TO CONFIRM" while pending. A decline leaves
+                  `status` sitting at sold/fulfilled forever (until Relist) even though
+                  nothing was actually sold — found via a follow-up bug report: the header
+                  kept saying "FULFILLED" right next to "Seller said they didn't sell
+                  this," which is just as contradictory as the pending case was. So the
+                  deal thread also shows "DECLINED" once dealState is 'declined'; every
+                  other (non-deal) thread on the same ad still just says "SOLD". */}
               {threadData?.listing?.deal?.iAmPartner && threadData?.listing?.deal?.state === 'pending'
                 ? 'NEED TO CONFIRM'
+                : threadData?.listing?.deal?.iAmPartner && threadData?.listing?.deal?.state === 'declined'
+                ? 'DECLINED'
                 : (rawStatus === 'fulfilled' ? 'FULFILLED' : 'SOLD')}
             </Text>
           ) : (

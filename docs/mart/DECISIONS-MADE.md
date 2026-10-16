@@ -4,6 +4,13 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-16 — two more real bugs found testing the decline notification fix
+
+1. **Detail's own owner bottom bar never checked listing status at all.** It always showed Edit + Mark Sold/Fulfilled to the owner, even on an already-closed (sold/fulfilled, including declined) ad — only `MyAdsScreen`'s own Sold/Fulfilled tab had status-aware buttons; `DetailScreen`'s bottom bar had no equivalent check and had been like this since Mark Sold first shipped (Step 2.4). Fixed: when `detail.isOwner` and `status` is sold/fulfilled, shows Relist + Delete instead.
+2. **The "Need to confirm" fix only covered the pending case, not declined.** `status` stays sold/fulfilled permanently after a decline (until Relist) — the chat thread's pinned header and the inbox list both kept saying "Sold"/"Fulfilled" right next to (or right after a push for) "Seller said they didn't sell this," the exact same contradiction the first fix was meant to close, just for the other terminal state. Both now show "Declined" for the specific deal thread when `dealState === 'declined'`. The inbox's backend field was generalized from a single `dealPending` boolean to `dealStatus: 'pending' | 'declined' | null`, since it was clearly going to need a third value next.
+
+---
+
 ## 2026-10-16 — real gap found via a discussion question: no way to relist a Wanted ad at all
 
 Vikum asked how to relist a Wanted ad that got declined. Checked: there was no way — `MyAdsScreen` (where Relist lives) was hardcoded `type: 'selling'` since Step 2.1, and `DetailScreen` has no Relist button of its own. The backend's `POST /:listingId/relist` already fully supports Wanted (resets `status` to `'open'`, same as selling does to `'available'`) — nothing backend needed changing, only that no mobile screen ever called it for that type.

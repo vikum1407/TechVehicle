@@ -62,6 +62,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
   const [offerSheetOpen, setOfferSheetOpen] = useState(false)
   const [whoBoughtItOpen, setWhoBoughtItOpen] = useState(false)
+  const [actionBusy, setActionBusy] = useState(false)
 
   const load = async () => {
     setLoading(true); setNetworkError(false); setNotFound(false)
@@ -100,6 +101,40 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
       else await api.favoriteMartListing(token, item.id)
     } catch {
       setSimilar(prev => prev.map(i => (i.id === item.id ? { ...i, isFavorited: wasFavorited } : i)))
+    }
+  }
+
+  // 2026-10-16, Vikum's bug report: the owner's own bottom bar always showed Edit/Mark
+  // Sold|Fulfilled, even on an already-closed ad (sold/fulfilled, including a declined
+  // deal) — only MyAdsScreen's own Sold/Fulfilled tab had status-aware buttons; Detail's
+  // bottom bar never checked `detail.status` for the owner case at all.
+  const relist = async () => {
+    if (!detail) return
+    setActionBusy(true)
+    try {
+      await api.relistMartListing(token, detail.id)
+      load()
+    } catch (e: any) {
+      Alert.alert("Couldn't relist", e.message || 'Check your connection and try again.')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+  const confirmDelete = () => {
+    Alert.alert('Delete this ad?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: doDelete },
+    ])
+  }
+  const doDelete = async () => {
+    if (!detail) return
+    setActionBusy(true)
+    try {
+      await api.deleteMartListing(token, detail.id)
+      onBack()
+    } catch (e: any) {
+      Alert.alert("Couldn't delete", e.message || 'Check your connection and try again.')
+      setActionBusy(false)
     }
   }
 
@@ -350,7 +385,16 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        {detail.isOwner ? (
+        {detail.isOwner && (detail.status === 'sold' || detail.status === 'fulfilled') ? (
+          <View style={styles.ownerBtnRow}>
+            <TouchableOpacity style={styles.editBtn} disabled={actionBusy} onPress={relist}>
+              <Text style={styles.editBtnText}>Relist</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.markSoldBtn} disabled={actionBusy} onPress={confirmDelete}>
+              <Text style={styles.markSoldBtnText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        ) : detail.isOwner ? (
           <View style={styles.ownerBtnRow}>
             <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(detail)}>
               <Text style={styles.editBtnText}>Edit</Text>

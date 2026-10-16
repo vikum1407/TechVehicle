@@ -210,8 +210,14 @@ router.get('/', async (req: AuthRequest, res) => {
     // i.e. "the person I'm chatting with is the buyer I chose") — missed the buyer's own
     // view of that same thread, where dealPartnerPhone === me (I AM the chosen buyer),
     // not otherPhone (which is the seller). Both directions need checking.
-    const dealPending = r.listing.dealState === 'pending' && !!r.listing.dealPartnerPhone
+    // Extended for the decline case (found via a follow-up bug report): `status` stays
+    // sold/fulfilled forever after a decline (until Relist), so without this the inbox
+    // kept saying "Sold" right after the seller got a "they didn't sell this" push —
+    // just as contradictory as the pending case was.
+    const isDealThread = !!r.listing.dealPartnerPhone
       && (r.listing.dealPartnerPhone === me || r.listing.dealPartnerPhone === otherPhone)
+    const dealStatus = isDealThread && (r.listing.dealState === 'pending' || r.listing.dealState === 'declined')
+      ? r.listing.dealState : null
     return {
       id: r.id,
       listing: {
@@ -219,7 +225,7 @@ router.get('/', async (req: AuthRequest, res) => {
         title: removed ? r.listingTitle : r.listing.title,
         thumbUrl: removed ? r.listingThumbUrl : (r.listing.photoUrls[0] || null),
         status: listingSnapshotStatus(r.listing),
-        dealPending,
+        dealStatus,
       },
       other: otherInfoMap.get(otherPhone) || { id: '', name: publicName(null, 'casual'), photoUrl: null, tag: 'casual' as const },
       lastMessagePreview: r.lastMessagePreview, lastMessageAt: r.lastMessageAt.toISOString(),
