@@ -4,7 +4,7 @@
 // with a legal read-through too. English only for now — si/ta come in Step 3.7.
 // If this text changes in a way that needs re-consent, bump MART_RULES_VERSION — every
 // user who already accepted the old version will be asked again at their next post/message/offer.
-export const MART_RULES_VERSION = 1
+export const MART_RULES_VERSION = 2 // temporary bump for Step 3.3's own re-ask test — revert to 1 after confirming
 
 export const MART_RULES = {
   intro: 'Vocksy Mart is for car parts in Sri Lanka. Please follow these rules. Ads that break them can be removed.',
