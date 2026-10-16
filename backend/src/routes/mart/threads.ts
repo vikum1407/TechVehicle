@@ -206,7 +206,12 @@ router.get('/', async (req: AuthRequest, res) => {
     // while still waiting on the other side's confirmation (dealState 'pending'), which
     // read as contradictory right after he'd gotten a "confirm sale" push for that exact
     // thread — same fix as the chat thread's own pinned header, applied here too.
-    const dealPending = r.listing.dealState === 'pending' && r.listing.dealPartnerPhone === otherPhone
+    // First attempt only checked the seller's own view (dealPartnerPhone === otherPhone,
+    // i.e. "the person I'm chatting with is the buyer I chose") — missed the buyer's own
+    // view of that same thread, where dealPartnerPhone === me (I AM the chosen buyer),
+    // not otherPhone (which is the seller). Both directions need checking.
+    const dealPending = r.listing.dealState === 'pending' && !!r.listing.dealPartnerPhone
+      && (r.listing.dealPartnerPhone === me || r.listing.dealPartnerPhone === otherPhone)
     return {
       id: r.id,
       listing: {
