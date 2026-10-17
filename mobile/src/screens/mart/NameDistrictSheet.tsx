@@ -2,9 +2,11 @@ import React, { useMemo, useState } from 'react'
 import { Text, TextInput, TouchableOpacity, Modal, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import DistrictPickerScreen from './DistrictPickerScreen'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 import { api } from '../../config/api'
 
 // Spec: 04-screens.md §22 point 1 — first-action gate, step 1 of 2 (step 2 is
@@ -16,7 +18,7 @@ import { api } from '../../config/api'
 // photo) — `title`/`continueLabel` let that caller swap the gate's "Before you start" /
 // "Continue" copy for "Edit profile" / "Save" without duplicating this whole component.
 export default function NameDistrictSheet({
-  visible, token, initialName, initialDistrict, title = 'Before you start', continueLabel = 'Continue', onDone, onClose,
+  visible, token, initialName, initialDistrict, title, continueLabel, onDone, onClose,
 }: {
   visible: boolean
   token: string
@@ -28,6 +30,7 @@ export default function NameDistrictSheet({
   onClose?: () => void
 }) {
   const colors = useColors()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const [name, setName] = useState(initialName || '')
   const [district, setDistrict] = useState<string | null>(initialDistrict || null)
@@ -37,7 +40,8 @@ export default function NameDistrictSheet({
 
   const trimmedName = name.trim()
   const canContinue = trimmedName.length >= 2 && trimmedName.length <= 40 && !!district && !saving
-  const districtLabel = district ? DISTRICTS.find(d => d.id === district)?.en : null
+  const selectedDistrict = district ? DISTRICTS.find(d => d.id === district) : null
+  const districtLabel = selectedDistrict ? localizedLabel(language, selectedDistrict) : null
 
   const submit = async () => {
     if (!canContinue) return
@@ -47,7 +51,7 @@ export default function NameDistrictSheet({
       await api.patchMartMe(token, { displayName: trimmedName, district: district! })
       onDone()
     } catch {
-      setError("Couldn't save. Check your connection and try again.")
+      setError(t('mart.editProfile.couldntSave'))
     } finally {
       setSaving(false)
     }
@@ -56,23 +60,23 @@ export default function NameDistrictSheet({
   return (
     <>
       <MartBottomSheet visible={visible} onClose={onClose || (() => {})} topOffset={260}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title}>{title ?? t('mart.nameDistrict.beforeYouStart')}</Text>
 
-        <Text style={styles.label}>Your name</Text>
+        <Text style={styles.label}>{t('mart.editProfile.yourName')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. Kasun Perera"
+          placeholder={t('mart.editProfile.namePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={name}
-          onChangeText={t => setName(t.slice(0, 40))}
+          onChangeText={v => setName(v.slice(0, 40))}
           maxLength={40}
         />
-        <Text style={styles.hint}>Others will see your first name and last initial</Text>
+        <Text style={styles.hint}>{t('mart.editProfile.nameHint')}</Text>
 
-        <Text style={styles.label}>District</Text>
+        <Text style={styles.label}>{t('mart.detail.district')}</Text>
         <TouchableOpacity style={styles.input} onPress={() => setPickerOpen(true)}>
           <Text style={districtLabel ? styles.inputValueText : styles.inputPlaceholderText}>
-            {districtLabel || 'Select your district'}
+            {districtLabel || t('mart.editProfile.selectYourDistrict')}
           </Text>
         </TouchableOpacity>
 
@@ -83,7 +87,7 @@ export default function NameDistrictSheet({
           disabled={!canContinue}
           onPress={submit}
         >
-          <Text style={styles.continueBtnText}>{saving ? 'Saving…' : continueLabel}</Text>
+          <Text style={styles.continueBtnText}>{saving ? t('mart.postAd.saving') : (continueLabel ?? t('mart.nameDistrict.continue'))}</Text>
         </TouchableOpacity>
       </MartBottomSheet>
 

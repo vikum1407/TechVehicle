@@ -1572,6 +1572,11 @@ const si: Record<TranslationKey, string> = {
   'mart.vehiclePicker.fitsAllYears': 'සියලු වර්ෂවලට ගැළපේ',
   'mart.vehiclePicker.make': 'සන්නාමය',
   'mart.vehiclePicker.stepOf3': 'පියවර {step} න් 3',
+
+  'mart.nameDistrict.beforeYouStart': 'ආරම්භ කිරීමට පෙර',
+  'mart.nameDistrict.continue': 'ඉදිරියට',
+
+  'mart.martRules.checkboxLabel': 'මම Mart නීති කියවා ඒවාට අනුගත වීමට එකඟ වෙමි',
 }
 
 export default si

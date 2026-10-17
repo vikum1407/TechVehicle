@@ -726,6 +726,11 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.vehiclePicker.fitsAllYears': 'அனைத்து ஆண்டுகளுக்கும் பொருந்தும்',
   'mart.vehiclePicker.make': 'பிராண்ட்',
   'mart.vehiclePicker.stepOf3': 'படி {step} / 3',
+
+  'mart.nameDistrict.beforeYouStart': 'தொடங்குவதற்கு முன்',
+  'mart.nameDistrict.continue': 'தொடரவும்',
+
+  'mart.martRules.checkboxLabel': 'நான் Mart விதிகளைப் படித்து அவற்றைப் பின்பற்ற ஒப்புக்கொள்கிறேன்',
 }
 
 export default ta

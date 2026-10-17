@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
-import { MART_RULES, MART_RULES_VERSION } from '../../constants/martRules'
+import { useTranslation } from '../../i18n/LanguageContext'
+import { getLocalizedMartRules, MART_RULES_VERSION } from '../../constants/martRules'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 
@@ -21,10 +22,12 @@ export default function MartRulesScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const [checked, setChecked] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const rules = getLocalizedMartRules(language)
 
   const continuePress = async () => {
     if (!checked || !token || saving) return
@@ -34,7 +37,7 @@ export default function MartRulesScreen({
       await api.acceptMartRules(token, MART_RULES_VERSION)
       onAccepted?.()
     } catch {
-      setError("Couldn't save. Check your connection and try again.")
+      setError(t('mart.editProfile.couldntSave'))
     } finally {
       setSaving(false)
     }
@@ -46,12 +49,12 @@ export default function MartRulesScreen({
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Mart rules</Text>
+        <Text style={styles.title}>{t('mart.myMart.martRules')}</Text>
         <View style={{ width: 22 }} />
       </View>
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.intro}>{MART_RULES.intro}</Text>
-        {MART_RULES.items.map((rule, i) => (
+        <Text style={styles.intro}>{rules.intro}</Text>
+        {rules.items.map((rule, i) => (
           <View key={rule.title} style={styles.ruleRow}>
             <View style={styles.numberCircle}>
               <Text style={styles.numberText}>{i + 1}</Text>
@@ -71,14 +74,14 @@ export default function MartRulesScreen({
             <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
               {checked ? <AppIcon icon={{ lib: 'ion', name: 'checkmark' }} size={14} color="#fff" /> : null}
             </View>
-            <Text style={styles.checkboxLabel}>I have read and agree to follow the Mart rules</Text>
+            <Text style={styles.checkboxLabel}>{t('mart.martRules.checkboxLabel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.continueBtn, !checked && styles.continueBtnDisabled]}
             disabled={!checked || saving}
             onPress={continuePress}
           >
-            <Text style={styles.continueBtnText}>{saving ? 'Saving…' : 'Continue'}</Text>
+            <Text style={styles.continueBtnText}>{saving ? t('mart.postAd.saving') : t('mart.nameDistrict.continue')}</Text>
           </TouchableOpacity>
         </View>
       )}

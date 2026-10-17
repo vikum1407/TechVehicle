@@ -1572,6 +1572,11 @@ const en = {
   'mart.vehiclePicker.fitsAllYears': 'Fits all years',
   'mart.vehiclePicker.make': 'Make',
   'mart.vehiclePicker.stepOf3': 'Step {step} of 3',
+
+  'mart.nameDistrict.beforeYouStart': 'Before you start',
+  'mart.nameDistrict.continue': 'Continue',
+
+  'mart.martRules.checkboxLabel': 'I have read and agree to follow the Mart rules',
 }
 
 export default en

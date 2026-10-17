@@ -1,7 +1,11 @@
-// duplicate of mobile/src/constants/martRules.ts — keep in sync. Spec: 04-screens.md §20.4.
+// duplicate of mobile/src/constants/martRules.ts — keep MART_RULES_VERSION in sync (that's
+// the only field this backend copy's content actually needs to match; nothing here ever
+// serves MART_RULES itself to the client — the mobile app renders its own local copy).
 // Wording status (per the handoff package): first draft written by Claude, Vikum to review
 // (especially rule 7's "not responsible for disputes" line) before public launch, ideally
-// with a legal read-through too. English only for now — si/ta come in Step 3.7.
+// with a legal read-through too. Step 3.7 added si/ta translations to the mobile copy only
+// (getLocalizedMartRules()) — this backend copy stays English-only since it's never
+// rendered for a user in any language.
 // If this text changes in a way that needs re-consent, bump MART_RULES_VERSION — every
 // user who already accepted the old version will be asked again at their next post/message/offer.
 export const MART_RULES_VERSION = 1
