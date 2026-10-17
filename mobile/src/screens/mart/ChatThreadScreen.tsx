@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
@@ -38,6 +39,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
   const scrollRef = useRef<ScrollView>(null)
 
@@ -102,7 +104,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
       // seller" link (which stays as the fallback entry point for rating later).
       if (confirm && result.canRate) setRateModalOpen(true)
     } catch (e: any) {
-      Alert.alert("Couldn't confirm", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.thread.couldntConfirm'), e.message || t('mart.common.checkConnectionRetry'))
     } finally {
       setDealResponding(false)
     }
@@ -127,7 +129,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
     } catch (e: any) {
       if (e.code === 'PROFILE_REQUIRED') { setGateStep('nameDistrict'); return }
       if (e.code === 'RULES_REQUIRED') { setGateStep('rules'); return }
-      setSendError(e.message || "Couldn't send. Check your connection and try again.")
+      setSendError(e.message || t('mart.thread.couldntSend'))
     } finally {
       setSending(false)
     }
@@ -136,11 +138,11 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   const confirmDelete = () => {
     if (!threadId) return
     Alert.alert(
-      'Delete this conversation?',
-      `It'll be removed from your Messages. ${otherName} will still see it on their side.`,
+      t('mart.thread.deleteConversationConfirm'),
+      t('mart.thread.deleteConversationBody', { name: otherName }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: doDelete },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: doDelete },
       ]
     )
   }
@@ -150,7 +152,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
       await api.deleteMartThread(token, threadId)
       onBack()
     } catch (e: any) {
-      Alert.alert("Couldn't delete", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.detail.couldntDelete'), e.message || t('mart.common.checkConnectionRetry'))
     }
   }
 
@@ -159,11 +161,11 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
     // two separate report targets reachable from this one entry point, not a single
     // generic "Report".
     Alert.alert('', undefined, [
-      { text: 'Report User', onPress: () => setTimeout(() => setReportTarget({ type: 'user', id: otherId! }), 400) },
-      { text: 'Report Ad', onPress: () => setTimeout(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }), 400) },
-      { text: 'Block User', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
-      { text: 'Delete Conversation', style: 'destructive', onPress: confirmDelete },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('mart.thread.reportUser'), onPress: () => setTimeout(() => setReportTarget({ type: 'user', id: otherId! }), 400) },
+      { text: t('mart.thread.reportAd'), onPress: () => setTimeout(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }), 400) },
+      { text: t('mart.thread.blockUserMenu'), onPress: () => setTimeout(() => setBlockOpen(true), 400) },
+      { text: t('mart.thread.deleteConversation'), style: 'destructive', onPress: confirmDelete },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
@@ -173,9 +175,9 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   if (loadError) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>Couldn't load. Check your connection.</Text>
+        <Text style={styles.errorText}>{t('mart.home.loadError')}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => threadId && loadThread(threadId)}>
-          <Text style={styles.retryBtnText}>Try again</Text>
+          <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
         </TouchableOpacity>
       </View>
     )
@@ -255,7 +257,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
         <View style={{ flex: 1 }}>
           <Text style={styles.pinnedTitle} numberOfLines={1}>{title}</Text>
           {removed ? (
-            <Text style={styles.pinnedClosedText}>LISTING REMOVED</Text>
+            <Text style={styles.pinnedClosedText}>{t('mart.thread.listingRemovedCaps')}</Text>
           ) : rawStatus === 'sold' || rawStatus === 'fulfilled' ? (
             <Text style={styles.pinnedClosedText}>
               {/* The listing itself flips to sold/fulfilled the instant the seller marks
@@ -273,21 +275,21 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
                   there is the seller they picked, not themselves) — same directional bug
                   already hit once today in the inbox's own equivalent check. */}
               {threadData?.listing?.deal?.isDealThread && threadData?.listing?.deal?.state === 'pending'
-                ? 'NEED TO CONFIRM'
+                ? t('mart.thread.needToConfirmCaps')
                 : threadData?.listing?.deal?.isDealThread && threadData?.listing?.deal?.state === 'declined'
-                ? 'DECLINED'
-                : (rawStatus === 'fulfilled' ? 'FULFILLED' : 'SOLD')}
+                ? t('mart.thread.declinedCaps')
+                : (rawStatus === 'fulfilled' ? t('mart.thread.fulfilledCaps') : t('mart.thread.soldCaps'))}
             </Text>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.pinnedPrice}>{price !== null ? formatLKR(price) : ''}</Text>
-              {rawStatus === 'reserved' ? <MartTag label="Reserved" variant="amber-soft" /> : null}
+              {rawStatus === 'reserved' ? <MartTag label={t('mart.common.reserved')} variant="amber-soft" /> : null}
             </View>
           )}
         </View>
         {listingId ? (
           <TouchableOpacity style={[styles.viewAdBtn, removed && styles.viewAdBtnDisabled]} disabled={removed} onPress={() => onOpenListing(listingId)}>
-            <Text style={[styles.viewAdBtnText, removed && styles.viewAdBtnTextDisabled]}>View Ad</Text>
+            <Text style={[styles.viewAdBtnText, removed && styles.viewAdBtnTextDisabled]}>{t('mart.thread.viewAd')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -297,10 +299,10 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
           <AppIcon icon={{ lib: 'ion', name: 'information-circle-outline' }} size={16} color={colors.textMuted} />
           <Text style={styles.noticeText}>
             {removed
-              ? `This listing was removed by the seller. This conversation is available for ${daysLeft} more days.`
+              ? t('mart.thread.noticeRemoved', { days: daysLeft })
               : rawStatus === 'fulfilled'
-              ? `This request was marked as fulfilled. This conversation is available for ${daysLeft} more days.`
-              : `This item was marked as sold. This conversation is available for ${daysLeft} more days.`}
+              ? t('mart.thread.noticeFulfilled', { days: daysLeft })
+              : t('mart.thread.noticeSold', { days: daysLeft })}
           </Text>
         </View>
       ) : null}
@@ -308,28 +310,28 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
       {threadData?.dealBanner === 'confirm_sale' ? (
         <View style={styles.confirmBanner}>
           <Text style={styles.confirmBannerText}>
-            {threadData.listing.type === 'wanted' ? `Confirm you sold this to ${otherName}` : `${otherName} marked this as sold to you`}
+            {threadData.listing.type === 'wanted' ? t('mart.thread.confirmYouSoldThis', { name: otherName }) : t('mart.thread.theyMarkedSoldToYou', { name: otherName })}
           </Text>
-          <Text style={styles.confirmBannerSub}>Confirming lets you leave a review.</Text>
+          <Text style={styles.confirmBannerSub}>{t('mart.thread.confirmingLetsYouReview')}</Text>
           <View style={styles.confirmBannerRow}>
             <TouchableOpacity style={styles.confirmOutlinedBtn} disabled={dealResponding} onPress={() => handleDealConfirm(false)}>
-              <Text style={styles.confirmOutlinedBtnText}>Not me</Text>
+              <Text style={styles.confirmOutlinedBtnText}>{t('mart.thread.notMe')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.confirmNavyBtn} disabled={dealResponding} onPress={() => handleDealConfirm(true)}>
-              <Text style={styles.confirmNavyBtnText}>{threadData.listing.type === 'wanted' ? 'Confirm sale' : 'Confirm purchase'}</Text>
+              <Text style={styles.confirmNavyBtnText}>{threadData.listing.type === 'wanted' ? t('mart.thread.confirmSale') : t('mart.thread.confirmPurchase')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : threadData?.dealBanner === 'rate' ? (
         <TouchableOpacity style={styles.rateSellerLink} onPress={() => setRateModalOpen(true)}>
           <AppIcon icon={{ lib: 'ion', name: 'star-outline' }} size={14} color={colors.primary} />
-          <Text style={styles.rateSellerLinkText}>Rate seller</Text>
+          <Text style={styles.rateSellerLinkText}>{t('mart.thread.rateSeller')}</Text>
         </TouchableOpacity>
       ) : null}
 
       {moreFromSeller.length > 0 && threadData?.role !== 'selling' ? (
         <View style={styles.moreStripWrap}>
-          <Text style={styles.moreStripLabel}>MORE FROM {otherName?.toUpperCase()}</Text>
+          <Text style={styles.moreStripLabel}>{t('mart.thread.moreFrom', { name: otherName?.toUpperCase() })}</Text>
           <FlatList
             horizontal showsHorizontalScrollIndicator={false}
             data={moreFromSeller}
@@ -350,7 +352,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
       ) : null}
 
       <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.messagesContent}>
-        {buildRenderItems(messages).map((item, i) => (
+        {buildRenderItems(messages, t).map((item, i) => (
           item.type === 'day' ? (
             <View key={`day-${i}`} style={styles.daySeparatorWrap}><Text style={styles.daySeparatorText}>{item.label}</Text></View>
           ) : item.message.kind === 'system' ? (
@@ -361,7 +363,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
                 <View style={styles.offerHeaderRow}>
                   <AppIcon icon={{ lib: 'ion', name: 'pricetag' }} size={14} color={item.message.mine ? '#fff' : colors.accent} />
                   <Text style={[styles.offerHeaderText, item.message.mine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
-                    {item.message.offerPrice !== null ? `Offer: ${formatLKR(item.message.offerPrice)}` : 'Sent an offer'}
+                    {item.message.offerPrice !== null ? t('mart.thread.offerPrice', { price: formatLKR(item.message.offerPrice) }) : t('mart.thread.sentAnOffer')}
                   </Text>
                 </View>
                 {item.message.offerPhotos && item.message.offerPhotos.length > 0 ? (
@@ -396,10 +398,10 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
           <View style={styles.composeRow}>
             <TextInput
               style={styles.composeInput}
-              placeholder="Type a message"
+              placeholder={t('mart.thread.typeAMessage')}
               placeholderTextColor={colors.textFaint}
               value={composeText}
-              onChangeText={t => setComposeText(t.slice(0, MESSAGE_MAX))}
+              onChangeText={v => setComposeText(v.slice(0, MESSAGE_MAX))}
               multiline
             />
             <TouchableOpacity style={[styles.sendBtn, (sending || !composeText.trim()) && styles.sendBtnDisabled]} disabled={sending || !composeText.trim()} onPress={handleSend}>
@@ -411,10 +413,10 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
         <View style={styles.closedBar}>
           <Text style={styles.closedBarText}>
             {removed
-              ? 'Messaging closed — this listing was removed'
+              ? t('mart.thread.closedRemoved')
               : rawStatus === 'fulfilled'
-              ? 'Messaging closed — this request was fulfilled'
-              : 'Messaging closed — this item has been sold'}
+              ? t('mart.thread.closedFulfilled')
+              : t('mart.thread.closedSold')}
           </Text>
         </View>
       )}
@@ -473,24 +475,24 @@ function dayKey(iso: string): string {
   return new Date(iso).toDateString()
 }
 
-function dayLabel(iso: string): string {
+function dayLabel(iso: string, t: (key: any, params?: Record<string, string | number>) => string): string {
   const d = new Date(iso)
   const today = new Date()
   const yesterday = new Date(Date.now() - 86400000)
-  if (dayKey(iso) === dayKey(today.toISOString())) return 'Today'
-  if (dayKey(iso) === dayKey(yesterday.toISOString())) return 'Yesterday'
+  if (dayKey(iso) === dayKey(today.toISOString())) return t('mart.thread.today')
+  if (dayKey(iso) === dayKey(yesterday.toISOString())) return t('notifications.yesterday')
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 type RenderItem = { type: 'day'; label: string } | { type: 'message'; message: any }
 
-function buildRenderItems(messages: any[]): RenderItem[] {
+function buildRenderItems(messages: any[], t: (key: any, params?: Record<string, string | number>) => string): RenderItem[] {
   const out: RenderItem[] = []
   let lastDay = ''
   for (const m of messages) {
     const day = dayKey(m.createdAt)
     if (day !== lastDay) {
-      out.push({ type: 'day', label: dayLabel(m.createdAt) })
+      out.push({ type: 'day', label: dayLabel(m.createdAt, t) })
       lastDay = day
     }
     out.push({ type: 'message', message: m })

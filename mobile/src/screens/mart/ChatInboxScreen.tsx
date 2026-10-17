@@ -58,20 +58,20 @@ export default function ChatInboxScreen({ token, onBack, onOpenThread }: {
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <Text style={styles.headerSubtitle}>Vocksy Mart conversations</Text>
+          <Text style={styles.headerTitle}>{t('mart.inbox.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('mart.inbox.subtitle')}</Text>
         </View>
       </View>
 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: 'chatbubble-outline' }}
-          title="No messages yet. Message a seller from any ad."
-          actionLabel="Browse Mart"
+          title={t('mart.inbox.emptyTitle')}
+          actionLabel={t('mart.favorites.browseMart')}
           onAction={onBack}
         />
       ) : (
@@ -88,8 +88,8 @@ export default function ChatInboxScreen({ token, onBack, onOpenThread }: {
             const closed = item.listing.status !== 'active'
             const needsConfirm = closed && item.listing.dealStatus === 'pending'
             const declined = closed && item.listing.dealStatus === 'declined'
-            const tagLabel = item.listing.status === 'removed' ? 'Removed' : needsConfirm ? 'Need to confirm' : declined ? 'Declined' : 'Sold'
-            const closedLabel = item.listing.status === 'removed' ? 'Listing removed' : tagLabel
+            const tagLabel = item.listing.status === 'removed' ? t('mart.common.removed') : needsConfirm ? t('mart.inbox.needToConfirm') : declined ? t('mart.inbox.declined') : t('mart.common.sold')
+            const closedLabel = item.listing.status === 'removed' ? t('mart.inbox.listingRemoved') : tagLabel
             return (
               <TouchableOpacity style={styles.row} onPress={() => onOpenThread(item.id)}>
                 {item.listing.thumbUrl ? (
@@ -108,7 +108,7 @@ export default function ChatInboxScreen({ token, onBack, onOpenThread }: {
                   {closed ? (
                     <View style={styles.previewRow}>
                       <MartTag label={tagLabel} variant="gray" />
-                      <Text style={styles.previewGray} numberOfLines={1}> {closedLabel} · 7 days left to view</Text>
+                      <Text style={styles.previewGray} numberOfLines={1}> {t('mart.inbox.closedDaysLeft', { label: closedLabel })}</Text>
                     </View>
                   ) : (
                     <View style={styles.previewRow}>
