@@ -3,7 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { MART_CATEGORIES } from '../../constants/martCategories'
+import { localizedLabel } from '../../utils/martHelpers'
 import AppIcon from '../../components/AppIcon'
 
 export type CategoryPickerResult = { categoryId: string; categoryTypeId: string | null }
@@ -20,6 +22,7 @@ export default function CategoryPickerScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const [query, setQuery] = useState('')
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null)
@@ -33,12 +36,12 @@ export default function CategoryPickerScreen({
       for (const type of cat.types) {
         const haystack = [type.en.toLowerCase(), ...type.keywords.map(k => k.toLowerCase())]
         if (haystack.some(h => h.includes(q))) {
-          hits.push({ categoryId: cat.id, categoryLabel: cat.en, typeId: type.id, typeLabel: type.en })
+          hits.push({ categoryId: cat.id, categoryLabel: localizedLabel(language, cat), typeId: type.id, typeLabel: type.en })
         }
       }
     }
     return hits
-  }, [q])
+  }, [q, language])
 
   const choose = (categoryId: string, categoryTypeId: string | null) => {
     onSelect({ categoryId, categoryTypeId })
@@ -51,13 +54,13 @@ export default function CategoryPickerScreen({
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'close' }} size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Select category</Text>
+        <Text style={styles.title}>{t('mart.postAd.selectCategory')}</Text>
         <View style={{ width: 24 }} />
       </View>
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search parts, e.g. brake pad"
+          placeholder={t('mart.categoryPicker.searchPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
@@ -77,7 +80,7 @@ export default function CategoryPickerScreen({
               </View>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No matches.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{t('mart.categoryPicker.noMatches')}</Text>}
         />
       ) : (
         <FlatList
@@ -97,7 +100,7 @@ export default function CategoryPickerScreen({
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowText, isOpen && styles.rowTextOpen]}>{cat.en}</Text>
+                    <Text style={[styles.rowText, isOpen && styles.rowTextOpen]}>{localizedLabel(language, cat)}</Text>
                     <Text style={styles.subLine}>{cat.examples}</Text>
                   </View>
                   {hasTypes ? (
@@ -111,7 +114,7 @@ export default function CategoryPickerScreen({
                 {isOpen ? (
                   <View style={styles.panel}>
                     <TouchableOpacity style={styles.typeRow} onPress={() => choose(cat.id, null)}>
-                      <Text style={styles.typeRowText}>All {cat.en}</Text>
+                      <Text style={styles.typeRowText}>{t('mart.postAd.allCategory', { category: localizedLabel(language, cat) })}</Text>
                     </TouchableOpacity>
                     {cat.types.map(type => (
                       <TouchableOpacity key={type.id} style={styles.typeRow} onPress={() => choose(cat.id, type.id)}>

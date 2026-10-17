@@ -1536,6 +1536,42 @@ const si: Record<TranslationKey, string> = {
   'mart.followings.footerHint': 'අනුගමනය නැවැත්වීමට අනුගමනය කරමින් තට්ටු කරන්න.',
   'mart.followings.unfollowed': 'අනුගමනය නැවැත්විය.',
   'mart.followings.undo': 'අහෝසි කරන්න',
+
+  'mart.filters.title': 'පෙරහන්',
+  'mart.filters.reset': 'යළි පිහිටුවන්න',
+  'mart.filters.anyVehicle': 'ඕනෑම වාහනයක්',
+  'mart.filters.priceRange': 'මිල පරාසය (රු.)',
+  'mart.filters.min': 'අවම',
+  'mart.filters.max': 'උපරිම',
+  'mart.filters.minAboveMax': 'අවම උපරිමයට වඩා වැඩි නොවිය යුතුය',
+  'mart.filters.saveSearch': 'මෙම සෙවීම සුරකින්න',
+  'mart.filters.saveSearchHint': 'නව ගැළපීම් ගැන දැනුම් දෙනු ලැබේ — ඉදිරියේදී',
+  'mart.filters.showResults': 'ප්‍රතිඵල පෙන්වන්න',
+  'mart.filters.showResultsCount': 'ප්‍රතිඵල {count} පෙන්වන්න',
+
+  'mart.categoryPicker.searchPlaceholder': 'කොටස් සොයන්න, උදා. බ්‍රේක් පෑඩ්',
+  'mart.categoryPicker.noMatches': 'ගැළපීම් නැත.',
+
+  'mart.districtPicker.yourDistrict': 'ඔබේ දිස්ත්‍රික්කය: {district}',
+  'mart.districtPicker.searchPlaceholder': 'දිස්ත්‍රික්කය සොයන්න',
+
+  'mart.vehiclePicker.searchMake': 'සන්නාමය සොයන්න',
+  'mart.vehiclePicker.popularInSriLanka': 'ශ්‍රී ලංකාවේ ජනප්‍රිය',
+  'mart.vehiclePicker.allMakes': 'සියලුම සන්නාම',
+  'mart.vehiclePicker.other': 'වෙනත්',
+  'mart.vehiclePicker.typeTheModel': 'මාදිලිය ටයිප් කරන්න',
+  'mart.vehiclePicker.modelNamePlaceholder': 'උදා. මාදිලි නම',
+  'mart.vehiclePicker.next': 'ඊළඟ',
+  'mart.vehiclePicker.skipFitsAll': 'මඟහරින්න (සියලු මාදිලිවලට ගැළපේ)',
+  'mart.vehiclePicker.searchModel': 'මාදිලිය සොයන්න',
+  'mart.vehiclePicker.allModelsOf': '{make} හි සියලු මාදිලි',
+  'mart.vehiclePicker.fitsAllModels': 'සියලු මාදිලිවලට ගැළපේ',
+  'mart.vehiclePicker.doneWithMake': 'සම්පූර්ණයි · {make}',
+  'mart.vehiclePicker.yearFrom': 'වර්ෂයේ සිට',
+  'mart.vehiclePicker.yearTo': 'වර්ෂය දක්වා',
+  'mart.vehiclePicker.fitsAllYears': 'සියලු වර්ෂවලට ගැළපේ',
+  'mart.vehiclePicker.make': 'සන්නාමය',
+  'mart.vehiclePicker.stepOf3': 'පියවර {step} න් 3',
 }
 
 export default si

@@ -690,6 +690,42 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.followings.footerHint': 'பின்தொடர்தலை நிறுத்த பின்தொடர்கிறது என்பதைத் தட்டவும்.',
   'mart.followings.unfollowed': 'பின்தொடராமல் நிறுத்தப்பட்டது.',
   'mart.followings.undo': 'செயல்தவிர்',
+
+  'mart.filters.title': 'வடிப்பான்கள்',
+  'mart.filters.reset': 'மீட்டமை',
+  'mart.filters.anyVehicle': 'ஏதேனும் வாகனம்',
+  'mart.filters.priceRange': 'விலை வரம்பு (ரூ.)',
+  'mart.filters.min': 'குறைந்தபட்சம்',
+  'mart.filters.max': 'அதிகபட்சம்',
+  'mart.filters.minAboveMax': 'குறைந்தபட்சம் அதிகபட்சத்தை விட அதிகமாக இருக்கக்கூடாது',
+  'mart.filters.saveSearch': 'இந்த தேடலைச் சேமி',
+  'mart.filters.saveSearchHint': 'புதிய பொருத்தங்கள் பற்றி அறிவிக்கப்படும் — விரைவில்',
+  'mart.filters.showResults': 'முடிவுகளைக் காட்டு',
+  'mart.filters.showResultsCount': '{count} முடிவுகளைக் காட்டு',
+
+  'mart.categoryPicker.searchPlaceholder': 'பாகங்களைத் தேடுங்கள், எ.கா. பிரேக் பேட்',
+  'mart.categoryPicker.noMatches': 'பொருத்தங்கள் இல்லை.',
+
+  'mart.districtPicker.yourDistrict': 'உங்கள் மாவட்டம்: {district}',
+  'mart.districtPicker.searchPlaceholder': 'மாவட்டத்தைத் தேடுங்கள்',
+
+  'mart.vehiclePicker.searchMake': 'பிராண்டைத் தேடுங்கள்',
+  'mart.vehiclePicker.popularInSriLanka': 'இலங்கையில் பிரபலமானவை',
+  'mart.vehiclePicker.allMakes': 'அனைத்து பிராண்டுகளும்',
+  'mart.vehiclePicker.other': 'மற்றவை',
+  'mart.vehiclePicker.typeTheModel': 'மாடலை தட்டச்சு செய்யவும்',
+  'mart.vehiclePicker.modelNamePlaceholder': 'எ.கா. மாடல் பெயர்',
+  'mart.vehiclePicker.next': 'அடுத்து',
+  'mart.vehiclePicker.skipFitsAll': 'தவிர்க்கவும் (அனைத்து மாடல்களுக்கும் பொருந்தும்)',
+  'mart.vehiclePicker.searchModel': 'மாடலைத் தேடுங்கள்',
+  'mart.vehiclePicker.allModelsOf': '{make} இன் அனைத்து மாடல்களும்',
+  'mart.vehiclePicker.fitsAllModels': 'அனைத்து மாடல்களுக்கும் பொருந்தும்',
+  'mart.vehiclePicker.doneWithMake': 'முடிந்தது · {make}',
+  'mart.vehiclePicker.yearFrom': 'ஆண்டு முதல்',
+  'mart.vehiclePicker.yearTo': 'ஆண்டு வரை',
+  'mart.vehiclePicker.fitsAllYears': 'அனைத்து ஆண்டுகளுக்கும் பொருந்தும்',
+  'mart.vehiclePicker.make': 'பிராண்ட்',
+  'mart.vehiclePicker.stepOf3': 'படி {step} / 3',
 }
 
 export default ta

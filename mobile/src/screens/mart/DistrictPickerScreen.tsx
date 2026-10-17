@@ -3,7 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { DISTRICTS, District } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 import AppIcon from '../../components/AppIcon'
 
 // Spec: 04-screens.md §21.3. Plain full-screen view (no own Modal) so it can be used
@@ -18,6 +20,7 @@ export default function DistrictPickerScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const [query, setQuery] = useState('')
 
@@ -30,7 +33,7 @@ export default function DistrictPickerScreen({
   const renderRow = (d: District, isYourDistrict: boolean) => (
     <TouchableOpacity key={d.id} style={styles.row} onPress={() => choose(d.id)}>
       <Text style={[styles.rowText, selected === d.id && styles.rowTextSelected]}>
-        {isYourDistrict ? `Your district: ${d.en}` : d.en}
+        {isYourDistrict ? t('mart.districtPicker.yourDistrict', { district: localizedLabel(language, d) }) : localizedLabel(language, d)}
       </Text>
       <View style={[styles.radioRing, selected === d.id && styles.radioRingSelected]}>
         {selected === d.id ? <View style={styles.radioDot} /> : null}
@@ -44,13 +47,13 @@ export default function DistrictPickerScreen({
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'close' }} size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>District</Text>
+        <Text style={styles.title}>{t('mart.detail.district')}</Text>
         <View style={{ width: 24 }} />
       </View>
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search district"
+          placeholder={t('mart.districtPicker.searchPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}

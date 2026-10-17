@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch, Modal, Sty
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 import VehiclePickerScreen, { VehiclePickerResult } from './VehiclePickerScreen'
 import DistrictPickerScreen from './DistrictPickerScreen'
 
@@ -60,6 +62,7 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
 
   const [draft, setDraft] = useState<MartFilters>(initial)
@@ -85,14 +88,15 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
   }, [draft, priceInvalid])
 
   const vehicleLabel = () => {
-    if (!draft.make) return 'Any vehicle'
+    if (!draft.make) return t('mart.filters.anyVehicle')
     let s = draft.make
     if (draft.model) s += ` ${draft.model}`
     if (draft.yearFrom) s += ` ${draft.yearFrom}${draft.yearTo && draft.yearTo !== draft.yearFrom ? `–${draft.yearTo}` : ''}`
     return s
   }
 
-  const districtLabel = draft.district ? DISTRICTS.find(d => d.id === draft.district)?.en : null
+  const selectedDistrict = draft.district ? DISTRICTS.find(d => d.id === draft.district) : null
+  const districtLabel = selectedDistrict ? localizedLabel(language, selectedDistrict) : null
 
   const reset = () => {
     setDraft(DEFAULT_MART_FILTERS)
@@ -108,20 +112,20 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'close' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Filters</Text>
+        <Text style={styles.title}>{t('mart.filters.title')}</Text>
         <TouchableOpacity onPress={reset} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.resetText}>Reset</Text>
+          <Text style={styles.resetText}>{t('mart.filters.reset')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.label}>Category</Text>
+        <Text style={styles.label}>{t('mart.postAd.category')}</Text>
         <View style={styles.chipWrap}>
           <TouchableOpacity
             style={[styles.chip, !draft.categoryId && styles.chipActive]}
             onPress={() => setDraft(prev => ({ ...prev, categoryId: null }))}
           >
-            <Text style={[styles.chipText, !draft.categoryId && styles.chipTextActive]}>All</Text>
+            <Text style={[styles.chipText, !draft.categoryId && styles.chipTextActive]}>{t('common.all')}</Text>
           </TouchableOpacity>
           {MART_CATEGORIES.map(cat => (
             <TouchableOpacity
@@ -129,18 +133,18 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
               style={[styles.chip, draft.categoryId === cat.id && styles.chipActive]}
               onPress={() => setDraft(prev => ({ ...prev, categoryId: cat.id }))}
             >
-              <Text style={[styles.chipText, draft.categoryId === cat.id && styles.chipTextActive]}>{cat.en}</Text>
+              <Text style={[styles.chipText, draft.categoryId === cat.id && styles.chipTextActive]}>{localizedLabel(language, cat)}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.label}>Compatible Vehicle</Text>
+        <Text style={styles.label}>{t('mart.postAd.compatibleVehicle')}</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setVehiclePickerOpen(true)}>
           <Text style={draft.make ? styles.fieldValue : styles.fieldPlaceholder}>{vehicleLabel()}</Text>
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
         </TouchableOpacity>
 
-        <Text style={styles.label}>Condition</Text>
+        <Text style={styles.label}>{t('mart.detail.condition')}</Text>
         <View style={styles.segmentRow}>
           {([null, 'new', 'used'] as const).map(c => (
             <TouchableOpacity
@@ -149,44 +153,44 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
               onPress={() => setDraft(prev => ({ ...prev, condition: c }))}
             >
               <Text style={[styles.segmentText, draft.condition === c && styles.segmentTextActive]}>
-                {c === null ? 'Any' : c === 'new' ? 'New' : 'Used'}
+                {c === null ? t('mart.common.any') : c === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.label}>Price Range (Rs.)</Text>
+        <Text style={styles.label}>{t('mart.filters.priceRange')}</Text>
         <View style={styles.priceRow}>
           <TextInput
             style={styles.priceInput}
-            placeholder="Min"
+            placeholder={t('mart.filters.min')}
             placeholderTextColor={colors.textFaint}
             keyboardType="number-pad"
             value={priceMinText}
-            onChangeText={t => { const v = t.replace(/[^0-9]/g, ''); setPriceMinText(v); setDraft(prev => ({ ...prev, priceMin: v ? Number(v) : null })) }}
+            onChangeText={v => { const n = v.replace(/[^0-9]/g, ''); setPriceMinText(n); setDraft(prev => ({ ...prev, priceMin: n ? Number(n) : null })) }}
           />
           <Text style={styles.priceDash}>—</Text>
           <TextInput
             style={styles.priceInput}
-            placeholder="Max"
+            placeholder={t('mart.filters.max')}
             placeholderTextColor={colors.textFaint}
             keyboardType="number-pad"
             value={priceMaxText}
-            onChangeText={t => { const v = t.replace(/[^0-9]/g, ''); setPriceMaxText(v); setDraft(prev => ({ ...prev, priceMax: v ? Number(v) : null })) }}
+            onChangeText={v => { const n = v.replace(/[^0-9]/g, ''); setPriceMaxText(n); setDraft(prev => ({ ...prev, priceMax: n ? Number(n) : null })) }}
           />
         </View>
-        {priceInvalid ? <Text style={styles.errorText}>Min must not be above Max</Text> : null}
+        {priceInvalid ? <Text style={styles.errorText}>{t('mart.filters.minAboveMax')}</Text> : null}
 
-        <Text style={styles.label}>Location</Text>
+        <Text style={styles.label}>{t('mart.postAd.location')}</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setDistrictPickerOpen(true)}>
-          <Text style={draft.district ? styles.fieldValue : styles.fieldPlaceholder}>{districtLabel || 'Select district'}</Text>
+          <Text style={draft.district ? styles.fieldValue : styles.fieldPlaceholder}>{districtLabel || t('mart.postAd.selectDistrict')}</Text>
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
         </TouchableOpacity>
 
         <View style={styles.saveSearchRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Save this search</Text>
-            <Text style={styles.saveSearchHint}>Get notified of new matches — coming soon</Text>
+            <Text style={styles.label}>{t('mart.filters.saveSearch')}</Text>
+            <Text style={styles.saveSearchHint}>{t('mart.filters.saveSearchHint')}</Text>
           </View>
           <Switch value={false} disabled trackColor={{ false: colors.borderMid, true: colors.primaryTint }} />
         </View>
@@ -199,7 +203,7 @@ export default function FiltersScreen({ token, initial, onClose, onApply }: {
           onPress={() => onApply(draft)}
         >
           <Text style={styles.applyBtnText}>
-            {priceInvalid ? 'Show Results' : countLoading && count === null ? 'Show Results' : count !== null ? `Show ${count} Results` : 'Show Results'}
+            {priceInvalid || countLoading && count === null || count === null ? t('mart.filters.showResults') : t('mart.filters.showResultsCount', { count })}
           </Text>
         </TouchableOpacity>
       </View>

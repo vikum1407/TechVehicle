@@ -1536,6 +1536,42 @@ const en = {
   'mart.followings.footerHint': 'Tap Following to unfollow.',
   'mart.followings.unfollowed': 'Unfollowed.',
   'mart.followings.undo': 'Undo',
+
+  'mart.filters.title': 'Filters',
+  'mart.filters.reset': 'Reset',
+  'mart.filters.anyVehicle': 'Any vehicle',
+  'mart.filters.priceRange': 'Price Range (Rs.)',
+  'mart.filters.min': 'Min',
+  'mart.filters.max': 'Max',
+  'mart.filters.minAboveMax': 'Min must not be above Max',
+  'mart.filters.saveSearch': 'Save this search',
+  'mart.filters.saveSearchHint': 'Get notified of new matches — coming soon',
+  'mart.filters.showResults': 'Show Results',
+  'mart.filters.showResultsCount': 'Show {count} Results',
+
+  'mart.categoryPicker.searchPlaceholder': 'Search parts, e.g. brake pad',
+  'mart.categoryPicker.noMatches': 'No matches.',
+
+  'mart.districtPicker.yourDistrict': 'Your district: {district}',
+  'mart.districtPicker.searchPlaceholder': 'Search district',
+
+  'mart.vehiclePicker.searchMake': 'Search make',
+  'mart.vehiclePicker.popularInSriLanka': 'POPULAR IN SRI LANKA',
+  'mart.vehiclePicker.allMakes': 'ALL MAKES',
+  'mart.vehiclePicker.other': 'Other',
+  'mart.vehiclePicker.typeTheModel': 'Type the model',
+  'mart.vehiclePicker.modelNamePlaceholder': 'e.g. Model name',
+  'mart.vehiclePicker.next': 'Next',
+  'mart.vehiclePicker.skipFitsAll': 'Skip (fits all models)',
+  'mart.vehiclePicker.searchModel': 'Search model',
+  'mart.vehiclePicker.allModelsOf': 'All {make} models',
+  'mart.vehiclePicker.fitsAllModels': 'Fits all models',
+  'mart.vehiclePicker.doneWithMake': 'Done · {make}',
+  'mart.vehiclePicker.yearFrom': 'Year from',
+  'mart.vehiclePicker.yearTo': 'Year to',
+  'mart.vehiclePicker.fitsAllYears': 'Fits all years',
+  'mart.vehiclePicker.make': 'Make',
+  'mart.vehiclePicker.stepOf3': 'Step {step} of 3',
 }
 
 export default en

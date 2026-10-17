@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, Keyboard
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { BRAND_MODELS, BRANDS_LIST } from '../../constants/vehicleData'
 import AppIcon from '../../components/AppIcon'
 
@@ -27,6 +28,7 @@ export default function VehiclePickerScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [step, setStep] = useState<Step>(1)
@@ -72,7 +74,7 @@ export default function VehiclePickerScreen({
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search make"
+            placeholder={t('mart.vehiclePicker.searchMake')}
             placeholderTextColor={colors.textFaint}
             value={makeQuery}
             onChangeText={setMakeQuery}
@@ -81,13 +83,13 @@ export default function VehiclePickerScreen({
         <ScrollView>
           {!makeQ && (
             <>
-              <Text style={styles.sectionLabel}>POPULAR IN SRI LANKA</Text>
+              <Text style={styles.sectionLabel}>{t('mart.vehiclePicker.popularInSriLanka')}</Text>
               {POPULAR_MAKES.map(m => (
                 <TouchableOpacity key={m} style={styles.row} onPress={() => chooseMake(m)}>
                   <Text style={styles.rowText}>{m}</Text>
                 </TouchableOpacity>
               ))}
-              <Text style={styles.sectionLabel}>ALL MAKES</Text>
+              <Text style={styles.sectionLabel}>{t('mart.vehiclePicker.allMakes')}</Text>
             </>
           )}
           {otherMakes.filter(makeMatches).map(m => (
@@ -96,7 +98,7 @@ export default function VehiclePickerScreen({
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.row} onPress={() => chooseMake('Other')}>
-            <Text style={styles.rowText}>Other</Text>
+            <Text style={styles.rowText}>{t('mart.vehiclePicker.other')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </>
@@ -120,22 +122,22 @@ export default function VehiclePickerScreen({
     if (!hasModelList) {
       return (
         <View style={styles.freeTextWrap}>
-          <Text style={styles.freeTextLabel}>Type the model</Text>
+          <Text style={styles.freeTextLabel}>{t('mart.vehiclePicker.typeTheModel')}</Text>
           <TextInput
             style={styles.freeTextInput}
-            placeholder="e.g. Model name"
+            placeholder={t('mart.vehiclePicker.modelNamePlaceholder')}
             placeholderTextColor={colors.textFaint}
             value={customModel}
-            onChangeText={t => setCustomModel(t.slice(0, 40))}
+            onChangeText={v => setCustomModel(v.slice(0, 40))}
             maxLength={40}
           />
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => { Keyboard.dismiss(); setModel(customModel.trim() || null); setStep(3) }}
           >
-            <Text style={styles.primaryBtnText}>Next</Text>
+            <Text style={styles.primaryBtnText}>{t('mart.vehiclePicker.next')}</Text>
           </TouchableOpacity>
-          <Text style={styles.skipLink} onPress={() => chooseModel(null)}>Skip (fits all models)</Text>
+          <Text style={styles.skipLink} onPress={() => chooseModel(null)}>{t('mart.vehiclePicker.skipFitsAll')}</Text>
         </View>
       )
     }
@@ -144,7 +146,7 @@ export default function VehiclePickerScreen({
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search model"
+            placeholder={t('mart.vehiclePicker.searchModel')}
             placeholderTextColor={colors.textFaint}
             value={modelQuery}
             onChangeText={setModelQuery}
@@ -158,8 +160,8 @@ export default function VehiclePickerScreen({
             <>
               <TouchableOpacity style={styles.row} onPress={() => chooseModel(null)}>
                 <View>
-                  <Text style={styles.rowText}>All {make} models</Text>
-                  <Text style={styles.subLine}>Fits all models</Text>
+                  <Text style={styles.rowText}>{t('mart.vehiclePicker.allModelsOf', { make: make || '' })}</Text>
+                  <Text style={styles.subLine}>{t('mart.vehiclePicker.fitsAllModels')}</Text>
                 </View>
               </TouchableOpacity>
               <View style={styles.divider} />
@@ -201,7 +203,7 @@ export default function VehiclePickerScreen({
   }
 
   const doneLabel = () => {
-    let s = `Done · ${make}`
+    let s = t('mart.vehiclePicker.doneWithMake', { make: make || '' })
     if (model) s += ` ${model}`
     if (effectiveFrom !== null) s += ` ${effectiveFrom}${effectiveTo !== null && effectiveTo !== effectiveFrom ? `–${effectiveTo}` : ''}`
     return s
@@ -210,24 +212,24 @@ export default function VehiclePickerScreen({
   function renderStep3() {
     return (
       <>
-        <Text style={styles.yearTitle}>{model || `All ${make} models`}</Text>
+        <Text style={styles.yearTitle}>{model || t('mart.vehiclePicker.allModelsOf', { make: make || '' })}</Text>
         <View style={styles.yearBoxRow}>
           <TouchableOpacity
             style={[styles.yearBox, pickingField === 'from' && styles.yearBoxActive]}
             onPress={() => setPickingField('from')}
           >
-            <Text style={styles.yearBoxLabel}>Year from</Text>
+            <Text style={styles.yearBoxLabel}>{t('mart.vehiclePicker.yearFrom')}</Text>
             <Text style={styles.yearBoxValue}>{effectiveFrom ?? '—'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.yearBox, pickingField === 'to' && styles.yearBoxActive]}
             onPress={() => setPickingField('to')}
           >
-            <Text style={styles.yearBoxLabel}>Year to</Text>
+            <Text style={styles.yearBoxLabel}>{t('mart.vehiclePicker.yearTo')}</Text>
             <Text style={styles.yearBoxValue}>{effectiveTo ?? '—'}</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.skipLink} onPress={clearYears}>Fits all years</Text>
+        <Text style={styles.skipLink} onPress={clearYears}>{t('mart.vehiclePicker.fitsAllYears')}</Text>
         <ScrollView contentContainerStyle={styles.yearGrid}>
           {YEARS.map(y => (
             <TouchableOpacity
@@ -253,8 +255,8 @@ export default function VehiclePickerScreen({
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>{step === 1 ? 'Make' : step === 2 ? make : model || `All ${make} models`}</Text>
-          <Text style={styles.subtitle}>Step {step} of 3</Text>
+          <Text style={styles.title}>{step === 1 ? t('mart.vehiclePicker.make') : step === 2 ? make : model || t('mart.vehiclePicker.allModelsOf', { make: make || '' })}</Text>
+          <Text style={styles.subtitle}>{t('mart.vehiclePicker.stepOf3', { step })}</Text>
         </View>
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'close' }} size={22} color={colors.text} />
