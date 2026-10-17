@@ -1518,6 +1518,24 @@ const si: Record<TranslationKey, string> = {
   'mart.thread.closedFulfilled': 'පණිවිඩ යැවීම වසා ඇත — මෙම ඉල්ලීම සම්පූර්ණ කරන ලදී',
   'mart.thread.closedSold': 'පණිවිඩ යැවීම වසා ඇත — මෙම අයිතමය විකුණා ඇත',
   'mart.thread.today': 'අද',
+
+  'mart.notifCenter.title': 'දැනුම්දීම්',
+  'mart.notifCenter.markAllRead': 'සියල්ල කියවූ ලෙස සලකුණු කරන්න',
+  'mart.notifCenter.emptyTitle': 'තවම දැනුම්දීම් නැත',
+  'mart.notifCenter.todayHeader': 'අද',
+  'mart.notifCenter.earlierHeader': 'මීට පෙර',
+
+  'mart.blockedUsers.emptyTitle': 'ඔබ කිසිවෙකු අවහිර කර නැත.',
+  'mart.blockedUsers.blockedAgo': 'අවහිර කළේ {time}',
+  'mart.blockedUsers.unblock': 'අවහිර නොකරන්න',
+  'mart.blockedUsers.footerNote': 'අවහිර නොකිරීම ඔබේ කතාබස් ආපසු ගෙන එයි, නමුත් අනුගමනය නොකරයි.',
+
+  'mart.followers.emptyTitle': 'තවම අනුගාමිකයින් නැත. ඔබේ වෙළඳසැල අනුගමනය කරන ගැනුම්කරුවන් මෙහි දිස්වනු ඇත.',
+
+  'mart.followings.emptyTitle': 'ඔබ තවම කිසිවෙකු අනුගමනය කරන්නේ නැත. විකුණුම්කරුගේ පැතිකඩේ අනුගමනය තට්ටු කර ඔවුන් මෙහි දැකගන්න.',
+  'mart.followings.footerHint': 'අනුගමනය නැවැත්වීමට අනුගමනය කරමින් තට්ටු කරන්න.',
+  'mart.followings.unfollowed': 'අනුගමනය නැවැත්විය.',
+  'mart.followings.undo': 'අහෝසි කරන්න',
 }
 
 export default si

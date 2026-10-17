@@ -1518,6 +1518,24 @@ const en = {
   'mart.thread.closedFulfilled': 'Messaging closed — this request was fulfilled',
   'mart.thread.closedSold': 'Messaging closed — this item has been sold',
   'mart.thread.today': 'Today',
+
+  'mart.notifCenter.title': 'Notifications',
+  'mart.notifCenter.markAllRead': 'Mark all read',
+  'mart.notifCenter.emptyTitle': 'No notifications yet',
+  'mart.notifCenter.todayHeader': 'TODAY',
+  'mart.notifCenter.earlierHeader': 'EARLIER',
+
+  'mart.blockedUsers.emptyTitle': 'You have not blocked anyone.',
+  'mart.blockedUsers.blockedAgo': 'Blocked {time}',
+  'mart.blockedUsers.unblock': 'Unblock',
+  'mart.blockedUsers.footerNote': 'Unblocking brings back your chats, but not follows.',
+
+  'mart.followers.emptyTitle': 'No followers yet. Buyers who follow your shop will show up here.',
+
+  'mart.followings.emptyTitle': "You are not following anyone yet. Tap Follow on a seller's profile to see them here.",
+  'mart.followings.footerHint': 'Tap Following to unfollow.',
+  'mart.followings.unfollowed': 'Unfollowed.',
+  'mart.followings.undo': 'Undo',
 }
 
 export default en

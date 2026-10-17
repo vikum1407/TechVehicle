@@ -94,10 +94,10 @@ export default function NotificationCenterScreen({ token, onBack, onNavigate }: 
     const today = items.filter(i => new Date(i.createdAt).toDateString() === todayStr)
     const earlier = items.filter(i => new Date(i.createdAt).toDateString() !== todayStr)
     return [
-      ...(today.length > 0 ? [{ title: 'TODAY', data: today }] : []),
-      ...(earlier.length > 0 ? [{ title: 'EARLIER', data: earlier }] : []),
+      ...(today.length > 0 ? [{ title: t('mart.notifCenter.todayHeader'), data: today }] : []),
+      ...(earlier.length > 0 ? [{ title: t('mart.notifCenter.earlierHeader'), data: earlier }] : []),
     ]
-  }, [items])
+  }, [items, t])
 
   return (
     <View style={styles.container}>
@@ -105,10 +105,10 @@ export default function NotificationCenterScreen({ token, onBack, onNavigate }: 
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>{t('mart.notifCenter.title')}</Text>
         {hasUnread ? (
           <TouchableOpacity onPress={markAllRead} disabled={markingAll} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text style={styles.markAllText}>{t('mart.notifCenter.markAllRead')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 22 }} />
@@ -118,9 +118,9 @@ export default function NotificationCenterScreen({ token, onBack, onNavigate }: 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
-        <MartEmptyState icon={{ lib: 'ion', name: 'notifications-outline' }} title="No notifications yet" />
+        <MartEmptyState icon={{ lib: 'ion', name: 'notifications-outline' }} title={t('mart.notifCenter.emptyTitle')} />
       ) : (
         <SectionList
           sections={sections}
@@ -143,7 +143,7 @@ export default function NotificationCenterScreen({ token, onBack, onNavigate }: 
                 {item.body ? <Text style={styles.cardBody} numberOfLines={2}>{item.body}</Text> : null}
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                <Text style={styles.cardTime}>{timeAgo((k: any, p: any) => defaultT(k, p), item.createdAt)}</Text>
+                <Text style={styles.cardTime}>{timeAgo(t, item.createdAt)}</Text>
                 {!item.read ? <View style={styles.unreadDot} /> : null}
               </View>
             </TouchableOpacity>
@@ -152,15 +152,6 @@ export default function NotificationCenterScreen({ token, onBack, onNavigate }: 
       )}
     </View>
   )
-}
-
-function defaultT(key: string, params?: Record<string, string | number>): string {
-  if (key === 'notifications.justNow') return 'Just now'
-  if (key === 'notifications.minsAgo') return `${params?.mins}m ago`
-  if (key === 'notifications.hoursAgo') return `${params?.hrs}h ago`
-  if (key === 'notifications.yesterday') return 'Yesterday'
-  if (key === 'notifications.daysAgo') return `${params?.days} days ago`
-  return ''
 }
 
 function makeStyles(c: Colors, topInset: number) {

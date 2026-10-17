@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, FlatList, ActivityIndicator, Style
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
@@ -10,6 +11,7 @@ import RatingBadge from '../../components/mart/RatingBadge'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import MartToast from '../../components/mart/MartToast'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 
 // Spec: 04-screens.md §18 "Followings — A Simple List". Milestone 2 Step 2.8. Tap a row
 // to open the Seller Public Profile (section 16, built Step 2.7); tap "Following" to
@@ -22,6 +24,7 @@ export default function FollowingsScreen({ token, onBack, onOpenSeller }: {
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [items, setItems] = useState<any[]>([])
@@ -81,18 +84,18 @@ export default function FollowingsScreen({ token, onBack, onOpenSeller }: {
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Followings</Text>
+        <Text style={styles.headerTitle}>{t('mart.myMart.followings')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: 'people-outline' }}
-          title="You are not following anyone yet. Tap Follow on a seller's profile to see them here."
+          title={t('mart.followings.emptyTitle')}
         />
       ) : (
         <>
@@ -108,7 +111,7 @@ export default function FollowingsScreen({ token, onBack, onOpenSeller }: {
               const isShop = item.seller.tag === 'shop'
               const areaLabel = isShop
                 ? item.townAddress
-                : (item.seller.district ? DISTRICTS.find(d => d.id === item.seller.district)?.en : null)
+                : (item.seller.district ? (() => { const d = DISTRICTS.find(x => x.id === item.seller.district); return d ? localizedLabel(language, d) : null })() : null)
               return (
                 <TouchableOpacity style={styles.row} onPress={() => onOpenSeller(item.seller.id)}>
                   {item.seller.photoUrl ? (
@@ -121,7 +124,7 @@ export default function FollowingsScreen({ token, onBack, onOpenSeller }: {
                   <View style={{ flex: 1 }}>
                     <View style={styles.nameRow}>
                       <Text style={styles.name} numberOfLines={1}>{item.seller.name}</Text>
-                      <MartTag label={isShop ? 'Shop' : 'Casual seller'} variant="gray" />
+                      <MartTag label={isShop ? t('mart.common.shop') : t('mart.common.casualSeller')} variant="gray" />
                     </View>
                     {areaLabel ? <Text style={styles.areaText}>{areaLabel}</Text> : null}
                     {item.seller.rating.count > 0 ? (
@@ -129,20 +132,20 @@ export default function FollowingsScreen({ token, onBack, onOpenSeller }: {
                     ) : null}
                   </View>
                   <TouchableOpacity style={styles.followingBtn} onPress={() => unfollow(item, index)}>
-                    <Text style={styles.followingBtnText}>Following</Text>
+                    <Text style={styles.followingBtnText}>{t('mart.common.following')}</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
               )
             }}
           />
-          <Text style={styles.footerHint}>Tap Following to unfollow.</Text>
+          <Text style={styles.footerHint}>{t('mart.followings.footerHint')}</Text>
         </>
       )}
 
       <MartToast
         visible={toastVisible}
-        message="Unfollowed."
-        actionLabel="Undo"
+        message={t('mart.followings.unfollowed')}
+        actionLabel={t('mart.followings.undo')}
         onAction={undoUnfollow}
         onHide={() => { setToastVisible(false); setUndo(null) }}
       />

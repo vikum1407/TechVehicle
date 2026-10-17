@@ -672,6 +672,24 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.thread.closedFulfilled': 'செய்தி அனுப்புதல் மூடப்பட்டது — இந்த கோரிக்கை பூர்த்தி செய்யப்பட்டது',
   'mart.thread.closedSold': 'செய்தி அனுப்புதல் மூடப்பட்டது — இந்த பொருள் விற்கப்பட்டது',
   'mart.thread.today': 'இன்று',
+
+  'mart.notifCenter.title': 'அறிவிப்புகள்',
+  'mart.notifCenter.markAllRead': 'அனைத்தையும் படித்ததாக குறி',
+  'mart.notifCenter.emptyTitle': 'இன்னும் அறிவிப்புகள் இல்லை',
+  'mart.notifCenter.todayHeader': 'இன்று',
+  'mart.notifCenter.earlierHeader': 'முன்னர்',
+
+  'mart.blockedUsers.emptyTitle': 'நீங்கள் யாரையும் தடுக்கவில்லை.',
+  'mart.blockedUsers.blockedAgo': 'தடுக்கப்பட்டது {time}',
+  'mart.blockedUsers.unblock': 'தடையை நீக்கு',
+  'mart.blockedUsers.footerNote': 'தடையை நீக்குவது உங்கள் அரட்டைகளைத் திரும்பக் கொண்டுவரும், ஆனால் பின்தொடர்தல்களை அல்ல.',
+
+  'mart.followers.emptyTitle': 'இன்னும் பின்தொடர்பவர்கள் இல்லை. உங்கள் கடையைப் பின்தொடரும் வாங்குபவர்கள் இங்கே தோன்றுவார்கள்.',
+
+  'mart.followings.emptyTitle': 'நீங்கள் இன்னும் யாரையும் பின்தொடரவில்லை. ஒரு விற்பனையாளரின் சுயவிவரத்தில் பின்தொடர்தலைத் தட்டி அவர்களை இங்கே காணவும்.',
+  'mart.followings.footerHint': 'பின்தொடர்தலை நிறுத்த பின்தொடர்கிறது என்பதைத் தட்டவும்.',
+  'mart.followings.unfollowed': 'பின்தொடராமல் நிறுத்தப்பட்டது.',
+  'mart.followings.undo': 'செயல்தவிர்',
 }
 
 export default ta

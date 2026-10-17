@@ -9,15 +9,6 @@ import AppIcon from '../../components/AppIcon'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import { timeAgo } from '../../utils/martHelpers'
 
-function defaultT(key: string, params?: Record<string, string | number>): string {
-  if (key === 'notifications.justNow') return 'Just now'
-  if (key === 'notifications.minsAgo') return `${params?.mins}m ago`
-  if (key === 'notifications.hoursAgo') return `${params?.hrs}h ago`
-  if (key === 'notifications.yesterday') return 'Yesterday'
-  if (key === 'notifications.daysAgo') return `${params?.days} days ago`
-  return ''
-}
-
 // Spec: 04-screens.md §20.3 "Blocked users list". Milestone 3 Step 3.2. No pagination —
 // GET /mart/blocks has no cursor (a blocked list is expected to stay short). DECISION
 // (overrides the mockup's own footer text, per the spec's own explicit note): chats DO
@@ -68,16 +59,16 @@ export default function BlockedUsersScreen({ token, onBack }: {
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Blocked users</Text>
+        <Text style={styles.headerTitle}>{t('mart.myMart.blockedUsers')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={load} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={load} />
       ) : items.length === 0 ? (
-        <MartEmptyState icon={{ lib: 'ion', name: 'person-remove-outline' }} title="You have not blocked anyone." />
+        <MartEmptyState icon={{ lib: 'ion', name: 'person-remove-outline' }} title={t('mart.blockedUsers.emptyTitle')} />
       ) : (
         <>
           <FlatList
@@ -92,15 +83,15 @@ export default function BlockedUsersScreen({ token, onBack }: {
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name} numberOfLines={1}>{item.seller.name}</Text>
-                  <Text style={styles.blockedAt}>Blocked {timeAgo((k: any, p: any) => defaultT(k, p), item.blockedAt)}</Text>
+                  <Text style={styles.blockedAt}>{t('mart.blockedUsers.blockedAgo', { time: timeAgo(t, item.blockedAt) })}</Text>
                 </View>
                 <TouchableOpacity style={styles.unblockBtn} disabled={busyId === item.seller.id} onPress={() => unblock(item)}>
-                  <Text style={styles.unblockBtnText}>Unblock</Text>
+                  <Text style={styles.unblockBtnText}>{t('mart.blockedUsers.unblock')}</Text>
                 </TouchableOpacity>
               </View>
             )}
           />
-          <Text style={styles.footerNote}>Unblocking brings back your chats, but not follows.</Text>
+          <Text style={styles.footerNote}>{t('mart.blockedUsers.footerNote')}</Text>
         </>
       )}
     </View>
