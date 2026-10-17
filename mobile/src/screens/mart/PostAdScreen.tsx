@@ -141,14 +141,24 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
 
     // Uploaded one by one, in order, per the spec — not in parallel.
     for (let i = 0; i < uris.length; i++) {
-      const compressed = await ImageManipulator.manipulateAsync(
-        uris[i],
-        [{ resize: { width: 1280 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      )
       const index = startIndex + i
-      setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, localUri: compressed.uri } : p)))
-      await uploadAt(index, compressed.uri)
+      try {
+        // 2026-10-17: manipulateAsync had no try/catch at all — a failure here (e.g. a
+        // picker-returned URI it can't open) threw unhandled and left this tile stuck
+        // invisible forever (localUri still ''), with no error shown. Still unresolved
+        // as of 2026-10-17 (traced so far to device-level OOM in the system Photo
+        // Picker's own thumbnail grid, not this code — see DECISIONS-MADE.md), but this
+        // error-surfacing fix is correct regardless of that root cause.
+        const compressed = await ImageManipulator.manipulateAsync(
+          uris[i],
+          [{ resize: { width: 1280 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        )
+        setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, localUri: compressed.uri } : p)))
+        await uploadAt(index, compressed.uri)
+      } catch (e: any) {
+        setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, uploading: false, error: e?.message || "Couldn't process this photo" } : p)))
+      }
     }
   }
 

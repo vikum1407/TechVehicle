@@ -4,6 +4,18 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-17 — Photo upload still broken on the dev phone after a restart; deferred, not fixed
+
+Investigated a repeat of "add a photo, it never shows" on `PostAdScreen` (Selling and Wanted both). `adb logcat` showed zero JS console output at all during the attempt — our own `addAssets()` code never ran — but real native `OutOfMemoryError`s from Glide (`Failed to allocate a 51MB allocation with ... 37MB until OOM`) inside the **system Photo Picker's own thumbnail grid** (confirmed via `adb shell dumpsys meminfo`: Vocksy ~295MB, Google Play Services ~135MB, plus Gmail/Drive/Docs/Search/Photos/keyboard all resident at once). Also reconfirmed the Oct 16 `legacy: true` fix no longer reliably prevents the GMS `PhotoPickerActivity` (the modern unified picker) from launching on this device/OS state — the flag doesn't force the old picker the way it did when first added.
+
+Asked Vikum to restart the phone and close other apps before retrying, on the theory this was transient memory pressure. **Retried after a full restart — same symptom.** Given that, this isn't simply "too many background apps right now" — it's either a lower memory ceiling than expected on this device even at rest, or the system Photo Picker module itself has a problem on this specific device/OS build that a restart doesn't clear. **Deferred at Vikum's call** ("it's ok... shall we move next") rather than investigated further this session.
+
+Kept the one real, independent bug found along the way: `addAssets()`'s `ImageManipulator.manipulateAsync()` call had no error handling at all — any failure there (whatever the cause) left that photo tile permanently stuck invisible (`localUri` never left `''`) with zero visible error, instead of showing the existing retry-on-error UI the tile already supports. Added a `try/catch` so a failure now surfaces a real error + retry, regardless of root cause. Removed the temporary `[PostAdDiag]` console logging used to diagnose this, now that the native-level cause (not a JS-reachable one) is understood.
+
+**Not yet investigated, worth trying next time this comes up:** whether the same failure reproduces on a different device (Motorola or Samsung J4, per [[test_devices]]) — if it's J5-specific, that's stronger evidence of a hardware/OS ceiling rather than something fixable from the app side at all.
+
+---
+
 ## 2026-10-17 — Milestone 3 Step 3.4: Account deletion + backups
 
 **Backend.** Extracted the deletion logic out of `scripts/deleteAccount.ts` into a shared `utils/accountDeletion.ts` (`deleteUserAccount(prisma, phone)`), so the CLI script and the new `DELETE /auth/account` route (authMiddleware + a tight rate limit: 3/hour, since it's irreversible) both call the same code rather than duplicating it. Implements 02-data-model.md §10 exactly: deletes `MartFavorite`/`MartFollow`/`MartBlock`/`MartSearchHistory`/`MartShopProfile`/`MartWantedAlert`/`MartSellerRating` by phone, `MartThread` where the phone is `otherPhone` (cascades `MartMessage`), then all `MartListing` owned by the phone (cascades favorites/threads/messages/ratings tied to those ads) — then the existing non-Mart deletion (vehicles/garage/notifications/user), unchanged. `MartReport` rows are deliberately kept per spec (investigation trail). Added best-effort R2 photo cleanup (a `DeleteObjectCommand` loop, same client pattern as `routes/uploads.ts`'s `makeR2Client()`, duplicated rather than imported since uploads.ts doesn't export it) — scoped only to the deleted ads' `photoUrls` and the shop logo, per spec; deliberately does NOT touch `User.profilePhotoUrl`, since that field predates Mart and is shared with the non-Mart app's own Profile screen.
