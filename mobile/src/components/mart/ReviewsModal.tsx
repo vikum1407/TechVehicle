@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../AppIcon'
 import MartBottomSheet from './MartBottomSheet'
 import MartEmptyState from './MartEmptyState'
@@ -13,7 +14,7 @@ export type ReviewSummary = { avg: number | null; count: number; distribution: R
 export type ReviewItem = { id: string; rating: number; comment: string | null; timeAgoLabel: string; listingTitle: string }
 
 export default function ReviewsModal({
-  visible, onClose, title = 'Reviews · Parts sales', summary, items, loading, onLoadMore,
+  visible, onClose, title, summary, items, loading, onLoadMore,
 }: {
   visible: boolean
   onClose: () => void
@@ -24,11 +25,12 @@ export default function ReviewsModal({
   onLoadMore?: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   return (
     <MartBottomSheet visible={visible} onClose={onClose} topOffset={120}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title}>{title ?? t('mart.common.reviewsPartsSales')}</Text>
 
       {loading && !summary ? (
         <ActivityIndicator style={{ marginVertical: 40 }} color={colors.primary} />
@@ -42,7 +44,7 @@ export default function ReviewsModal({
                   <AppIcon key={i} icon={{ lib: 'ion', name: i <= Math.round(summary.avg || 0) ? 'star' : 'star-outline' }} size={14} color={colors.accent} />
                 ))}
               </View>
-              <Text style={styles.countText}>{summary.count} reviews</Text>
+              <Text style={styles.countText}>{t('mart.common.reviewsCount', { count: summary.count })}</Text>
             </View>
             <View style={styles.barsBlock}>
               {(['5', '4', '3', '2', '1'] as const).map(k => {
@@ -76,13 +78,13 @@ export default function ReviewsModal({
                   <Text style={styles.reviewTime}>{item.timeAgoLabel}</Text>
                 </View>
                 {item.comment ? <Text style={styles.reviewComment}>{item.comment}</Text> : null}
-                <Text style={styles.reviewFor}>For: {item.listingTitle}</Text>
+                <Text style={styles.reviewFor}>{t('mart.common.reviewFor', { title: item.listingTitle })}</Text>
               </View>
             )}
           />
         </>
       ) : (
-        <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title="No reviews yet" />
+        <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title={t('mart.common.noReviewsYet')} />
       )}
     </MartBottomSheet>
   )

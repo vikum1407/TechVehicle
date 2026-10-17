@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
 import { api } from '../../config/api'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../../components/AppIcon'
 import MartListingRow from '../../components/mart/MartListingRow'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import { DISTRICTS } from '../../constants/districts'
-import { formatBudget } from '../../utils/martHelpers'
+import { formatBudget, localizedLabel } from '../../utils/martHelpers'
 
 type FavFilter = 'all' | 'available' | 'closed'
 
@@ -23,6 +24,7 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [filter, setFilter] = useState<FavFilter>('all')
@@ -70,17 +72,18 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
 
   const rowFor = (item: any) => {
     if (item.unavailable === 'removed') {
-      return { metaLine: '', statusTag: { label: 'Removed', variant: 'gray' as const }, grayedOut: true }
+      return { metaLine: '', statusTag: { label: t('mart.common.removed'), variant: 'gray' as const }, grayedOut: true }
     }
-    const districtLabel = DISTRICTS.find(d => d.id === item.district)?.en || item.district
-    const conditionLabel = item.condition === 'new' ? 'New' : item.condition === 'used' ? 'Used' : null
+    const district = DISTRICTS.find(d => d.id === item.district)
+    const districtLabel = district ? localizedLabel(language, district) : item.district
+    const conditionLabel = item.condition === 'new' ? t('mart.common.conditionNew') : item.condition === 'used' ? t('mart.common.conditionUsed') : null
     const metaLine = [districtLabel, conditionLabel].filter(Boolean).join(' · ')
-    if (item.unavailable === 'sold') return { metaLine, statusTag: { label: 'Sold', variant: 'gray' as const }, grayedOut: true }
-    if (item.status === 'reserved') return { metaLine, statusTag: { label: 'Reserved', variant: 'amber-soft' as const }, grayedOut: false }
+    if (item.unavailable === 'sold') return { metaLine, statusTag: { label: t('mart.common.sold'), variant: 'gray' as const }, grayedOut: true }
+    if (item.status === 'reserved') return { metaLine, statusTag: { label: t('mart.common.reserved'), variant: 'amber-soft' as const }, grayedOut: false }
     return { metaLine, statusTag: undefined, grayedOut: false }
   }
 
-  const emptyLabel = filter === 'all' ? null : 'Nothing here'
+  const emptyLabel = filter === 'all' ? null : t('mart.favorites.nothingHere')
 
   return (
     <View style={styles.container}>
@@ -88,12 +91,12 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Favorites</Text>
-        <Text style={styles.countText}>{count} saved</Text>
+        <Text style={styles.headerTitle}>{t('mart.favorites.title')}</Text>
+        <Text style={styles.countText}>{t('mart.favorites.savedCount', { count })}</Text>
       </View>
 
       <View style={styles.chipRow}>
-        {([['all', 'All'], ['available', 'Available'], ['closed', 'Sold / Removed']] as const).map(([key, label]) => (
+        {([['all', t('common.all')], ['available', t('mart.favorites.filterAvailable')], ['closed', t('mart.favorites.filterClosed')]] as const).map(([key, label]) => (
           <TouchableOpacity key={key} style={[styles.chip, filter === key && styles.chipActive]} onPress={() => setFilter(key)}>
             <Text style={[styles.chipText, filter === key && styles.chipTextActive]}>{label}</Text>
           </TouchableOpacity>
@@ -103,12 +106,12 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: 'heart-outline' }}
-          title={emptyLabel || 'No favorites yet. Tap the heart on any ad to save it.'}
-          actionLabel={emptyLabel ? undefined : 'Browse Mart'}
+          title={emptyLabel || t('mart.favorites.emptyAll')}
+          actionLabel={emptyLabel ? undefined : t('mart.favorites.browseMart')}
           onAction={emptyLabel ? undefined : onBack}
         />
       ) : (
@@ -128,7 +131,7 @@ export default function FavoritesScreen({ token, onBack, onOpenListing }: {
                 title={item.title}
                 coverUrl={item.coverUrl}
                 price={item.unavailable === 'removed' ? null : item.price}
-                priceText={item.unavailable !== 'removed' && item.type === 'wanted' ? formatBudget(item.budgetMin, item.budgetMax) : undefined}
+                priceText={item.unavailable !== 'removed' && item.type === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : undefined}
                 metaLine={row.metaLine}
                 statusTag={row.statusTag}
                 grayedOut={row.grayedOut}

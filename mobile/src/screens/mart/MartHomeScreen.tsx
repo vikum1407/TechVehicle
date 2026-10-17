@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Alert, Modal, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Modal, StyleSheet,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
@@ -13,7 +13,7 @@ import MartRequestCard from '../../components/mart/MartRequestCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { DISTRICTS } from '../../constants/districts'
-import { timeAgo } from '../../utils/martHelpers'
+import { timeAgo, localizedLabel } from '../../utils/martHelpers'
 import { MartFilters, DEFAULT_MART_FILTERS, activeFilterCount } from './FiltersScreen'
 import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
@@ -53,7 +53,7 @@ export default function MartHomeScreen({
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [martType, setMartType] = useState<MartType>('selling')
@@ -128,12 +128,13 @@ export default function MartHomeScreen({
     checkGate()
   }, [token])
 
+  const districtLabelFor = (id: string) => { const d = DISTRICTS.find(x => x.id === id); return d ? localizedLabel(language, d) : id }
+
   const toggleCategoryChip = (categoryId: string | null) => onFiltersChange({ ...filters, categoryId })
 
   const clearAll = () => { onFiltersChange(DEFAULT_MART_FILTERS); setSearchText(''); setSubmittedQuery('') }
 
   const filterCount = activeFilterCount(filters)
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
 
   // "Toggle, optimistic, revert on error. No navigation." (04-screens.md §1 Behavior)
   const toggleFavorite = async (item: Card) => {
@@ -174,7 +175,7 @@ export default function MartHomeScreen({
           <AppIcon icon={{ lib: 'ion', name: 'search' }} size={16} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder={martType === 'wanted' ? 'Search wanted requests…' : 'Search parts, brand, model…'}
+            placeholder={martType === 'wanted' ? t('mart.home.searchWanted') : t('mart.home.searchSelling')}
             placeholderTextColor={colors.textFaint}
             value={searchText}
             onChangeText={setSearchText}
@@ -201,7 +202,7 @@ export default function MartHomeScreen({
               onPress={() => setMartType(mt)}
             >
               <Text style={[styles.typeSwitchText, martType === mt && styles.typeSwitchTextActive]}>
-                {mt === 'selling' ? 'Selling' : 'Wanted'}
+                {mt === 'selling' ? t('mart.home.selling') : t('mart.home.wanted')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -222,7 +223,7 @@ export default function MartHomeScreen({
             style={[styles.chip, !filters.categoryId && styles.chipActive]}
             onPress={() => toggleCategoryChip(null)}
           >
-            <Text style={[styles.chipText, !filters.categoryId && styles.chipTextActive]}>All</Text>
+            <Text style={[styles.chipText, !filters.categoryId && styles.chipTextActive]}>{t('common.all')}</Text>
           </TouchableOpacity>
           {MART_CATEGORIES.map(item => (
             <TouchableOpacity
@@ -230,7 +231,7 @@ export default function MartHomeScreen({
               style={[styles.chip, filters.categoryId === item.id && styles.chipActive]}
               onPress={() => toggleCategoryChip(filters.categoryId === item.id ? null : item.id)}
             >
-              <Text style={[styles.chipText, filters.categoryId === item.id && styles.chipTextActive]}>{item.en}</Text>
+              <Text style={[styles.chipText, filters.categoryId === item.id && styles.chipTextActive]}>{localizedLabel(language, item)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -239,12 +240,12 @@ export default function MartHomeScreen({
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: martType === 'wanted' ? 'search-outline' : 'file-tray-outline' }}
-          title={martType === 'wanted' ? 'No requests yet' : 'No ads match your search'}
-          actionLabel={martType === 'wanted' ? 'Post a request' : (submittedQuery || filterCount > 0 ? 'Clear filters' : undefined)}
+          title={martType === 'wanted' ? t('mart.home.noRequests') : t('mart.home.noAdsMatch')}
+          actionLabel={martType === 'wanted' ? t('mart.home.postRequest') : (submittedQuery || filterCount > 0 ? t('mart.home.clearFilters') : undefined)}
           onAction={martType === 'wanted' ? () => onOpenPostAd('wanted') : (submittedQuery || filterCount > 0 ? clearAll : undefined)}
         />
       ) : martType === 'wanted' ? (
@@ -270,7 +271,7 @@ export default function MartHomeScreen({
               budgetMin={item.budgetMin}
               budgetMax={item.budgetMax}
               sellerName={item.seller.name}
-              districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
+              districtLabel={districtLabelFor(item.district)}
               ageLabel={timeAgo(t, item.postedAt)}
               repliesCount={item.repliesCount || 0}
               isOwner={!!myId && item.seller.id === myId}
@@ -300,7 +301,7 @@ export default function MartHomeScreen({
               coverUrl={item.coverUrl}
               price={item.price}
               condition={item.condition}
-              districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
+              districtLabel={districtLabelFor(item.district)}
               status={item.status === 'reserved' ? 'reserved' : 'available'}
               isFavorited={item.isFavorited}
               deliveryAvailable={item.deliveryAvailable}

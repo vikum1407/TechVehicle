@@ -121,7 +121,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
 
   const shareAd = (item: any) => {
     const districtLabel = DISTRICTS.find(d => d.id === item.district)?.en || item.district
-    const priceText = martType === 'wanted' ? formatBudget(item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')
+    const priceText = martType === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')
     const message = [item.title, priceText, districtLabel].filter(Boolean).join(' • ') + ' — on Vocksy Mart' + (STORE_URL ? `\n${STORE_URL}` : '')
     Share.share({ message })
   }
@@ -212,7 +212,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                  <Text style={styles.cardPrice}>{martType === 'wanted' ? formatBudget(item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')}</Text>
+                  <Text style={styles.cardPrice}>{martType === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')}</Text>
                   <Text style={styles.cardStats}>
                     {martType === 'wanted'
                       ? `${item.repliesCount ?? 0} replies · ${ageLabel(item)}`

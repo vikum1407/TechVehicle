@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
@@ -17,7 +18,7 @@ import MartReportSheet from './MartReportSheet'
 import MartBlockSheet from './MartBlockSheet'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
-import { openPhone, openWhatsApp, timeAgo, memberSinceLabel } from '../../utils/martHelpers'
+import { openPhone, openWhatsApp, timeAgo, memberSinceLabel, localizedLabel } from '../../utils/martHelpers'
 
 type ReviewsKind = 'parts' | 'service'
 type ReviewRow = { id: string; rating: number; comment: string | null; createdAt: string; listingTitle?: string }
@@ -41,6 +42,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [data, setData] = useState<any | null>(null)
@@ -140,7 +142,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     if (reviewsLoadedKind !== 'parts') loadReviews('parts')
   }
   const reviewItemsForModal: ReviewItem[] = reviewsItems.map(r => ({
-    id: r.id, rating: r.rating, comment: r.comment, timeAgoLabel: timeAgo((k: any, p: any) => defaultT(k, p), r.createdAt), listingTitle: r.listingTitle || '',
+    id: r.id, rating: r.rating, comment: r.comment, timeAgoLabel: timeAgo(t, r.createdAt), listingTitle: r.listingTitle || '',
   }))
 
   const toggleFollow = async () => {
@@ -153,7 +155,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       else await api.unfollowMartSeller(token, sellerId)
     } catch {
       setFollowing(!next)
-      Alert.alert('Something went wrong', 'Please try again.')
+      Alert.alert(t('mart.common.somethingWrong'), t('mart.common.pleaseTryAgain'))
     } finally {
       setFollowBusy(false)
     }
@@ -169,7 +171,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       await api.deleteMartBlock(token, sellerId)
       load()
     } catch (e: any) {
-      Alert.alert("Couldn't unblock", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.sellerProfile.couldntUnblock'), e.message || t('mart.common.checkConnectionRetry'))
     }
   }
 
@@ -180,12 +182,12 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const openMenu = () => {
     if (!data) return
     Alert.alert(data.seller.name, undefined, [
-      { text: 'Share profile', onPress: shareProfile },
+      { text: t('mart.common.shareProfile'), onPress: shareProfile },
       data.iBlockedThem
-        ? { text: 'Unblock user', onPress: () => setTimeout(unblockUser, 400) }
-        : { text: 'Block user', onPress: () => setTimeout(() => setBlockOpen(true), 400) },
-      { text: 'Report user', onPress: () => setTimeout(() => setReportOpen(true), 400) },
-      { text: 'Cancel', style: 'cancel' },
+        ? { text: t('mart.common.unblockUser'), onPress: () => setTimeout(unblockUser, 400) }
+        : { text: t('mart.common.blockUser'), onPress: () => setTimeout(() => setBlockOpen(true), 400) },
+      { text: t('mart.common.reportUser'), onPress: () => setTimeout(() => setReportOpen(true), 400) },
+      { text: t('common.cancel'), style: 'cancel' },
     ], { cancelable: true })
   }
   const shareProfile = () => {
@@ -197,7 +199,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>Profile</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>{t('mart.sellerProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}><ActivityIndicator color={colors.primary} /></View>
       </View>
     )
@@ -205,16 +207,18 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   if (notFound || !data) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>Profile</Text><View style={{ width: 22 }} /></View>
-        <View style={styles.centeredFlex}><Text style={styles.notAvailableText}>Not available</Text></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>{t('mart.sellerProfile.title')}</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.centeredFlex}><Text style={styles.notAvailableText}>{t('mart.common.notAvailable')}</Text></View>
       </View>
     )
   }
 
   const { seller, shop, memberSince, stats, serviceRating, isMe, iBlockedThem } = data
   const isShop = seller.tag === 'shop'
-  const districtLabel = seller.district ? DISTRICTS.find(d => d.id === seller.district)?.en : null
-  const shopAreaLabel = shop?.townAddress || (shop?.district ? DISTRICTS.find(d => d.id === shop.district)?.en : null)
+  const sellerDistrict = seller.district ? DISTRICTS.find(d => d.id === seller.district) : null
+  const districtLabel = sellerDistrict ? localizedLabel(language, sellerDistrict) : null
+  const shopDistrict = shop?.district ? DISTRICTS.find(d => d.id === shop.district) : null
+  const shopAreaLabel = shop?.townAddress || (shopDistrict ? localizedLabel(language, shopDistrict) : null)
 
   // `width` is only given for the Casual layout's fixed-width horizontal preview strip.
   // The 2-column grid cases (Shop's Ads tab, "see all") need `flex: 1` here instead of
@@ -228,7 +232,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
     <View key={item.id} style={width ? { width } : { flex: 1 }}>
       <MartListingCard
         title={item.title} coverUrl={item.coverUrl} price={item.price} condition={item.condition}
-        districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
+        districtLabel={(() => { const d = DISTRICTS.find(x => x.id === item.district); return d ? localizedLabel(language, d) : item.district })()}
         status={item.status === 'reserved' ? 'reserved' : 'available'}
         isFavorited={item.isFavorited} deliveryAvailable={item.deliveryAvailable}
         onPress={() => onOpenListing(item.id)}
@@ -242,11 +246,11 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       <View style={styles.container}>
         <View style={styles.header}>
           <BackBtn onBack={() => setShowAllAds(false)} colors={colors} />
-          <Text style={styles.headerTitle} numberOfLines={1}>{seller.name}'s ads</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{t('mart.sellerProfile.sellersAds', { name: seller.name })}</Text>
           <View style={{ width: 22 }} />
         </View>
         {ads.length === 0 ? (
-          <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title="No ads right now" />
+          <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title={t('mart.common.noAdsRightNow')} />
         ) : (
           <FlatList
             data={ads} keyExtractor={i => i.id} numColumns={2}
@@ -267,10 +271,10 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
         <View style={{ flexDirection: 'row', gap: 2 }}>
           {[1, 2, 3, 4, 5].map(i => <AppIcon key={i} icon={{ lib: 'ion', name: i <= r.rating ? 'star' : 'star-outline' }} size={12} color={colors.accent} />)}
         </View>
-        <Text style={styles.reviewTime}>{timeAgo((k: any, p: any) => defaultT(k, p), r.createdAt)}</Text>
+        <Text style={styles.reviewTime}>{timeAgo(t, r.createdAt)}</Text>
       </View>
       {r.comment ? <Text style={styles.reviewComment}>{r.comment}</Text> : null}
-      {r.listingTitle ? <Text style={styles.reviewFor}>For: {r.listingTitle}</Text> : null}
+      {r.listingTitle ? <Text style={styles.reviewFor}>{t('mart.common.reviewFor', { title: r.listingTitle })}</Text> : null}
     </View>
   )
 
@@ -287,7 +291,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       </View>
 
       {iBlockedThem ? (
-        <View style={styles.blockedBanner}><Text style={styles.blockedBannerText}>You've blocked this seller.</Text></View>
+        <View style={styles.blockedBanner}><Text style={styles.blockedBannerText}>{t('mart.sellerProfile.blockedBanner')}</Text></View>
       ) : null}
 
       {isShop ? (
@@ -302,13 +306,13 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
               <View style={{ flex: 1 }}>
                 <View style={styles.nameRow}>
                   <Text style={styles.name} numberOfLines={1}>{seller.name}</Text>
-                  <MartTag label="Shop" variant="amber-solid" />
+                  <MartTag label={t('mart.common.shop')} variant="amber-solid" />
                 </View>
                 {shopAreaLabel ? <Text style={styles.areaText}>{shopAreaLabel}</Text> : null}
                 <View style={{ marginTop: 4, gap: 2 }}>
-                  <RatingBadge avg={seller.rating.avg} count={seller.rating.count} label="Parts sales" onPress={() => setTab('reviews')} />
+                  <RatingBadge avg={seller.rating.avg} count={seller.rating.count} label={t('mart.common.partsSales')} onPress={() => setTab('reviews')} />
                   {serviceRating ? (
-                    <RatingBadge avg={serviceRating.avg} count={serviceRating.count} label="Service" onPress={() => { setReviewsKind('service'); setTab('reviews') }} />
+                    <RatingBadge avg={serviceRating.avg} count={serviceRating.count} label={t('mart.common.service')} onPress={() => { setReviewsKind('service'); setTab('reviews') }} />
                   ) : null}
                 </View>
               </View>
@@ -318,37 +322,37 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
               <View style={styles.contactRow}>
                 <TouchableOpacity style={styles.contactBtn} onPress={() => openPhone(shop.contactPhone)}>
                   <AppIcon icon={{ lib: 'ion', name: 'call-outline' }} size={15} color={colors.primary} />
-                  <Text style={styles.contactBtnText}>Call</Text>
+                  <Text style={styles.contactBtnText}>{t('mart.common.call')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.contactBtn} onPress={() => openWhatsApp(shop.contactPhone)}>
                   <AppIcon icon={{ lib: 'ion', name: 'logo-whatsapp' }} size={15} color={colors.primary} />
-                  <Text style={styles.contactBtnText}>WhatsApp</Text>
+                  <Text style={styles.contactBtnText}>{t('mart.common.whatsapp')}</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
             {shop?.about ? <Text style={styles.aboutText} numberOfLines={3}>{shop.about}</Text> : null}
             {(shop?.websiteUrl || shop?.googleMapsUrl) ? (
               <View style={styles.linksRow}>
-                {shop.websiteUrl ? <Text style={styles.linkText} onPress={() => Linking.openURL(shop.websiteUrl)}>Website</Text> : null}
-                {shop.googleMapsUrl ? <Text style={styles.linkText} onPress={() => Linking.openURL(shop.googleMapsUrl)}>Directions</Text> : null}
+                {shop.websiteUrl ? <Text style={styles.linkText} onPress={() => Linking.openURL(shop.websiteUrl)}>{t('mart.common.website')}</Text> : null}
+                {shop.googleMapsUrl ? <Text style={styles.linkText} onPress={() => Linking.openURL(shop.googleMapsUrl)}>{t('mart.common.directions')}</Text> : null}
               </View>
             ) : null}
           </View>
 
           <View style={styles.tabsRow}>
             <TouchableOpacity style={styles.tabBtn} onPress={() => setTab('ads')}>
-              <Text style={[styles.tabText, tab === 'ads' && styles.tabTextActive]}>Ads {stats.activeAds}</Text>
+              <Text style={[styles.tabText, tab === 'ads' && styles.tabTextActive]}>{t('mart.sellerProfile.adsTab', { count: stats.activeAds })}</Text>
               {tab === 'ads' ? <View style={styles.tabUnderline} /> : null}
             </TouchableOpacity>
             <TouchableOpacity style={styles.tabBtn} onPress={() => setTab('reviews')}>
-              <Text style={[styles.tabText, tab === 'reviews' && styles.tabTextActive]}>Reviews {stats.ratingCount}</Text>
+              <Text style={[styles.tabText, tab === 'reviews' && styles.tabTextActive]}>{t('mart.sellerProfile.reviewsTab', { count: stats.ratingCount })}</Text>
               {tab === 'reviews' ? <View style={styles.tabUnderline} /> : null}
             </TouchableOpacity>
           </View>
 
           {tab === 'ads' ? (
             ads.length === 0 ? (
-              <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title="No ads right now" />
+              <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title={t('mart.common.noAdsRightNow')} />
             ) : (
               <FlatList
                 data={ads} keyExtractor={i => i.id} numColumns={2}
@@ -364,10 +368,10 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
               {serviceRating ? (
                 <View style={styles.segmentRow}>
                   <TouchableOpacity style={[styles.segmentBtn, reviewsKind === 'parts' && styles.segmentBtnActive]} onPress={() => setReviewsKind('parts')}>
-                    <Text style={[styles.segmentText, reviewsKind === 'parts' && styles.segmentTextActive]}>Parts sales</Text>
+                    <Text style={[styles.segmentText, reviewsKind === 'parts' && styles.segmentTextActive]}>{t('mart.common.partsSales')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.segmentBtn, reviewsKind === 'service' && styles.segmentBtnActive]} onPress={() => setReviewsKind('service')}>
-                    <Text style={[styles.segmentText, reviewsKind === 'service' && styles.segmentTextActive]}>Service</Text>
+                    <Text style={[styles.segmentText, reviewsKind === 'service' && styles.segmentTextActive]}>{t('mart.common.service')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -381,7 +385,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
                       <View style={{ flexDirection: 'row', gap: 2 }}>
                         {[1, 2, 3, 4, 5].map(i => <AppIcon key={i} icon={{ lib: 'ion', name: i <= Math.round(reviewsSummary.avg || 0) ? 'star' : 'star-outline' }} size={14} color={colors.accent} />)}
                       </View>
-                      <Text style={styles.summaryCount}>{reviewsSummary.count} reviews</Text>
+                      <Text style={styles.summaryCount}>{t('mart.common.reviewsCount', { count: reviewsSummary.count })}</Text>
                     </View>
                     <View style={styles.barsBlock}>
                       {(['5', '4', '3', '2', '1'] as const).map(k => {
@@ -400,12 +404,12 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
                   {reviewsItems.map(reviewRow)}
                   {reviewsCursor ? (
                     <TouchableOpacity style={styles.loadMoreBtn} onPress={() => loadReviews(reviewsKind, reviewsCursor!, true)} disabled={reviewsLoading}>
-                      <Text style={styles.loadMoreText}>{reviewsLoading ? 'Loading…' : 'Load more'}</Text>
+                      <Text style={styles.loadMoreText}>{reviewsLoading ? t('mart.common.loadingEllipsis') : t('mart.common.loadMore')}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </>
               ) : (
-                <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title="No reviews yet" />
+                <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title={t('mart.common.noReviewsYet')} />
               )}
             </ScrollView>
           )}
@@ -420,8 +424,8 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
             )}
             <Text style={styles.name}>{seller.name}</Text>
             <View style={styles.chipsRow}>
-              <MartTag label="Casual seller" variant="gray" />
-              <Text style={styles.chipSep}>{districtLabel ? `${districtLabel} · ` : ''}{memberSinceLabel(memberSince)}</Text>
+              <MartTag label={t('mart.common.casualSeller')} variant="gray" />
+              <Text style={styles.chipSep}>{districtLabel ? `${districtLabel} · ` : ''}{memberSinceLabel(t, memberSince)}</Text>
             </View>
             <View style={{ marginTop: 10 }}>
               <RatingBadge avg={seller.rating.avg} count={seller.rating.count} onPress={openReviewsSheet} />
@@ -430,11 +434,11 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
           </View>
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Ads ({stats.activeAds})</Text>
-            {ads.length > 3 ? <TouchableOpacity onPress={() => setShowAllAds(true)}><Text style={styles.seeAll}>See all</Text></TouchableOpacity> : null}
+            <Text style={styles.sectionTitle}>{t('mart.sellerProfile.adsSection', { count: stats.activeAds })}</Text>
+            {ads.length > 3 ? <TouchableOpacity onPress={() => setShowAllAds(true)}><Text style={styles.seeAll}>{t('mart.common.seeAll')}</Text></TouchableOpacity> : null}
           </View>
           {ads.length === 0 ? (
-            <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title="No ads right now" />
+            <MartEmptyState icon={{ lib: 'ion', name: 'pricetags-outline' }} title={t('mart.common.noAdsRightNow')} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {ads.slice(0, 3).map(item => renderAdCard(item, 128))}
@@ -442,13 +446,13 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
           )}
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Reviews ({stats.ratingCount})</Text>
-            {stats.ratingCount > 0 ? <TouchableOpacity onPress={openReviewsSheet}><Text style={styles.seeAll}>See all</Text></TouchableOpacity> : null}
+            <Text style={styles.sectionTitle}>{t('mart.sellerProfile.reviewsSection', { count: stats.ratingCount })}</Text>
+            {stats.ratingCount > 0 ? <TouchableOpacity onPress={openReviewsSheet}><Text style={styles.seeAll}>{t('mart.common.seeAll')}</Text></TouchableOpacity> : null}
           </View>
           {casualPreviewReviews === null ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
           ) : casualPreviewReviews.length === 0 ? (
-            <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title="No reviews yet" />
+            <MartEmptyState icon={{ lib: 'ion', name: 'star-outline' }} title={t('mart.common.noReviewsYet')} />
           ) : (
             <View style={styles.reviewsPreviewCard}>
               {casualPreviewReviews.map(reviewRow)}
@@ -481,26 +485,12 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
         token={token}
         sellerId={sellerId}
         sellerName={seller.name}
-        sellerSubtitle={[districtLabel, isShop ? 'Shop' : 'Casual seller'].filter(Boolean).join(' · ')}
+        sellerSubtitle={[districtLabel, isShop ? t('mart.common.shop') : t('mart.common.casualSeller')].filter(Boolean).join(' · ')}
         onClose={() => setBlockOpen(false)}
         onDone={() => { setBlockOpen(false); load() }}
       />
     </View>
   )
-}
-
-// timeAgo() expects the app's i18n `t` function; this screen doesn't have access to a
-// translated-string context at the point reviewRow needs it, and review timestamps are
-// a minor display detail, not user-facing copy requiring translation yet (Mart stays
-// plain English until Step 3.7 per the established project-wide rule) — a tiny inline
-// formatter fallback avoids threading `t` through just for this.
-function defaultT(key: string, params?: Record<string, string | number>): string {
-  if (key === 'notifications.justNow') return 'Just now'
-  if (key === 'notifications.minsAgo') return `${params?.mins}m ago`
-  if (key === 'notifications.hoursAgo') return `${params?.hrs}h ago`
-  if (key === 'notifications.yesterday') return 'Yesterday'
-  if (key === 'notifications.daysAgo') return `${params?.days} days ago`
-  return ''
 }
 
 function BackBtn({ onBack, colors }: { onBack: () => void; colors: Colors }) {
@@ -512,13 +502,14 @@ function BackBtn({ onBack, colors }: { onBack: () => void; colors: Colors }) {
 }
 
 function FollowBtn({ following, busy, onPress, colors, styles, compact }: { following: boolean; busy: boolean; onPress: () => void; colors: Colors; styles: any; compact?: boolean }) {
+  const { t } = useTranslation()
   return (
     <TouchableOpacity
       style={[styles.followBtn, compact && styles.followBtnCompact, following && styles.followBtnActive]}
       onPress={onPress}
       disabled={busy}
     >
-      <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>{following ? 'Following' : 'Follow'}</Text>
+      <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>{following ? t('mart.common.following') : t('mart.common.follow')}</Text>
     </TouchableOpacity>
   )
 }

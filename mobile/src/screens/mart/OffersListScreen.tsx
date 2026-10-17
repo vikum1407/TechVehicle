@@ -64,7 +64,7 @@ export default function OffersListScreen({
       <View style={styles.subHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.subTitle} numberOfLines={1}>{title}</Text>
-          <Text style={styles.subBudget}>{formatBudget(budgetMin, budgetMax)}</Text>
+          <Text style={styles.subBudget}>{formatBudget(t, budgetMin, budgetMax)}</Text>
         </View>
         {!closed && items.length > 0 ? (
           <TouchableOpacity style={styles.fulfilledBtn} onPress={() => setWhoGaveItOpen(true)}>

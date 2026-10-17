@@ -2,9 +2,10 @@ import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../AppIcon'
 import MartTag from './MartTag'
-import { formatBudget } from '../../utils/martHelpers'
+import { formatBudget, localizedLabel } from '../../utils/martHelpers'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 
 // Spec: 04-screens.md §12 "Switch + Request Cards" — single-column list card for the
@@ -34,17 +35,19 @@ export default function MartRequestCard({
   onToggleFavorite: () => void
 }) {
   const colors = useColors()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   const vehicleLabel = make ? `${make}${model ? ` ${model}` : ''}${yearFrom ? ` ${yearFrom}${yearTo && yearTo !== yearFrom ? `–${yearTo}` : ''}` : ''}` : null
-  const categoryLabel = MART_CATEGORIES.find(c => c.id === categoryId)?.en || null
+  const cat = MART_CATEGORIES.find(c => c.id === categoryId)
+  const categoryLabel = cat ? localizedLabel(language, cat) : null
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
         <View style={styles.titleRowRight}>
-          {matchesYou ? <MartTag label="Matches you" variant="amber-soft" /> : null}
+          {matchesYou ? <MartTag label={t('mart.common.matchesYou')} variant="amber-soft" /> : null}
           {!isOwner ? (
             <TouchableOpacity onPress={onToggleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <AppIcon icon={{ lib: 'ion', name: isFavorited ? 'heart' : 'heart-outline' }} size={18} color={colors.accent} />
@@ -60,20 +63,20 @@ export default function MartRequestCard({
         </View>
       ) : null}
 
-      <Text style={styles.budgetLabel}>Budget</Text>
-      <Text style={styles.budget}>{formatBudget(budgetMin, budgetMax)}</Text>
+      <Text style={styles.budgetLabel}>{t('mart.common.budget')}</Text>
+      <Text style={styles.budget}>{formatBudget(t, budgetMin, budgetMax)}</Text>
 
       <Text style={styles.meta} numberOfLines={1}>
-        {sellerName} · {districtLabel} · {ageLabel} · {repliesCount} {repliesCount === 1 ? 'reply' : 'replies'}
+        {sellerName} · {districtLabel} · {ageLabel} · {repliesCount === 1 ? t('mart.common.repliesOne', { count: repliesCount }) : t('mart.common.repliesMany', { count: repliesCount })}
       </Text>
 
       {isOwner ? (
         <TouchableOpacity style={styles.outlinedBtn} onPress={onAction}>
-          <Text style={styles.outlinedBtnText}>Your request</Text>
+          <Text style={styles.outlinedBtnText}>{t('mart.common.yourRequest')}</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.navyBtn} onPress={onAction}>
-          <Text style={styles.navyBtnText}>I have this</Text>
+          <Text style={styles.navyBtnText}>{t('mart.common.iHaveThis')}</Text>
         </TouchableOpacity>
       )}
     </TouchableOpacity>

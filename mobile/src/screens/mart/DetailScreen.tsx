@@ -155,7 +155,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const handleShare = () => {
     if (!detail) return
     const districtLabel = DISTRICTS.find(d => d.id === detail.district)?.en || detail.district
-    const priceText = detail.type === 'wanted' ? formatBudget(detail.budgetMin, detail.budgetMax) : (detail.price !== null ? formatLKR(detail.price) : '')
+    const priceText = detail.type === 'wanted' ? formatBudget(t, detail.budgetMin, detail.budgetMax) : (detail.price !== null ? formatLKR(detail.price) : '')
     const message = [detail.title, priceText, districtLabel].filter(Boolean).join(' • ') + ' — on Vocksy Mart' + (STORE_URL ? `\n${STORE_URL}` : '')
     Share.share({ message })
   }
@@ -270,7 +270,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
               <Text style={styles.metaText}>Posted {timeAgo(t, detail.postedAt)}</Text>
               <Text style={styles.title}>{detail.title}</Text>
               <Text style={styles.budgetLabel}>Budget</Text>
-              <Text style={styles.price}>{formatBudget(detail.budgetMin, detail.budgetMax)}</Text>
+              <Text style={styles.price}>{formatBudget(t, detail.budgetMin, detail.budgetMax)}</Text>
             </>
           ) : (
             <>

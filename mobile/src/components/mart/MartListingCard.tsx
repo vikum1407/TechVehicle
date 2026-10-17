@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../AppIcon'
 import MartTag from './MartTag'
 import { formatLKR } from '../../utils/martHelpers'
@@ -23,6 +24,7 @@ export default function MartListingCard({
   onToggleFavorite: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   return (
@@ -41,12 +43,12 @@ export default function MartListingCard({
         </TouchableOpacity>
 
         {status === 'reserved' ? (
-          <View style={styles.reservedWrap}><MartTag label="Reserved" variant="amber-soft" /></View>
+          <View style={styles.reservedWrap}><MartTag label={t('mart.common.reserved')} variant="amber-soft" /></View>
         ) : null}
 
         {condition ? (
           <View style={styles.conditionWrap}>
-            <MartTag label={condition === 'new' ? 'New' : 'Used'} variant={condition === 'new' ? 'amber-soft' : 'gray'} />
+            <MartTag label={condition === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')} variant={condition === 'new' ? 'amber-soft' : 'gray'} />
           </View>
         ) : null}
 

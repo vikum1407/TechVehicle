@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import AppIcon from '../../components/AppIcon'
 import { api } from '../../config/api'
@@ -38,6 +39,7 @@ export default function OfferSheet({
   onSent: (threadId: string) => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [price, setPrice] = useState('')
@@ -56,7 +58,7 @@ export default function OfferSheet({
       const url = await api.uploadPhoto(token, localUri, 'mart')
       setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, url, uploading: false } : p)))
     } catch (e: any) {
-      setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, uploading: false, error: e.message || 'Upload failed' } : p)))
+      setPhotos(prev => prev.map((p, i) => (i === index ? { ...p, uploading: false, error: e.message || t('mart.common.uploadFailed') } : p)))
     }
   }
 
@@ -80,7 +82,7 @@ export default function OfferSheet({
     setIsPicking(true)
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
+      if (!permission.granted) { Alert.alert(t('mart.common.permissionNeeded'), t('mart.common.allowPhotoLibrary')); return }
       // legacy:true — see PostAdScreen.tsx's pickFromLibrary for why (a real on-device
       // "Uri lacks 'file' scheme" picker regression found 2026-10-16).
       const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], legacy: true, allowsMultipleSelection: true, selectionLimit: remainingSlots })
@@ -97,8 +99,8 @@ export default function OfferSheet({
   const reset = () => { setPrice(''); setNote(''); setPhotos([]); setError('') }
 
   const handleSend = async () => {
-    if (photos.some(p => p.uploading)) { setError('Wait for photos to finish uploading'); return }
-    if (photos.some(p => p.error)) { setError('Remove or retry the failed photo'); return }
+    if (photos.some(p => p.uploading)) { setError(t('mart.offer.waitForPhotos')); return }
+    if (photos.some(p => p.error)) { setError(t('mart.offer.retryFailedPhoto')); return }
     setSending(true)
     setError('')
     try {
@@ -115,7 +117,7 @@ export default function OfferSheet({
       // error text ("Please accept the Mart rules") instead of the real gate sheet.
       if (e.code === 'PROFILE_REQUIRED') { setGateStep('nameDistrict'); return }
       if (e.code === 'RULES_REQUIRED') { setGateStep('rules'); return }
-      setError(e.message || "Couldn't send. Check your connection and try again.")
+      setError(e.message || t('mart.offer.sendFailed'))
     } finally {
       setSending(false)
     }
@@ -124,7 +126,7 @@ export default function OfferSheet({
   return (
     <>
     <MartBottomSheet visible={visible && !gateStep} onClose={onClose} topOffset={140}>
-      <Text style={styles.title}>Send an offer</Text>
+      <Text style={styles.title}>{t('mart.offer.title')}</Text>
 
       <View style={styles.summaryBox}>
         <View style={{ flex: 1 }}>
@@ -132,25 +134,25 @@ export default function OfferSheet({
           <Text style={styles.summarySub}>{districtLabel} · {ownerName}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.summaryBudgetLabel}>Budget</Text>
-          <Text style={styles.summaryBudget}>{formatBudget(budgetMin, budgetMax)}</Text>
+          <Text style={styles.summaryBudgetLabel}>{t('mart.common.budget')}</Text>
+          <Text style={styles.summaryBudget}>{formatBudget(t, budgetMin, budgetMax)}</Text>
         </View>
       </View>
 
-      <Text style={styles.label}>Your price (optional)</Text>
+      <Text style={styles.label}>{t('mart.offer.yourPrice')}</Text>
       <View style={styles.priceRow}>
-        <Text style={styles.pricePrefix}>Rs.</Text>
+        <Text style={styles.pricePrefix}>{t('mart.common.rsPrefix')}</Text>
         <TextInput
           style={styles.priceInput}
-          placeholder="e.g. 28,000"
+          placeholder={t('mart.offer.pricePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={price}
-          onChangeText={t => setPrice(t.replace(/[^0-9]/g, '').slice(0, String(PRICE_MAX).length))}
+          onChangeText={v => setPrice(v.replace(/[^0-9]/g, '').slice(0, String(PRICE_MAX).length))}
           keyboardType="number-pad"
         />
       </View>
 
-      <Text style={styles.label}>Photos of the part (optional, up to {PHOTOS_MAX})</Text>
+      <Text style={styles.label}>{t('mart.offer.photosLabel', { max: PHOTOS_MAX })}</Text>
       <View style={styles.photoRow}>
         {photos.map((p, i) => (
           <View key={i} style={styles.photoTile}>
@@ -174,13 +176,13 @@ export default function OfferSheet({
         )}
       </View>
 
-      <Text style={styles.label}>Note (optional)</Text>
+      <Text style={styles.label}>{t('mart.common.noteOptional')}</Text>
       <TextInput
         style={styles.noteInput}
-        placeholder="Condition, fitment, delivery…"
+        placeholder={t('mart.offer.notePlaceholder')}
         placeholderTextColor={colors.textFaint}
         value={note}
-        onChangeText={t => setNote(t.slice(0, NOTE_MAX))}
+        onChangeText={v => setNote(v.slice(0, NOTE_MAX))}
         maxLength={NOTE_MAX}
         multiline
         numberOfLines={2}
@@ -189,10 +191,10 @@ export default function OfferSheet({
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} disabled={sending} onPress={handleSend}>
-        <Text style={styles.sendBtnText}>{sending ? 'Sending…' : 'Send offer'}</Text>
+        <Text style={styles.sendBtnText}>{sending ? t('mart.offer.sending') : t('mart.offer.sendOffer')}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onClose} disabled={sending}>
-        <Text style={styles.cancelText}>Cancel</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </TouchableOpacity>
     </MartBottomSheet>
 

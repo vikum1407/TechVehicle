@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../AppIcon'
 
 // "★ 4.8 (12)" everywhere a seller/garage rating is shown (seller rows, Detail, My Mart,
@@ -17,10 +18,11 @@ export default function RatingBadge({
   size?: 'normal' | 'small'
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, size), [colors, size])
 
   const content = count === 0 || avg === null ? (
-    <Text style={styles.noReviews}>No reviews yet</Text>
+    <Text style={styles.noReviews}>{t('mart.common.noReviewsYet')}</Text>
   ) : (
     <View style={styles.row}>
       <AppIcon icon={{ lib: 'ion', name: 'star' }} size={size === 'small' ? 13 : 15} color={colors.accent} />
