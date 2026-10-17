@@ -522,6 +522,7 @@ export default function App() {
                 onSellerFocusHandled={() => setFocusMartSellerId(null)}
                 resetSignal={martResetSignal}
                 onNavigateNotification={handleNotificationData}
+                onAccountDeleted={handleLogout}
               />
             )}
           </View>

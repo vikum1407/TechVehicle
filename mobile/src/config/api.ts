@@ -1111,6 +1111,18 @@ export const api = {
     return data
   },
 
+  // Step 3.4: permanently deletes the caller's own account (Mart + core app data).
+  // The typed "DELETE" confirm happens in MartEditProfileScreen before this is ever called.
+  deleteAccount: async (token: string) => {
+    const res = await fetch(`${API_URL}/auth/account`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to delete account')
+    return data
+  },
+
   savePushToken: async (token: string, pushToken: string) => {
     const res = await fetch(`${API_URL}/auth/push-token`, {
       method: 'POST',

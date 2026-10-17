@@ -9,22 +9,26 @@ import MartTag from '../../components/mart/MartTag'
 import RatingBadge from '../../components/mart/RatingBadge'
 import { openWhatsApp } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
-import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
+import DeleteAccountSheet from './DeleteAccountSheet'
 
-// Spec: 04-screens.md §8. Edit reuses Step 1.1's NameDistrictSheet (name + district
-// only — no photo picker here; the full Edit screen with a photo picker and the
-// account-deletion row stays Milestone 3, per Step 0.13's deferral). Favorites (Step
-// 1.7) and Followings (Step 2.8) open real screens now; Reviews stays "Coming soon" —
-// no dedicated "my own reviews" screen exists yet (Step 2.7 built the Seller Public
-// Profile's reviews, not a standalone "my reviews" list).
+// Spec: 04-screens.md §8 + §20. Edit opens the full MartEditProfileScreen (name,
+// district, profile photo) for non-shop users — Step 3.4 replaced the
+// name-and-district-only NameDistrictSheet this screen used before that step was
+// built. "Delete my account" (also Step 3.4) lives in the ABOUT group below, as its
+// own row, rather than nested inside Edit — Edit branches by tag (shop users go to
+// ShopProfileScreen instead), so a row inside MartEditProfileScreen would be
+// unreachable for Shop-tagged sellers. Favorites (Step 1.7) and Followings (Step 2.8)
+// open real screens now; Reviews stays "Coming soon" — no dedicated "my own reviews"
+// screen exists yet (Step 2.7 built the Seller Public Profile's reviews, not a
+// standalone "my reviews" list).
 //
 // "Mart rules" row added later (found missing while answering a question about it):
 // 04-screens.md §20.4 names "My Mart > Mart rules (read only)" as this screen's own
 // explicit second entry point into MartRulesScreen, alongside the first-action gate —
 // it was never wired in when My Mart itself was built, so there was no way to review
 // the rules again after accepting them once.
-export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings, onOpenFollowers, onOpenBlockedUsers }: {
+export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorites, onOpenShopProfile, onOpenFollowings, onOpenFollowers, onOpenBlockedUsers, onOpenEditProfile, onAccountDeleted }: {
   token: string
   onBack: () => void
   onOpenMyAds: () => void
@@ -33,6 +37,8 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
   onOpenFollowings: () => void
   onOpenFollowers: () => void
   onOpenBlockedUsers: () => void
+  onOpenEditProfile: () => void
+  onAccountDeleted: () => void
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
@@ -42,8 +48,8 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
   const [whatsapp, setWhatsapp] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [editVisible, setEditVisible] = useState(false)
   const [rulesVisible, setRulesVisible] = useState(false)
+  const [deleteVisible, setDeleteVisible] = useState(false)
 
   const load = async () => {
     setLoading(true); setError(false)
@@ -118,7 +124,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
               {me.serviceRating ? <RatingBadge avg={me.serviceRating.avg} count={me.serviceRating.count} label="Service" /> : null}
             </View>
           </View>
-          <TouchableOpacity style={styles.editBtn} onPress={() => (me.tag === 'shop' ? onOpenShopProfile() : setEditVisible(true))}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => (me.tag === 'shop' ? onOpenShopProfile() : onOpenEditProfile())}>
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -187,6 +193,13 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
             </View>
             <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.row, styles.rowDivider]} onPress={() => setDeleteVisible(true)}>
+            <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'trash-outline' }} size={18} color="#c0392b" /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowLabel, { color: '#c0392b' }]}>Delete my account</Text>
+            </View>
+            <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -194,15 +207,11 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
         <MartRulesScreen mode="readOnly" onBack={() => setRulesVisible(false)} />
       </Modal>
 
-      <NameDistrictSheet
-        visible={editVisible}
+      <DeleteAccountSheet
+        visible={deleteVisible}
         token={token}
-        initialName={me.displayName}
-        initialDistrict={me.district}
-        title="Edit profile"
-        continueLabel="Save"
-        onDone={() => { setEditVisible(false); load() }}
-        onClose={() => setEditVisible(false)}
+        onClose={() => setDeleteVisible(false)}
+        onDeleted={() => { setDeleteVisible(false); onAccountDeleted() }}
       />
     </View>
   )

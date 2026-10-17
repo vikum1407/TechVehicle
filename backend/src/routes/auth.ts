@@ -7,6 +7,8 @@ import { getJwtSecret } from '../utils/jwtSecret'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
 import { normalizePhone, isValidPhone } from '../utils/phone'
 import { NOTIFICATION_PREF_DEFAULTS, parsePrefs } from '../utils/notificationPrefs'
+import { checkRateLimit } from '../utils/rateLimit'
+import { deleteUserAccount } from '../utils/accountDeletion'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -259,6 +261,25 @@ router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
       res.status(409).json({ error: 'This email is already linked to another account' }); return
     }
     res.status(500).json({ error: 'Failed to save email' })
+  }
+})
+
+// DELETE /auth/account — Step 3.4. Permanently deletes the caller's own account:
+// all Mart data per 02-data-model.md §10 (MartReport rows kept, deliberately), all
+// vehicles/garage/notifications (existing deleteAccount.ts script behavior). The
+// typed "DELETE" confirmation happens client-side (04-screens.md §20) — this route
+// itself has no second confirmation step, just auth + a tight rate limit since it's
+// irreversible.
+router.delete('/account', authMiddleware, async (req: AuthRequest, res) => {
+  const limit = checkRateLimit('account-delete', req.phoneNumber!, 3, 60 * 60 * 1000)
+  if (!limit.allowed) { res.status(429).json({ error: 'Too many attempts. Please wait a while and try again.' }); return }
+  try {
+    const summary = await deleteUserAccount(prisma, req.phoneNumber!)
+    if (!summary) { res.status(404).json({ error: 'Account not found' }); return }
+    res.json({ ok: true })
+  } catch (error) {
+    console.error('delete account error:', error)
+    res.status(500).json({ error: 'Failed to delete account. Please try again.' })
   }
 })
 

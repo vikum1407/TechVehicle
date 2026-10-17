@@ -5,6 +5,7 @@ import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/Filters
 import PostAdScreen, { EditingListing } from './mart/PostAdScreen'
 import DetailScreen from './mart/DetailScreen'
 import MyMartScreen from './mart/MyMartScreen'
+import MartEditProfileScreen from './mart/MartEditProfileScreen'
 import MyAdsScreen from './mart/MyAdsScreen'
 import FavoritesScreen from './mart/FavoritesScreen'
 import ChatInboxScreen from './mart/ChatInboxScreen'
@@ -45,6 +46,7 @@ type MartStackEntry =
   | { screen: 'postAd'; editing?: EditingListing; initialType?: 'selling' | 'wanted' }
   | { screen: 'detail'; listingId: string }
   | { screen: 'myMart' }
+  | { screen: 'editProfile' }
   | { screen: 'shopProfile' }
   | { screen: 'myAds'; initialTab?: 'available' | 'reserved' | 'sold' }
   | { screen: 'favorites' }
@@ -63,9 +65,9 @@ type MartStackEntry =
 // (explicitly kept visible per §0.2's own list), not a full-screen detail flow.
 // 'notifications' is NOT included either — 04-screens.md §13 says explicitly "Bottom
 // bar visible."
-const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile']
+const FULL_SCREEN: MartStackEntry['screen'][] = ['filters', 'postAd', 'detail', 'thread', 'offers', 'shopProfile', 'sellerProfile', 'editProfile']
 
-export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled, resetSignal, onNavigateNotification }: {
+export default function MartNavigator({ onExit, token, onFullScreenChange, focusThreadId, onFocusHandled, focusListingId, onListingFocusHandled, focusMyAdsTab, onMyAdsFocusHandled, focusSellerId, onSellerFocusHandled, resetSignal, onNavigateNotification, onAccountDeleted }: {
   onExit: () => void
   token: string
   onFullScreenChange?: (isFullScreen: boolean) => void
@@ -81,6 +83,9 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
   // Step 2.9: App.tsx's own `handleNotificationData` passed straight through, reused
   // by NotificationCenterScreen so there's no third copy of the linkTo routing chain.
   onNavigateNotification: (linkTo: any) => void
+  // Step 3.4: App.tsx's own handleLogout, reused after a successful account deletion
+  // so Mart doesn't need its own separate "wipe local session" logic.
+  onAccountDeleted: () => void
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
@@ -235,6 +240,18 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
         onOpenFollowings={() => push({ screen: 'followings' })}
         onOpenFollowers={() => push({ screen: 'followers' })}
         onOpenBlockedUsers={() => push({ screen: 'blockedUsers' })}
+        onOpenEditProfile={() => push({ screen: 'editProfile' })}
+        onAccountDeleted={onAccountDeleted}
+      />
+    )
+  }
+
+  if (current.screen === 'editProfile') {
+    return (
+      <MartEditProfileScreen
+        token={token}
+        onBack={pop}
+        onSaved={pop}
       />
     )
   }
