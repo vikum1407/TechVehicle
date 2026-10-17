@@ -3,11 +3,12 @@ import { View, Text, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicat
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon, { AppIconSpec } from '../../components/AppIcon'
 import MartTag from '../../components/mart/MartTag'
 import RatingBadge from '../../components/mart/RatingBadge'
-import { openWhatsApp } from '../../utils/martHelpers'
+import { openWhatsApp, localizedLabel } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import MartRulesScreen from './MartRulesScreen'
 import DeleteAccountSheet from './DeleteAccountSheet'
@@ -42,6 +43,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
   const [me, setMe] = useState<any | null>(null)
@@ -65,36 +67,37 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
   }
   useEffect(() => { load() }, [])
 
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
+  const comingSoon = () => Alert.alert(t('mart.myMart.comingSoonTitle'), t('mart.myMart.comingSoonMessage'))
 
   if (loading) return <View style={[styles.container, styles.centered]}><ActivityIndicator color={colors.primary} /></View>
   if (error || !me) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>My Mart</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>{t('mart.myMart.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}>
-          <Text style={styles.errorText}>Couldn't load. Check your connection.</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>Try again</Text></TouchableOpacity>
+          <Text style={styles.errorText}>{t('mart.home.loadError')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>{t('common.retry')}</Text></TouchableOpacity>
         </View>
       </View>
     )
   }
 
-  const districtLabel = me.district ? DISTRICTS.find(d => d.id === me.district)?.en : null
-  const tagLabel = me.tag === 'shop' ? 'Shop' : 'Casual seller'
+  const meDistrict = me.district ? DISTRICTS.find(d => d.id === me.district) : null
+  const districtLabel = meDistrict ? localizedLabel(language, meDistrict) : null
+  const tagLabel = me.tag === 'shop' ? t('mart.common.shop') : t('mart.common.casualSeller')
 
   const activityRows: { icon: AppIconSpec; label: string; sub: string; onPress: () => void }[] = [
     {
-      icon: { lib: 'ion', name: 'pricetags-outline' }, label: 'My Ads',
-      sub: `${me.counts.available} available · ${me.counts.reserved} reserved · ${me.counts.sold} sold`,
+      icon: { lib: 'ion', name: 'pricetags-outline' }, label: t('mart.myAds.title'),
+      sub: t('mart.myMart.myAdsSub', { available: me.counts.available, reserved: me.counts.reserved, sold: me.counts.sold }),
       onPress: onOpenMyAds,
     },
-    { icon: { lib: 'ion', name: 'heart-outline' }, label: 'Favorites', sub: `${me.counts.favorites} saved ads`, onPress: onOpenFavorites },
-    { icon: { lib: 'ion', name: 'people-outline' }, label: 'Followings', sub: `${me.counts.followings} sellers and shops`, onPress: onOpenFollowings },
-    { icon: { lib: 'ion', name: 'person-add-outline' }, label: 'Followers', sub: `${me.counts.followers} people following you`, onPress: onOpenFollowers },
+    { icon: { lib: 'ion', name: 'heart-outline' }, label: t('mart.favorites.title'), sub: t('mart.myMart.favoritesSub', { count: me.counts.favorites }), onPress: onOpenFavorites },
+    { icon: { lib: 'ion', name: 'people-outline' }, label: t('mart.myMart.followings'), sub: t('mart.myMart.followingsSub', { count: me.counts.followings }), onPress: onOpenFollowings },
+    { icon: { lib: 'ion', name: 'person-add-outline' }, label: t('mart.myMart.followers'), sub: t('mart.myMart.followersSub', { count: me.counts.followers }), onPress: onOpenFollowers },
     {
-      icon: { lib: 'ion', name: 'star-outline' }, label: 'Reviews',
-      sub: me.counts.reviews > 0 ? `${me.counts.reviews} reviews from buyers` : 'Reviews appear after your first confirmed sale',
+      icon: { lib: 'ion', name: 'star-outline' }, label: t('mart.myMart.reviews'),
+      sub: me.counts.reviews > 0 ? t('mart.myMart.reviewsSub', { count: me.counts.reviews }) : t('mart.myMart.reviewsSubEmpty'),
       onPress: comingSoon,
     },
   ]
@@ -103,7 +106,7 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
     <View style={styles.container}>
       <View style={styles.header}>
         <BackBtn onBack={onBack} colors={colors} />
-        <Text style={styles.headerTitle}>My Mart</Text>
+        <Text style={styles.headerTitle}>{t('mart.myMart.title')}</Text>
         <View style={{ width: 22 }} />
       </View>
       <ScrollView contentContainerStyle={styles.body}>
@@ -115,17 +118,17 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
               <View style={styles.avatar}><Text style={styles.avatarText}>{(me.displayName || '?')[0]}</Text></View>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{me.displayName || 'Vocksy user'}</Text>
+              <Text style={styles.name}>{me.displayName || t('mart.myMart.vocksyUser')}</Text>
               <View style={styles.tagRow}>
                 <MartTag label={tagLabel} variant="gray" />
                 {districtLabel ? <Text style={styles.districtText}>· {districtLabel}</Text> : null}
               </View>
-              <RatingBadge avg={me.rating.avg} count={me.rating.count} label="Parts sales" />
-              {me.serviceRating ? <RatingBadge avg={me.serviceRating.avg} count={me.serviceRating.count} label="Service" /> : null}
+              <RatingBadge avg={me.rating.avg} count={me.rating.count} label={t('mart.common.partsSales')} />
+              {me.serviceRating ? <RatingBadge avg={me.serviceRating.avg} count={me.serviceRating.count} label={t('mart.common.service')} /> : null}
             </View>
           </View>
           <TouchableOpacity style={styles.editBtn} onPress={() => (me.tag === 'shop' ? onOpenShopProfile() : onOpenEditProfile())}>
-            <Text style={styles.editBtnText}>Edit</Text>
+            <Text style={styles.editBtnText}>{t('common.edit')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -133,12 +136,12 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
           <View style={styles.hintRow}>
             <AppIcon icon={{ lib: 'ion', name: 'storefront-outline' }} size={16} color={colors.primary} />
             <Text style={styles.hintText}>
-              Want a Shop profile? Register a Garage account, or post 5+ ads in 90 days to unlock one automatically.
+              {t('mart.myMart.shopHint')}
             </Text>
           </View>
         ) : null}
 
-        <Text style={styles.groupLabel}>MY ACTIVITY</Text>
+        <Text style={styles.groupLabel}>{t('mart.myMart.myActivity')}</Text>
         <View style={styles.groupCard}>
           {activityRows.map((row, i) => (
             <TouchableOpacity key={row.label} style={[styles.row, i > 0 && styles.rowDivider]} onPress={row.onPress}>
@@ -154,13 +157,13 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
 
         {whatsapp ? (
           <>
-            <Text style={styles.groupLabel}>HELP</Text>
+            <Text style={styles.groupLabel}>{t('mart.myMart.help')}</Text>
             <View style={styles.groupCard}>
               <TouchableOpacity style={styles.row} onPress={() => openWhatsApp(whatsapp)}>
                 <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'logo-whatsapp' }} size={18} color={colors.primary} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Customer Service</Text>
-                  <Text style={styles.rowSub}>Chat with us on WhatsApp</Text>
+                  <Text style={styles.rowLabel}>{t('mart.myMart.customerService')}</Text>
+                  <Text style={styles.rowSub}>{t('mart.myMart.chatOnWhatsapp')}</Text>
                 </View>
                 <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
               </TouchableOpacity>
@@ -170,13 +173,13 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
 
         {me.counts.blocked > 0 ? (
           <>
-            <Text style={styles.groupLabel}>PRIVACY</Text>
+            <Text style={styles.groupLabel}>{t('mart.myMart.privacy')}</Text>
             <View style={styles.groupCard}>
               <TouchableOpacity style={styles.row} onPress={onOpenBlockedUsers}>
                 <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'person-remove-outline' }} size={18} color={colors.primary} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>Blocked users</Text>
-                  <Text style={styles.rowSub}>{me.counts.blocked} blocked</Text>
+                  <Text style={styles.rowLabel}>{t('mart.myMart.blockedUsers')}</Text>
+                  <Text style={styles.rowSub}>{t('mart.myMart.blockedCount', { count: me.counts.blocked })}</Text>
                 </View>
                 <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
               </TouchableOpacity>
@@ -184,19 +187,19 @@ export default function MyMartScreen({ token, onBack, onOpenMyAds, onOpenFavorit
           </>
         ) : null}
 
-        <Text style={styles.groupLabel}>ABOUT</Text>
+        <Text style={styles.groupLabel}>{t('mart.myMart.about')}</Text>
         <View style={styles.groupCard}>
           <TouchableOpacity style={styles.row} onPress={() => setRulesVisible(true)}>
             <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'document-text-outline' }} size={18} color={colors.primary} /></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowLabel}>Mart rules</Text>
+              <Text style={styles.rowLabel}>{t('mart.myMart.martRules')}</Text>
             </View>
             <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.row, styles.rowDivider]} onPress={() => setDeleteVisible(true)}>
             <View style={styles.rowIconTile}><AppIcon icon={{ lib: 'ion', name: 'trash-outline' }} size={18} color="#c0392b" /></View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.rowLabel, { color: '#c0392b' }]}>Delete my account</Text>
+              <Text style={[styles.rowLabel, { color: '#c0392b' }]}>{t('mart.myMart.deleteMyAccount')}</Text>
             </View>
             <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
           </TouchableOpacity>

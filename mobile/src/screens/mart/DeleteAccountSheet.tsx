@@ -2,16 +2,9 @@ import React, { useMemo, useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import { api } from '../../config/api'
-
-const REMOVED = [
-  'All your Vocksy Mart ads, selling and wanted',
-  'All your chats and offers',
-  'Your ratings and reviews',
-  'Your favorites and follows',
-  'Your vehicles, service history and garage account, if any',
-]
 
 // Spec: 04-screens.md §20 "My Mart > Edit ... Delete account: warning text listing
 // what is removed ... a text field where the user types DELETE, a red button. Then
@@ -27,7 +20,16 @@ export default function DeleteAccountSheet({
   onDeleted: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
+
+  const REMOVED = [
+    t('mart.deleteAccount.removedAds'),
+    t('mart.deleteAccount.removedChats'),
+    t('mart.deleteAccount.removedRatings'),
+    t('mart.deleteAccount.removedFavorites'),
+    t('mart.deleteAccount.removedVehicles'),
+  ]
 
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -49,15 +51,15 @@ export default function DeleteAccountSheet({
       await api.deleteAccount(token)
       onDeleted()
     } catch (e: any) {
-      setError(e.message || "Couldn't delete your account. Check your connection and try again.")
+      setError(e.message || t('mart.deleteAccount.couldntDelete'))
       setDeleting(false)
     }
   }
 
   return (
     <MartBottomSheet visible={visible} onClose={handleClose} topOffset={220}>
-      <Text style={styles.title}>Delete your account?</Text>
-      <Text style={styles.warning}>This cannot be undone. This permanently removes:</Text>
+      <Text style={styles.title}>{t('mart.deleteAccount.title')}</Text>
+      <Text style={styles.warning}>{t('mart.deleteAccount.warning')}</Text>
 
       <View style={styles.bulletList}>
         {REMOVED.map(r => (
@@ -68,7 +70,7 @@ export default function DeleteAccountSheet({
         ))}
       </View>
 
-      <Text style={styles.label}>Type DELETE to confirm</Text>
+      <Text style={styles.label}>{t('mart.deleteAccount.typeToConfirm')}</Text>
       <TextInput
         style={styles.input}
         placeholder="DELETE"
@@ -83,10 +85,10 @@ export default function DeleteAccountSheet({
 
       <View style={styles.btnRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={deleting}>
-          <Text style={styles.cancelBtnText}>Cancel</Text>
+          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.deleteBtn, !canDelete && styles.deleteBtnDisabled]} onPress={doDelete} disabled={!canDelete}>
-          <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete my account'}</Text>
+          <Text style={styles.deleteBtnText}>{deleting ? t('mart.deleteAccount.deleting') : t('mart.myMart.deleteMyAccount')}</Text>
         </TouchableOpacity>
       </View>
     </MartBottomSheet>

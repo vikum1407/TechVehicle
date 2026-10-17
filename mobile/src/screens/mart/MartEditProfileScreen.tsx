@@ -8,10 +8,12 @@ import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import DistrictPickerScreen from './DistrictPickerScreen'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 
 const NAME_MIN = 2
 const NAME_MAX = 40
@@ -33,6 +35,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
 
   const [loading, setLoading] = useState(true)
@@ -65,7 +68,8 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
 
   const trimmedName = name.trim()
   const canSave = trimmedName.length >= NAME_MIN && trimmedName.length <= NAME_MAX && !!district && !saving && !photo.uploading
-  const districtLabel = district ? DISTRICTS.find(d => d.id === district)?.en : null
+  const selectedDistrict = district ? DISTRICTS.find(d => d.id === district) : null
+  const districtLabel = selectedDistrict ? localizedLabel(language, selectedDistrict) : null
 
   const uploadPhoto = async (localUri: string) => {
     setPhoto(prev => ({ ...prev, localUri, uploading: true, error: null }))
@@ -73,7 +77,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
       const url = await api.uploadPhoto(token, localUri, 'mart')
       setPhoto(prev => ({ ...prev, url, uploading: false }))
     } catch (e: any) {
-      setPhoto(prev => ({ ...prev, uploading: false, error: e.message || 'Upload failed' }))
+      setPhoto(prev => ({ ...prev, uploading: false, error: e.message || t('mart.common.uploadFailed') }))
     }
   }
 
@@ -84,7 +88,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
     setIsPicking(true)
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to change your profile photo.'); return }
+      if (!permission.granted) { Alert.alert(t('mart.common.permissionNeeded'), t('mart.editProfile.allowPhotoLibraryProfile')); return }
       const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], legacy: true })
       if (result.canceled || result.assets.length === 0) return
       const compressed = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width: 400 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG })
@@ -95,8 +99,8 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
   }
 
   const handleSave = async () => {
-    if (photo.uploading) { setSubmitError('Wait for the photo to finish uploading'); return }
-    if (photo.error) { setSubmitError('Remove or retry the failed photo'); return }
+    if (photo.uploading) { setSubmitError(t('mart.editProfile.waitForPhoto')); return }
+    if (photo.error) { setSubmitError(t('mart.offer.retryFailedPhoto')); return }
     if (!canSave) return
     setSaving(true)
     setSubmitError('')
@@ -108,7 +112,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
       })
       onSaved()
     } catch (e: any) {
-      setSubmitError(e.message || "Couldn't save. Check your connection and try again.")
+      setSubmitError(e.message || t('mart.editProfile.couldntSave'))
     } finally {
       setSaving(false)
     }
@@ -117,7 +121,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>Edit profile</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>{t('mart.editProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}><ActivityIndicator color={colors.primary} /></View>
       </View>
     )
@@ -126,10 +130,10 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
   if (loadError) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>Edit profile</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>{t('mart.editProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}>
-          <Text style={styles.errorText}>Couldn't load. Check your connection.</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>Try again</Text></TouchableOpacity>
+          <Text style={styles.errorText}>{t('mart.home.loadError')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>{t('common.retry')}</Text></TouchableOpacity>
         </View>
       </View>
     )
@@ -139,7 +143,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackBtn onBack={onBack} colors={colors} />
-        <Text style={styles.title}>Edit profile</Text>
+        <Text style={styles.title}>{t('mart.editProfile.title')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -163,25 +167,25 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
               ) : null}
             </View>
             <TouchableOpacity style={styles.changePhotoBtn} onPress={changePhotoPressed} disabled={isPicking}>
-              <Text style={styles.changePhotoBtnText}>Change photo</Text>
+              <Text style={styles.changePhotoBtnText}>{t('mart.editProfile.changePhoto')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>Your name</Text>
+          <Text style={styles.label}>{t('mart.editProfile.yourName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Kasun Perera"
+            placeholder={t('mart.editProfile.namePlaceholder')}
             placeholderTextColor={colors.textFaint}
             value={name}
-            onChangeText={t => setName(t.slice(0, NAME_MAX))}
+            onChangeText={v => setName(v.slice(0, NAME_MAX))}
             maxLength={NAME_MAX}
           />
-          <Text style={styles.hint}>Others will see your first name and last initial</Text>
+          <Text style={styles.hint}>{t('mart.editProfile.nameHint')}</Text>
 
-          <Text style={styles.label}>District</Text>
+          <Text style={styles.label}>{t('mart.detail.district')}</Text>
           <TouchableOpacity style={styles.input} onPress={() => setDistrictPickerOpen(true)}>
             <Text style={districtLabel ? styles.inputValueText : styles.inputPlaceholderText}>
-              {districtLabel || 'Select your district'}
+              {districtLabel || t('mart.editProfile.selectYourDistrict')}
             </Text>
           </TouchableOpacity>
 
@@ -189,7 +193,7 @@ export default function MartEditProfileScreen({ token, onBack, onSaved }: {
 
         <View style={styles.bottomBar}>
           <TouchableOpacity style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]} disabled={!canSave} onPress={handleSave}>
-            <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+            <Text style={styles.saveBtnText}>{saving ? t('mart.postAd.saving') : t('common.save')}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
