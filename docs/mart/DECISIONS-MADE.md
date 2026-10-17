@@ -4,6 +4,21 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-17 — Milestone 3 Step 3.7: si/ta strings + category/district labels (complete)
+
+Converted every Mart screen (28 files) and all 10 shared Mart components from hardcoded English JSX text to the `mart.*` i18n namespace in `en.ts`/`si.ts`/`ta.ts`. `en.ts` is authoritative (every key); `si.ts`'s own type (`Record<TranslationKey, string>`, not `Partial`) means it must have every key too, so it's fully complete; `ta.ts` stays `Partial` per the existing app-wide convention, but every new Mart key got a real Tamil translation anyway rather than leaving gaps — this step doesn't add to the pre-existing Tamil gap elsewhere in the app ([[tamil_translation_gap]]), only closes it for Mart's own ~250 new keys.
+
+**Infrastructure built along the way, not called out in the spec:**
+- `localizedLabel(language, item)` in `martHelpers.ts` — the single place that now decides which of `.en`/`.si`/`.ta` to show for a district or top-level category, replacing ~15 separate `.en`-only reads across screens. Category **sub-types** (e.g. "Pistons and rings") stay English-only by design — `02-data-model.md` §8.3's own shape has no si/ta field there, only on the 12 top-level categories.
+- `formatBudget()`/`memberSinceLabel()` in `martHelpers.ts` changed signature to take `t` as their first argument, matching `timeAgo()`'s existing pattern — required updating every call site (7 files) in the same pass to keep the build green.
+- `MART_RULES` (`mobile/src/constants/martRules.ts`) restructured to carry en/si/ta per rule, with a new `getLocalizedMartRules(language)` helper — this was the one piece of content that had never been touched at all before this step (the handoff package itself flagged it "English only for now — si/ta come in Step 3.7"). Same first-draft, Vikum-should-review status as the English wording always had (rule 7's "not responsible for disputes" line especially) — not a meaning change, so `MART_RULES_VERSION` was NOT bumped. Backend's own copy of `MART_RULES` stays English-only (comment updated to say why) since nothing ever actually serves that content to a client — only `MART_RULES_VERSION` on the backend is real.
+
+**Real dead code found and removed along the way** (not the point of this step, just encountered while reading through every screen): `MartHomeScreen`'s, `DetailScreen`'s, and `SellerProfileScreen`'s own unused `comingSoon()`/`defaultT()` stubs — leftover from steps before the real screens they stubbed existed. Also found and fixed the same `onChangeText={t => ...}` local-variable-shadows-the-translation-`t` bug in `OfferSheet`, `PostAdScreen`, `ShopProfileScreen`, `MartEditProfileScreen`, `NameDistrictSheet`, `MartReportSheet`, `RateSellerModal`, `FiltersScreen`, `VehiclePickerScreen` — all renamed to `v`.
+
+**Scope note:** this is UI text only. No backend changes, no schema changes, no new endpoints — purely additive to `en.ts`/`si.ts`/`ta.ts` plus the `mart.*`-prefixed replacements in the screen files themselves.
+
+---
+
 ## 2026-10-17 — Photo upload still broken on the dev phone after a restart; deferred, not fixed
 
 Investigated a repeat of "add a photo, it never shows" on `PostAdScreen` (Selling and Wanted both). `adb logcat` showed zero JS console output at all during the attempt — our own `addAssets()` code never ran — but real native `OutOfMemoryError`s from Glide (`Failed to allocate a 51MB allocation with ... 37MB until OOM`) inside the **system Photo Picker's own thumbnail grid** (confirmed via `adb shell dumpsys meminfo`: Vocksy ~295MB, Google Play Services ~135MB, plus Gmail/Drive/Docs/Search/Photos/keyboard all resident at once). Also reconfirmed the Oct 16 `legacy: true` fix no longer reliably prevents the GMS `PhotoPickerActivity` (the modern unified picker) from launching on this device/OS state — the flag doesn't force the old picker the way it did when first added.
