@@ -8,10 +8,12 @@ import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import DistrictPickerScreen from './DistrictPickerScreen'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 
 const NAME_MAX = 60
 const ABOUT_MAX = 300
@@ -32,6 +34,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
 
   const [loading, setLoading] = useState(true)
@@ -95,7 +98,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
       const url = await api.uploadPhoto(token, localUri, 'mart')
       setLogo(prev => ({ ...prev, url, uploading: false }))
     } catch (e: any) {
-      setLogo(prev => ({ ...prev, uploading: false, error: e.message || 'Upload failed' }))
+      setLogo(prev => ({ ...prev, uploading: false, error: e.message || t('mart.common.uploadFailed') }))
     }
   }
 
@@ -107,7 +110,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
     setIsPicking(true)
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to change your logo.'); return }
+      if (!permission.granted) { Alert.alert(t('mart.common.permissionNeeded'), t('mart.shopProfile.allowPhotoLibraryLogo')); return }
       // legacy:true — see PostAdScreen.tsx's pickFromLibrary for why (a real on-device
       // "Uri lacks 'file' scheme" picker regression found 2026-10-16).
       const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'], legacy: true })
@@ -119,21 +122,22 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
     }
   }
 
-  const districtLabel = district ? DISTRICTS.find(d => d.id === district)?.en : null
+  const selectedDistrict = district ? DISTRICTS.find(d => d.id === district) : null
+  const districtLabel = selectedDistrict ? localizedLabel(language, selectedDistrict) : null
 
   const validate = () => {
     const trimmedName = name.trim()
     const next: typeof errors = {}
-    if (trimmedName.length < 1) next.name = 'Enter a shop name'
-    if (!contactPhone.trim() || !/^0?7\d{8}$/.test(contactPhone.replace(/[\s-]/g, ''))) next.contactPhone = 'Enter a valid phone number'
-    if (!district) next.district = 'Select a district'
+    if (trimmedName.length < 1) next.name = t('mart.shopProfile.enterShopName')
+    if (!contactPhone.trim() || !/^0?7\d{8}$/.test(contactPhone.replace(/[\s-]/g, ''))) next.contactPhone = t('mart.shopProfile.enterValidPhone')
+    if (!district) next.district = t('mart.postAd.selectDistrictError')
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
   const handleSave = async () => {
-    if (logo.uploading) { setSubmitError('Wait for the logo to finish uploading'); return }
-    if (logo.error) { setSubmitError('Remove or retry the failed logo photo'); return }
+    if (logo.uploading) { setSubmitError(t('mart.shopProfile.waitForLogo')); return }
+    if (logo.error) { setSubmitError(t('mart.shopProfile.retryFailedLogo')); return }
     if (!validate()) return
     setSaving(true)
     setSubmitError('')
@@ -150,7 +154,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
       })
       onSaved()
     } catch (e: any) {
-      setSubmitError(e.message || "Couldn't save. Check your connection and try again.")
+      setSubmitError(e.message || t('mart.editProfile.couldntSave'))
     } finally {
       setSaving(false)
     }
@@ -159,7 +163,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>Shop details</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>{t('mart.shopProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}><ActivityIndicator color={colors.primary} /></View>
       </View>
     )
@@ -168,10 +172,10 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
   if (loadError || !eligible) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>Shop details</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.title}>{t('mart.shopProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}>
-          <Text style={styles.errorText}>{eligible ? "Couldn't load. Check your connection." : 'Only Shop sellers can set up a shop profile.'}</Text>
-          {!eligible ? null : <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>Try again</Text></TouchableOpacity>}
+          <Text style={styles.errorText}>{eligible ? t('mart.home.loadError') : t('mart.shopProfile.onlyShopSellers')}</Text>
+          {!eligible ? null : <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>{t('common.retry')}</Text></TouchableOpacity>}
         </View>
       </View>
     )
@@ -181,7 +185,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackBtn onBack={onBack} colors={colors} />
-        <Text style={styles.title}>Shop details</Text>
+        <Text style={styles.title}>{t('mart.shopProfile.title')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -191,7 +195,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
           <View style={styles.infoBox}>
             <AppIcon icon={{ lib: 'ion', name: 'business-outline' }} size={18} color={colors.primary} />
             <Text style={styles.infoBoxText}>
-              <Text style={{ fontWeight: '700' }}>Filled from your Garage.</Text> Changes here only affect your Mart shop. Your Garage details stay as they are.
+              <Text style={{ fontWeight: '700' }}>{t('mart.shopProfile.filledFromGarage')}</Text> {t('mart.shopProfile.garageNote')}
             </Text>
           </View>
         ) : null}
@@ -214,67 +218,67 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
             ) : null}
           </View>
           <TouchableOpacity style={styles.changeLogoBtn} onPress={changeLogoPressed} disabled={isPicking}>
-            <Text style={styles.changeLogoBtnText}>Change logo</Text>
+            <Text style={styles.changeLogoBtnText}>{t('mart.shopProfile.changeLogo')}</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Shop name</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.shopName')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. Perera Auto Spares"
+          placeholder={t('mart.shopProfile.shopNamePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={name}
-          onChangeText={t => setName(t.slice(0, NAME_MAX))}
+          onChangeText={v => setName(v.slice(0, NAME_MAX))}
           maxLength={NAME_MAX}
         />
         {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
 
-        <Text style={styles.label}>About your shop</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.aboutYourShop')}</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="What you sell, opening hours, anything buyers should know"
+          placeholder={t('mart.shopProfile.aboutPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={about}
-          onChangeText={t => setAbout(t.slice(0, ABOUT_MAX))}
+          onChangeText={v => setAbout(v.slice(0, ABOUT_MAX))}
           maxLength={ABOUT_MAX}
           multiline
           numberOfLines={3}
         />
 
-        <Text style={styles.label}>Phone / WhatsApp</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.phoneWhatsapp')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. 077 123 4567"
+          placeholder={t('mart.shopProfile.phonePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={contactPhone}
-          onChangeText={t => setContactPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
+          onChangeText={v => setContactPhone(v.replace(/[^0-9]/g, '').slice(0, 10))}
           keyboardType="number-pad"
           maxLength={10}
         />
         {errors.contactPhone ? <Text style={styles.errorText}>{errors.contactPhone}</Text> : null}
 
-        <Text style={styles.label}>District</Text>
+        <Text style={styles.label}>{t('mart.detail.district')}</Text>
         <TouchableOpacity style={styles.input} onPress={() => setDistrictPickerOpen(true)}>
           <Text style={districtLabel ? styles.inputValueText : styles.inputPlaceholderText}>
-            {districtLabel || 'Select your district'}
+            {districtLabel || t('mart.editProfile.selectYourDistrict')}
           </Text>
         </TouchableOpacity>
         {errors.district ? <Text style={styles.errorText}>{errors.district}</Text> : null}
 
-        <Text style={styles.label}>Town / address</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.townAddress')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. Nugegoda"
+          placeholder={t('mart.shopProfile.townPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={townAddress}
-          onChangeText={t => setTownAddress(t.slice(0, ADDRESS_MAX))}
+          onChangeText={v => setTownAddress(v.slice(0, ADDRESS_MAX))}
           maxLength={ADDRESS_MAX}
         />
 
-        <Text style={styles.label}>Website (optional)</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.websiteOptional')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. www.yourshop.lk"
+          placeholder={t('mart.shopProfile.websitePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={websiteUrl}
           onChangeText={setWebsiteUrl}
@@ -282,10 +286,10 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
           keyboardType="url"
         />
 
-        <Text style={styles.label}>Google Maps link (optional)</Text>
+        <Text style={styles.label}>{t('mart.shopProfile.mapsOptional')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Paste a Google Maps link"
+          placeholder={t('mart.shopProfile.mapsPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={googleMapsUrl}
           onChangeText={setGoogleMapsUrl}
@@ -295,8 +299,8 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
 
         <View style={styles.alertsRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Wanted request alerts</Text>
-            <Text style={styles.alertsHint}>Get notified of requests for your parts — coming soon</Text>
+            <Text style={styles.label}>{t('mart.shopProfile.wantedAlerts')}</Text>
+            <Text style={styles.alertsHint}>{t('mart.shopProfile.wantedAlertsHint')}</Text>
           </View>
           <Switch value={false} disabled trackColor={{ false: colors.borderMid, true: colors.primaryTint }} />
         </View>
@@ -304,7 +308,7 @@ export default function ShopProfileScreen({ token, onBack, onSaved }: {
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} disabled={saving} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('mart.postAd.saving') : t('common.save')}</Text>
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
