@@ -4,6 +4,22 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-17 — Milestone 3 Step 3.8: Hardening (in progress)
+
+**Indexes:** reviewed every Mart model's indexes against the actual query patterns in the route files (not just guessed). Found one real gap: `MartFollow` has `@@index([followerPhone, createdAt])` (the Followings-list direction) but nothing for the reverse — `GET /mart/follows/followers` (added Step 2.3, 2026-10-15, after this schema's own indexes were set in Step 0.8) filters `WHERE sellerPhone = me ORDER BY createdAt` with no matching index at all. Added `@@index([sellerPhone, createdAt])`. Schema validated and the Prisma client regenerated locally (both are local-only, no DB contact) — **the actual `prisma db push` against a live database was deliberately NOT run**, for the same reason as Step 3.4's own account-deletion code: this machine's local `backend/.env` is the one the top-level CLAUDE.md "every Codespace session" setup describes, which may hold production's real `DATABASE_URL` rather than the separate Mart-dev project's, and there's no way to tell from here which one it actually is. Needs either Vikum running the push himself, or giving the real Mart-dev `DATABASE_URL` to run inline without touching the `.env` file.
+
+Checked the other models too: `MartListing`'s `[ownerPhone, type, status]` index doesn't cover My Ads' own `postedAt` sort, and the feed's `price`/`budgetMax` sort modes have no dedicated index at all — both left alone deliberately rather than guessed at, since a single user's own ads or any one filtered feed page is still a small result set at current scale; worth revisiting only if something's actually noticed slow, per this step's own "add indexes noticed slow" framing (not "add indexes preemptively").
+
+**Rate limits:** reviewed every `MART_RATE_LIMITS` value against its real call pattern (not just the numbers in isolation) — all reasonable for how each action is actually triggered from the UI. The one endpoint with no rate limit of its own, `GET /mart/listings/count` (fired on every FiltersScreen adjustment, 400ms debounce), is still covered by the existing global per-IP backstop (600 req/5min) with comfortable headroom. No changes made.
+
+**Error/empty/offline states:** walked every Mart screen's own fetch/catch/error-state code (not a live network-off device test — that still needs doing, see mart_build_progress.md). Found and fixed two real gaps where a network failure was indistinguishable from a different, unrelated state:
+- `SellerProfileScreen`: any load failure (offline included) showed the same "Not available" text as a genuinely-deleted/blocked seller, with no retry at all. Now checks the `NOT_FOUND` code (already preserved by `apiFail()`) to tell the two apart — same pattern `DetailScreen`'s own `load()` already used for exactly this.
+- `WhoBoughtItSheet`: a failed buyers-list fetch silently rendered as an empty list — indistinguishable from "this ad never got a single reply" — with no error shown. Worse, it could nudge an owner into picking "Sold outside Vocksy" (meaning: nobody to rate) purely because the real list failed to load, not because it was actually empty. Now shows a real error + retry.
+
+Everything else checked (MyAdsScreen, FavoritesScreen, ChatInboxScreen, FollowersScreen/FollowingsScreen, NotificationCenterScreen, MartHomeScreen, OffersListScreen, etc.) already had a proper isError/retry path — confirmed, not assumed, by reading each one's actual catch block and render branch.
+
+---
+
 ## 2026-10-17 — Milestone 3 Step 3.7: si/ta strings + category/district labels (complete)
 
 Converted every Mart screen (28 files) and all 10 shared Mart components from hardcoded English JSX text to the `mart.*` i18n namespace in `en.ts`/`si.ts`/`ta.ts`. `en.ts` is authoritative (every key); `si.ts`'s own type (`Record<TranslationKey, string>`, not `Partial`) means it must have every key too, so it's fully complete; `ta.ts` stays `Partial` per the existing app-wide convention, but every new Mart key got a real Tamil translation anyway rather than leaving gaps — this step doesn't add to the pre-existing Tamil gap elsewhere in the app ([[tamil_translation_gap]]), only closes it for Mart's own ~250 new keys.
