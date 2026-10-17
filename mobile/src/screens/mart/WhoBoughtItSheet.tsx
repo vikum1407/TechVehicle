@@ -28,22 +28,31 @@ export default function WhoBoughtItSheet({
 
   const [buyers, setBuyers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [selected, setSelected] = useState<string | null>(null) // threadId, or 'outside'
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!visible) return
-    setSelected(null)
-    setError('')
+  const loadBuyers = () => {
     setLoading(true)
+    setLoadError(false)
     api.getMartBuyers(token, listingId)
       .then(r => {
         setBuyers(r.items)
         if (r.items.length === 0) setSelected('outside')
       })
-      .catch(() => setBuyers([]))
+      // Step 3.8: previously a failed fetch here (e.g. offline) silently showed an
+      // empty list — indistinguishable from "this ad genuinely got no replies" — and
+      // could nudge an owner into picking "Sold outside Vocksy" for the wrong reason.
+      .catch(() => { setBuyers([]); setLoadError(true) })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    if (!visible) return
+    setSelected(null)
+    setError('')
+    loadBuyers()
   }, [visible, listingId])
 
   const confirm = async () => {
@@ -71,6 +80,11 @@ export default function WhoBoughtItSheet({
 
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+      ) : loadError ? (
+        <View style={styles.loadErrorWrap}>
+          <Text style={styles.loadErrorText}>{t('mart.home.loadError')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={loadBuyers}><Text style={styles.retryBtnText}>{t('common.retry')}</Text></TouchableOpacity>
+        </View>
       ) : (
         <>
           {buyers.map(b => (
@@ -132,6 +146,10 @@ function makeStyles(c: Colors) {
   return StyleSheet.create({
     title: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 6 },
     help: { fontSize: 12.5, color: c.textMuted, marginBottom: 16, lineHeight: 18 },
+    loadErrorWrap: { alignItems: 'center', gap: 12, paddingVertical: 20 },
+    loadErrorText: { fontSize: 13.5, color: c.textMuted },
+    retryBtn: { backgroundColor: c.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 11 },
+    retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     row: {
       flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 10, padding: 12,
       borderWidth: 1, borderColor: c.border, marginBottom: 10,

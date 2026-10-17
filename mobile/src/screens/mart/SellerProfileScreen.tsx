@@ -48,6 +48,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const [data, setData] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [networkError, setNetworkError] = useState(false)
 
   const [following, setFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
@@ -70,7 +71,7 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
   const [blockOpen, setBlockOpen] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true); setNotFound(false)
+    setLoading(true); setNotFound(false); setNetworkError(false)
     try {
       const [profile, adsRes] = await Promise.all([
         api.getMartSeller(token, sellerId),
@@ -85,8 +86,13 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
           .then(r => setCasualPreviewReviews(r.items.slice(0, 2)))
           .catch(() => setCasualPreviewReviews([]))
       }
-    } catch {
-      setNotFound(true)
+    } catch (e: any) {
+      // Step 3.8: previously ANY failure here (including offline/a dropped connection)
+      // showed the same "Not available" text with no retry — indistinguishable from a
+      // genuinely-deleted seller. Same NOT_FOUND-code distinction DetailScreen's own
+      // load() already makes, via the code apiFail() preserves from the backend.
+      if (e.code === 'NOT_FOUND') setNotFound(true)
+      else setNetworkError(true)
     } finally {
       setLoading(false)
     }
@@ -201,6 +207,17 @@ export default function SellerProfileScreen({ token, sellerId, onBack, onOpenLis
       <View style={styles.container}>
         <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>{t('mart.sellerProfile.title')}</Text><View style={{ width: 22 }} /></View>
         <View style={styles.centeredFlex}><ActivityIndicator color={colors.primary} /></View>
+      </View>
+    )
+  }
+  if (networkError) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}><BackBtn onBack={onBack} colors={colors} /><Text style={styles.headerTitle}>{t('mart.sellerProfile.title')}</Text><View style={{ width: 22 }} /></View>
+        <View style={styles.centeredFlex}>
+          <Text style={styles.notAvailableText}>{t('mart.home.loadError')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}><Text style={styles.retryBtnText}>{t('common.retry')}</Text></TouchableOpacity>
+        </View>
       </View>
     )
   }
@@ -517,8 +534,10 @@ function FollowBtn({ following, busy, onPress, colors, styles, compact }: { foll
 function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    centeredFlex: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    centeredFlex: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     notAvailableText: { fontSize: 14, color: c.textMuted },
+    retryBtn: { backgroundColor: c.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 11 },
+    retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,

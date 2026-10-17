@@ -420,6 +420,10 @@ model MartFollow {
 
   @@unique([followerPhone, sellerPhone])
   @@index([followerPhone, createdAt])
+  // Step 3.8: GET /mart/follows/followers (added Step 2.3, 2026-10-15, after this
+  // schema's own indexes were set) filters WHERE sellerPhone = me ORDER BY createdAt —
+  // the followerPhone index above doesn't cover that direction at all.
+  @@index([sellerPhone, createdAt])
 }
 
 model MartBlock {
