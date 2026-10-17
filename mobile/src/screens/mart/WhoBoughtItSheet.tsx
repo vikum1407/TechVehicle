@@ -54,7 +54,7 @@ export default function WhoBoughtItSheet({
       await api.markMartSold(token, listingId, selected === 'outside' ? { outside: true } : { partnerThreadId: selected })
       onDone()
     } catch (e: any) {
-      setError(e.message || "Couldn't complete this. Check your connection and try again.")
+      setError(e.message || t('mart.whoBoughtIt.couldntComplete'))
     } finally {
       setSubmitting(false)
     }
@@ -62,11 +62,11 @@ export default function WhoBoughtItSheet({
 
   return (
     <MartBottomSheet visible={visible} onClose={onClose} topOffset={160}>
-      <Text style={styles.title}>{isSelling ? 'Who bought it?' : 'Who gave you the part?'}</Text>
+      <Text style={styles.title}>{isSelling ? t('mart.whoBoughtIt.whoBoughtIt') : t('mart.whoBoughtIt.whoGaveYouThePart')}</Text>
       <Text style={styles.help}>
         {isSelling
-          ? "Choose the buyer. They will be asked to confirm the purchase. Only a confirmed buyer can leave a review."
-          : "Choose the seller. They will be asked to confirm. Only a confirmed seller can be reviewed."}
+          ? t('mart.whoBoughtIt.helpSelling')
+          : t('mart.whoBoughtIt.helpWanted')}
       </Text>
 
       {loading ? (
@@ -86,7 +86,11 @@ export default function WhoBoughtItSheet({
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowName}>{b.name}</Text>
-                <Text style={styles.rowSub}>{b.messageCount} message{b.messageCount === 1 ? '' : 's'} · last chat {timeAgo(t, b.lastMessageAt)}</Text>
+                <Text style={styles.rowSub}>
+                  {b.messageCount === 1
+                    ? t('mart.whoBoughtIt.messagesOne', { count: b.messageCount, time: timeAgo(t, b.lastMessageAt) })
+                    : t('mart.whoBoughtIt.messagesMany', { count: b.messageCount, time: timeAgo(t, b.lastMessageAt) })}
+                </Text>
               </View>
               {selected === b.threadId ? <AppIcon icon={{ lib: 'ion', name: 'checkmark-circle' }} size={20} color={colors.primary} /> : null}
             </TouchableOpacity>
@@ -100,8 +104,8 @@ export default function WhoBoughtItSheet({
               <AppIcon icon={{ lib: 'ion', name: 'globe-outline' }} size={18} color={colors.textMuted} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowName}>{isSelling ? 'Sold outside Vocksy' : 'Got it outside Vocksy'}</Text>
-              <Text style={styles.rowSub}>Nobody here will be asked to confirm or review</Text>
+              <Text style={styles.rowName}>{isSelling ? t('mart.whoBoughtIt.soldOutside') : t('mart.whoBoughtIt.gotItOutside')}</Text>
+              <Text style={styles.rowSub}>{t('mart.whoBoughtIt.nobodyAskedToConfirm')}</Text>
             </View>
             {selected === 'outside' ? <AppIcon icon={{ lib: 'ion', name: 'checkmark-circle' }} size={20} color={colors.primary} /> : null}
           </TouchableOpacity>
@@ -115,10 +119,10 @@ export default function WhoBoughtItSheet({
         disabled={!selected || submitting}
         onPress={confirm}
       >
-        <Text style={styles.submitBtnText}>{submitting ? 'Saving…' : (isSelling ? 'Mark as Sold' : 'Mark as Fulfilled')}</Text>
+        <Text style={styles.submitBtnText}>{submitting ? t('mart.postAd.saving') : (isSelling ? t('mart.whoBoughtIt.markAsSold') : t('mart.whoBoughtIt.markAsFulfilled'))}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onClose} disabled={submitting}>
-        <Text style={styles.cancelText}>Cancel</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </TouchableOpacity>
     </MartBottomSheet>
   )

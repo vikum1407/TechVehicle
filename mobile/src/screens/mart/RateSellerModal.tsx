@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import AppIcon from '../../components/AppIcon'
 import { api } from '../../config/api'
 
@@ -23,6 +24,7 @@ export default function RateSellerModal({
   onDone: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [rating, setRating] = useState(0)
@@ -49,7 +51,7 @@ export default function RateSellerModal({
         // real success), which once hid a genuine bug: the wrong person (the Wanted
         // seller instead of the requester) could tap this repeatedly and every attempt
         // "succeeded" in the UI even though the backend correctly 404'd every one.
-        setError(e.code === 'ALREADY_RATED' ? "You've already rated this seller." : (e.message || "Couldn't submit."))
+        setError(e.code === 'ALREADY_RATED' ? t('mart.rateSeller.alreadyRated') : (e.message || t('mart.rateSeller.couldntSubmit')))
         return
       }
       // No code = a pure connectivity failure, not a specific rejection — rating is a
@@ -71,8 +73,8 @@ export default function RateSellerModal({
           <View style={styles.overlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.card}>
-                <Text style={styles.title}>Purchase confirmed</Text>
-                <Text style={styles.subtitle}>How was your experience with {sellerName}?</Text>
+                <Text style={styles.title}>{t('mart.rateSeller.purchaseConfirmed')}</Text>
+                <Text style={styles.subtitle}>{t('mart.rateSeller.howWasExperience', { name: sellerName })}</Text>
 
                 <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map(n => (
@@ -85,8 +87,8 @@ export default function RateSellerModal({
                 <TextInput
                   style={styles.commentInput}
                   value={comment}
-                  onChangeText={t => setComment(t.slice(0, COMMENT_MAX))}
-                  placeholder="Add a comment (optional)"
+                  onChangeText={v => setComment(v.slice(0, COMMENT_MAX))}
+                  placeholder={t('mart.rateSeller.addCommentOptional')}
                   placeholderTextColor={colors.textFaint}
                   multiline
                   numberOfLines={3}
@@ -96,14 +98,14 @@ export default function RateSellerModal({
 
                 <View style={styles.btnRow}>
                   <TouchableOpacity style={styles.skipBtn} onPress={skip} disabled={submitting}>
-                    <Text style={styles.skipBtnText}>Skip</Text>
+                    <Text style={styles.skipBtnText}>{t('mart.rateSeller.skip')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.submitBtn, (rating === 0 || submitting) && styles.submitBtnDisabled]}
                     onPress={submit}
                     disabled={rating === 0 || submitting}
                   >
-                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Submit</Text>}
+                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>{t('mart.rateSeller.submit')}</Text>}
                   </TouchableOpacity>
                 </View>
               </View>

@@ -2,20 +2,12 @@ import React, { useMemo, useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import AppIcon from '../../components/AppIcon'
 import { api } from '../../config/api'
 
 const NOTE_MAX = 300
-
-const REASONS: { id: string; label: string; sub: string; adHidden?: boolean }[] = [
-  { id: 'scam', label: 'Scam or fraud', sub: 'Asks for money first, fake seller' },
-  { id: 'fake', label: 'Fake or misleading ad', sub: 'Wrong photos, counterfeit part' },
-  { id: 'prohibited', label: 'Prohibited item', sub: 'Stolen or illegal parts' },
-  { id: 'spam', label: 'Spam or duplicate', sub: 'Same ad many times, unrelated' },
-  { id: 'abuse', label: 'Abusive messages', sub: 'Threats or harassment in chat', adHidden: true },
-  { id: 'other', label: 'Something else', sub: 'Tell us in a few words' },
-]
 
 // Spec: 04-screens.md §20.1 "Report sheet (A Reason List Sheet)". Milestone 3 Step 3.1.
 // Shared component, opened from Ad detail, Wanted ad detail, Seller public profile and
@@ -36,7 +28,17 @@ export default function MartReportSheet({
   onBlock?: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
+
+  const REASONS: { id: string; label: string; sub: string; adHidden?: boolean }[] = [
+    { id: 'scam', label: t('mart.report.scamLabel'), sub: t('mart.report.scamSub') },
+    { id: 'fake', label: t('mart.report.fakeLabel'), sub: t('mart.report.fakeSub') },
+    { id: 'prohibited', label: t('mart.report.prohibitedLabel'), sub: t('mart.report.prohibitedSub') },
+    { id: 'spam', label: t('mart.report.spamLabel'), sub: t('mart.report.spamSub') },
+    { id: 'abuse', label: t('mart.report.abuseLabel'), sub: t('mart.report.abuseSub'), adHidden: true },
+    { id: 'other', label: t('mart.report.otherLabel'), sub: t('mart.report.otherSub') },
+  ]
 
   const [reason, setReason] = useState<string | null>(null)
   const [note, setNote] = useState('')
@@ -63,15 +65,15 @@ export default function MartReportSheet({
       setAlreadyReported(result.code === 'ALREADY_REPORTED')
       setSent(true)
     } catch (e: any) {
-      setError(e.message || "Couldn't send report. Check your connection and try again.")
+      setError(e.message || t('mart.report.couldntSend'))
     } finally {
       setSending(false)
     }
   }
 
   const title = targetType === 'user' || targetType === 'message'
-    ? 'Report this user'
-    : targetType === 'wanted' ? 'Report this request' : 'Report this ad'
+    ? t('mart.report.reportThisUser')
+    : targetType === 'wanted' ? t('mart.report.reportThisRequest') : t('mart.report.reportThisAd')
 
   if (sent) {
     return (
@@ -80,19 +82,19 @@ export default function MartReportSheet({
           <View style={styles.sentIconCircle}>
             <AppIcon icon={{ lib: 'ion', name: 'checkmark' }} size={28} color="#fff" />
           </View>
-          <Text style={styles.sentTitle}>{alreadyReported ? 'Already reported' : 'Report sent'}</Text>
+          <Text style={styles.sentTitle}>{alreadyReported ? t('mart.report.alreadyReported') : t('mart.report.reportSent')}</Text>
           <Text style={styles.sentBody}>
             {alreadyReported
-              ? "You've already reported this recently — our team has it."
-              : 'Thank you. We will look at it. You will not get a reply for each report.'}
+              ? t('mart.report.alreadyReportedBody')
+              : t('mart.report.reportSentBody')}
           </Text>
           {onBlock ? (
             <TouchableOpacity style={styles.blockBtn} onPress={() => { reset(); onBlock() }}>
-              <Text style={styles.blockBtnText}>Also block</Text>
+              <Text style={styles.blockBtnText}>{t('mart.report.alsoBlock')}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity style={styles.doneBtn} onPress={finish}>
-            <Text style={styles.doneBtnText}>Done</Text>
+            <Text style={styles.doneBtnText}>{t('mart.report.done')}</Text>
           </TouchableOpacity>
         </View>
       </MartBottomSheet>
@@ -102,7 +104,7 @@ export default function MartReportSheet({
   return (
     <MartBottomSheet visible={visible} onClose={close} topOffset={150}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subLine}>What is wrong? Only Vocksy sees your report.</Text>
+      <Text style={styles.subLine}>{t('mart.report.subLine')}</Text>
 
       {visibleReasons.map(r => (
         <TouchableOpacity key={r.id} style={styles.reasonRow} onPress={() => setReason(r.id)}>
@@ -119,10 +121,10 @@ export default function MartReportSheet({
       {reason === 'other' ? (
         <TextInput
           style={styles.noteInput}
-          placeholder="Tell us what's wrong"
+          placeholder={t('mart.report.notePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={note}
-          onChangeText={t => setNote(t.slice(0, NOTE_MAX))}
+          onChangeText={v => setNote(v.slice(0, NOTE_MAX))}
           maxLength={NOTE_MAX}
           multiline
           numberOfLines={3}
@@ -131,7 +133,7 @@ export default function MartReportSheet({
 
       <View style={styles.disputeBox}>
         <Text style={styles.disputeText}>
-          Vocksy cannot settle price or quality disagreements between buyers and sellers. Report scams, fakes and prohibited items only.
+          {t('mart.report.disputeText')}
         </Text>
       </View>
 
@@ -139,10 +141,10 @@ export default function MartReportSheet({
 
       <View style={styles.btnRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={close} disabled={sending}>
-          <Text style={styles.cancelBtnText}>Cancel</Text>
+          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]} onPress={send} disabled={!canSend}>
-          <Text style={styles.sendBtnText}>{sending ? 'Sending…' : 'Send report'}</Text>
+          <Text style={styles.sendBtnText}>{sending ? t('mart.report.sending') : t('mart.report.sendReport')}</Text>
         </TouchableOpacity>
       </View>
     </MartBottomSheet>

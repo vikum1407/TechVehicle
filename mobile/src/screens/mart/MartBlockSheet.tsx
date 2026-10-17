@@ -2,15 +2,9 @@ import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import MartBottomSheet from '../../components/mart/MartBottomSheet'
 import { api } from '../../config/api'
-
-const CONSEQUENCES = [
-  'Their ads are hidden from you, and yours from them',
-  'Chats with them are hidden and you cannot message each other',
-  'Follows between you are removed',
-  'They are not told that you blocked them',
-]
 
 // Spec: 04-screens.md §20.2 "Block (B Consequences Sheet)". Milestone 3 Step 3.2.
 // Shared component, opened from Seller public profile, Ad/Wanted detail, Chat thread
@@ -29,7 +23,15 @@ export default function MartBlockSheet({
   onDone: () => void
 }) {
   const colors = useColors()
+  const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
+
+  const CONSEQUENCES = [
+    t('mart.block.consequence1'),
+    t('mart.block.consequence2'),
+    t('mart.block.consequence3'),
+    t('mart.block.consequence4'),
+  ]
 
   const [blocking, setBlocking] = useState(false)
   const [error, setError] = useState('')
@@ -41,7 +43,7 @@ export default function MartBlockSheet({
       await api.postMartBlock(token, sellerId)
       onDone()
     } catch (e: any) {
-      setError(e.message || "Couldn't block. Check your connection and try again.")
+      setError(e.message || t('mart.block.couldntBlock'))
     } finally {
       setBlocking(false)
     }
@@ -52,7 +54,7 @@ export default function MartBlockSheet({
       <View style={styles.headerRow}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{(sellerName || '?')[0]}</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Block {sellerName}?</Text>
+          <Text style={styles.title}>{t('mart.block.blockConfirm', { name: sellerName })}</Text>
           {sellerSubtitle ? <Text style={styles.subtitle}>{sellerSubtitle}</Text> : null}
         </View>
       </View>
@@ -70,10 +72,10 @@ export default function MartBlockSheet({
 
       <View style={styles.btnRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={blocking}>
-          <Text style={styles.cancelBtnText}>Cancel</Text>
+          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.blockBtn, blocking && styles.blockBtnDisabled]} onPress={block} disabled={blocking}>
-          <Text style={styles.blockBtnText}>{blocking ? 'Blocking…' : 'Block user'}</Text>
+          <Text style={styles.blockBtnText}>{blocking ? t('mart.block.blocking') : t('mart.common.blockUser')}</Text>
         </TouchableOpacity>
       </View>
     </MartBottomSheet>
