@@ -78,7 +78,33 @@ function makeR2Client() {
 // POST /uploads/photo — upload a single photo, returns { url }
 // Step 0.12: optional `folder` field, whitelist of exactly "mart" (anything else -> 400).
 // Omitting it keeps the exact original behavior (scope, limit, key prefix) unchanged.
-router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
+//
+// Security audit 2026-10-17: `upload.single('photo')` used to run as ordinary Express
+// middleware (`router.post('/photo', upload.single('photo'), async (req, res) => ...)`).
+// When multer's own `fileFilter`/`limits` rejects a request (wrong mimetype, >5MB), it
+// calls `next(err)` instead of continuing — which skips this route handler entirely and
+// falls through to Express's built-in default error handler, since this app registers no
+// error-handling middleware of its own anywhere. That default handler doesn't return the
+// same `{ error: string }` JSON shape every other failure here does, and depending on
+// NODE_ENV can include more of the raw error than intended — the same "no stack traces to
+// client" standard already applied to every other catch block in this codebase, just
+// missed here because this failure mode doesn't go through a catch block at all. Invoking
+// multer manually, inside the handler, catches that error the same way the rest of this
+// route already catches everything else.
+router.post('/photo', (req: AuthRequest, res) => {
+  upload.single('photo')(req, res, (err: unknown) => {
+    if (err) {
+      const message = err instanceof Error && err.message === 'Only images are allowed'
+        ? err.message
+        : 'Photo is too large or could not be read (max 5MB)'
+      res.status(400).json({ error: message })
+      return
+    }
+    handlePhotoUpload(req, res)
+  })
+})
+
+async function handlePhotoUpload(req: AuthRequest, res: express.Response) {
   const folder = (req as any).body?.folder as string | undefined
   const target = resolveUploadTarget(folder)
   if (!target.ok) {
@@ -134,6 +160,6 @@ router.post('/photo', upload.single('photo'), async (req: AuthRequest, res) => {
     console.error('R2 upload error:', error)
     res.status(500).json({ error: 'Upload failed' })
   }
-})
+}
 
 export default router

@@ -67,8 +67,17 @@ router.post('/reports', requireProfile, requireRules, async (req: AuthRequest, r
     if (!user) { res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' }); return }
     targetPhone = user.phoneNumber
   } else {
-    const message = await prisma.martMessage.findUnique({ where: { id: targetId } })
-    if (!message) { res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' }); return }
+    // Security audit 2026-10-17: this previously read any message by id with no check
+    // that the reporter is actually a participant in its thread — message ids are
+    // unguessable cuids (not a practical ID-enumeration path), but someone who somehow
+    // obtained an id from a thread they're not part of could still have used this to
+    // pull a 200-char snippet of its content into a MartReport row. Every other
+    // thread-scoped endpoint in this codebase already restricts to the two real
+    // participants (see threads.ts) — this one hadn't been brought in line with that.
+    const message = await prisma.martMessage.findUnique({ where: { id: targetId }, include: { thread: true } })
+    if (!message || (message.thread.ownerPhone !== me && message.thread.otherPhone !== me)) {
+      res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' }); return
+    }
     targetPhone = message.senderPhone
     targetSnippet = capText(message.body, 200)
   }
