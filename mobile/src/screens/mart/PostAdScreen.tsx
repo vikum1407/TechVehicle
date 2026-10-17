@@ -8,10 +8,12 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../../theme/ThemeContext'
 import { Colors } from '../../theme/colors'
+import { useTranslation } from '../../i18n/LanguageContext'
 import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import { MART_CATEGORIES } from '../../constants/martCategories'
 import { DISTRICTS } from '../../constants/districts'
+import { localizedLabel } from '../../utils/martHelpers'
 import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
 import CategoryPickerScreen, { CategoryPickerResult } from './CategoryPickerScreen'
@@ -55,6 +57,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
 
   const [gateStep, setGateStep] = useState<'loading' | 'nameDistrict' | 'rules' | 'form'>('loading')
@@ -103,23 +106,24 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
   }
 
   const categoryLabel = () => {
-    if (!category) return 'Select category'
+    if (!category) return t('mart.postAd.selectCategory')
     const cat = MART_CATEGORIES.find(c => c.id === category.categoryId)
-    if (!cat) return 'Select category'
-    const type = category.categoryTypeId ? cat.types.find(t => t.id === category.categoryTypeId) : null
-    return type ? type.en : `All ${cat.en}`
+    if (!cat) return t('mart.postAd.selectCategory')
+    const type = category.categoryTypeId ? cat.types.find(ty => ty.id === category.categoryTypeId) : null
+    return type ? type.en : t('mart.postAd.allCategory', { category: localizedLabel(language, cat) })
   }
 
   const vehicleLabel = () => {
-    if (!vehicle) return 'Select vehicle'
+    if (!vehicle) return t('mart.postAd.selectVehicle')
     let s = vehicle.make
     if (vehicle.model) s += ` ${vehicle.model}`
-    else s += ' · all models'
+    else s += ` · ${t('mart.postAd.allModels')}`
     if (vehicle.yearFrom) s += ` ${vehicle.yearFrom}${vehicle.yearTo && vehicle.yearTo !== vehicle.yearFrom ? `–${vehicle.yearTo}` : ''}`
     return s
   }
 
-  const districtLabel = district ? DISTRICTS.find(d => d.id === district)?.en : null
+  const selectedDistrict = district ? DISTRICTS.find(d => d.id === district) : null
+  const districtLabel = selectedDistrict ? localizedLabel(language, selectedDistrict) : null
 
   // ---- Photos ----
   const remainingSlots = MAX_PHOTOS - photos.length
@@ -157,7 +161,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, localUri: compressed.uri } : p)))
         await uploadAt(index, compressed.uri)
       } catch (e: any) {
-        setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, uploading: false, error: e?.message || "Couldn't process this photo" } : p)))
+        setPhotos(prev => prev.map((p, idx) => (idx === index ? { ...p, uploading: false, error: e?.message || t('mart.postAd.couldntProcessPhoto') } : p)))
       }
     }
   }
@@ -167,7 +171,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
     setIsPicking(true)
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
-      if (!permission.granted) { Alert.alert('Permission needed', 'Allow photo library access to add photos.'); return }
+      if (!permission.granted) { Alert.alert(t('mart.common.permissionNeeded'), t('mart.common.allowPhotoLibrary')); return }
       // `legacy: true` found 2026-10-16: on at least one real device (Samsung J5), the
       // default (non-legacy) Android picker started throwing a native
       // "Uri lacks 'file' scheme" IllegalArgumentException after working fine for weeks
@@ -193,7 +197,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
     setIsPicking(true)
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync()
-      if (!permission.granted) { Alert.alert('Permission needed', 'Allow camera access to take a photo.'); return }
+      if (!permission.granted) { Alert.alert(t('mart.common.permissionNeeded'), t('mart.postAd.allowCamera')); return }
       const result = await ImagePicker.launchCameraAsync({ quality: 0.7, mediaTypes: ['images'] })
       if (result.canceled || result.assets.length === 0) return
       await addAssets([result.assets[0].uri])
@@ -207,10 +211,10 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
     // and OfferSheet's own copy of this pattern — `remainingSlots` alone can't block a
     // fast re-tap since `photos.length` doesn't change until the picker has resolved.
     if (remainingSlots <= 0 || isPicking) return
-    Alert.alert('Add photos', undefined, [
-      { text: 'Take Photo', onPress: pickFromCamera },
-      { text: 'Choose from Library', onPress: pickFromLibrary },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('mart.postAd.addPhotos'), undefined, [
+      { text: t('mart.postAd.takePhoto'), onPress: pickFromCamera },
+      { text: t('mart.postAd.chooseFromLibrary'), onPress: pickFromLibrary },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
@@ -220,25 +224,25 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
   // ---- Submit ----
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {}
-    if (isSelling && photos.length === 0) e.photos = 'Add at least 1 photo'
-    else if (photos.some(p => p.uploading)) e.photos = 'Wait for photos to finish uploading'
-    else if (photos.some(p => p.error)) e.photos = 'Remove or retry the failed photo'
-    if (!category) e.category = 'Select a category'
-    if (isSelling && !condition) e.condition = 'Select New or Used'
-    if (isSelling && !vehicle) e.vehicle = 'Select a vehicle make'
-    if (!title.trim()) e.title = 'Enter a title'
+    if (isSelling && photos.length === 0) e.photos = t('mart.postAd.addAtLeastOnePhoto')
+    else if (photos.some(p => p.uploading)) e.photos = t('mart.offer.waitForPhotos')
+    else if (photos.some(p => p.error)) e.photos = t('mart.offer.retryFailedPhoto')
+    if (!category) e.category = t('mart.postAd.selectCategoryError')
+    if (isSelling && !condition) e.condition = t('mart.postAd.selectNewOrUsed')
+    if (isSelling && !vehicle) e.vehicle = t('mart.postAd.selectVehicleMake')
+    if (!title.trim()) e.title = t('mart.postAd.enterTitle')
     if (isSelling) {
       const priceNum = Number(price)
-      if (!price || !Number.isInteger(priceNum) || priceNum < 1 || priceNum > PRICE_MAX) e.price = 'Enter a valid price'
+      if (!price || !Number.isInteger(priceNum) || priceNum < 1 || priceNum > PRICE_MAX) e.price = t('mart.postAd.enterValidPrice')
     } else if (budgetMin || budgetMax) {
       const maxNum = Number(budgetMax)
-      if (!budgetMax || !Number.isInteger(maxNum) || maxNum < 1 || maxNum > PRICE_MAX) e.price = 'Enter a valid maximum budget'
+      if (!budgetMax || !Number.isInteger(maxNum) || maxNum < 1 || maxNum > PRICE_MAX) e.price = t('mart.postAd.enterValidMaxBudget')
       else if (budgetMin) {
         const minNum = Number(budgetMin)
-        if (!Number.isInteger(minNum) || minNum < 1 || minNum > maxNum) e.price = 'Minimum budget must not be above the maximum'
+        if (!Number.isInteger(minNum) || minNum < 1 || minNum > maxNum) e.price = t('mart.postAd.minNotAboveMax')
       }
     }
-    if (!district) e.district = 'Select a district'
+    if (!district) e.district = t('mart.postAd.selectDistrictError')
     return e
   }
 
@@ -275,7 +279,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         onPosted(result.id)
       }
     } catch (err: any) {
-      setSubmitError(err.message || `Couldn't ${editing ? 'save your changes' : 'post your ad'}. Check your connection and try again.`)
+      setSubmitError(err.message || (editing ? t('mart.postAd.couldntSaveChanges') : t('mart.postAd.couldntPostAd')))
     } finally {
       setSubmitting(false)
     }
@@ -319,7 +323,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>{editing ? 'Edit Ad' : isSelling ? 'Post Ad' : 'Post Wanted Ad'}</Text>
+        <Text style={styles.title}>{editing ? t('mart.postAd.editAd') : isSelling ? t('mart.postAd.postAd') : t('mart.postAd.postWantedAd')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -327,7 +331,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
-        <Text style={styles.label}>What are you posting?</Text>
+        <Text style={styles.label}>{t('mart.postAd.whatAreYouPosting')}</Text>
         <View style={[styles.segmentRow, editing && { opacity: 0.6 }]}>
           {(['selling', 'wanted'] as const).map(ty => (
             <TouchableOpacity
@@ -337,13 +341,13 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
               onPress={() => setType(ty)}
             >
               <Text style={[styles.segmentText, type === ty && styles.segmentTextActive]}>
-                {ty === 'selling' ? 'Selling' : 'Wanted'}
+                {ty === 'selling' ? t('mart.home.selling') : t('mart.home.wanted')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.label}>Photos (up to {MAX_PHOTOS}){!isSelling ? ' — optional' : ''}</Text>
+        <Text style={styles.label}>{isSelling ? t('mart.postAd.photosLabel', { max: MAX_PHOTOS }) : t('mart.postAd.photosLabelOptional', { max: MAX_PHOTOS })}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
           {photos.map((p, i) => (
             <View key={i} style={styles.photoTile}>
@@ -353,7 +357,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
               ) : p.error ? (
                 <TouchableOpacity style={styles.photoOverlay} onPress={() => retryPhoto(i)}>
                   <AppIcon icon={{ lib: 'ion', name: 'refresh' }} size={18} color="#fff" />
-                  <Text style={styles.photoRetryText}>Retry</Text>
+                  <Text style={styles.photoRetryText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity style={styles.photoRemove} onPress={() => removePhoto(i)}>
@@ -369,7 +373,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         </ScrollView>
         {errors.photos ? <Text style={styles.errorText}>{errors.photos}</Text> : null}
 
-        <Text style={styles.label}>Category</Text>
+        <Text style={styles.label}>{t('mart.postAd.category')}</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setCategoryPickerOpen(true)}>
           <Text style={category ? styles.fieldValue : styles.fieldPlaceholder}>{categoryLabel()}</Text>
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
@@ -378,7 +382,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
 
         {isSelling ? (
           <>
-            <Text style={styles.label}>Condition</Text>
+            <Text style={styles.label}>{t('mart.detail.condition')}</Text>
             <View style={styles.segmentRow}>
               {(['new', 'used'] as const).map(c => (
                 <TouchableOpacity
@@ -387,7 +391,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
                   onPress={() => setCondition(c)}
                 >
                   <Text style={[styles.segmentText, condition === c && styles.segmentTextActive]}>
-                    {c === 'new' ? 'New' : 'Used'}
+                    {c === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -396,31 +400,31 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
           </>
         ) : null}
 
-        <Text style={styles.label}>Compatible Vehicle</Text>
+        <Text style={styles.label}>{t('mart.postAd.compatibleVehicle')}</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setVehiclePickerOpen(true)}>
           <Text style={vehicle ? styles.fieldValue : styles.fieldPlaceholder}>{vehicleLabel()}</Text>
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
         </TouchableOpacity>
         {errors.vehicle ? <Text style={styles.errorText}>{errors.vehicle}</Text> : null}
 
-        <Text style={styles.label}>Title</Text>
+        <Text style={styles.label}>{t('mart.postAd.titleLabel')}</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="e.g. Brake Pads (Front) — Toyota Axio"
+          placeholder={t('mart.postAd.titlePlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={title}
-          onChangeText={t => setTitle(t.slice(0, TITLE_MAX))}
+          onChangeText={v => setTitle(v.slice(0, TITLE_MAX))}
           maxLength={TITLE_MAX}
         />
         {errors.title ? <Text style={styles.errorText}>{errors.title}</Text> : null}
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{t('mart.common.description')}</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="Describe the part's condition, fitment notes, etc."
+          placeholder={t('mart.postAd.descriptionPlaceholder')}
           placeholderTextColor={colors.textFaint}
           value={description}
-          onChangeText={t => setDescription(t.slice(0, DESCRIPTION_MAX))}
+          onChangeText={v => setDescription(v.slice(0, DESCRIPTION_MAX))}
           maxLength={DESCRIPTION_MAX}
           multiline
           numberOfLines={4}
@@ -428,42 +432,42 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
 
         {isSelling ? (
           <>
-            <Text style={styles.label}>Price</Text>
+            <Text style={styles.label}>{t('mart.postAd.price')}</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.pricePrefix}>Rs.</Text>
+              <Text style={styles.pricePrefix}>{t('mart.common.rsPrefix')}</Text>
               <TextInput
                 style={styles.priceInput}
                 placeholder="0.00"
                 placeholderTextColor={colors.textFaint}
                 value={price}
-                onChangeText={t => setPrice(t.replace(/[^0-9]/g, ''))}
+                onChangeText={v => setPrice(v.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
               />
             </View>
           </>
         ) : (
           <>
-            <Text style={styles.label}>Budget Range</Text>
+            <Text style={styles.label}>{t('mart.postAd.budgetRange')}</Text>
             <View style={styles.budgetRow}>
               <View style={[styles.priceRow, { flex: 1 }]}>
-                <Text style={styles.pricePrefix}>Rs.</Text>
+                <Text style={styles.pricePrefix}>{t('mart.common.rsPrefix')}</Text>
                 <TextInput
                   style={styles.priceInput}
-                  placeholder="Min (optional)"
+                  placeholder={t('mart.postAd.minOptional')}
                   placeholderTextColor={colors.textFaint}
                   value={budgetMin}
-                  onChangeText={t => setBudgetMin(t.replace(/[^0-9]/g, ''))}
+                  onChangeText={v => setBudgetMin(v.replace(/[^0-9]/g, ''))}
                   keyboardType="number-pad"
                 />
               </View>
               <View style={[styles.priceRow, { flex: 1 }]}>
-                <Text style={styles.pricePrefix}>Rs.</Text>
+                <Text style={styles.pricePrefix}>{t('mart.common.rsPrefix')}</Text>
                 <TextInput
                   style={styles.priceInput}
-                  placeholder="e.g. 20,000"
+                  placeholder={t('mart.offer.pricePlaceholder')}
                   placeholderTextColor={colors.textFaint}
                   value={budgetMax}
-                  onChangeText={t => setBudgetMax(t.replace(/[^0-9]/g, ''))}
+                  onChangeText={v => setBudgetMax(v.replace(/[^0-9]/g, ''))}
                   keyboardType="number-pad"
                 />
               </View>
@@ -472,9 +476,9 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         )}
         {errors.price ? <Text style={styles.errorText}>{errors.price}</Text> : null}
 
-        <Text style={styles.label}>Location</Text>
+        <Text style={styles.label}>{t('mart.postAd.location')}</Text>
         <TouchableOpacity style={styles.fieldRow} onPress={() => setDistrictPickerOpen(true)}>
-          <Text style={district ? styles.fieldValue : styles.fieldPlaceholder}>{districtLabel || 'Select district'}</Text>
+          <Text style={district ? styles.fieldValue : styles.fieldPlaceholder}>{districtLabel || t('mart.postAd.selectDistrict')}</Text>
           <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={16} color={colors.textMuted} />
         </TouchableOpacity>
         {errors.district ? <Text style={styles.errorText}>{errors.district}</Text> : null}
@@ -482,8 +486,8 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
         {isSelling ? (
           <View style={styles.deliveryRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Can arrange delivery</Text>
-              <Text style={styles.deliveryHint}>You'll coordinate delivery directly with the buyer</Text>
+              <Text style={styles.label}>{t('mart.postAd.canArrangeDelivery')}</Text>
+              <Text style={styles.deliveryHint}>{t('mart.postAd.deliveryHint')}</Text>
             </View>
             <Switch
               value={deliveryAvailable}
@@ -498,7 +502,7 @@ export default function PostAdScreen({ token, editing, initialType, onBack, onPo
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitBtnDisabled]} disabled={submitting} onPress={handleSubmit}>
           <Text style={styles.submitBtnText}>
-            {submitting ? (editing ? 'Saving…' : 'Posting…') : (editing ? 'Save Changes' : isSelling ? 'Post Ad' : 'Post Wanted Ad')}
+            {submitting ? (editing ? t('mart.postAd.saving') : t('mart.postAd.posting')) : (editing ? t('mart.postAd.saveChanges') : isSelling ? t('mart.postAd.postAd') : t('mart.postAd.postWantedAd'))}
           </Text>
         </TouchableOpacity>
       </View>
