@@ -14,7 +14,7 @@ import RatingBadge from '../../components/mart/RatingBadge'
 import MartPhotoViewer from '../../components/mart/MartPhotoViewer'
 import MartListingCard from '../../components/mart/MartListingCard'
 import MartEmptyState from '../../components/mart/MartEmptyState'
-import { formatLKR, formatBudget, timeAgo } from '../../utils/martHelpers'
+import { formatLKR, formatBudget, timeAgo, localizedLabel } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
 import { MART_CATEGORIES } from '../../constants/martCategories'
@@ -52,7 +52,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
 
   const [detail, setDetail] = useState<any | null>(null)
@@ -82,8 +82,6 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
     }
   }
   useEffect(() => { load() }, [listingId])
-
-  const comingSoon = () => Alert.alert('Coming soon', 'This part of Vocksy Mart is still being built.')
 
   const toggleFavorite = async () => {
     if (!detail) return
@@ -119,15 +117,15 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
       await api.relistMartListing(token, detail.id)
       load()
     } catch (e: any) {
-      Alert.alert("Couldn't relist", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.detail.couldntRelist'), e.message || t('mart.common.checkConnectionRetry'))
     } finally {
       setActionBusy(false)
     }
   }
   const confirmDelete = () => {
-    Alert.alert('Delete this ad?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: doDelete },
+    Alert.alert(t('mart.detail.deleteAdConfirm'), t('mart.detail.cannotBeUndone'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: doDelete },
     ])
   }
   const doDelete = async () => {
@@ -137,7 +135,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
       await api.deleteMartListing(token, detail.id)
       onBack()
     } catch (e: any) {
-      Alert.alert("Couldn't delete", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.detail.couldntDelete'), e.message || t('mart.common.checkConnectionRetry'))
       setActionBusy(false)
     }
   }
@@ -148,15 +146,16 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
     onOpenThread({
       kind: 'draft', listingId: detail.id, title: detail.title, coverUrl: detail.photoUrls[0] || null,
       price: detail.price, status: detail.status, otherName: detail.seller.name,
-      prefilledText: 'Hi, is this still available?',
+      prefilledText: t('mart.detail.defaultMessage'),
     })
   }
 
   const handleShare = () => {
     if (!detail) return
-    const districtLabel = DISTRICTS.find(d => d.id === detail.district)?.en || detail.district
+    const district = DISTRICTS.find(d => d.id === detail.district)
+    const districtLabel = district ? localizedLabel(language, district) : detail.district
     const priceText = detail.type === 'wanted' ? formatBudget(t, detail.budgetMin, detail.budgetMax) : (detail.price !== null ? formatLKR(detail.price) : '')
-    const message = [detail.title, priceText, districtLabel].filter(Boolean).join(' • ') + ' — on Vocksy Mart' + (STORE_URL ? `\n${STORE_URL}` : '')
+    const message = [detail.title, priceText, districtLabel].filter(Boolean).join(' • ') + t('mart.common.shareSuffix') + (STORE_URL ? `\n${STORE_URL}` : '')
     Share.share({ message })
   }
 
@@ -164,7 +163,8 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
     const cat = MART_CATEGORIES.find(c => c.id === categoryId)
     if (!cat) return ''
     const type = categoryTypeId ? cat.types.find(t => t.id === categoryTypeId) : null
-    return type ? `${cat.en} › ${type.en}` : cat.en
+    const catLabel = localizedLabel(language, cat)
+    return type ? `${catLabel} › ${type.en}` : catLabel
   }
 
   if (loading) {
@@ -173,14 +173,14 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   if (notFound) {
     return (
       <View style={styles.container}>
-        <MartEmptyState icon={{ lib: 'ion', name: 'alert-circle-outline' }} title="This ad is no longer available" actionLabel="Back" onAction={onBack} />
+        <MartEmptyState icon={{ lib: 'ion', name: 'alert-circle-outline' }} title={t('mart.detail.noLongerAvailable')} actionLabel={t('common.back')} onAction={onBack} />
       </View>
     )
   }
   if (networkError || !detail) {
     return (
       <View style={styles.container}>
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={load} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={load} />
       </View>
     )
   }
@@ -188,16 +188,17 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
   const isWanted = detail.type === 'wanted'
 
   const statusTag = detail.status === 'sold' || detail.status === 'fulfilled'
-    ? <MartTag label={isWanted ? 'Fulfilled' : 'Sold'} variant="gray" />
+    ? <MartTag label={isWanted ? t('mart.common.fulfilled') : t('mart.common.sold')} variant="gray" />
     : detail.status === 'reserved'
-    ? <MartTag label="Reserved" variant="amber-soft" />
-    : <MartTag label="Available" variant="success-outline" />
+    ? <MartTag label={t('mart.common.reserved')} variant="amber-soft" />
+    : <MartTag label={t('mart.common.available')} variant="success-outline" />
 
-  const districtLabel = DISTRICTS.find(d => d.id === detail.district)?.en || detail.district
-  const sellerSub = [districtLabel, `${detail.seller.activeAdsCount} active ad${detail.seller.activeAdsCount === 1 ? '' : 's'}`].join(' • ')
+  const detailDistrict = DISTRICTS.find(d => d.id === detail.district)
+  const districtLabel = detailDistrict ? localizedLabel(language, detailDistrict) : detail.district
+  const sellerSub = [districtLabel, detail.seller.activeAdsCount === 1 ? t('mart.detail.activeAdsOne', { count: detail.seller.activeAdsCount }) : t('mart.detail.activeAdsMany', { count: detail.seller.activeAdsCount })].join(' • ')
   const vehicleSpecLabel = detail.make
     ? `${detail.make}${detail.model ? ` ${detail.model}` : ''}${detail.yearFrom ? ` ${detail.yearFrom}${detail.yearTo && detail.yearTo !== detail.yearFrom ? `–${detail.yearTo}` : ''}` : ''}`
-    : 'Any'
+    : t('mart.common.any')
 
   return (
     <View style={styles.container}>
@@ -262,29 +263,29 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           {isWanted ? (
             <>
               <View style={styles.chipRow}>
-                <MartTag label="Wanted" variant="amber-soft" />
-                {detail.status === 'fulfilled' ? <MartTag label="Fulfilled" variant="gray" /> : null}
-                {detail.matchesYou && !detail.isOwner ? <MartTag label="Matches you" variant="amber-soft" /> : null}
-                {detail.isOwner ? <MartTag label="Your request" variant="gray" /> : null}
+                <MartTag label={t('mart.home.wanted')} variant="amber-soft" />
+                {detail.status === 'fulfilled' ? <MartTag label={t('mart.common.fulfilled')} variant="gray" /> : null}
+                {detail.matchesYou && !detail.isOwner ? <MartTag label={t('mart.common.matchesYou')} variant="amber-soft" /> : null}
+                {detail.isOwner ? <MartTag label={t('mart.common.yourRequest')} variant="gray" /> : null}
               </View>
-              <Text style={styles.metaText}>Posted {timeAgo(t, detail.postedAt)}</Text>
+              <Text style={styles.metaText}>{t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
               <Text style={styles.title}>{detail.title}</Text>
-              <Text style={styles.budgetLabel}>Budget</Text>
+              <Text style={styles.budgetLabel}>{t('mart.common.budget')}</Text>
               <Text style={styles.price}>{formatBudget(t, detail.budgetMin, detail.budgetMax)}</Text>
             </>
           ) : (
             <>
-              {detail.condition ? <MartTag label={detail.condition === 'new' ? 'New' : 'Used'} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : null}
+              {detail.condition ? <MartTag label={detail.condition === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : null}
               <Text style={styles.price}>{detail.price !== null ? formatLKR(detail.price) : ''}</Text>
               <Text style={styles.title}>{detail.title}</Text>
               <View style={styles.metaRow}>
                 <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
-                <Text style={styles.metaText}>{districtLabel} • Posted {timeAgo(t, detail.postedAt)}</Text>
+                <Text style={styles.metaText}>{districtLabel} • {t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
               </View>
               {detail.deliveryAvailable ? (
                 <View style={styles.metaRow}>
                   <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />
-                  <Text style={[styles.metaText, { color: colors.success }]}>Delivery available</Text>
+                  <Text style={[styles.metaText, { color: colors.success }]}>{t('mart.detail.deliveryAvailable')}</Text>
                 </View>
               ) : null}
               {detail.make ? (
@@ -306,10 +307,10 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           <>
             <View style={styles.divider} />
             <View style={styles.infoBlock}>
-              <View style={styles.specRow}><Text style={styles.specLabel}>Category</Text><Text style={styles.specValue}>{categoryPathLabel(detail.categoryId, detail.categoryTypeId)}</Text></View>
-              <View style={styles.specRow}><Text style={styles.specLabel}>Vehicle</Text><Text style={styles.specValue}>{vehicleSpecLabel}</Text></View>
-              <View style={styles.specRow}><Text style={styles.specLabel}>Condition</Text><Text style={styles.specValue}>Either</Text></View>
-              <View style={styles.specRow}><Text style={styles.specLabel}>District</Text><Text style={styles.specValue}>{districtLabel}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>{t('mart.detail.category')}</Text><Text style={styles.specValue}>{categoryPathLabel(detail.categoryId, detail.categoryTypeId)}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>{t('mart.detail.vehicle')}</Text><Text style={styles.specValue}>{vehicleSpecLabel}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>{t('mart.detail.condition')}</Text><Text style={styles.specValue}>{t('mart.common.either')}</Text></View>
+              <View style={styles.specRow}><Text style={styles.specLabel}>{t('mart.detail.district')}</Text><Text style={styles.specValue}>{districtLabel}</Text></View>
             </View>
           </>
         ) : null}
@@ -322,13 +323,13 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 onPress={() => onOpenOffers(detail.id, detail.title, detail.budgetMin, detail.budgetMax)}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.offersBannerText}>{detail.offersCount} offer{detail.offersCount === 1 ? '' : 's'} received</Text>
-                  {detail.newOffersCount > 0 ? <Text style={styles.offersBannerSub}>{detail.newOffersCount} new · tap to view</Text> : null}
+                  <Text style={styles.offersBannerText}>{detail.offersCount === 1 ? t('mart.detail.offersReceivedOne', { count: detail.offersCount }) : t('mart.detail.offersReceivedMany', { count: detail.offersCount })}</Text>
+                  {detail.newOffersCount > 0 ? <Text style={styles.offersBannerSub}>{t('mart.detail.newOffersTapToView', { count: detail.newOffersCount })}</Text> : null}
                 </View>
                 <AppIcon icon={{ lib: 'ion', name: 'chevron-forward' }} size={18} color={colors.accentTintText} />
               </TouchableOpacity>
             ) : (
-              <View style={styles.offersBannerEmpty}><Text style={styles.offersBannerEmptyText}>No offers yet</Text></View>
+              <View style={styles.offersBannerEmpty}><Text style={styles.offersBannerEmptyText}>{t('mart.detail.noOffersYet')}</Text></View>
             )}
           </View>
         ) : null}
@@ -337,7 +338,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           <>
             <View style={styles.divider} />
             <View style={styles.infoBlock}>
-              <Text style={styles.sectionHeading}>Description</Text>
+              <Text style={styles.sectionHeading}>{t('mart.common.description')}</Text>
               <Text style={styles.description}>{detail.description}</Text>
             </View>
           </>
@@ -353,7 +354,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           <View style={{ flex: 1 }}>
             <View style={styles.sellerNameRow}>
               <Text style={styles.sellerName}>{detail.seller.name}</Text>
-              {detail.seller.tag === 'shop' ? <MartTag label="Shop" variant="amber-solid" /> : null}
+              {detail.seller.tag === 'shop' ? <MartTag label={t('mart.common.shop')} variant="amber-solid" /> : null}
             </View>
             <Text style={styles.sellerSub}>{sellerSub}</Text>
             <RatingBadge avg={detail.seller.rating.avg} count={detail.seller.rating.count} />
@@ -365,7 +366,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
           <>
             <View style={styles.divider} />
             <View style={styles.infoBlock}>
-              <Text style={styles.sectionHeading}>Similar Parts</Text>
+              <Text style={styles.sectionHeading}>{t('mart.detail.similarParts')}</Text>
             </View>
             <FlatList
               horizontal showsHorizontalScrollIndicator={false}
@@ -379,7 +380,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                     coverUrl={item.coverUrl}
                     price={item.price}
                     condition={item.condition}
-                    districtLabel={DISTRICTS.find(d => d.id === item.district)?.en || item.district}
+                    districtLabel={(() => { const d = DISTRICTS.find(x => x.id === item.district); return d ? localizedLabel(language, d) : item.district })()}
                     status={item.status === 'reserved' ? 'reserved' : 'available'}
                     isFavorited={item.isFavorited}
                     deliveryAvailable={item.deliveryAvailable}
@@ -397,38 +398,38 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         {detail.isOwner && (detail.status === 'sold' || detail.status === 'fulfilled') ? (
           <View style={styles.ownerBtnRow}>
             <TouchableOpacity style={styles.editBtn} disabled={actionBusy} onPress={relist}>
-              <Text style={styles.editBtnText}>Relist</Text>
+              <Text style={styles.editBtnText}>{t('mart.common.relist')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.markSoldBtn} disabled={actionBusy} onPress={confirmDelete}>
-              <Text style={styles.markSoldBtnText}>Delete</Text>
+              <Text style={styles.markSoldBtnText}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         ) : detail.isOwner ? (
           <View style={styles.ownerBtnRow}>
             <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(detail)}>
-              <Text style={styles.editBtnText}>Edit</Text>
+              <Text style={styles.editBtnText}>{t('common.edit')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.markSoldBtn} onPress={() => setWhoBoughtItOpen(true)}>
-              <Text style={styles.markSoldBtnText}>{isWanted ? 'Mark Fulfilled' : 'Mark Sold'}</Text>
+              <Text style={styles.markSoldBtnText}>{isWanted ? t('mart.detail.markFulfilled') : t('mart.detail.markSold')}</Text>
             </TouchableOpacity>
           </View>
         ) : isWanted ? (
           detail.status === 'fulfilled' ? (
-            <View style={styles.soldBar}><Text style={styles.soldBarText}>This request is closed</Text></View>
+            <View style={styles.soldBar}><Text style={styles.soldBarText}>{t('mart.detail.requestClosed')}</Text></View>
           ) : (
             <TouchableOpacity
               style={styles.messageBtn}
               onPress={() => (detail.myOfferThreadId ? onOpenThread({ kind: 'thread', threadId: detail.myOfferThreadId }) : setOfferSheetOpen(true))}
             >
-              <Text style={styles.messageBtnText}>I have this</Text>
+              <Text style={styles.messageBtnText}>{t('mart.common.iHaveThis')}</Text>
             </TouchableOpacity>
           )
         ) : detail.status === 'sold' ? (
-          <View style={styles.soldBar}><Text style={styles.soldBarText}>This item was sold</Text></View>
+          <View style={styles.soldBar}><Text style={styles.soldBarText}>{t('mart.detail.itemSold')}</Text></View>
         ) : (
           <TouchableOpacity style={styles.messageBtn} onPress={handleMessageSeller}>
             <AppIcon icon={{ lib: 'ion', name: 'chatbubble-outline' }} size={18} color="#fff" />
-            <Text style={styles.messageBtnText}>Message Seller</Text>
+            <Text style={styles.messageBtnText}>{t('mart.detail.messageSeller')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -482,7 +483,7 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
         token={token}
         sellerId={detail.seller.id}
         sellerName={detail.seller.name}
-        sellerSubtitle={[districtLabel, detail.seller.tag === 'shop' ? 'Shop' : 'Casual seller'].filter(Boolean).join(' · ')}
+        sellerSubtitle={[districtLabel, detail.seller.tag === 'shop' ? t('mart.common.shop') : t('mart.common.casualSeller')].filter(Boolean).join(' · ')}
         onClose={() => setBlockOpen(false)}
         onDone={() => { setBlockOpen(false); load() }}
       />

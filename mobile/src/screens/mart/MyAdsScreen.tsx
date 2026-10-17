@@ -8,16 +8,13 @@ import { api } from '../../config/api'
 import AppIcon from '../../components/AppIcon'
 import MartEmptyState from '../../components/mart/MartEmptyState'
 import WhoBoughtItSheet from './WhoBoughtItSheet'
-import { formatLKR, formatBudget, timeAgo } from '../../utils/martHelpers'
+import { formatLKR, formatBudget, timeAgo, localizedLabel } from '../../utils/martHelpers'
 import { DISTRICTS } from '../../constants/districts'
 import { STORE_URL } from '../../constants/appLinks'
 
 type MartType = 'selling' | 'wanted'
 type SellingTab = 'available' | 'reserved' | 'sold'
 type WantedTab = 'open' | 'fulfilled'
-
-const SELLING_TABS = [['available', 'Available'], ['reserved', 'Reserved'], ['sold', 'Sold']] as const
-const WANTED_TABS = [['open', 'Open'], ['fulfilled', 'Fulfilled']] as const
 
 // Spec: 04-screens.md §7, extended 2026-10-16 (Vikum's request — found there was no way
 // to see or Relist a Wanted ad at all: this screen was Selling-only since Step 2.1,
@@ -35,8 +32,11 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
 }) {
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+
+  const SELLING_TABS = [['available', t('mart.common.available')], ['reserved', t('mart.common.reserved')], ['sold', t('mart.common.sold')]] as const
+  const WANTED_TABS = [['open', t('mart.myAds.open')], ['fulfilled', t('mart.common.fulfilled')]] as const
 
   const [martType, setMartType] = useState<MartType>(initialType || 'selling')
   const [tab, setTab] = useState<string>(initialTab || 'available')
@@ -83,7 +83,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
       await api.setMartListingStatus(token, listingId, status)
       load()
     } catch (e: any) {
-      Alert.alert('Couldn\'t update', e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.myAds.couldntUpdate'), e.message || t('mart.common.checkConnectionRetry'))
     } finally {
       setBusyId(null)
     }
@@ -95,16 +95,16 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
       await api.relistMartListing(token, listingId)
       load()
     } catch (e: any) {
-      Alert.alert("Couldn't relist", e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.detail.couldntRelist'), e.message || t('mart.common.checkConnectionRetry'))
     } finally {
       setBusyId(null)
     }
   }
 
   const confirmDelete = (listingId: string) => {
-    Alert.alert('Delete this ad?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => doDelete(listingId) },
+    Alert.alert(t('mart.detail.deleteAdConfirm'), t('mart.detail.cannotBeUndone'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => doDelete(listingId) },
     ])
   }
   const doDelete = async (listingId: string) => {
@@ -113,37 +113,38 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
       await api.deleteMartListing(token, listingId)
       load()
     } catch (e: any) {
-      Alert.alert('Couldn\'t delete', e.message || 'Check your connection and try again.')
+      Alert.alert(t('mart.detail.couldntDelete'), e.message || t('mart.common.checkConnectionRetry'))
     } finally {
       setBusyId(null)
     }
   }
 
   const shareAd = (item: any) => {
-    const districtLabel = DISTRICTS.find(d => d.id === item.district)?.en || item.district
+    const district = DISTRICTS.find(d => d.id === item.district)
+    const districtLabel = district ? localizedLabel(language, district) : item.district
     const priceText = martType === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')
-    const message = [item.title, priceText, districtLabel].filter(Boolean).join(' • ') + ' — on Vocksy Mart' + (STORE_URL ? `\n${STORE_URL}` : '')
+    const message = [item.title, priceText, districtLabel].filter(Boolean).join(' • ') + t('mart.common.shareSuffix') + (STORE_URL ? `\n${STORE_URL}` : '')
     Share.share({ message })
   }
 
   const openMenu = (item: any) => {
     Alert.alert(item.title, undefined, [
-      { text: 'Edit', onPress: () => onOpenEdit(item) },
-      { text: 'Share', onPress: () => shareAd(item) },
-      { text: 'Delete', style: 'destructive', onPress: () => confirmDelete(item.id) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.edit'), onPress: () => onOpenEdit(item) },
+      { text: t('mart.myAds.share'), onPress: () => shareAd(item) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => confirmDelete(item.id) },
+      { text: t('common.cancel'), style: 'cancel' },
     ])
   }
 
   const ageLabel = (item: any) => {
-    if (item.status === 'sold' || item.status === 'fulfilled') return `${martType === 'wanted' ? 'Fulfilled' : 'Sold'} ${timeAgo(t, item.statusChangedAt)}`
-    if (item.status === 'reserved') return `Reserved ${timeAgo(t, item.statusChangedAt)}`
-    return `Posted ${timeAgo(t, item.postedAt)}`
+    if (item.status === 'sold' || item.status === 'fulfilled') return `${martType === 'wanted' ? t('mart.common.fulfilled') : t('mart.common.sold')} ${timeAgo(t, item.statusChangedAt)}`
+    if (item.status === 'reserved') return `${t('mart.common.reserved')} ${timeAgo(t, item.statusChangedAt)}`
+    return t('mart.detail.postedLabel', { time: timeAgo(t, item.postedAt) })
   }
 
   const emptyLabel = martType === 'wanted'
-    ? (tab === 'open' ? 'You have no requests yet' : 'No fulfilled requests yet')
-    : (tab === 'available' ? 'You have no ads yet' : tab === 'reserved' ? 'No reserved ads' : 'No sold ads yet')
+    ? (tab === 'open' ? t('mart.myAds.noRequestsYet') : t('mart.myAds.noFulfilledRequestsYet'))
+    : (tab === 'available' ? t('mart.myAds.noAdsYet') : tab === 'reserved' ? t('mart.myAds.noReservedAds') : t('mart.myAds.noSoldAdsYet'))
   const isFirstTab = martType === 'wanted' ? tab === 'open' : tab === 'available'
   const tabsForType = martType === 'wanted' ? WANTED_TABS : SELLING_TABS
 
@@ -153,7 +154,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Ads</Text>
+        <Text style={styles.headerTitle}>{t('mart.myAds.title')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -161,7 +162,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
         <View style={styles.typeSwitchTrack}>
           {(['selling', 'wanted'] as const).map(mt => (
             <TouchableOpacity key={mt} style={[styles.typeSwitchPill, martType === mt && styles.typeSwitchPillActive]} onPress={() => switchType(mt)}>
-              <Text style={[styles.typeSwitchText, martType === mt && styles.typeSwitchTextActive]}>{mt === 'selling' ? 'Selling' : 'Wanted'}</Text>
+              <Text style={[styles.typeSwitchText, martType === mt && styles.typeSwitchTextActive]}>{mt === 'selling' ? t('mart.home.selling') : t('mart.home.wanted')}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -182,12 +183,12 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={() => load()} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={() => load()} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: martType === 'wanted' ? 'search-outline' : 'pricetags-outline' }}
           title={emptyLabel}
-          actionLabel={isFirstTab ? (martType === 'wanted' ? 'Post a request' : 'Post your first ad') : undefined}
+          actionLabel={isFirstTab ? (martType === 'wanted' ? t('mart.home.postRequest') : t('mart.myAds.postFirstAd')) : undefined}
           onAction={isFirstTab ? () => onOpenPostAd(martType) : undefined}
         />
       ) : (
@@ -215,8 +216,8 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
                   <Text style={styles.cardPrice}>{martType === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')}</Text>
                   <Text style={styles.cardStats}>
                     {martType === 'wanted'
-                      ? `${item.repliesCount ?? 0} replies · ${ageLabel(item)}`
-                      : `${item.favoritesCount} saved · ${item.chatsCount ?? 0} chats · ${ageLabel(item)}`}
+                      ? t('mart.myAds.repliesStat', { count: item.repliesCount ?? 0, age: ageLabel(item) })
+                      : t('mart.myAds.sellingStat', { saved: item.favoritesCount, chats: item.chatsCount ?? 0, age: ageLabel(item) })}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => openMenu(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -228,45 +229,45 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
                 {martType === 'selling' && tab === 'available' && (
                   <>
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => changeStatus(item.id, 'reserved')}>
-                      <Text style={styles.outlinedBtnText}>Mark Reserved</Text>
+                      <Text style={styles.outlinedBtnText}>{t('mart.myAds.markReserved')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navyBtn} onPress={() => setWhoBoughtItListingId(item.id)}>
-                      <Text style={styles.navyBtnText}>Mark Sold</Text>
+                      <Text style={styles.navyBtnText}>{t('mart.detail.markSold')}</Text>
                     </TouchableOpacity>
                   </>
                 )}
                 {martType === 'selling' && tab === 'reserved' && (
                   <>
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => changeStatus(item.id, 'available')}>
-                      <Text style={styles.outlinedBtnText}>Mark Available</Text>
+                      <Text style={styles.outlinedBtnText}>{t('mart.myAds.markAvailable')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navyBtn} onPress={() => setWhoBoughtItListingId(item.id)}>
-                      <Text style={styles.navyBtnText}>Mark Sold</Text>
+                      <Text style={styles.navyBtnText}>{t('mart.detail.markSold')}</Text>
                     </TouchableOpacity>
                   </>
                 )}
                 {martType === 'selling' && tab === 'sold' && (
                   <>
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => relist(item.id)}>
-                      <Text style={styles.outlinedBtnText}>Relist</Text>
+                      <Text style={styles.outlinedBtnText}>{t('mart.common.relist')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navyBtn} disabled={busyId === item.id} onPress={() => confirmDelete(item.id)}>
-                      <Text style={styles.navyBtnText}>Delete</Text>
+                      <Text style={styles.navyBtnText}>{t('common.delete')}</Text>
                     </TouchableOpacity>
                   </>
                 )}
                 {martType === 'wanted' && tab === 'open' && (
                   <TouchableOpacity style={styles.navyBtn} onPress={() => setWhoBoughtItListingId(item.id)}>
-                    <Text style={styles.navyBtnText}>Mark Fulfilled</Text>
+                    <Text style={styles.navyBtnText}>{t('mart.detail.markFulfilled')}</Text>
                   </TouchableOpacity>
                 )}
                 {martType === 'wanted' && tab === 'fulfilled' && (
                   <>
                     <TouchableOpacity style={styles.outlinedBtn} disabled={busyId === item.id} onPress={() => relist(item.id)}>
-                      <Text style={styles.outlinedBtnText}>Relist</Text>
+                      <Text style={styles.outlinedBtnText}>{t('mart.common.relist')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navyBtn} disabled={busyId === item.id} onPress={() => confirmDelete(item.id)}>
-                      <Text style={styles.navyBtnText}>Delete</Text>
+                      <Text style={styles.navyBtnText}>{t('common.delete')}</Text>
                     </TouchableOpacity>
                   </>
                 )}

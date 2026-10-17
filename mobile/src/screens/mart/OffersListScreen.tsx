@@ -57,7 +57,7 @@ export default function OffersListScreen({
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <AppIcon icon={{ lib: 'ion', name: 'arrow-back' }} size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Offers</Text>
+        <Text style={styles.headerTitle}>{t('mart.offersList.title')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -68,7 +68,7 @@ export default function OffersListScreen({
         </View>
         {!closed && items.length > 0 ? (
           <TouchableOpacity style={styles.fulfilledBtn} onPress={() => setWhoGaveItOpen(true)}>
-            <Text style={styles.fulfilledBtnText}>Mark Fulfilled</Text>
+            <Text style={styles.fulfilledBtnText}>{t('mart.detail.markFulfilled')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -76,15 +76,15 @@ export default function OffersListScreen({
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
-        <MartEmptyState isError title="Couldn't load. Check your connection." actionLabel="Try again" onAction={load} />
+        <MartEmptyState isError title={t('mart.home.loadError')} actionLabel={t('common.retry')} onAction={load} />
       ) : items.length === 0 ? (
         <MartEmptyState
           icon={{ lib: 'ion', name: 'pricetag-outline' }}
-          title="No offers yet. Sellers who match your request will be notified."
+          title={t('mart.offersList.emptyTitle')}
         />
       ) : (
         <>
-          <Text style={styles.countLabel}>{items.length} OFFER{items.length === 1 ? '' : 'S'}</Text>
+          <Text style={styles.countLabel}>{items.length === 1 ? t('mart.offersList.countOne', { count: items.length }) : t('mart.offersList.countMany', { count: items.length })}</Text>
           <FlatList
             data={items}
             keyExtractor={i => i.threadId}
@@ -105,15 +105,15 @@ export default function OffersListScreen({
                       <Text style={styles.age}>{timeAgo(t, item.createdAt)}</Text>
                     </View>
                     <View style={styles.tagRatingRow}>
-                      {item.seller.tag === 'shop' ? <MartTag label="Shop" variant="gray" /> : null}
+                      {item.seller.tag === 'shop' ? <MartTag label={t('mart.common.shop')} variant="gray" /> : null}
                       <RatingBadge avg={item.seller.rating.avg} count={item.seller.rating.count} />
                     </View>
-                    <Text style={styles.price}>{item.offerPrice !== null ? formatLKR(item.offerPrice) : 'No price given'}</Text>
+                    <Text style={styles.price}>{item.offerPrice !== null ? formatLKR(item.offerPrice) : t('mart.offersList.noPriceGiven')}</Text>
                   </View>
                 </View>
                 {item.note ? <Text style={styles.note} numberOfLines={3}>{item.note}</Text> : null}
                 <TouchableOpacity style={styles.openChatBtn} onPress={() => onOpenThread({ kind: 'thread', threadId: item.threadId })}>
-                  <Text style={styles.openChatBtnText}>Open chat</Text>
+                  <Text style={styles.openChatBtnText}>{t('mart.offersList.openChat')}</Text>
                 </TouchableOpacity>
               </View>
             )}
