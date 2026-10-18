@@ -550,6 +550,11 @@ router.get('/count', async (req: AuthRequest, res) => {
 
 const NOT_FOUND = { error: 'This ad is no longer available', code: 'NOT_FOUND' }
 
+// Noted 2026-10-18: below this, a non-owner's favoritesCount stays hidden from the
+// public response (same "don't make a fresh ad look unwanted" reasoning discussed with
+// Vikum) — the owner always gets the real number regardless.
+const PUBLIC_FAVORITES_MIN = 3
+
 // Spec: 03-api.md §0 shared types + 02-data-model.md §3.4 (visibility windows).
 router.get('/:listingId', async (req: AuthRequest, res) => {
   const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
@@ -576,11 +581,24 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
   ])
   const card = cards[0]
 
-  let favoritesCount: number | null = null
+  // Views (noted 2026-10-18): one row per distinct non-owner viewer, never the owner's
+  // own opens. Fire-and-forget, same pattern as the search-history insert above this
+  // route's sibling GET / — not on the response's critical path, duplicate-safe via the
+  // schema's own unique(listingId, viewerPhone).
+  if (!isOwner) {
+    prisma.martListingView.createMany({ data: [{ listingId: listing.id, viewerPhone: me }], skipDuplicates: true }).catch(() => {})
+  }
+
+  const realFavoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
+  const favoritesCount = isOwner
+    ? realFavoritesCount
+    : (realFavoritesCount >= PUBLIC_FAVORITES_MIN ? realFavoritesCount : null)
+
+  let viewCount: number | null = null
   let offersCount: number | null = null
   let newOffersCount: number | null = null
   if (isOwner) {
-    favoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
+    viewCount = await prisma.martListingView.count({ where: { listingId: listing.id } })
     if (listing.type === 'wanted') {
       // Offers (Milestone 2 Step 2.2). "New" = offer threads unread for the owner — same
       // cross-column comparison deferred for unreadThreads in Step 1.1, now done in
@@ -625,7 +643,7 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
     categoryTypeId: listing.categoryTypeId,
     deliveryAvailable: listing.deliveryAvailable,
     photoUrls: listing.photoUrls,
-    favoritesCount, offersCount, newOffersCount,
+    favoritesCount, viewCount, offersCount, newOffersCount,
     seller: {
       // Spec: 03-api.md §0 Seller type "photoUrl: shop logo, else User.profilePhotoUrl".
       ...card.seller, activeAdsCount: activeAdsMap.get(listing.ownerPhone) || 0,

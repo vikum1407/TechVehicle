@@ -482,6 +482,8 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.detail.activeAdsMany': 'செயலில் உள்ள விளம்பரங்கள் {count}',
   'mart.detail.postedLabel': 'இடுகையிடப்பட்டது {time}',
   'mart.detail.deliveryAvailable': 'விநியோகம் கிடைக்கிறது',
+  'mart.detail.savedByCountOne': '{count} நபர் இதை சேமித்துள்ளார்',
+  'mart.detail.savedByCountMany': '{count} பேர் இதை சேமித்துள்ளனர்',
   'mart.detail.category': 'வகை',
   'mart.detail.vehicle': 'வாகனம்',
   'mart.detail.condition': 'நிலை',
@@ -508,7 +510,7 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.myAds.title': 'எனது விளம்பரங்கள்',
   'mart.myAds.postFirstAd': 'உங்கள் முதல் விளம்பரத்தை இடுகையிடவும்',
   'mart.myAds.repliesStat': '{count} பதில்கள் · {age}',
-  'mart.myAds.sellingStat': '{saved} சேமிக்கப்பட்டது · {chats} அரட்டைகள் · {age}',
+  'mart.myAds.sellingStat': 'பார்வைகள் {views} · {saved} சேமிக்கப்பட்டது · {chats} அரட்டைகள் · {age}',
   'mart.myAds.markReserved': 'முன்பதிவு செய்யப்பட்டதாக குறி',
   'mart.myAds.markAvailable': 'கிடைக்கிறது எனக் குறி',
 

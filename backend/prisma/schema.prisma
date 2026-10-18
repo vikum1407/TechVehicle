@@ -327,6 +327,7 @@ model MartListing {
   updatedAt         DateTime @updatedAt
 
   favorites         MartFavorite[]
+  views             MartListingView[]
   threads           MartThread[]
   ratings           MartSellerRating[]
 
@@ -347,6 +348,21 @@ model MartFavorite {
 
   @@unique([userPhone, listingId])
   @@index([userPhone, createdAt])
+  @@index([listingId])
+}
+
+// ───────────────────────── Views ─────────────────────────
+// Seller-only "N people viewed this" stat (noted 2026-10-18). One row per distinct
+// viewer per listing (never the owner's own opens) so repeat opens while messaging
+// don't inflate the count — mirrors MartFavorite's own one-row-per-person shape.
+model MartListingView {
+  id         String      @id @default(cuid())
+  viewerPhone String
+  listingId  String
+  createdAt  DateTime    @default(now())
+  listing    MartListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, viewerPhone])
   @@index([listingId])
 }
 

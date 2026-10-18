@@ -1328,6 +1328,8 @@ const en = {
   'mart.detail.activeAdsMany': '{count} active ads',
   'mart.detail.postedLabel': 'Posted {time}',
   'mart.detail.deliveryAvailable': 'Delivery available',
+  'mart.detail.savedByCountOne': '{count} person saved this',
+  'mart.detail.savedByCountMany': '{count} people saved this',
   'mart.detail.category': 'Category',
   'mart.detail.vehicle': 'Vehicle',
   'mart.detail.condition': 'Condition',
@@ -1354,7 +1356,7 @@ const en = {
   'mart.myAds.title': 'My Ads',
   'mart.myAds.postFirstAd': 'Post your first ad',
   'mart.myAds.repliesStat': '{count} replies · {age}',
-  'mart.myAds.sellingStat': '{saved} saved · {chats} chats · {age}',
+  'mart.myAds.sellingStat': '{views} views · {saved} saved · {chats} chats · {age}',
   'mart.myAds.markReserved': 'Mark Reserved',
   'mart.myAds.markAvailable': 'Mark Available',
 

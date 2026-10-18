@@ -1328,6 +1328,8 @@ const si: Record<TranslationKey, string> = {
   'mart.detail.activeAdsMany': 'ක්‍රියාත්මක දැන්වීම් {count}',
   'mart.detail.postedLabel': 'පළ කළේ {time}',
   'mart.detail.deliveryAvailable': 'බෙදාහැරීම ලබා ගත හැක',
+  'mart.detail.savedByCountOne': 'පුද්ගලයින් {count} මෙය සුරකින ලදී',
+  'mart.detail.savedByCountMany': 'පුද්ගලයින් {count} මෙය සුරකින ලදී',
   'mart.detail.category': 'වර්ගය',
   'mart.detail.vehicle': 'වාහනය',
   'mart.detail.condition': 'තත්ත්වය',
@@ -1354,7 +1356,7 @@ const si: Record<TranslationKey, string> = {
   'mart.myAds.title': 'මගේ දැන්වීම්',
   'mart.myAds.postFirstAd': 'ඔබේ පළමු දැන්වීම පළ කරන්න',
   'mart.myAds.repliesStat': 'පිළිතුරු {count} · {age}',
-  'mart.myAds.sellingStat': 'සුරකින ලද {saved} · කතාබස් {chats} · {age}',
+  'mart.myAds.sellingStat': 'නැරඹුම් {views} · සුරකින ලද {saved} · කතාබස් {chats} · {age}',
   'mart.myAds.markReserved': 'වෙන් කළා ලෙස සලකුණු කරන්න',
   'mart.myAds.markAvailable': 'ලබා ගත හැකි ලෙස සලකුණු කරන්න',
 

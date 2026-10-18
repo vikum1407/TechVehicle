@@ -61,9 +61,12 @@ router.get('/', async (req: AuthRequest, res) => {
   const page = hasMore ? rows.slice(0, limitN) : rows
 
   const listingIds = page.map(r => r.id)
-  const [cards, favGroups, threadGroups] = await Promise.all([
+  const [cards, favGroups, viewGroups, threadGroups] = await Promise.all([
     buildListingCards(page, me),
     prisma.martFavorite.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } }),
+    // Views (noted 2026-10-18): same owner-only stat shown in the single-ad detail
+    // screen, batched the same way favGroups/threadGroups already are for this list.
+    prisma.martListingView.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } }),
     // "Chats/replies count" = MartThread rows for this listing. A thread only ever gets
     // created once its first message is sent (03-api.md §23 point 11), so every row here
     // already has >= 1 message by construction — no extra message-count filter needed.
@@ -72,6 +75,7 @@ router.get('/', async (req: AuthRequest, res) => {
     prisma.martThread.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } }),
   ])
   const favMap = new Map(favGroups.map(f => [f.listingId, f._count._all]))
+  const viewMap = new Map(viewGroups.map(v => [v.listingId, v._count._all]))
   const threadMap = new Map(threadGroups.map(t => [t.listingId, t._count._all]))
 
   // dealPartnerPhone/dealState are always null until Mark Sold ships (Milestone 2 Step
@@ -94,6 +98,7 @@ router.get('/', async (req: AuthRequest, res) => {
     return {
       ...cards[i],
       favoritesCount: favMap.get(listing.id) || 0,
+      viewCount: viewMap.get(listing.id) || 0,
       ...(type === 'wanted'
         ? { repliesCount: threadMap.get(listing.id) || 0 }
         : { chatsCount: threadMap.get(listing.id) || 0 }),

@@ -4,6 +4,26 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-18 — Seller-only view count + public favorites count (Vikum's request)
+
+Discussed as a menu of options (view count, view→chat conversion, trend over time, public favorites count, "Popular" badge); Vikum picked exactly two to build this round: seller-only view count, and a public "X people saved this" on the detail screen. The other three (conversion insight, trend over time, popular badge) are explicitly NOT built — deferred, not forgotten, should either come up again or get asked about again later.
+
+**View count:**
+- New `MartListingView` table (listingId, viewerPhone, unique on the pair) — same one-row-per-person shape as `MartFavorite`/`MartFollow`/`MartBlock`, so repeat opens by the same buyer (e.g. while messaging back and forth) never inflate the number, and the owner's own opens are never recorded at all (`GET /mart/listings/:listingId` only inserts when `!isOwner`).
+- Insert is fire-and-forget (`.catch(() => {})`, not awaited) — same pattern already used for the search-history insert in this same route file's sibling `GET /`. Never blocks or can fail the response.
+- Count is owner-only, surfaced in two places: the single-ad detail response (`viewCount`) and the My Ads list (`GET /mart/my-ads`, batched via `groupBy` the same way `favoritesCount`/`chatsCount` already are) — shown on `MyAdsScreen` as "{views} views · {saved} saved · {chats} chats · {age}".
+- Added `MartListingView.deleteMany({ viewerPhone: phone })` to `accountDeletion.ts`, same as `MartFavorite` — a deleted account's view history shouldn't linger pointing at other people's ads. Listing-side rows cascade automatically via the schema's `onDelete: Cascade` when the listing itself (or its owner's account) is deleted.
+
+**Public favorites count:**
+- `favoritesCount` on `GET /mart/listings/:listingId` is no longer owner-gated outright — it's always computed, but a non-owner only ever receives the real number once it's `>= 3` (`PUBLIC_FAVORITES_MIN` in `listings.ts`), else `null`, same "don't make a fresh ad look unwanted" reasoning as the original discussion. The owner still always sees the real count regardless of the threshold.
+- `DetailScreen` renders "{count} people saved this" (heart icon, muted meta-row style matching the existing posted-time/location rows) whenever `favoritesCount` is truthy — for both Selling and Wanted ads. In practice a non-owner will only ever see the plural form (3+), but the owner's own view can show "1 person saved this" if that's the real count, so the singular key was built properly rather than left unused.
+
+**Not yet applied to any database:** the new `MartListingView` table only exists in `schema.prisma` + the locally regenerated Prisma client — `prisma db push` was deliberately NOT run, same reasoning as the still-pending `MartFollow` index from 2026-10-17 (can't confirm this machine's local `.env` targets Mart-dev and not production). Both schema changes are now stacked waiting on the same unblock: either Vikum runs the push himself, or hands over the real Mart-dev `DATABASE_URL`.
+
+`tsc --noEmit` clean on both backend and mobile against the same pre-existing baseline (6 unrelated errors in non-Mart screens, present before this change too) — zero new errors.
+
+---
+
 ## 2026-10-17 — Full security audit of the Mart backend (Vikum's request)
 
 Walked the whole Mart backend against [[security_standards]]'s established checklist plus 6 specific areas Vikum named: DB queries, gallery access, API endpoint strength, searching, photo uploads (type-blocking especially), and a general audit. Two real, fixed issues; everything else checked came back clean — see below for what was actually verified, not just assumed.

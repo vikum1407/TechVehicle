@@ -78,6 +78,7 @@ export async function deleteUserAccount(prisma: PrismaClient, phone: string): Pr
   if (shopProfile?.logoUrl) photosToDelete.push(shopProfile.logoUrl)
 
   await prisma.martFavorite.deleteMany({ where: { userPhone: phone } })
+  await prisma.martListingView.deleteMany({ where: { viewerPhone: phone } })
   await prisma.martFollow.deleteMany({ where: { OR: [{ followerPhone: phone }, { sellerPhone: phone }] } })
   await prisma.martBlock.deleteMany({ where: { OR: [{ blockerPhone: phone }, { blockedPhone: phone }] } })
   await prisma.martSearchHistory.deleteMany({ where: { userPhone: phone } })

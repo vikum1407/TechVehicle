@@ -269,6 +269,12 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 {detail.isOwner ? <MartTag label={t('mart.common.yourRequest')} variant="gray" /> : null}
               </View>
               <Text style={styles.metaText}>{t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
+              {detail.favoritesCount ? (
+                <View style={styles.metaRow}>
+                  <AppIcon icon={{ lib: 'ion', name: 'heart' }} size={12} color={colors.textMuted} />
+                  <Text style={styles.metaText}>{detail.favoritesCount === 1 ? t('mart.detail.savedByCountOne', { count: detail.favoritesCount }) : t('mart.detail.savedByCountMany', { count: detail.favoritesCount })}</Text>
+                </View>
+              ) : null}
               <Text style={styles.title}>{detail.title}</Text>
               <Text style={styles.budgetLabel}>{t('mart.common.budget')}</Text>
               <Text style={styles.price}>{formatBudget(t, detail.budgetMin, detail.budgetMax)}</Text>
@@ -282,6 +288,12 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
                 <Text style={styles.metaText}>{districtLabel} • {t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
               </View>
+              {detail.favoritesCount ? (
+                <View style={styles.metaRow}>
+                  <AppIcon icon={{ lib: 'ion', name: 'heart' }} size={12} color={colors.textMuted} />
+                  <Text style={styles.metaText}>{detail.favoritesCount === 1 ? t('mart.detail.savedByCountOne', { count: detail.favoritesCount }) : t('mart.detail.savedByCountMany', { count: detail.favoritesCount })}</Text>
+                </View>
+              ) : null}
               {detail.deliveryAvailable ? (
                 <View style={styles.metaRow}>
                   <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />

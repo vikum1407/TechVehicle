@@ -217,7 +217,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
                   <Text style={styles.cardStats}>
                     {martType === 'wanted'
                       ? t('mart.myAds.repliesStat', { count: item.repliesCount ?? 0, age: ageLabel(item) })
-                      : t('mart.myAds.sellingStat', { saved: item.favoritesCount, chats: item.chatsCount ?? 0, age: ageLabel(item) })}
+                      : t('mart.myAds.sellingStat', { views: item.viewCount ?? 0, saved: item.favoritesCount, chats: item.chatsCount ?? 0, age: ageLabel(item) })}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => openMenu(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
