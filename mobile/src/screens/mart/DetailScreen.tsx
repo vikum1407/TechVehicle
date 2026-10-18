@@ -187,6 +187,18 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
 
   const isWanted = detail.type === 'wanted'
 
+  // Views + favorites are public to every viewer (real numbers only — no fabricated
+  // floor, discussed and deliberately rejected with Vikum 2026-10-18); chats/replies
+  // stay seller-only. Hidden entirely when both public numbers are 0, same reasoning as
+  // the rest of this screen's optional meta rows (don't show an empty-looking stat).
+  const views = detail.viewCount ?? 0
+  const saved = detail.favoritesCount ?? 0
+  const statsText = detail.isOwner
+    ? (isWanted
+        ? t('mart.detail.sellerStatsWanted', { views, saved, replies: detail.repliesCount ?? 0 })
+        : t('mart.detail.sellerStatsSelling', { views, saved, chats: detail.chatsCount ?? 0 }))
+    : (views > 0 || saved > 0 ? t('mart.detail.publicStats', { views, saved }) : null)
+
   const statusTag = detail.status === 'sold' || detail.status === 'fulfilled'
     ? <MartTag label={isWanted ? t('mart.common.fulfilled') : t('mart.common.sold')} variant="gray" />
     : detail.status === 'reserved'
@@ -269,10 +281,10 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 {detail.isOwner ? <MartTag label={t('mart.common.yourRequest')} variant="gray" /> : null}
               </View>
               <Text style={styles.metaText}>{t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
-              {detail.favoritesCount ? (
+              {statsText ? (
                 <View style={styles.metaRow}>
-                  <AppIcon icon={{ lib: 'ion', name: 'heart' }} size={12} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{detail.favoritesCount === 1 ? t('mart.detail.savedByCountOne', { count: detail.favoritesCount }) : t('mart.detail.savedByCountMany', { count: detail.favoritesCount })}</Text>
+                  <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
+                  <Text style={styles.metaText}>{statsText}</Text>
                 </View>
               ) : null}
               <Text style={styles.title}>{detail.title}</Text>
@@ -288,10 +300,10 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
                 <Text style={styles.metaText}>{districtLabel} • {t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
               </View>
-              {detail.favoritesCount ? (
+              {statsText ? (
                 <View style={styles.metaRow}>
-                  <AppIcon icon={{ lib: 'ion', name: 'heart' }} size={12} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{detail.favoritesCount === 1 ? t('mart.detail.savedByCountOne', { count: detail.favoritesCount }) : t('mart.detail.savedByCountMany', { count: detail.favoritesCount })}</Text>
+                  <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
+                  <Text style={styles.metaText}>{statsText}</Text>
                 </View>
               ) : null}
               {detail.deliveryAvailable ? (

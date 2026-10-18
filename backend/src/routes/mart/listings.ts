@@ -550,11 +550,6 @@ router.get('/count', async (req: AuthRequest, res) => {
 
 const NOT_FOUND = { error: 'This ad is no longer available', code: 'NOT_FOUND' }
 
-// Noted 2026-10-18: below this, a non-owner's favoritesCount stays hidden from the
-// public response (same "don't make a fresh ad look unwanted" reasoning discussed with
-// Vikum) — the owner always gets the real number regardless.
-const PUBLIC_FAVORITES_MIN = 3
-
 // Spec: 03-api.md §0 shared types + 02-data-model.md §3.4 (visibility windows).
 router.get('/:listingId', async (req: AuthRequest, res) => {
   const listing = await prisma.martListing.findUnique({ where: { id: req.params.listingId as string } })
@@ -581,27 +576,27 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
   ])
   const card = cards[0]
 
-  // Views (noted 2026-10-18): one row per distinct non-owner viewer, never the owner's
-  // own opens. Fire-and-forget, same pattern as the search-history insert above this
-  // route's sibling GET / — not on the response's critical path, duplicate-safe via the
-  // schema's own unique(listingId, viewerPhone).
+  // Views + favorites (noted 2026-10-18, reworked same day after discussion with Vikum):
+  // both are now public to every viewer, not just the owner — real numbers only, never
+  // fabricated (explicitly discussed and rejected as a growth tactic). One view row per
+  // distinct non-owner viewer, never the owner's own opens. Fire-and-forget insert, same
+  // pattern as the search-history insert above this route's sibling GET / — not on the
+  // response's critical path, duplicate-safe via the schema's own unique(listingId,
+  // viewerPhone). The count read is caught separately: MartListingView may not exist yet
+  // on every deployed database until its own `prisma db push` runs, and this screen (an
+  // existing flow) must keep working regardless — degrade to "no view data yet".
   if (!isOwner) {
     prisma.martListingView.createMany({ data: [{ listingId: listing.id, viewerPhone: me }], skipDuplicates: true }).catch(() => {})
   }
+  const favoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
+  const viewCount = await prisma.martListingView.count({ where: { listingId: listing.id } }).catch(() => null)
 
-  const realFavoritesCount = await prisma.martFavorite.count({ where: { listingId: listing.id } })
-  const favoritesCount = isOwner
-    ? realFavoritesCount
-    : (realFavoritesCount >= PUBLIC_FAVORITES_MIN ? realFavoritesCount : null)
-
-  let viewCount: number | null = null
+  // Chats/offers stay owner-only (unlike views/favorites above) — who specifically has
+  // messaged a seller, or made an offer, is private to that seller, not a public stat.
+  let chatsCount: number | null = null
   let offersCount: number | null = null
   let newOffersCount: number | null = null
   if (isOwner) {
-    // Same reasoning as myAds.ts: MartListingView may not exist yet on every deployed
-    // database until its own `prisma db push` runs — degrade to "no view data yet"
-    // instead of breaking the owner's own ad detail screen (an existing flow).
-    viewCount = await prisma.martListingView.count({ where: { listingId: listing.id } }).catch(() => null)
     if (listing.type === 'wanted') {
       // Offers (Milestone 2 Step 2.2). "New" = offer threads unread for the owner — same
       // cross-column comparison deferred for unreadThreads in Step 1.1, now done in
@@ -615,6 +610,8 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
         t.lastMessageSenderPhone !== listing.ownerPhone &&
         (!t.ownerReadAt || t.lastMessageAt > t.ownerReadAt)
       ).length
+    } else {
+      chatsCount = await prisma.martThread.count({ where: { listingId: listing.id } })
     }
   }
 
@@ -646,7 +643,7 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
     categoryTypeId: listing.categoryTypeId,
     deliveryAvailable: listing.deliveryAvailable,
     photoUrls: listing.photoUrls,
-    favoritesCount, viewCount, offersCount, newOffersCount,
+    favoritesCount, viewCount, chatsCount, offersCount, newOffersCount,
     seller: {
       // Spec: 03-api.md §0 Seller type "photoUrl: shop logo, else User.profilePhotoUrl".
       ...card.seller, activeAdsCount: activeAdsMap.get(listing.ownerPhone) || 0,

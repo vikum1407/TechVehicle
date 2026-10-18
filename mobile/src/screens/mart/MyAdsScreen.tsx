@@ -216,7 +216,7 @@ export default function MyAdsScreen({ token, initialTab, initialType, onBack, on
                   <Text style={styles.cardPrice}>{martType === 'wanted' ? formatBudget(t, item.budgetMin, item.budgetMax) : (item.price !== null ? formatLKR(item.price) : '')}</Text>
                   <Text style={styles.cardStats}>
                     {martType === 'wanted'
-                      ? t('mart.myAds.repliesStat', { count: item.repliesCount ?? 0, age: ageLabel(item) })
+                      ? t('mart.myAds.repliesStat', { views: item.viewCount ?? 0, saved: item.favoritesCount, count: item.repliesCount ?? 0, age: ageLabel(item) })
                       : t('mart.myAds.sellingStat', { views: item.viewCount ?? 0, saved: item.favoritesCount, chats: item.chatsCount ?? 0, age: ageLabel(item) })}
                   </Text>
                 </View>

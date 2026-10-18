@@ -4,6 +4,25 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-18 — View/favorites counts reworked: fully public, no thresholds, no fabrication
+
+Follow-up to the same day's earlier view-count + favorites-count feature. On-device testing (dev phone, Mart-dev backend) immediately surfaced a real regression from that first pass: My Ads failed to load entirely ("Couldn't load. Check your connection.") because `GET /mart/my-ads`'s `Promise.all` included an unguarded `martListingView.groupBy()` call against a table that doesn't exist yet on the live database (the `MartListingView` schema change was written but never `db push`ed — same still-pending blocker as the `MartFollow` index from 2026-10-17). Fixed by catching that call (and the equivalent `martListingView.count()` in `listings.ts`'s owner branch) separately so a missing table degrades to "no view data yet" instead of breaking an existing, working screen (`58ad568`).
+
+**Then the actual design changed, after discussion:**
+- Vikum's original idea for view/favorites counts was to drive urgency ("force to buy as soon as possible"), which led to two explicitly-considered and explicitly-rejected approaches before landing here:
+  1. **3+ threshold before showing favorites publicly** (the first pass's actual behavior) — dropped. Vikum's reasoning: Mart won't ship for 6 months after the first release, with real ground promotion planned first, so the "cold start, everything looks empty" problem this threshold was meant to solve won't actually apply at Mart's real launch.
+  2. **Seeding fabricated view/favorite numbers** (e.g. "show 10 views, 2 favorites within 5 minutes of posting, real or not, to make the app look more active") — proposed by Vikum, explicitly recommended against and ultimately dropped after discussion. Reasoning given: (a) a number attached to a specific ad is read by buyers as "this item has real demand," regardless of the intended framing as general "app usage," especially since Vikum's own stated goal was per-item purchase urgency; (b) real regulatory precedent exists for exactly this pattern — the UK CMA required Booking.com/Expedia to stop showing unverifiable "X people are looking at this" messages on individual listings; (c) it directly undercuts Vocksy's actual product thesis (verified, trustworthy, tamper-evident history) if ever discovered, which is very plausible given a flat fabricated baseline across every fresh post; (d) a legitimate alternative exists for the same goal (a real aggregate "X active ads on Vocksy Mart" stat somewhere like the Mart home screen, using genuine platform-wide numbers) — not built this round, but worth returning to separately if Vikum still wants a "feels alive" signal.
+
+**Final shape, built this pass:**
+- `favoritesCount` and `viewCount` are now both public to every viewer (not owner-gated, no threshold) — real numbers only. Hidden on `DetailScreen` only when both are exactly 0 (a UI nicety, not a manipulation threshold — avoids a dead-looking "0 views · 0 saved" line for buyers on a brand-new ad; the owner's own view always shows the real numbers regardless, same as the rest of this screen's owner-only stat conventions).
+- Chats (Selling) / replies (Wanted) stay seller-only, since who specifically has messaged a seller is private information, not a demand signal like views/favorites — new `chatsCount` field added to `GET /mart/listings/:listingId` for Selling (Wanted already had `repliesCount` via `buildListingCards`, unchanged).
+- `DetailScreen` now shows one combined stat line: "{views} views · {saved} saved" for non-owners, "{views} views · {saved} saved · {chats} chats" (Selling) / "... · {replies} replies" (Wanted) for the owner — matching the existing `MyAdsScreen` stat-line style. `MyAdsScreen`'s own Wanted row was also updated to include views+saved (previously only showed replies), for parity with Selling.
+- `viewCount` still can't show anything meaningful until the `MartListingView` table is actually pushed to Mart-dev — same pending blocker, now covers two stacked schema changes (`MartFollow` index + this table).
+
+`tsc --noEmit` clean on both sides against the same pre-existing baseline.
+
+---
+
 ## 2026-10-18 — Seller-only view count + public favorites count (Vikum's request)
 
 Discussed as a menu of options (view count, view→chat conversion, trend over time, public favorites count, "Popular" badge); Vikum picked exactly two to build this round: seller-only view count, and a public "X people saved this" on the detail screen. The other three (conversion insight, trend over time, popular badge) are explicitly NOT built — deferred, not forgotten, should either come up again or get asked about again later.
