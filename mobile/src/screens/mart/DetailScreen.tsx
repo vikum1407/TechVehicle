@@ -279,33 +279,35 @@ export default function DetailScreen({ token, listingId, onBack, onOpenListing, 
                 {detail.status === 'fulfilled' ? <MartTag label={t('mart.common.fulfilled')} variant="gray" /> : null}
                 {detail.matchesYou && !detail.isOwner ? <MartTag label={t('mart.common.matchesYou')} variant="amber-soft" /> : null}
                 {detail.isOwner ? <MartTag label={t('mart.common.yourRequest')} variant="gray" /> : null}
+                {statsText ? (
+                  <View style={[styles.metaRow, styles.statsInline]}>
+                    <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
+                    <Text style={styles.metaText}>{statsText}</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={styles.metaText}>{t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
-              {statsText ? (
-                <View style={styles.metaRow}>
-                  <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{statsText}</Text>
-                </View>
-              ) : null}
               <Text style={styles.title}>{detail.title}</Text>
               <Text style={styles.budgetLabel}>{t('mart.common.budget')}</Text>
               <Text style={styles.price}>{formatBudget(t, detail.budgetMin, detail.budgetMax)}</Text>
             </>
           ) : (
             <>
-              {detail.condition ? <MartTag label={detail.condition === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : null}
+              <View style={styles.topRow}>
+                {detail.condition ? <MartTag label={detail.condition === 'new' ? t('mart.common.conditionNew') : t('mart.common.conditionUsed')} variant={detail.condition === 'new' ? 'amber-soft' : 'gray'} /> : <View />}
+                {statsText ? (
+                  <View style={[styles.metaRow, styles.statsInline]}>
+                    <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
+                    <Text style={styles.metaText}>{statsText}</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.price}>{detail.price !== null ? formatLKR(detail.price) : ''}</Text>
               <Text style={styles.title}>{detail.title}</Text>
               <View style={styles.metaRow}>
                 <AppIcon icon={{ lib: 'ion', name: 'location-outline' }} size={13} color={colors.textMuted} />
                 <Text style={styles.metaText}>{districtLabel} • {t('mart.detail.postedLabel', { time: timeAgo(t, detail.postedAt) })}</Text>
               </View>
-              {statsText ? (
-                <View style={styles.metaRow}>
-                  <AppIcon icon={{ lib: 'ion', name: 'eye-outline' }} size={12} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{statsText}</Text>
-                </View>
-              ) : null}
               {detail.deliveryAvailable ? (
                 <View style={styles.metaRow}>
                   <AppIcon icon={{ lib: 'mci', name: 'truck-delivery-outline' }} size={14} color={colors.success} />
@@ -552,7 +554,9 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     title: { fontSize: 16, fontWeight: '700', color: c.text },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     metaText: { fontSize: 12.5, color: c.textMuted },
-    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4, alignItems: 'center' },
+    topRow: { flexDirection: 'row', alignItems: 'center' },
+    statsInline: { marginLeft: 'auto' },
     vehicleChip: { borderWidth: 1, borderColor: c.borderMid, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
     vehicleChipText: { fontSize: 12, color: c.textBody, fontWeight: '600' },
 
