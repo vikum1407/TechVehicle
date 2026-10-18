@@ -598,7 +598,10 @@ router.get('/:listingId', async (req: AuthRequest, res) => {
   let offersCount: number | null = null
   let newOffersCount: number | null = null
   if (isOwner) {
-    viewCount = await prisma.martListingView.count({ where: { listingId: listing.id } })
+    // Same reasoning as myAds.ts: MartListingView may not exist yet on every deployed
+    // database until its own `prisma db push` runs — degrade to "no view data yet"
+    // instead of breaking the owner's own ad detail screen (an existing flow).
+    viewCount = await prisma.martListingView.count({ where: { listingId: listing.id } }).catch(() => null)
     if (listing.type === 'wanted') {
       // Offers (Milestone 2 Step 2.2). "New" = offer threads unread for the owner — same
       // cross-column comparison deferred for unreadThreads in Step 1.1, now done in

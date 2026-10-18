@@ -66,7 +66,12 @@ router.get('/', async (req: AuthRequest, res) => {
     prisma.martFavorite.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } }),
     // Views (noted 2026-10-18): same owner-only stat shown in the single-ad detail
     // screen, batched the same way favGroups/threadGroups already are for this list.
-    prisma.martListingView.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } }),
+    // Caught separately from the rest of this Promise.all: MartListingView is a new
+    // table that may not exist yet on every deployed database until its own `prisma db
+    // push` runs, and this whole endpoint must keep working (existing flow) in the
+    // meantime — degrade to "no view data yet" instead of failing the entire My Ads list.
+    prisma.martListingView.groupBy({ by: ['listingId'], where: { listingId: { in: listingIds } }, _count: { _all: true } })
+      .catch(() => [] as { listingId: string; _count: { _all: number } }[]),
     // "Chats/replies count" = MartThread rows for this listing. A thread only ever gets
     // created once its first message is sent (03-api.md §23 point 11), so every row here
     // already has >= 1 message by construction — no extra message-count filter needed.
