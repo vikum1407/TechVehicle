@@ -57,7 +57,24 @@ export default function DeleteAccountSheet({
   }
 
   return (
-    <MartBottomSheet visible={visible} onClose={handleClose} topOffset={220}>
+    <MartBottomSheet
+      visible={visible}
+      onClose={handleClose}
+      topOffset={220}
+      footer={
+        <>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={deleting}>
+              <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.deleteBtn, !canDelete && styles.deleteBtnDisabled]} onPress={doDelete} disabled={!canDelete}>
+              <Text style={styles.deleteBtnText}>{deleting ? t('mart.deleteAccount.deleting') : t('mart.myMart.deleteMyAccount')}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      }
+    >
       <Text style={styles.title}>{t('mart.deleteAccount.title')}</Text>
       <Text style={styles.warning}>{t('mart.deleteAccount.warning')}</Text>
 
@@ -81,16 +98,6 @@ export default function DeleteAccountSheet({
         autoCorrect={false}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.btnRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={deleting}>
-          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.deleteBtn, !canDelete && styles.deleteBtnDisabled]} onPress={doDelete} disabled={!canDelete}>
-          <Text style={styles.deleteBtnText}>{deleting ? t('mart.deleteAccount.deleting') : t('mart.myMart.deleteMyAccount')}</Text>
-        </TouchableOpacity>
-      </View>
     </MartBottomSheet>
   )
 }

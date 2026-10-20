@@ -4,6 +4,22 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-20 — Bottom sheet action buttons could become invisible in si/ta — fixed in all 7 sheets
+
+Vikum reported (with screenshots, tested via the new standalone `mart-dev` build): on the Block User sheet, switching to Sinhala or Tamil made the Cancel/Block buttons hard to see — barely visible at the very bottom edge in Sinhala, not visible at all in the Tamil screenshot.
+
+**Root cause:** `MartBottomSheet` (the shared wrapper behind every Mart bottom sheet) put all content — including each sheet's own action buttons — inside a single `ScrollView`, with the sheet's visible height capped by a fixed `topOffset`. Sinhala/Tamil text routinely wraps onto more lines than the shorter English original (the whole reason Step 3.7 translated ~250 keys per language). Once a sheet's body grew taller than the visible area in a given language, the action buttons at the end of that same scrollable content slid toward or past the bottom edge — with no scroll indicator (`showsVerticalScrollIndicator={false}`) hinting there was more to scroll to, so they looked missing rather than just scrolled away. This could affect any of the 7 sheets built on `MartBottomSheet`, not just Block — all of them had their buttons inside the same scrollable `children`.
+
+**Fix:** added an optional `footer` prop to `MartBottomSheet`, rendered *outside* the `ScrollView`, pinned to the bottom of the sheet card. The `ScrollView` itself got `flexShrink: 1` so it's the body — not the footer — that absorbs any overflow via internal scrolling. Migrated all 6 sheets that have action buttons to use it (error text moved alongside each sheet's buttons into its `footer`, so it's never scrolled out of view either): `MartBlockSheet`, `MartReportSheet` (both its main form and its post-send "Also block / Done" state), `NameDistrictSheet`, `DeleteAccountSheet`, `OfferSheet`, `WhoBoughtItSheet`. `ReviewsModal` was checked and left alone — it has no action buttons, just a read-only list with its own internal `maxHeight`, so it was never at risk.
+
+`tsc --noEmit` clean on mobile, same pre-existing baseline as every other pass this build. Not yet tested on-device in si/ta — next thing to verify once this reaches the standalone `mart-dev` build.
+
+## 2026-10-18 — Both pending schema changes applied to Mart-dev
+
+Vikum ran `prisma db push` himself against the real Mart-dev database (using the `DATABASE_URL` from that Render service's own environment, set only for that one PowerShell command — never written to this machine's `.env` or committed anywhere). Applied cleanly: the `MartFollow` index (`@@index([sellerPhone, createdAt])`, pending since 2026-10-17) and the new `MartListingView` table (pending since earlier today). This was the last blocker for the view-count feature below — views can now actually record and count on Mart-dev, not just degrade gracefully.
+
+---
+
 ## 2026-10-18 — View/favorites counts reworked: fully public, no thresholds, no fabrication
 
 Follow-up to the same day's earlier view-count + favorites-count feature. On-device testing (dev phone, Mart-dev backend) immediately surfaced a real regression from that first pass: My Ads failed to load entirely ("Couldn't load. Check your connection.") because `GET /mart/my-ads`'s `Promise.all` included an unguarded `martListingView.groupBy()` call against a table that doesn't exist yet on the live database (the `MartListingView` schema change was written but never `db push`ed — same still-pending blocker as the `MartFollow` index from 2026-10-17). Fixed by catching that call (and the equivalent `martListingView.count()` in `listings.ts`'s owner branch) separately so a missing table degrades to "no view data yet" instead of breaking an existing, working screen (`58ad568`).

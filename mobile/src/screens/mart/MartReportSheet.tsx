@@ -77,7 +77,23 @@ export default function MartReportSheet({
 
   if (sent) {
     return (
-      <MartBottomSheet visible={visible} onClose={finish} topOffset={220}>
+      <MartBottomSheet
+        visible={visible}
+        onClose={finish}
+        topOffset={220}
+        footer={
+          <>
+            {onBlock ? (
+              <TouchableOpacity style={styles.blockBtn} onPress={() => { reset(); onBlock() }}>
+                <Text style={styles.blockBtnText}>{t('mart.report.alsoBlock')}</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={styles.doneBtn} onPress={finish}>
+              <Text style={styles.doneBtnText}>{t('mart.report.done')}</Text>
+            </TouchableOpacity>
+          </>
+        }
+      >
         <View style={styles.sentWrap}>
           <View style={styles.sentIconCircle}>
             <AppIcon icon={{ lib: 'ion', name: 'checkmark' }} size={28} color="#fff" />
@@ -88,21 +104,30 @@ export default function MartReportSheet({
               ? t('mart.report.alreadyReportedBody')
               : t('mart.report.reportSentBody')}
           </Text>
-          {onBlock ? (
-            <TouchableOpacity style={styles.blockBtn} onPress={() => { reset(); onBlock() }}>
-              <Text style={styles.blockBtnText}>{t('mart.report.alsoBlock')}</Text>
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity style={styles.doneBtn} onPress={finish}>
-            <Text style={styles.doneBtnText}>{t('mart.report.done')}</Text>
-          </TouchableOpacity>
         </View>
       </MartBottomSheet>
     )
   }
 
   return (
-    <MartBottomSheet visible={visible} onClose={close} topOffset={150}>
+    <MartBottomSheet
+      visible={visible}
+      onClose={close}
+      topOffset={150}
+      footer={
+        <>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={close} disabled={sending}>
+              <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]} onPress={send} disabled={!canSend}>
+              <Text style={styles.sendBtnText}>{sending ? t('mart.report.sending') : t('mart.report.sendReport')}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      }
+    >
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subLine}>{t('mart.report.subLine')}</Text>
 
@@ -135,17 +160,6 @@ export default function MartReportSheet({
         <Text style={styles.disputeText}>
           {t('mart.report.disputeText')}
         </Text>
-      </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.btnRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={close} disabled={sending}>
-          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]} onPress={send} disabled={!canSend}>
-          <Text style={styles.sendBtnText}>{sending ? t('mart.report.sending') : t('mart.report.sendReport')}</Text>
-        </TouchableOpacity>
       </View>
     </MartBottomSheet>
   )

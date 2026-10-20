@@ -59,7 +59,23 @@ export default function NameDistrictSheet({
 
   return (
     <>
-      <MartBottomSheet visible={visible} onClose={onClose || (() => {})} topOffset={260}>
+      <MartBottomSheet
+        visible={visible}
+        onClose={onClose || (() => {})}
+        topOffset={260}
+        footer={
+          <>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <TouchableOpacity
+              style={[styles.continueBtn, !canContinue && styles.continueBtnDisabled]}
+              disabled={!canContinue}
+              onPress={submit}
+            >
+              <Text style={styles.continueBtnText}>{saving ? t('mart.postAd.saving') : (continueLabel ?? t('mart.nameDistrict.continue'))}</Text>
+            </TouchableOpacity>
+          </>
+        }
+      >
         <Text style={styles.title}>{title ?? t('mart.nameDistrict.beforeYouStart')}</Text>
 
         <Text style={styles.label}>{t('mart.editProfile.yourName')}</Text>
@@ -80,15 +96,6 @@ export default function NameDistrictSheet({
           </Text>
         </TouchableOpacity>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <TouchableOpacity
-          style={[styles.continueBtn, !canContinue && styles.continueBtnDisabled]}
-          disabled={!canContinue}
-          onPress={submit}
-        >
-          <Text style={styles.continueBtnText}>{saving ? t('mart.postAd.saving') : (continueLabel ?? t('mart.nameDistrict.continue'))}</Text>
-        </TouchableOpacity>
       </MartBottomSheet>
 
       <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>

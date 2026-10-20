@@ -50,7 +50,24 @@ export default function MartBlockSheet({
   }
 
   return (
-    <MartBottomSheet visible={visible} onClose={onClose} topOffset={330}>
+    <MartBottomSheet
+      visible={visible}
+      onClose={onClose}
+      topOffset={330}
+      footer={
+        <>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={blocking}>
+              <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.blockBtn, blocking && styles.blockBtnDisabled]} onPress={block} disabled={blocking}>
+              <Text style={styles.blockBtnText}>{blocking ? t('mart.block.blocking') : t('mart.common.blockUser')}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      }
+    >
       <View style={styles.headerRow}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{(sellerName || '?')[0]}</Text></View>
         <View style={{ flex: 1 }}>
@@ -66,17 +83,6 @@ export default function MartBlockSheet({
             <Text style={styles.bulletText}>{c}</Text>
           </View>
         ))}
-      </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.btnRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={blocking}>
-          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.blockBtn, blocking && styles.blockBtnDisabled]} onPress={block} disabled={blocking}>
-          <Text style={styles.blockBtnText}>{blocking ? t('mart.block.blocking') : t('mart.common.blockUser')}</Text>
-        </TouchableOpacity>
       </View>
     </MartBottomSheet>
   )

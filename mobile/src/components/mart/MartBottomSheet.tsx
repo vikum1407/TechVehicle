@@ -16,12 +16,23 @@ import { Colors } from '../../theme/colors'
 // ScrollView (keyboardShouldPersistTaps="handled" so a button tap works without first
 // needing a second tap to dismiss the keyboard) fixes that. Both fixes apply to every
 // sheet built on this component, not just the one that surfaced them.
+//
+// `footer` added 2026-10-20: a real bug, found on-device in si/ta (Vikum's screenshots,
+// Block sheet) — every sheet used to put its own action buttons inside `children`,
+// meaning they scrolled along with the body. Sinhala/Tamil text routinely wraps onto
+// more lines than the English original, so once the body got tall enough, the buttons
+// slid toward or past the bottom edge with no scroll indicator hinting there was more
+// below — they looked "missing" rather than just scrolled away. `footer` renders
+// outside the ScrollView, pinned to the bottom of the sheet, always visible regardless
+// of how tall the body content is in any language. The ScrollView gets `flexShrink: 1`
+// so the body (not the footer) is what absorbs the overflow via internal scrolling.
 export default function MartBottomSheet({
-  visible, onClose, children, topOffset = 200,
+  visible, onClose, children, footer, topOffset = 200,
 }: {
   visible: boolean
   onClose: () => void
   children: React.ReactNode
+  footer?: React.ReactNode
   topOffset?: number
 }) {
   const colors = useColors()
@@ -39,9 +50,10 @@ export default function MartBottomSheet({
       >
         <View style={styles.sheet}>
           <View style={styles.grabber} />
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -62,5 +74,7 @@ function makeStyles(c: Colors, topOffset: number) {
       width: 40, height: 4, borderRadius: 2, backgroundColor: c.borderMid,
       alignSelf: 'center', marginBottom: 16,
     },
+    scrollArea: { flexShrink: 1 },
+    footer: { paddingTop: 14 },
   })
 }

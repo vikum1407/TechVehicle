@@ -125,7 +125,22 @@ export default function OfferSheet({
 
   return (
     <>
-    <MartBottomSheet visible={visible && !gateStep} onClose={onClose} topOffset={140}>
+    <MartBottomSheet
+      visible={visible && !gateStep}
+      onClose={onClose}
+      topOffset={140}
+      footer={
+        <>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} disabled={sending} onPress={handleSend}>
+            <Text style={styles.sendBtnText}>{sending ? t('mart.offer.sending') : t('mart.offer.sendOffer')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} disabled={sending}>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+          </TouchableOpacity>
+        </>
+      }
+    >
       <Text style={styles.title}>{t('mart.offer.title')}</Text>
 
       <View style={styles.summaryBox}>
@@ -188,14 +203,6 @@ export default function OfferSheet({
         numberOfLines={2}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} disabled={sending} onPress={handleSend}>
-        <Text style={styles.sendBtnText}>{sending ? t('mart.offer.sending') : t('mart.offer.sendOffer')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onClose} disabled={sending}>
-        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-      </TouchableOpacity>
     </MartBottomSheet>
 
     <NameDistrictSheet

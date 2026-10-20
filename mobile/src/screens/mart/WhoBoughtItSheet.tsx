@@ -70,7 +70,26 @@ export default function WhoBoughtItSheet({
   }
 
   return (
-    <MartBottomSheet visible={visible} onClose={onClose} topOffset={160}>
+    <MartBottomSheet
+      visible={visible}
+      onClose={onClose}
+      topOffset={160}
+      footer={
+        <>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity
+            style={[styles.submitBtn, (!selected || submitting) && styles.submitBtnDisabled]}
+            disabled={!selected || submitting}
+            onPress={confirm}
+          >
+            <Text style={styles.submitBtnText}>{submitting ? t('mart.postAd.saving') : (isSelling ? t('mart.whoBoughtIt.markAsSold') : t('mart.whoBoughtIt.markAsFulfilled'))}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} disabled={submitting}>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+          </TouchableOpacity>
+        </>
+      }
+    >
       <Text style={styles.title}>{isSelling ? t('mart.whoBoughtIt.whoBoughtIt') : t('mart.whoBoughtIt.whoGaveYouThePart')}</Text>
       <Text style={styles.help}>
         {isSelling
@@ -126,18 +145,6 @@ export default function WhoBoughtItSheet({
         </>
       )}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <TouchableOpacity
-        style={[styles.submitBtn, (!selected || submitting) && styles.submitBtnDisabled]}
-        disabled={!selected || submitting}
-        onPress={confirm}
-      >
-        <Text style={styles.submitBtnText}>{submitting ? t('mart.postAd.saving') : (isSelling ? t('mart.whoBoughtIt.markAsSold') : t('mart.whoBoughtIt.markAsFulfilled'))}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onClose} disabled={submitting}>
-        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-      </TouchableOpacity>
     </MartBottomSheet>
   )
 }
