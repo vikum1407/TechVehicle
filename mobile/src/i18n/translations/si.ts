@@ -1493,6 +1493,7 @@ const si: Record<TranslationKey, string> = {
   'mart.thread.couldntSend': 'යැවිය නොහැකි විය. ඔබේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.',
   'mart.thread.deleteConversationConfirm': 'මෙම සංවාදය මකන්නද?',
   'mart.thread.deleteConversationBody': 'එය ඔබේ පණිවිඩවලින් ඉවත් කරනු ලැබේ. {name} ට එය තවදුරටත් දිස්වනු ඇත.',
+  'mart.thread.menuTitle': 'විකල්ප',
   'mart.thread.reportUser': 'පරිශීලකයා වාර්තා කරන්න',
   'mart.thread.reportAd': 'දැන්වීම වාර්තා කරන්න',
   'mart.thread.blockUserMenu': 'පරිශීලකයා අවහිර කරන්න',

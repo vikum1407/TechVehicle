@@ -16,6 +16,7 @@ import MartRulesScreen from './MartRulesScreen'
 import RateSellerModal from './RateSellerModal'
 import MartReportSheet from './MartReportSheet'
 import MartBlockSheet from './MartBlockSheet'
+import MartBottomSheet from '../../components/mart/MartBottomSheet'
 
 const MESSAGE_MAX = 1000
 const CLOSED_VISIBLE_DAYS = 7
@@ -57,6 +58,7 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
   const [rateModalOpen, setRateModalOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState<{ type: 'user' | 'listing' | 'wanted'; id: string } | null>(null)
   const [blockOpen, setBlockOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const listingId = entry.kind === 'draft' ? entry.listingId : threadData?.listing.id
 
@@ -156,17 +158,19 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
     }
   }
 
-  const openMenu = () => {
-    // Spec: 04-screens.md §20.1 "Chat thread header... reports the user or the ad" —
-    // two separate report targets reachable from this one entry point, not a single
-    // generic "Report".
-    Alert.alert('', undefined, [
-      { text: t('mart.thread.reportUser'), onPress: () => setTimeout(() => setReportTarget({ type: 'user', id: otherId! }), 400) },
-      { text: t('mart.thread.reportAd'), onPress: () => setTimeout(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }), 400) },
-      { text: t('mart.thread.blockUserMenu'), onPress: () => setTimeout(() => setBlockOpen(true), 400) },
-      { text: t('mart.thread.deleteConversation'), style: 'destructive', onPress: confirmDelete },
-      { text: t('common.cancel'), style: 'cancel' },
-    ])
+  // Fixed 2026-10-20: this used to be a native Alert.alert with an empty title and 5
+  // buttons — found on-device (Vikum's screenshot) to render unclear (no visible title)
+  // and with buttons missing/clipped (Android's native AlertDialog isn't built for a
+  // menu-length button list) and not dismissible by tapping outside. Replaced with a
+  // real bottom sheet, same component every other Mart menu/sheet already uses.
+  const openMenu = () => setMenuOpen(true)
+
+  // Closing one Modal-based sheet right before opening another can glitch on Android
+  // (same native-dialog-collision reasoning as SellerProfileScreen's own openMenu) —
+  // the short delay after closing the menu avoids it.
+  const closeMenuThen = (action: () => void) => {
+    setMenuOpen(false)
+    setTimeout(action, 400)
   }
 
   if (loading) {
@@ -462,6 +466,40 @@ export default function ChatThreadScreen({ token, entry, onBack, onOpenListing, 
         onDone={() => { setBlockOpen(false); onBack() }}
       />
     ) : null}
+
+    <MartBottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)} topOffset={420}>
+      <Text style={styles.menuTitle}>{t('mart.thread.menuTitle')}</Text>
+      <View style={styles.menuCard}>
+        <TouchableOpacity
+          style={styles.menuRow}
+          onPress={() => closeMenuThen(() => setReportTarget({ type: 'user', id: otherId! }))}
+        >
+          <View style={styles.menuRowIconTile}><AppIcon icon={{ lib: 'ion', name: 'flag-outline' }} size={18} color={colors.primary} /></View>
+          <Text style={styles.menuRowLabel}>{t('mart.thread.reportUser')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuRow, styles.menuRowDivider]}
+          onPress={() => closeMenuThen(() => setReportTarget({ type: threadData?.listing.type === 'wanted' ? 'wanted' : 'listing', id: listingId! }))}
+        >
+          <View style={styles.menuRowIconTile}><AppIcon icon={{ lib: 'ion', name: 'flag-outline' }} size={18} color={colors.primary} /></View>
+          <Text style={styles.menuRowLabel}>{t('mart.thread.reportAd')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuRow, styles.menuRowDivider]}
+          onPress={() => closeMenuThen(() => setBlockOpen(true))}
+        >
+          <View style={styles.menuRowIconTile}><AppIcon icon={{ lib: 'ion', name: 'person-remove-outline' }} size={18} color={colors.primary} /></View>
+          <Text style={styles.menuRowLabel}>{t('mart.thread.blockUserMenu')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuRow, styles.menuRowDivider]}
+          onPress={() => closeMenuThen(confirmDelete)}
+        >
+          <View style={styles.menuRowIconTile}><AppIcon icon={{ lib: 'ion', name: 'trash-outline' }} size={18} color="#c0392b" /></View>
+          <Text style={[styles.menuRowLabel, { color: '#c0392b' }]}>{t('mart.thread.deleteConversation')}</Text>
+        </TouchableOpacity>
+      </View>
+    </MartBottomSheet>
     </>
   )
 }
@@ -582,5 +620,12 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
 
     closedBar: { borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surfaceAlt, padding: 14, paddingBottom: bottomInset + 14, alignItems: 'center' },
     closedBarText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+
+    menuTitle: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 14 },
+    menuCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: c.border, overflow: 'hidden' },
+    menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+    menuRowDivider: { borderTopWidth: 1, borderTopColor: c.border },
+    menuRowIconTile: { width: 36, height: 36, borderRadius: 10, backgroundColor: c.primaryTint, alignItems: 'center', justifyContent: 'center' },
+    menuRowLabel: { fontSize: 14.5, fontWeight: '600', color: c.text },
   })
 }

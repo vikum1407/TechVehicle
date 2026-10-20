@@ -4,6 +4,16 @@ Log of choices made during the build that weren't spelled out in the handoff pac
 
 ---
 
+## 2026-10-20 — Chat thread "..." menu: unclear and undismissable native Alert replaced with a real sheet
+
+Vikum reported (screenshot, standalone `mart-dev` build): opening the chat thread's "..." header menu showed a mostly-blank box with no visible title, only 3 of its real 5 options, and couldn't be dismissed by tapping outside.
+
+**Root cause:** `ChatThreadScreen.tsx`'s `openMenu()` called `Alert.alert('', undefined, [...5 buttons...])` — an empty title (the blank box) and 5 buttons on Android's native `Alert.alert`, which is built for 2-3 quick actions (OK/Cancel/Destructive), not a menu list. With 5 buttons the native AlertDialog renders unreliably — 2 of the 5 (Delete Conversation, Cancel) weren't showing at all. Checked the other two "..." menus in Mart (`SellerProfileScreen`, `MyAdsScreen`) for the same risk — both have a real title and only 4 buttons, within what `Alert.alert` handles fine, so this was isolated to chat thread's menu, not systemic.
+
+**Fix:** replaced it with a proper `MartBottomSheet`-based menu — a real title ("Options") and 4 tappable rows (Report User, Report Ad, Block User, red-styled Delete Conversation), same icon-tile row style already used in `MyMartScreen`'s own list rows. Tap-outside-to-dismiss comes free from `MartBottomSheet`. Kept the existing 400ms delay before opening the next sheet/dialog after closing this one (same native-Modal-collision reasoning already documented at `SellerProfileScreen`'s own `openMenu`).
+
+`tsc --noEmit` clean, same pre-existing baseline. Not yet tested on-device.
+
 ## 2026-10-20 — Bottom sheet action buttons could become invisible in si/ta — fixed in all 7 sheets
 
 Vikum reported (with screenshots, tested via the new standalone `mart-dev` build): on the Block User sheet, switching to Sinhala or Tamil made the Cancel/Block buttons hard to see — barely visible at the very bottom edge in Sinhala, not visible at all in the Tamil screenshot.

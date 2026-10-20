@@ -647,6 +647,7 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'mart.thread.couldntSend': 'அனுப்ப முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
   'mart.thread.deleteConversationConfirm': 'இந்த உரையாடலை நீக்கவா?',
   'mart.thread.deleteConversationBody': 'இது உங்கள் செய்திகளிலிருந்து அகற்றப்படும். {name} அவர் பக்கத்தில் இன்னும் காண்பார்.',
+  'mart.thread.menuTitle': 'விருப்பங்கள்',
   'mart.thread.reportUser': 'பயனரைப் புகாரளி',
   'mart.thread.reportAd': 'விளம்பரத்தைப் புகாரளி',
   'mart.thread.blockUserMenu': 'பயனரைத் தடு',

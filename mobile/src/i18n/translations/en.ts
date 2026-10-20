@@ -1493,6 +1493,7 @@ const en = {
   'mart.thread.couldntSend': "Couldn't send. Check your connection and try again.",
   'mart.thread.deleteConversationConfirm': 'Delete this conversation?',
   'mart.thread.deleteConversationBody': "It'll be removed from your Messages. {name} will still see it on their side.",
+  'mart.thread.menuTitle': 'Options',
   'mart.thread.reportUser': 'Report User',
   'mart.thread.reportAd': 'Report Ad',
   'mart.thread.blockUserMenu': 'Block User',
