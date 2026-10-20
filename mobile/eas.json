@@ -21,6 +21,16 @@
         "EXPO_PUBLIC_API_URL": "https://techvehicle-backend.onrender.com"
       }
     },
+    "mart-dev": {
+      "distribution": "internal",
+      "channel": "mart-dev",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://techvehicle-backend-mart-dev.onrender.com"
+      }
+    },
     "production": {
       "channel": "production",
       "android": {

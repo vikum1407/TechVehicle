@@ -18,7 +18,7 @@ import { MartFilters, DEFAULT_MART_FILTERS, activeFilterCount } from './FiltersS
 import NameDistrictSheet from './NameDistrictSheet'
 import MartRulesScreen from './MartRulesScreen'
 
-type MartType = 'selling' | 'wanted'
+export type MartType = 'selling' | 'wanted'
 
 type Card = {
   id: string; title: string; coverUrl: string | null; price: number | null
@@ -38,9 +38,11 @@ type Card = {
 // pattern as Messages. Favorites, My Mart, Messages (Step 1.8) and card taps all open
 // real screens.
 export default function MartHomeScreen({
-  token, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages, onOpenNotifications,
+  token, martType, onMartTypeChange, filters, onFiltersChange, onOpenFilters, onOpenPostAd, onOpenListing, onOpenMyMart, onOpenFavorites, onOpenMessages, onOpenNotifications,
 }: {
   token: string
+  martType: MartType
+  onMartTypeChange: (t: MartType) => void
   filters: MartFilters
   onFiltersChange: (f: MartFilters) => void
   onOpenFilters: () => void
@@ -56,7 +58,6 @@ export default function MartHomeScreen({
   const { t, language } = useTranslation()
   const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
 
-  const [martType, setMartType] = useState<MartType>('selling')
   const [myId, setMyId] = useState<string | null>(null)
   const [gateStep, setGateStep] = useState<'nameDistrict' | 'rules' | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -199,7 +200,7 @@ export default function MartHomeScreen({
             <TouchableOpacity
               key={mt}
               style={[styles.typeSwitchPill, martType === mt && styles.typeSwitchPillActive]}
-              onPress={() => setMartType(mt)}
+              onPress={() => onMartTypeChange(mt)}
             >
               <Text style={[styles.typeSwitchText, martType === mt && styles.typeSwitchTextActive]}>
                 {mt === 'selling' ? t('mart.home.selling') : t('mart.home.wanted')}

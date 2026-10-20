@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BackHandler } from 'react-native'
-import MartHomeScreen from './mart/MartHomeScreen'
+import MartHomeScreen, { MartType } from './mart/MartHomeScreen'
 import FiltersScreen, { MartFilters, DEFAULT_MART_FILTERS } from './mart/FiltersScreen'
 import PostAdScreen, { EditingListing } from './mart/PostAdScreen'
 import DetailScreen from './mart/DetailScreen'
@@ -89,6 +89,12 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
 }) {
   const [stack, setStack] = useState<MartStackEntry[]>([{ screen: 'home' }])
   const [filters, setFilters] = useState<MartFilters>(DEFAULT_MART_FILTERS)
+  // Noted 2026-10-18 (bug fix): lifted up from MartHomeScreen's own local state, same
+  // reason `filters` above already lives here — MartNavigator unmounts MartHomeScreen
+  // entirely whenever `current.screen` moves to 'detail' (or any other screen), so any
+  // state owned by MartHomeScreen itself resets on remount. Without this, pressing back
+  // from a Wanted ad's detail page silently dropped the user back on the Selling tab.
+  const [martType, setMartType] = useState<MartType>('selling')
 
   const push = (entry: MartStackEntry) => setStack(prev => [...prev, entry])
   const pop = () => setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
@@ -162,6 +168,8 @@ export default function MartNavigator({ onExit, token, onFullScreenChange, focus
     return (
       <MartHomeScreen
         token={token}
+        martType={martType}
+        onMartTypeChange={setMartType}
         filters={filters}
         onFiltersChange={setFilters}
         onOpenFilters={() => push({ screen: 'filters' })}
