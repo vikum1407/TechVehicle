@@ -2,6 +2,12 @@
 
 ---
 
+## Fixed — Raw "invalid or expired token" error shown to real users (2026-10-21)
+
+**Found on the live production app** — a few testers hit a popup reading literally "Unauthorised — invalid or expired token" (screenshot: Garage registration screen, Sinhala UI chrome around an untranslated raw English error). Root cause: every login JWT expires after 30 days (`expiresIn: '30d'`, `backend/src/routes/auth.ts`); when that happens, `authMiddleware` (`backend/src/middleware/auth.ts`) returns that exact developer-facing string, and the mobile app had zero special handling anywhere for a 401 — every API error (including this one) flowed through the same generic "show whatever the backend said" path (`apiFail()` in `mobile/src/config/api.ts`). Not isolated to Garage registration — the same raw text could appear on any screen if a token expired mid-use.
+
+**Fix:** `api.ts`'s global `fetch` patch (already used there to catch network/JSON-parse failures) now also detects a 401 response and calls a registered `onUnauthorized` handler. `App.tsx` registers it via a small `SessionGuard` component (rendered inside `<LanguageProvider>`, since `App()` itself sits above that provider and can't call `useTranslation()` directly) — on a 401, shows a translated "Session Expired — your session has expired, please log in again" alert, then calls the existing `handleLogout()` on dismiss. New i18n keys: `common.ok`, `common.sessionExpiredTitle`, `common.sessionExpiredMessage` (en/si/ta). `tsc --noEmit` clean, same pre-existing baseline.
+
 ## ⚠️ HIGH PRIORITY — Make the app fully responsive across devices (queued 2026-10-21, not started)
 
 **Trigger:** found while fixing a live bug — the "Add New Renewal" modal (`VehicleTestsScreen.tsx`) is cut off at the bottom on a Motorola phone (gesture navigation) but not on the Samsung J-series dev phones (physical/capacitive buttons, no screen-area overlap). Root cause: `useSafeAreaInsets` is used inconsistently across the app — some screens (e.g. `ChatThreadScreen.tsx`) already fold `insets.bottom` into their layout correctly, others (e.g. `VehicleTestsScreen.tsx`, confirmed — not used anywhere in that file) just use fixed padding numbers that assume a specific device shape.

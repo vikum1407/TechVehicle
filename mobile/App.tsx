@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme, Alert } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
-import { api } from './src/config/api'
+import { api, setUnauthorizedHandler } from './src/config/api'
 import { ThemeProvider } from './src/theme/ThemeContext'
-import { LanguageProvider } from './src/i18n/LanguageContext'
+import { LanguageProvider, useTranslation } from './src/i18n/LanguageContext'
 import LoginScreen from './src/screens/LoginScreen'
 import OTPScreen from './src/screens/OTPScreen'
 import MyVehiclesScreen from './src/screens/MyVehiclesScreen'
@@ -36,6 +36,25 @@ import ProfileScreen from './src/screens/ProfileScreen'
 import SettingsScreen from './src/screens/SettingsScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 import FloatingHomeButton from './src/components/FloatingHomeButton'
+
+// Bridges api.ts's setUnauthorizedHandler (a plain module, no access to i18n or
+// navigation) into App()'s own handleLogout + a translated message. Rendered inside
+// <LanguageProvider> since App() itself sits above that provider and can't call
+// useTranslation() on its own context.
+function SessionGuard({ onExpire }: { onExpire: () => void }) {
+  const { t } = useTranslation()
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      Alert.alert(
+        t('common.sessionExpiredTitle'),
+        t('common.sessionExpiredMessage'),
+        [{ text: t('common.ok'), onPress: onExpire }],
+      )
+    })
+    return () => setUnauthorizedHandler(null)
+  }, [t, onExpire])
+  return null
+}
 
 type Screen =
   | 'loading' | 'login' | 'otp' | 'roleSelect' | 'emailSetup'
@@ -391,6 +410,7 @@ export default function App() {
     <SafeAreaProvider>
     <ThemeProvider>
     <LanguageProvider>
+      <SessionGuard onExpire={handleLogout} />
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
 
       {/* ── Auth screens ─────────────────────────────────────────────── */}

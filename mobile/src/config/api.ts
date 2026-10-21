@@ -8,11 +8,27 @@ import * as FileSystem from 'expo-file-system/legacy'
 // e.g. a proxy/error page during a cold start (res.json() rejects with
 // something like "JSON Parse error: Unexpected character: ;"). Patched once
 // here for every call in this file, rather than in each function individually.
+//
+// Found 2026-10-21 (tester screenshot, live env): a third failure mode bypassed
+// this same protection — authMiddleware's own 401 response (e.g. the login JWT's
+// 30-day expiry) carries a developer-facing string ("Unauthorised — invalid or
+// expired token") straight through apiFail() to whatever screen called it, since
+// nothing anywhere treated a 401 as special. App.tsx registers a handler via
+// setUnauthorizedHandler (shows a friendly, translated message and logs out) —
+// this file stays translation-agnostic, it only detects and notifies.
+let onUnauthorized: (() => void) | null = null
+export function setUnauthorizedHandler(fn: (() => void) | null) { onUnauthorized = fn }
+
 const nativeFetch = globalThis.fetch
 globalThis.fetch = ((...args: Parameters<typeof fetch>) =>
-  nativeFetch(...args).catch(() => {
-    throw new Error('Could not connect. Please check your internet connection and try again.')
-  })
+  nativeFetch(...args)
+    .then(res => {
+      if (res.status === 401) onUnauthorized?.()
+      return res
+    })
+    .catch(() => {
+      throw new Error('Could not connect. Please check your internet connection and try again.')
+    })
 ) as typeof fetch
 
 const nativeResJson = Response.prototype.json
