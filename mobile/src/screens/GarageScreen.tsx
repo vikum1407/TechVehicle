@@ -1260,6 +1260,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const showForm = !garage || editing
 
   return (
+    <>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       {(tab === 'customers' || tab === 'history') && garage && !editing ? (
@@ -2681,8 +2682,19 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         </Modal>
       )}
 
-      {/* ── Walk-in service lookup modal ──────────────────────────────── */}
-      {walkinOpen && (
+    </View>
+    </KeyboardAvoidingView>
+
+    {/* Fixed 2026-10-21: these 2 modals used to be nested inside the screen's own
+        outer KeyboardAvoidingView (needed above for other inline forms), while each
+        also has its own internal KeyboardAvoidingView (needed since Modal renders in
+        a separate native window the outer one can't reach) - same conflict as the
+        Vehicle Tests screen's "Add New Policy" bug, reported as intermittent blinking
+        while accepting/suggesting a different slot on a booking. Moved both out from
+        under the outer KeyboardAvoidingView so only their own internal one reacts. */}
+
+    {/* ── Walk-in service lookup modal ──────────────────────────────── */}
+    {walkinOpen && (
         <Modal visible animationType="slide" transparent={false} onRequestClose={() => setWalkinOpen(false)}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.container}>
@@ -2833,8 +2845,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </Modal>
         )
       })()}
-    </View>
-    </KeyboardAvoidingView>
+    </>
   )
 }
 
