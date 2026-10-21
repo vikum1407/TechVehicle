@@ -850,6 +850,20 @@ Each entry needs: recommended oil grade + type, tyre size (front/rear), timing b
 
 ## Backlog Ideas (Vikum's Notes)
 
+### Cost Forecast: bulk-close predicted services + attach them to a garage booking (discussed 2026-10-21, not yet built)
+
+**Improvement 1 — multi-select Cost Forecast items → one bulk hand-off to Add Service.** Today, tapping an item in Cost Forecast just navigates to a blank Add Service form with nothing pre-filled — `onLogService` in `App.tsx` doesn't pass the service name through at all (except Emission/Wheel Alignment/Chain Service, which route to the Vehicle Tests screen instead, matched via a loose `n.includes(...)` string check). Vikum wants: select several forecast items via checkboxes, one "Log Selected" button, land in Add Service with those items already pre-marked (Add Service already supports multiple `selectedItems` per submission, so this is additive, not a rework), and be able to add more items before saving.
+
+Two things found while scoping this:
+1. Forecast's prediction names (e.g. "Engine Oil Change") don't necessarily match Add Service's selectable item names (e.g. "Oil Change") — needs a small name-mapping table.
+2. A multi-select batch may contain a mix of regular items and Emission/Alignment/Chain items, which live in a *different* screen (Vehicle Tests, which already has all 3 as tabs in one screen). So the flow needs to split a selection into at most two destinations: one Add Service session (pre-marked) + one Vehicle Tests visit (opened on whichever tab matches the first selected test item; the other tabs are manually reachable in that same screen).
+
+**Vehicle Tests return-path gap, found while scoping — must be fixed as part of this, not separately:** Add Service already supports a dynamic `returnTo` (so saving from Cost Forecast returns to Cost Forecast). Vehicle Tests does not — its back button is hardcoded (`vehicleTests: 'vehicleDashboard'` in `App.tsx`'s backMap) to always return to the main Vehicle Dashboard. Without fixing this, logging an Emission/Alignment/Chain item from Cost Forecast would strand the owner on the Dashboard instead of bringing them back to see the forecast update.
+
+**Improvement 2 — let the owner attach upcoming/predicted services as a booking requirement, shown separately from shared history on the garage side.** Today, Booking's "attach history" step only lets the owner pick from *existing* `ServiceRecord`s (`BookingScreen.tsx`'s `shareEnabled`/`selectedRecordIds` section) — Cost Forecast items aren't stored rows at all, they're computed live, so there's nothing to attach today. Needs: a new field (e.g. on `Booking`) to store which requested-service names were picked at booking time — a real schema change; a new section in the booking flow, separate from "Share history"; and a new, visually distinct block on the garage's booking card (`GarageScreen.tsx`) — explicitly must not be mixed into the existing attached-history display. Emission/Alignment/Chain items need no special handling here — they're just plain name + estimated-cost entries in this list, same as any other forecast item, since the garage only needs to know what's requested, not how the owner would eventually log it themselves.
+
+**Status:** Discussed and scoped 2026-10-21 — both explicitly approved to build ("we have no risk yet, still in testing level in production"), but Vikum changed his mind on sequencing mid-discussion: build both **after** finishing today's live-env bug-fixing round, not before.
+
 ### Vehicle Type / Fuel Type consistency (discussed 2026-09-05, not yet built)
 
 **Problem:** In Add/Edit Vehicle, Fuel Type (Petrol 92, Petrol 95, Diesel, Electric, Petrol Hybrid, Diesel Hybrid) is a separate field from Vehicle Type — but `Car — Petrol`/`Car — Diesel` and `SUV — Petrol`/`SUV — Diesel` already bake fuel into the vehicle type itself, while every other vehicle type (Motorcycle, Three-Wheeler, Van, Pickup, Truck, Heavy) doesn't. Nothing currently stops a contradictory combination like Fuel Type "Diesel" + Vehicle Type "Car — Petrol". Fuel Type is picked first in the form, so filtering Vehicle Type based on it is the natural direction.
