@@ -244,6 +244,37 @@ export const CATEGORY_BRANDS: Record<string, string[]> = {
   'General & Other':       ['Toyota OEM', 'Honda OEM', 'Genuine Parts'],
 }
 
+// Noted 2026-10-21: Cost Forecast / Predictions use the prediction engine's own
+// service names (`backend/src/data/serviceIntervals.ts`), which don't always match
+// this file's selectable item names exactly (e.g. "Engine Oil Change" vs "Oil
+// Change"). Used when pre-marking Add Service items for the "log selected
+// predictions" flow — only covers names confirmed to exist above; anything not
+// listed here just isn't pre-marked (safe default — the owner can still select it
+// manually, same as today), rather than risk pre-marking the wrong item.
+export const PREDICTION_NAME_TO_SERVICE_ITEMS: Record<string, string[]> = {
+  'Engine Oil Change': ['Oil Change'],
+  'Air Filter': ['Air Filter'],
+  'Fuel Filter': ['Fuel Filter'],
+  'AC / Cabin Filter': ['AC Filter', 'Cabin Filter'],
+  'Battery': ['Battery'],
+  'Brake Fluid': ['Brake Fluid'],
+  'Brake Pads': ['Brake Pads (Front)', 'Brake Pads (Rear)'],
+  'Coolant Flush': ['Coolant Flush'],
+  'Drive Belts (Aux)': ['Drive Belts'],
+  'Glow Plugs': ['Glow Plugs (Diesel)'],
+  'Power Steering Fluid': ['Power Steering Fluid'],
+  'Shock Absorbers': ['Shock Absorbers (Front)', 'Shock Absorbers (Rear)'],
+  'Spark Plugs': ['Spark Plugs'],
+  'Spark Plugs (Iridium)': ['Spark Plugs'],
+  'Timing Belt': ['Timing Belt'],
+  'Tyre Rotation': ['Tyre Rotation'],
+  'Water Pump': ['Water Pump'],
+  'Automatic Transmission Fluid': ['Transmission Oil (Auto)'],
+  'CVT / Automatic Transmission Fluid': ['Transmission Oil (Auto)'],
+  'Manual Gear Oil': ['Gear Oil (Manual)'],
+  'Gear Oil': ['Gear Oil (Manual)'],
+}
+
 // Vehicle types below don't bake fuel into the type itself (unlike car-petrol/
 // car-diesel etc.) — their spark-plug-vs-glow-plug exclusion must come from the
 // vehicle's actual fuelType field instead of a fixed guess. See fuelExclusions().

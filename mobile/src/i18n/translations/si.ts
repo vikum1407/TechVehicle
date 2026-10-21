@@ -745,6 +745,7 @@ const si: Record<TranslationKey, string> = {
   'costForecast.otherDue': 'වෙනත් අවශ්‍ය සේවා (තවම වියදම් දත්ත නැත)',
   'costForecast.logToImprove': 'අනාවැකියේ නිරවද්‍යතාව වැඩි දියුණු කිරීමට සේවා වියදමක් සටහන් කරන්න.',
   'costForecast.logService': '+ සේවාව සටහන් කරන්න',
+  'costForecast.logSelected': 'තෝරාගත් ({count}) සටහන් කරන්න',
   'costForecast.footer': 'කාලයත් සමඟ අනාවැකියේ නිරවද්‍යතාව වැඩි දියුණු කිරීමට සේවා වියදම් නිතිපතා සටහන් කරන්න.',
 
   'vehicleTests.title': 'වාහන පරීක්ෂණ',

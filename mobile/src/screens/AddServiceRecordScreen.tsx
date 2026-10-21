@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform,
@@ -28,6 +28,11 @@ type Props = {
   currentMileage: number
   onRecordAdded: (newMileage?: number) => void
   onBack: () => void
+  // Cost Forecast "select several, log them together" (2026-10-21) - item names to
+  // pre-mark as selected on open, same shape as what tapping each one manually would
+  // produce. Any name not found in this vehicle's current category list is silently
+  // skipped (safe default) rather than risk pre-marking something invalid.
+  initialSelectedNames?: string[]
 }
 
 // ─── Structured sub-form definitions ────────────────────────────────────────
@@ -71,7 +76,7 @@ const STRUCTURED_ITEMS: Record<string, StructuredField[]> = {
   ],
 }
 
-export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, fuelType, currentMileage, onRecordAdded, onBack }: Props) {
+export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, fuelType, currentMileage, onRecordAdded, onBack, initialSelectedNames }: Props) {
   const [categories, setCategories] = useState<{ title: string; items: string[] }[]>(
     () => getServiceCategories(vehicleType, fuelType)
   )
@@ -136,6 +141,23 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       setSelectedItems(prev => [...prev, { name, category, brand: '' }])
     }
   }
+
+  // Applies initialSelectedNames exactly once (guarded by the ref, not just the
+  // effect's own dependency array) so a later categories refresh (the remote
+  // getServiceCategoriesRemote call above) never re-adds something the owner
+  // already deliberately deselected.
+  const appliedInitialSelection = useRef(false)
+  useEffect(() => {
+    if (appliedInitialSelection.current) return
+    if (!initialSelectedNames || initialSelectedNames.length === 0) return
+    appliedInitialSelection.current = true
+    const toAdd: SelectedItem[] = []
+    for (const name of initialSelectedNames) {
+      const category = categories.find(c => c.items.includes(name))
+      if (category) toAdd.push({ name, category: category.title, brand: '' })
+    }
+    if (toAdd.length > 0) setSelectedItems(prev => [...prev, ...toAdd])
+  }, [categories])
 
   const setBrandForItem = (itemName: string, brand: string) => {
     setSelectedItems(prev => prev.map(i => i.name === itemName ? { ...i, brand } : i))

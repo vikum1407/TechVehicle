@@ -743,6 +743,7 @@ const en = {
   'costForecast.otherDue': 'Other Due Services (no cost data yet)',
   'costForecast.logToImprove': 'Log a service cost to improve forecast accuracy.',
   'costForecast.logService': '+ Log Service',
+  'costForecast.logSelected': 'Log Selected ({count})',
   'costForecast.footer': 'Log service costs consistently to improve forecast accuracy over time.',
 
   'vehicleTests.title': 'Vehicle Tests',

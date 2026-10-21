@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api, setUnauthorizedHandler } from './src/config/api'
+import { PREDICTION_NAME_TO_SERVICE_ITEMS } from './src/constants/serviceData'
 import { ThemeProvider } from './src/theme/ThemeContext'
 import { LanguageProvider, useTranslation } from './src/i18n/LanguageContext'
 import LoginScreen from './src/screens/LoginScreen'
@@ -62,6 +63,18 @@ type Screen =
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
   | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
+
+// Shared by Predictions' onLogNow, Cost Forecast's onLogService/onLogServices - a
+// prediction/forecast item name that's Emission/Wheel Alignment/Chain-related routes
+// to the dedicated Vehicle Tests screen instead of Add Service (previously 3 separate
+// copies of this same substring check).
+function testsTabForServiceName(name: string): 'emission' | 'alignment' | 'chain' | null {
+  const n = name.toLowerCase()
+  if (n.includes('emission')) return 'emission'
+  if (n.includes('wheel alignment')) return 'alignment'
+  if (n.includes('chain')) return 'chain'
+  return null
+}
 
 type Vehicle = {
   id: string
@@ -121,6 +134,19 @@ export default function App() {
   const [garageEntryFrom, setGarageEntryFrom] = useState<'tab' | 'profile'>('tab')
   const [predictionsInitialTab, setPredictionsInitialTab] = useState<'services' | 'setup'>('services')
   const [testsInitialTab, setTestsInitialTab] = useState<'emission' | 'alignment' | 'chain' | 'insurance' | 'licence'>('emission')
+  // Fixed 2026-10-21: Vehicle Tests' own back button used to be hardcoded to always
+  // return to vehicleDashboard (unlike addServiceReturnTo/historyReturnTo, which were
+  // already dynamic) - so opening it from Cost Forecast or Predictions stranded the
+  // owner on the Dashboard instead of bringing them back to see the list update.
+  const [testsReturnTo, setTestsReturnTo] = useState<Screen>('vehicleDashboard')
+  // Cost Forecast "select several, log them together" (2026-10-21): a batch can mix
+  // regular items (go to Add Service, pre-marked) and Emission/Alignment/Chain items
+  // (go to Vehicle Tests instead) - addServiceInitialNames pre-marks the former;
+  // pendingTestNames holds the latter until Add Service's own save completes, so the
+  // owner visits Add Service first, then Vehicle Tests, then lands back on Cost
+  // Forecast - without this needing a generic multi-step navigation system.
+  const [addServiceInitialNames, setAddServiceInitialNames] = useState<string[]>([])
+  const [pendingTestNames, setPendingTestNames] = useState<string[]>([])
   const scheme = useColorScheme()
 
   // Load persisted seen counts on startup
@@ -302,7 +328,7 @@ export default function App() {
       logFuel: 'vehicleDashboard',
       tripLog: 'vehicleDashboard',
       addExpense: 'vehicleDashboard',
-      vehicleTests: 'vehicleDashboard',
+      vehicleTests: testsReturnTo,
       vehicleHistory: historyReturnTo,
       analytics: 'vehicleDashboard',
       predictions: 'vehicleDashboard',
@@ -328,7 +354,7 @@ export default function App() {
       return false
     })
     return () => handler.remove()
-  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage, addServiceReturnTo, historyReturnTo, knowledgeHubReturnTo])
+  }, [screen, notifPrefsReturnTo, garageEntryFrom, hasGarage, addServiceReturnTo, historyReturnTo, knowledgeHubReturnTo, testsReturnTo])
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone)
@@ -530,12 +556,12 @@ export default function App() {
           notifUnread={notifUnreadCount > 0}
           onNotifications={() => setScreen('notifications')}
           onBack={() => setScreen('vehicles')}
-          onAddRecord={() => { setAddServiceReturnTo('vehicleDashboard'); setScreen('addServiceRecord') }}
+          onAddRecord={() => { setAddServiceReturnTo('vehicleDashboard'); setAddServiceInitialNames([]); setPendingTestNames([]); setScreen('addServiceRecord') }}
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
-          onVehicleTests={(tab) => { setTestsInitialTab(tab || 'emission'); setScreen('vehicleTests') }}
-          onChainService={() => { setTestsInitialTab('chain'); setScreen('vehicleTests') }}
+          onVehicleTests={(tab) => { setTestsReturnTo('vehicleDashboard'); setTestsInitialTab(tab || 'emission'); setScreen('vehicleTests') }}
+          onChainService={() => { setTestsReturnTo('vehicleDashboard'); setTestsInitialTab('chain'); setScreen('vehicleTests') }}
           onTripLog={() => setScreen('tripLog')}
           onViewHistory={() => { setHistoryReturnTo('vehicleDashboard'); setScreen('vehicleHistory') }}
           onPredictions={() => setScreen('predictions')}
@@ -558,13 +584,23 @@ export default function App() {
           vehicleType={selectedVehicle.vehicleType}
           fuelType={selectedVehicle.fuelType}
           currentMileage={selectedVehicle.mileage}
+          initialSelectedNames={addServiceInitialNames}
           onRecordAdded={(newMileage) => {
             if (newMileage != null && newMileage > (selectedVehicle?.mileage ?? 0)) {
               setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)
             }
-            setScreen(addServiceReturnTo)
+            setAddServiceInitialNames([])
+            if (pendingTestNames.length > 0) {
+              const firstTab = testsTabForServiceName(pendingTestNames[0])!
+              setPendingTestNames([])
+              setTestsReturnTo(addServiceReturnTo)
+              setTestsInitialTab(firstTab)
+              setScreen('vehicleTests')
+            } else {
+              setScreen(addServiceReturnTo)
+            }
           }}
-          onBack={() => setScreen(addServiceReturnTo)}
+          onBack={() => { setAddServiceInitialNames([]); setPendingTestNames([]); setScreen(addServiceReturnTo) }}
         />
       )}
       {screen === 'logFuel' && selectedVehicle && (
@@ -638,7 +674,7 @@ export default function App() {
           emissionTestExpiry={selectedVehicle.emissionTestExpiry}
           onMileageUpdated={(newMileage) => setSelectedVehicle(prev => prev ? { ...prev, mileage: newMileage } : prev)}
           onInsuranceLicenceUpdated={(fields) => setSelectedVehicle(prev => prev ? { ...prev, ...fields } : prev)}
-          onBack={() => { setTestsInitialTab('emission'); setScreen('vehicleDashboard') }}
+          onBack={() => { setTestsInitialTab('emission'); setScreen(testsReturnTo) }}
         />
       )}
       {screen === 'vehicleHistory' && selectedVehicle && (
@@ -670,11 +706,9 @@ export default function App() {
           readOnly={selectedVehicle.isShared}
           onBack={() => { setPredictionsInitialTab('services'); setScreen('vehicleDashboard') }}
           onLogNow={(serviceName) => {
-            const n = serviceName.toLowerCase()
-            if (n.includes('emission')) { setTestsInitialTab('emission'); setScreen('vehicleTests') }
-            else if (n.includes('wheel alignment')) { setTestsInitialTab('alignment'); setScreen('vehicleTests') }
-            else if (n.includes('chain')) { setTestsInitialTab('chain'); setScreen('vehicleTests') }
-            else { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setScreen('addServiceRecord') }
+            const testsTab = testsTabForServiceName(serviceName)
+            if (testsTab) { setTestsReturnTo('predictions'); setTestsInitialTab(testsTab); setScreen('vehicleTests') }
+            else { setPredictionsInitialTab('services'); setAddServiceReturnTo('predictions'); setAddServiceInitialNames([]); setPendingTestNames([]); setScreen('addServiceRecord') }
           }}
           onEditRecord={(id) => { setHistoryEditRecordId(id); setHistoryReturnTo('predictions'); setScreen('vehicleHistory') }}
         />
@@ -693,11 +727,33 @@ export default function App() {
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
           onLogService={(serviceName) => {
-            const n = serviceName.toLowerCase()
-            if (n.includes('emission')) { setTestsInitialTab('emission'); setScreen('vehicleTests') }
-            else if (n.includes('wheel alignment')) { setTestsInitialTab('alignment'); setScreen('vehicleTests') }
-            else if (n.includes('chain')) { setTestsInitialTab('chain'); setScreen('vehicleTests') }
-            else { setAddServiceReturnTo('costForecast'); setScreen('addServiceRecord') }
+            const testsTab = testsTabForServiceName(serviceName)
+            if (testsTab) { setTestsReturnTo('costForecast'); setTestsInitialTab(testsTab); setScreen('vehicleTests') }
+            else { setAddServiceReturnTo('costForecast'); setAddServiceInitialNames([]); setPendingTestNames([]); setScreen('addServiceRecord') }
+          }}
+          onLogServices={(serviceNames) => {
+            // "Log selected" (2026-10-21): split the batch into Add-Service-type
+            // items (pre-marked in one session) and Emission/Alignment/Chain items
+            // (visited in Vehicle Tests after Add Service's own save, or directly if
+            // nothing else was selected) - see the state comment above for why.
+            const testNames: string[] = []
+            const regularNames: string[] = []
+            for (const name of serviceNames) {
+              const testsTab = testsTabForServiceName(name)
+              if (testsTab) testNames.push(name)
+              else regularNames.push(...(PREDICTION_NAME_TO_SERVICE_ITEMS[name] || [name]))
+            }
+            if (regularNames.length > 0) {
+              setAddServiceReturnTo('costForecast')
+              setAddServiceInitialNames(regularNames)
+              setPendingTestNames(testNames)
+              setScreen('addServiceRecord')
+            } else if (testNames.length > 0) {
+              const firstTab = testsTabForServiceName(testNames[0])!
+              setTestsReturnTo('costForecast')
+              setTestsInitialTab(firstTab)
+              setScreen('vehicleTests')
+            }
           }}
         />
       )}

@@ -25,6 +25,9 @@ type Props = {
   vehicleName: string
   onBack: () => void
   onLogService?: (serviceName: string) => void
+  // "Select several, log them together" (2026-10-21) - bulk hand-off alongside the
+  // existing single-tap-to-log, not instead of it.
+  onLogServices?: (serviceNames: string[]) => void
 }
 
 function statusColor(status: string): string {
@@ -65,15 +68,25 @@ function remainingText(item: ForecastItem, t: (key: any, params?: Record<string,
   return parts.join('  ·  ')
 }
 
-export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onLogService }: Props) {
+export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onLogService, onLogServices }: Props) {
   const [items, setItems] = useState<ForecastItem[]>([])
   const [total, setTotal] = useState(0)
   const [periodDays, setPeriodDays] = useState(365)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
+
+  const toggleSelect = (name: string) => {
+    setSelectedNames(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
 
   const load = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true)
@@ -148,7 +161,21 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   activeOpacity={0.7}
                 >
                   <View style={styles.itemTop}>
-                    <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
+                    <View style={styles.itemNameRow}>
+                      {onLogServices && (
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); toggleSelect(item.name) }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <AppIcon
+                            icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
+                            size={20}
+                            color={selectedNames.has(item.name) ? colors.primary : statusColor(item.status)}
+                          />
+                        </TouchableOpacity>
+                      )}
+                      <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
+                    </View>
                     <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
                       {statusLabel(item.status, t).icon && <AppIcon icon={statusLabel(item.status, t).icon!} size={12} color={statusColor(item.status)} />} {statusLabel(item.status, t).label}
                     </Text>
@@ -183,7 +210,21 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   activeOpacity={0.7}
                 >
                   <View style={styles.itemTop}>
-                    <Text style={styles.itemNameMuted}>{item.name}</Text>
+                    <View style={styles.itemNameRow}>
+                      {onLogServices && (
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); toggleSelect(item.name) }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <AppIcon
+                            icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
+                            size={20}
+                            color={selectedNames.has(item.name) ? colors.primary : colors.textMuted}
+                          />
+                        </TouchableOpacity>
+                      )}
+                      <Text style={styles.itemNameMuted}>{item.name}</Text>
+                    </View>
                     <Text style={[styles.itemStatus, { color: statusColor(item.status) }]}>
                       {statusLabel(item.status, t).icon && <AppIcon icon={statusLabel(item.status, t).icon!} size={12} color={statusColor(item.status)} />} {statusLabel(item.status, t).label}
                     </Text>
@@ -204,6 +245,16 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
             <AppIcon icon={{ lib: 'mci', name: 'lightbulb-on-outline' }} size={12} color={colors.textFaint} /> {t('costForecast.footer')}
           </Text>
         </ScrollView>
+      )}
+      {selectedNames.size > 0 && (
+        <View style={styles.logSelectedBar}>
+          <TouchableOpacity
+            style={styles.logSelectedBtn}
+            onPress={() => { onLogServices?.(Array.from(selectedNames)); setSelectedNames(new Set()) }}
+          >
+            <Text style={styles.logSelectedBtnText}>{t('costForecast.logSelected', { count: selectedNames.size })}</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   )
@@ -240,6 +291,7 @@ function makeStyles(c: Colors) {
     },
     itemCardMuted: { backgroundColor: c.surface },
     itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    itemNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
     itemName: { fontSize: 15, fontWeight: '700', flex: 1 },
     itemNameMuted: { fontSize: 15, fontWeight: '700', color: c.text, flex: 1 },
     itemStatus: { fontSize: 12, fontWeight: '700' },
@@ -252,5 +304,12 @@ function makeStyles(c: Colors) {
     itemNoCostRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 8 },
     itemLogLink: { fontSize: 12, color: c.primary, fontWeight: '700' },
     footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16, lineHeight: 18 },
+    logSelectedBar: {
+      padding: 14, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border,
+    },
+    logSelectedBtn: {
+      backgroundColor: c.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center',
+    },
+    logSelectedBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   })
 }
