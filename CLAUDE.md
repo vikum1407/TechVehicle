@@ -2,6 +2,16 @@
 
 ---
 
+## ⚠️ HIGH PRIORITY — Raw "invalid or expired token" error shown to real users (found 2026-10-21, not fixed yet)
+
+**Found on the live production app** (not Mart) — a few testers hit a popup reading literally "Unauthorised — invalid or expired token" (screenshot: Garage registration screen, Sinhala UI chrome around an untranslated raw English error). Confirmed via code: every login JWT expires after 30 days (`expiresIn: '30d'`, `backend/src/routes/auth.ts`); when that happens, `authMiddleware` (`backend/src/middleware/auth.ts`) returns that exact developer-facing string, and the mobile app has **zero special handling anywhere for a 401** — checked, no screen or shared layer catches it. Every API error (including this one) flows through the same generic "show whatever the backend said" path (`apiFail()` in `mobile/src/config/api.ts`), so a very common, expected situation (session expired, needs re-login) surfaces as raw backend/debug text instead of a friendly message. Not isolated to Garage registration — the same raw text would appear on any screen if a token expires mid-use.
+
+**Fix (agreed, not built):** a global 401 handler — on any 401 response, show a friendly message ("Your session has expired — please log in again") and send the user to login, instead of letting the raw backend string through.
+
+**Status:** Vikum has a few more bugs to fix on `main` today, plus wants to push a live production update (without Mart). This fix should go in that same round — explicitly called out as high priority, to be picked up when that `main`-branch session starts (not done yet, no code changed as of this note).
+
+---
+
 ## ⚠️ HIGH PRIORITY — Analytics & Predictions Redesign (planned, not built)
 
 **Discussed and scoped 2026-09-11/12, deliberately deferred past the 2026-09-12 release — this is the first substantive task to pick up once release logistics are done.**
