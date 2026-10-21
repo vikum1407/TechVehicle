@@ -3282,17 +3282,17 @@ function makeStyles(c: Colors, topInset: number) {
     noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
     bookingBottomRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 10 },
     messagesToggleBtn: {
-      flex: 1.4, marginTop: 10, paddingVertical: 9, paddingHorizontal: 10,
+      flex: 1.4, marginTop: 10, paddingVertical: 12, paddingHorizontal: 10,
       backgroundColor: c.primaryTint, borderRadius: 8,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     },
-    messagesToggleBtnText: { fontSize: 13, color: c.primary, fontWeight: '700' },
+    messagesToggleBtnText: { fontSize: 14, color: c.primary, fontWeight: '700' },
     cancelBookingBtn: {
-      flex: 1, paddingVertical: 9, paddingHorizontal: 10,
+      flex: 1, paddingVertical: 12, paddingHorizontal: 10,
       backgroundColor: '#ffebee', borderRadius: 8,
       alignItems: 'center', justifyContent: 'center',
     },
-    cancelBookingBtnText: { fontSize: 13, color: '#c62828', fontWeight: '700' },
+    cancelBookingBtnText: { fontSize: 14, color: '#c62828', fontWeight: '700' },
     msgDot: {
       width: 10, height: 10, borderRadius: 5,
       backgroundColor: '#e53935',
