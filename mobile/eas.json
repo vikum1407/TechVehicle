@@ -21,6 +21,16 @@
         "EXPO_PUBLIC_API_URL": "https://techvehicle-backend.onrender.com"
       }
     },
+    "verify": {
+      "distribution": "internal",
+      "channel": "verify",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://techvehicle-backend.onrender.com"
+      }
+    },
     "production": {
       "channel": "production",
       "android": {
