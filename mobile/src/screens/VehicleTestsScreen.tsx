@@ -643,6 +643,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   }
 
   return (
+    <>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={s.container}>
       <ScreenHeader title={t('vehicleTests.title')} subtitle={vehicleName} onBack={onBack} />
@@ -1221,8 +1222,19 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
           </>
         ) : null}
       </ScrollView>
+    </View>
+    </KeyboardAvoidingView>
 
-      <Modal visible={showAddPolicy} animationType="slide" transparent onRequestClose={() => setShowAddPolicy(false)}>
+    {/* Fixed 2026-10-21: these 3 modals used to be nested inside the outer screen's
+        own KeyboardAvoidingView (needed above for the Emission/Alignment/Chain tabs'
+        inline forms). Each modal already has its own internal KeyboardAvoidingView
+        (needed since Modal renders in a separate native window the outer one can't
+        reach) - having BOTH meant two components independently reacting to the same
+        keyboard-show event at once. Reported on-device (Motorola): fields in the
+        Insurance "Add New Policy" modal couldn't be typed into, with visible flicker.
+        Moved these 3 modals out from under the outer KeyboardAvoidingView entirely so
+        only their own internal one ever reacts to the keyboard. */}
+    <Modal visible={showAddPolicy} animationType="slide" transparent onRequestClose={() => setShowAddPolicy(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowAddPolicy(false)}>
           <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
@@ -1306,8 +1318,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
-    </KeyboardAvoidingView>
+    </>
   )
 }
 
