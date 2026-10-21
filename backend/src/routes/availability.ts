@@ -25,6 +25,30 @@ function todayUTCMidnight(): Date {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 }
 
+// Noted 2026-10-21: garage time slots are free-text labels (`GarageSlot.label`,
+// `garageSlots.ts`) with no structured time field — a garage can type "7:00",
+// "Morning", anything. Only labels that look like a clock time ("H:MM"/"HH:MM")
+// can be checked against the current time; anything else (e.g. "Morning") is left
+// alone, since there's no reliable way to know what time it means.
+function parseTimeLabelMinutes(label: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(label.trim())
+  if (!m) return null
+  const hours = Number(m[1])
+  const minutes = Number(m[2])
+  if (hours > 23 || minutes > 59) return null
+  return hours * 60 + minutes
+}
+
+// Sri Lanka is a fixed UTC+5:30 offset (no DST) — computed explicitly rather than
+// relying on the server process's own timezone, the same care this file's
+// todayUTCMidnight() comment above already documents a past bug over (server
+// timezone silently shifting a calendar date by a day).
+function sriLankaNowMinutes(): number {
+  const sriLankaOffsetMs = 5.5 * 60 * 60 * 1000
+  const sriLankaNow = new Date(Date.now() + sriLankaOffsetMs)
+  return sriLankaNow.getUTCHours() * 60 + sriLankaNow.getUTCMinutes()
+}
+
 // ── Static routes first (before /:garageId to avoid conflicts) ────────────────
 
 // POST /availability/override — garage sets/updates a date override
@@ -232,15 +256,22 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
         slotCounts[key] = (slotCounts[key] || 0) + 1
       }
 
+      // Only today's date can have a slot whose time has already passed — i === 0
+      // is today (the loop starts at `today`), every later date is in the future.
+      const nowMinutes = i === 0 ? sriLankaNowMinutes() : null
+
       const slots = timeSlots.map(label => {
         const capacity = slotCapacity.get(label) ?? effectiveMax
         const booked = slotCounts[label] || 0
+        const slotMinutes = nowMinutes !== null ? parseTimeLabelMinutes(label) : null
+        const timePassed = slotMinutes !== null && nowMinutes !== null && slotMinutes <= nowMinutes
         return {
           label,
           booked,
           capacity,
           remaining: Math.max(0, capacity - booked),
-          available: isOpen && totalBooked < effectiveMax && booked < capacity,
+          available: isOpen && totalBooked < effectiveMax && booked < capacity && !timePassed,
+          timePassed,
         }
       })
 

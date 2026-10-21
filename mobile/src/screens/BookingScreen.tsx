@@ -57,7 +57,7 @@ type DateSlot = {
   remaining: number
   message: string | null
   messageColor: string | null
-  slots: { label: string; booked: number; capacity: number; remaining: number; available: boolean }[]
+  slots: { label: string; booked: number; capacity: number; remaining: number; available: boolean; timePassed?: boolean }[]
 }
 
 type ServiceRecord = {
@@ -620,7 +620,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                 </View>
                 {slot.available
                   ? <Text style={[styles.slotSelectArrow, lowRemaining && { color: colors.orange }]}>{t('booking.selectArrow')}</Text>
-                  : <Text style={styles.slotFullText}>{t('booking.alreadyBooked')}</Text>
+                  : <Text style={styles.slotFullText}>{slot.timePassed ? t('booking.timePassed') : t('booking.alreadyBooked')}</Text>
                 }
               </TouchableOpacity>
             )

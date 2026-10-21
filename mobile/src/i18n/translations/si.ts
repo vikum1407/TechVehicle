@@ -918,6 +918,7 @@ const si: Record<TranslationKey, string> = {
   'booking.pickTimeSlot': 'වේලා පරාසයක් තෝරන්න',
   'booking.selectTimeSlot': 'වේලා පරාසයක් තෝරන්න',
   'booking.alreadyBooked': 'දැනටමත් වෙන් කර ඇත',
+  'booking.timePassed': 'වේලාව පසුවිය',
   'booking.confirmBooking': 'වෙන්කිරීම තහවුරු කරන්න',
   'booking.summaryTitle': 'වෙන්කිරීමේ සාරාංශය',
   'booking.vehicle': 'වාහනය',

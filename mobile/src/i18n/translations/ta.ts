@@ -333,6 +333,7 @@ const ta: Partial<Record<TranslationKey, string>> = {
   'booking.legendFullClosed': 'நிறைந்தது / மூடப்பட்டது',
   'booking.pickTimeSlot': 'நேர இடைவெளி தேர்வு செய்க',
   'booking.alreadyBooked': 'ஏற்கெனவே பதிவு செய்யப்பட்டது',
+  'booking.timePassed': 'நேரம் கடந்துவிட்டது',
   'booking.confirmBooking': 'பதிவை உறுதிப்படுத்துக',
   'booking.vehicle': 'வாகனம்',
   'booking.garage': 'கேரேஜ்',

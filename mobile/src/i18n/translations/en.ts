@@ -916,6 +916,7 @@ const en = {
   'booking.pickTimeSlot': 'Pick a Time Slot',
   'booking.selectTimeSlot': 'Select a time slot',
   'booking.alreadyBooked': 'Already Booked',
+  'booking.timePassed': 'Time Passed',
   'booking.confirmBooking': 'Confirm Booking',
   'booking.summaryTitle': 'Booking Summary',
   'booking.vehicle': 'Vehicle',
