@@ -3293,7 +3293,7 @@ function makeStyles(c: Colors, topInset: number) {
     noteSendBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
     bookingBottomRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 10 },
     messagesToggleBtn: {
-      flex: 1.4, marginTop: 10, paddingVertical: 12, paddingHorizontal: 10,
+      flex: 1, marginTop: 10, paddingVertical: 12, paddingHorizontal: 10,
       backgroundColor: c.primaryTint, borderRadius: 8,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     },
