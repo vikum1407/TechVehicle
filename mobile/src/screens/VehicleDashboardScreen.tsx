@@ -71,7 +71,7 @@ type Props = {
   onLogFuel: () => void
   onAddExpense: () => void
   onAnalytics: () => void
-  onVehicleTests: () => void
+  onVehicleTests: (tab?: 'emission' | 'alignment' | 'chain' | 'insurance' | 'licence') => void
   onChainService?: () => void
   onTripLog?: () => void
   onPredictions: () => void
@@ -913,7 +913,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               {emission && (
                 <TouchableOpacity
                   style={[styles.renewalCard, { borderLeftColor: urgencyColor(emission.urgency), backgroundColor: urgencyBg(emission.urgency) }]}
-                  onPress={onVehicleTests}
+                  onPress={() => onVehicleTests('emission')}
                   activeOpacity={0.8}
                 >
                   <View style={styles.renewalLeft}>
@@ -933,7 +933,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               {licence && (
                 <TouchableOpacity
                   style={[styles.renewalCard, { borderLeftColor: urgencyColor(licence.urgency), backgroundColor: urgencyBg(licence.urgency) }]}
-                  onPress={onAddExpense}
+                  onPress={() => onVehicleTests('licence')}
                   activeOpacity={0.8}
                 >
                   <View style={styles.renewalLeft}>
@@ -953,7 +953,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               {insurance && (
                 <TouchableOpacity
                   style={[styles.renewalCard, { borderLeftColor: urgencyColor(insurance.urgency), backgroundColor: urgencyBg(insurance.urgency) }]}
-                  onPress={onAddExpense}
+                  onPress={() => onVehicleTests('insurance')}
                   activeOpacity={0.8}
                 >
                   <View style={styles.renewalLeft}>

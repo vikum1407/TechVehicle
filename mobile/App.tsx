@@ -534,7 +534,7 @@ export default function App() {
           onLogFuel={() => setScreen('logFuel')}
           onAddExpense={() => setScreen('addExpense')}
           onAnalytics={() => setScreen('analytics')}
-          onVehicleTests={() => { setTestsInitialTab('emission'); setScreen('vehicleTests') }}
+          onVehicleTests={(tab) => { setTestsInitialTab(tab || 'emission'); setScreen('vehicleTests') }}
           onChainService={() => { setTestsInitialTab('chain'); setScreen('vehicleTests') }}
           onTripLog={() => setScreen('tripLog')}
           onViewHistory={() => { setHistoryReturnTo('vehicleDashboard'); setScreen('vehicleHistory') }}
