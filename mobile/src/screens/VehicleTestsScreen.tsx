@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
@@ -165,7 +166,8 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   const [cCost, setCCost] = useState('')
   const [cSaving, setCSaving] = useState(false)
   const colors = useColors()
-  const s = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const s = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   function daysUntil(dateStr: string | null | undefined): number | null {
@@ -1309,7 +1311,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
 
@@ -1430,7 +1432,7 @@ function makeStyles(c: Colors) {
       paddingVertical: 10, paddingHorizontal: 12, backgroundColor: c.surface, borderRadius: 10,
     },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-    modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32, maxHeight: '85%' },
+    modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 + bottomInset, maxHeight: '85%' },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 12 },
     modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, alignItems: 'center' },
     modalCancelBtn: { paddingVertical: 14, paddingHorizontal: 16 },

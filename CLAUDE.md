@@ -2,6 +2,16 @@
 
 ---
 
+## ⚠️ HIGH PRIORITY — Make the app fully responsive across devices (queued 2026-10-21, not started)
+
+**Trigger:** found while fixing a live bug — the "Add New Renewal" modal (`VehicleTestsScreen.tsx`) is cut off at the bottom on a Motorola phone (gesture navigation) but not on the Samsung J-series dev phones (physical/capacitive buttons, no screen-area overlap). Root cause: `useSafeAreaInsets` is used inconsistently across the app — some screens (e.g. `ChatThreadScreen.tsx`) already fold `insets.bottom` into their layout correctly, others (e.g. `VehicleTestsScreen.tsx`, confirmed — not used anywhere in that file) just use fixed padding numbers that assume a specific device shape.
+
+**Reality check, given to Vikum directly:** "fully responsive on literally every device" isn't a hard guarantee any app can make — but "correct and comfortable on the vast majority of real devices" is a realistic, achievable target, via (1) auditing every screen/modal for safe-area-inset handling, especially anything with bottom-pinned action buttons (the exact pattern that broke here), (2) consistent use of flexible/percentage-based layouts rather than fixed pixel assumptions, (3) testing across a wider device spread than the current 3 test phones (Motorola, Samsung J4, J5 — all similar-ish Android devices, none covering notches, foldables, tablets, or a wide range of aspect ratios).
+
+**Status:** queued, not started. Vikum's instruction: pick this up once the current live-env bug-fixing round is closed out — alongside (not necessarily before/after) the two Cost Forecast improvements already queued in Backlog Ideas below.
+
+---
+
 ## ⚠️ HIGH PRIORITY — Analytics & Predictions Redesign (planned, not built)
 
 **Discussed and scoped 2026-09-11/12, deliberately deferred past the 2026-09-12 release — this is the first substantive task to pick up once release logistics are done.**
