@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, RefreshControl, ActivityIndicator, Alert, TextInput,
-  Image, ImageBackground, Modal, FlatList, Dimensions, Animated,
+  Image, ImageBackground, Modal, FlatList, useWindowDimensions, Animated,
   KeyboardAvoidingView, Platform,
 } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
@@ -266,7 +266,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { width: windowWidth } = useWindowDimensions()
+  const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
   const { t } = useTranslation()
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
 
@@ -1578,7 +1579,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos, label } = photoViewer
-          const W = Dimensions.get('window').width
+          const W = windowWidth
           return (
             <View style={styles.photoModalBg}>
               <View style={styles.photoModalHeader}>
@@ -1711,7 +1712,7 @@ function FamilyShareModal({
   )
 }
 
-function makeStyles(c: Colors, topInset: number) {
+function makeStyles(c: Colors, topInset: number, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { paddingBottom: 40 },
@@ -1996,7 +1997,7 @@ function makeStyles(c: Colors, topInset: number) {
     progressHint: { fontSize: 12, color: c.textSub, marginTop: 3, paddingLeft: 4 },
 
     moreSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 + bottomInset },
     moreSheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     moreSheetTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     moreSheetClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
@@ -2006,7 +2007,7 @@ function makeStyles(c: Colors, topInset: number) {
     moreSheetItemText: { fontSize: 14, fontWeight: '600', color: c.text },
 
     editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    editVehicleCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%' },
+    editVehicleCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 + bottomInset, maxHeight: '90%' },
     editVehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     editVehicleTitle: { fontSize: 17, fontWeight: '800', color: c.text },
     editVehicleClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
@@ -2042,7 +2043,7 @@ function makeStyles(c: Colors, topInset: number) {
     photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: topInset + 8, paddingHorizontal: 20, paddingBottom: 12 },
     photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },
     photoModalCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-    photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 18 },
+    photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 18, paddingBottom: 18 + bottomInset },
     photoCounter: { color: '#fff', fontSize: 15, fontWeight: '600', minWidth: 50, textAlign: 'center' },
     photoNavBtn: { paddingHorizontal: 16, paddingVertical: 8 },
     photoNavBtnDisabled: { opacity: 0.25 },

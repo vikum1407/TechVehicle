@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image, Linking,
-  Modal, FlatList, Dimensions,
+  Modal, FlatList, useWindowDimensions,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -125,7 +126,9 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [forecastLoading, setForecastLoading] = useState(false)
   const [selectedServiceNames, setSelectedServiceNames] = useState<Set<string>>(new Set())
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const { width: windowWidth } = useWindowDimensions()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   // Auto-search: debounce 500ms on searchQuery change; empty query loads all garages
@@ -462,7 +465,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos } = photoViewer
-          const W = Dimensions.get('window').width
+          const W = windowWidth
           return (
             <View style={styles.photoModalOverlay}>
               <TouchableOpacity onPress={() => setPhotoViewer(null)} style={styles.photoModalClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -925,7 +928,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 16, paddingBottom: 40 },
@@ -1005,7 +1008,7 @@ function makeStyles(c: Colors) {
     },
     photoModalCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     photoModalImage: { width: '100%', height: '80%' },
-    photoCounter: { position: 'absolute', bottom: 36, alignSelf: 'center', color: '#fff', fontSize: 14, fontWeight: '600' },
+    photoCounter: { position: 'absolute', bottom: 36 + bottomInset, alignSelf: 'center', color: '#fff', fontSize: 14, fontWeight: '600' },
     reviewsBox: { marginTop: 8, marginBottom: 8 },
     reviewsDistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
     reviewsDistLabel: { width: 26, fontSize: 11, color: c.textSub, fontWeight: '600' },

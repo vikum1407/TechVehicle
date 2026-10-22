@@ -120,7 +120,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   const [decliningShare, setDecliningShare] = useState<string | null>(null)
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
   const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<string | null>(null)
@@ -467,10 +467,10 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
           {/* Modal header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setPreviewTransfer(null)}>
-              <Text style={styles.modalBack}>{t('common.close')}</Text>
+              <Text style={styles.modalBack} numberOfLines={1}>{t('common.close')}</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>{t('myVehicles.vehicleHistory')}</Text>
-            <View style={{ width: 60 }} />
+            <View style={{ width: 76 }} />
           </View>
 
           {previewTransfer && (
@@ -587,7 +587,7 @@ export default function MyVehiclesScreen({ token, phoneNumber, userType, onAddVe
   )
 }
 
-function makeStyles(c: Colors, topInset: number) {
+function makeStyles(c: Colors, topInset: number, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     header: {
@@ -680,7 +680,7 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: topInset + 12, paddingBottom: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
-    modalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 60 },
+    modalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 76 },
     modalTitle: { fontSize: 16, fontWeight: '700', color: c.text },
     modalVehicleBanner: {
       backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 14,
@@ -706,7 +706,7 @@ function makeStyles(c: Colors, topInset: number) {
     recordMeta: { fontSize: 12, color: c.textMuted, marginTop: 2 },
     recordNotes: { fontSize: 12, color: c.textMuted, fontStyle: 'italic', marginTop: 4 },
     modalFooter: {
-      backgroundColor: c.surface, padding: 16, paddingBottom: 32,
+      backgroundColor: c.surface, padding: 16, paddingBottom: 32 + bottomInset,
       borderTopWidth: 1, borderTopColor: c.border,
     },
     modalAcceptBtn: {

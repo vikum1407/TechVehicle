@@ -115,6 +115,7 @@ router.post('/', async (req: AuthRequest, res) => {
       res.status(400).json({ error: 'This registration number is already registered' })
       return
     }
+    console.error('POST /vehicles error:', error)
     res.status(500).json({ error: 'Failed to add vehicle' })
   }
 })
@@ -246,6 +247,7 @@ router.patch('/:id/expiry', async (req: AuthRequest, res) => {
     const updated = await prisma.vehicle.update({ where: { id }, data })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /vehicles/:id/expiry error:', error)
     res.status(500).json({ error: 'Failed to update expiry dates' })
   }
 })
@@ -265,6 +267,7 @@ router.patch('/:id/photo', async (req: AuthRequest, res) => {
     const updated = await prisma.vehicle.update({ where: { id }, data: { photoUrl: photoUrl || null } })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /vehicles/:id/photo error:', error)
     res.status(500).json({ error: 'Failed to update vehicle photo' })
   }
 })
@@ -347,6 +350,7 @@ router.get('/:id/progress', async (req: AuthRequest, res) => {
     const score = Math.round((items.filter(i => i.done).length / items.length) * 100)
     res.json({ score, items })
   } catch (error) {
+    console.error('GET /vehicles/:id/progress error:', error)
     res.status(500).json({ error: 'Failed to get progress' })
   }
 })
@@ -387,6 +391,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /vehicles/:id error:', error)
     res.status(500).json({ error: 'Failed to update vehicle' })
   }
 })
@@ -428,6 +433,7 @@ router.patch('/:id/overrides', async (req: AuthRequest, res) => {
     })
     res.json({ intervalOverrides: updated.intervalOverrides })
   } catch (error) {
+    console.error('PATCH /vehicles/:id/overrides error:', error)
     res.status(500).json({ error: 'Failed to save interval override' })
   }
 })
@@ -494,6 +500,7 @@ router.patch('/:id/mileage', async (req: AuthRequest, res) => {
     })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /vehicles/:id/mileage error:', error)
     res.status(500).json({ error: 'Failed to update mileage' })
   }
 })

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Image, Modal, FlatList, Dimensions, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, Image, Modal, FlatList, useWindowDimensions, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { api } from '../config/api'
 import { getServiceCategories } from '../constants/serviceData'
@@ -117,7 +117,8 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
   const [showQuickCategories, setShowQuickCategories] = useState(false)
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const s = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const { width: windowWidth } = useWindowDimensions()
+  const s = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
   const { t } = useTranslation()
 
   const quickCategories = useMemo(
@@ -1061,7 +1062,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
         {photoViewer && (() => {
           const { photos, label } = photoViewer
-          const W = Dimensions.get('window').width
+          const W = windowWidth
           return (
             <View style={s.photoModalBg}>
               <View style={s.photoModalHeader}>
@@ -1120,7 +1121,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
   )
 }
 
-function makeStyles(c: Colors, topInset: number) {
+function makeStyles(c: Colors, topInset: number, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
 
@@ -1269,7 +1270,7 @@ function makeStyles(c: Colors, topInset: number) {
     },
     editModalCard: {
       backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%',
+      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 + bottomInset, maxHeight: '90%',
     },
     editModalHeader: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
@@ -1306,7 +1307,7 @@ function makeStyles(c: Colors, topInset: number) {
     photoModalLabel: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 16 },
     photoModalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
     photoModalCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 20 },
+    photoModalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingBottom: 20 + bottomInset },
     photoNavBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
     photoNavBtnDisabled: { opacity: 0.3 },
     photoNavText: { color: '#fff', fontSize: 24, fontWeight: '300' },

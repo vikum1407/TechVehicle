@@ -204,6 +204,7 @@ router.get('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
       res.json(defaults)
     }
   } catch (error) {
+    console.error('GET /auth/notification-prefs error:', error)
     res.status(500).json({ error: 'Failed to fetch preferences' })
   }
 })
@@ -226,6 +227,7 @@ router.put('/notification-prefs', authMiddleware, async (req: AuthRequest, res) 
     })
     res.json({ ok: true, prefs })
   } catch (error) {
+    console.error('PUT /auth/notification-prefs error:', error)
     res.status(500).json({ error: 'Failed to save preferences' })
   }
 })
@@ -243,6 +245,7 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
     ])
     res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null })
   } catch (error) {
+    console.error('GET /auth/stats error:', error)
     res.status(500).json({ error: 'Failed to fetch stats' })
   }
 })
@@ -267,6 +270,7 @@ router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
     if (error.code === 'P2002') {
       res.status(409).json({ error: 'This email is already linked to another account' }); return
     }
+    console.error('PATCH /auth/email error:', error)
     res.status(500).json({ error: 'Failed to save email' })
   }
 })
@@ -286,6 +290,7 @@ router.patch('/profile-photo', authMiddleware, async (req: AuthRequest, res) => 
     })
     res.json({ ok: true, profilePhotoUrl: photoUrl || null })
   } catch (error) {
+    console.error('PATCH /auth/profile-photo error:', error)
     res.status(500).json({ error: 'Failed to update profile photo' })
   }
 })

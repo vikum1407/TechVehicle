@@ -112,6 +112,7 @@ router.delete('/override', authMiddleware, async (req: AuthRequest, res) => {
     await prisma.garageCalendarOverride.deleteMany({ where: { garageId: garage.id, date } })
     res.json({ success: true })
   } catch (error) {
+    console.error('DELETE /availability/override error:', error)
     res.status(500).json({ error: 'Failed to remove override' })
   }
 })
@@ -167,6 +168,7 @@ router.get('/:garageId', authMiddleware, async (req: AuthRequest, res) => {
     const availability = await prisma.garageAvailability.findUnique({ where: { garageId } })
     res.json(availability || { workDays: '[1,2,3,4,5]', maxPerDay: 5, timeSlots: '["Morning","Afternoon"]' })
   } catch (error) {
+    console.error('GET /availability/:garageId error:', error)
     res.status(500).json({ error: 'Failed to fetch availability' })
   }
 })
@@ -195,6 +197,7 @@ router.get('/:garageId/overrides', authMiddleware, async (req: AuthRequest, res)
     })
     res.json(overrides)
   } catch (error) {
+    console.error('GET /availability/:garageId/overrides error:', error)
     res.status(500).json({ error: 'Failed to fetch overrides' })
   }
 })

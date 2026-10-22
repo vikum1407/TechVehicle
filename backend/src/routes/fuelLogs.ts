@@ -123,6 +123,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /fuel-logs error:', error)
     res.status(500).json({ error: 'Failed to update fuel log' })
   }
 })
@@ -141,6 +142,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await prisma.fuelLog.delete({ where: { id } })
     res.json({ ok: true })
   } catch (error) {
+    console.error('DELETE /fuel-logs error:', error)
     res.status(500).json({ error: 'Failed to delete fuel log' })
   }
 })

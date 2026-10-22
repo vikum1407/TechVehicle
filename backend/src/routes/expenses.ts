@@ -9,6 +9,16 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+// Matches AddExpenseScreen's own picker (Fine/Parking/Toll/Accessories/Washing/Other)
+// plus Insurance/Revenue Licence, which are created programmatically from
+// VehicleTestsScreen's renewal handlers rather than this picker - not a free-text
+// field anywhere, so an exact enum match is safe. Cost Forecast's renewal items
+// (predictions.ts) depend on exact 'Insurance'/'Revenue Licence' category matches.
+const ALLOWED_EXPENSE_CATEGORIES = [
+  'Fine / Penalty', 'Parking', 'Toll', 'Accessories', 'Washing', 'Other',
+  'Insurance', 'Revenue Licence',
+]
+
 // GET /expenses/:vehicleId
 router.get('/:vehicleId', async (req: AuthRequest, res) => {
   const vehicleId = req.params.vehicleId as string
@@ -36,6 +46,9 @@ router.post('/:vehicleId', async (req: AuthRequest, res) => {
   if (!date || !category || amount === undefined) {
     res.status(400).json({ error: 'Date, category and amount are required' })
     return
+  }
+  if (!ALLOWED_EXPENSE_CATEGORIES.includes(category)) {
+    res.status(400).json({ error: 'Invalid category' }); return
   }
   if (!isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
   if (!isValidNumber(amount, { min: 0, max: MAX_AMOUNT })) {
@@ -75,6 +88,9 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params as { id: string }
   const { date, category, amount, description, mileage, notes } = req.body
   if (date !== undefined && !isValidDateInput(date)) { res.status(400).json({ error: 'Invalid date' }); return }
+  if (category !== undefined && !ALLOWED_EXPENSE_CATEGORIES.includes(category)) {
+    res.status(400).json({ error: 'Invalid category' }); return
+  }
   if (amount !== undefined && !isValidNumber(amount, { min: 0, max: MAX_AMOUNT })) {
     res.status(400).json({ error: 'Amount must be a valid, non-negative number' }); return
   }
@@ -102,6 +118,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /expenses error:', error)
     res.status(500).json({ error: 'Failed to update expense' })
   }
 })
@@ -120,6 +137,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await prisma.expense.delete({ where: { id } })
     res.json({ ok: true })
   } catch (error) {
+    console.error('DELETE /expenses error:', error)
     res.status(500).json({ error: 'Failed to delete expense' })
   }
 })

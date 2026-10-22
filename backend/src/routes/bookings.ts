@@ -150,6 +150,7 @@ router.get('/mine', async (req: AuthRequest, res) => {
     })
     res.json(bookings)
   } catch (error) {
+    console.error('GET /bookings/mine error:', error)
     res.status(500).json({ error: 'Failed to fetch bookings' })
   }
 })
@@ -167,6 +168,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
     })
     res.json(bookings)
   } catch (error) {
+    console.error('GET /bookings/garage error:', error)
     res.status(500).json({ error: 'Failed to fetch garage bookings' })
   }
 })
@@ -210,6 +212,7 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
 
     res.json(updated)
   } catch (error) {
+    console.error('POST /bookings/:id/confirm error:', error)
     res.status(500).json({ error: 'Failed to confirm booking' })
   }
 })
@@ -247,6 +250,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
     res.json({ success: true })
   } catch (error) {
+    console.error('DELETE /bookings/:id error:', error)
     res.status(500).json({ error: 'Failed to cancel booking' })
   }
 })
@@ -341,6 +345,7 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
 
     res.json(updated)
   } catch (error) {
+    console.error('POST /bookings/:id/counter error:', error)
     res.status(500).json({ error: 'Failed to counter-suggest booking' })
   }
 })
@@ -380,6 +385,7 @@ router.post('/:id/accept-counter', async (req: AuthRequest, res) => {
 
     res.json(updated)
   } catch (error) {
+    console.error('POST /bookings/:id/accept-counter error:', error)
     res.status(500).json({ error: 'Failed to accept counter' })
   }
 })
@@ -412,6 +418,7 @@ router.post('/:id/decline-counter', async (req: AuthRequest, res) => {
 
     res.json({ success: true })
   } catch (error) {
+    console.error('POST /bookings/:id/decline-counter error:', error)
     res.status(500).json({ error: 'Failed to decline counter' })
   }
 })
@@ -435,6 +442,7 @@ router.get('/:id/notes', async (req: AuthRequest, res) => {
     })
     res.json(notes)
   } catch (error) {
+    console.error('GET /bookings/:id/notes error:', error)
     res.status(500).json({ error: 'Failed to fetch notes' })
   }
 })
@@ -496,6 +504,7 @@ router.post('/:id/notes', async (req: AuthRequest, res) => {
 
     res.status(201).json(note)
   } catch (error) {
+    console.error('POST /bookings/:id/notes error:', error)
     res.status(500).json({ error: 'Failed to add note' })
   }
 })

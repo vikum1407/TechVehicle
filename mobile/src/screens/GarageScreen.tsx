@@ -280,7 +280,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
 
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
+  const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -2769,10 +2769,10 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <View style={styles.counterModalContainer}>
               <View style={styles.counterModalHeader}>
                 <TouchableOpacity onPress={() => setCounterModal(null)}>
-                  <Text style={styles.counterModalBack}>✕ {t('common.cancel')}</Text>
+                  <Text style={styles.counterModalBack} numberOfLines={1}>✕ {t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <Text style={styles.counterModalTitle}>{t('garage.suggestDifferentSlot')}</Text>
-                <View style={{ width: 60 }} />
+                <View style={{ width: 76 }} />
               </View>
 
               <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
@@ -2867,7 +2867,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   )
 }
 
-function makeStyles(c: Colors, topInset: number) {
+function makeStyles(c: Colors, topInset: number, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -2956,7 +2956,7 @@ function makeStyles(c: Colors, topInset: number) {
     moreBtn: { padding: 4 },
     moreIcon: { fontSize: 24, color: c.text, fontWeight: '800' },
     moreSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+    moreSheetCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 + bottomInset },
     moreSheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     moreSheetTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     moreSheetClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
@@ -3246,7 +3246,7 @@ function makeStyles(c: Colors, topInset: number) {
       backgroundColor: c.surface, paddingHorizontal: 16, paddingTop: topInset + 12, paddingBottom: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
-    counterModalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 60 },
+    counterModalBack: { fontSize: 14, color: c.textMuted, fontWeight: '600', width: 76 },
     counterModalTitle: { fontSize: 16, fontWeight: '700', color: c.text },
     counterLabel: { fontSize: 13, fontWeight: '700', color: c.textSub, marginBottom: 12 },
     counterDateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

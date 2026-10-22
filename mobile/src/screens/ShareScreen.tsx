@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -54,7 +55,8 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
   const [garageResults, setGarageResults] = useState<GarageResult[]>([])
   const [selectedGarage, setSelectedGarage] = useState<GarageResult | null>(null)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -325,7 +327,7 @@ export default function ShareScreen({ token, vehicleId, onBack, onShared }: Prop
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
@@ -369,7 +371,7 @@ function makeStyles(c: Colors) {
     tagMoreText: { fontSize: 12, color: c.primaryTintText, fontWeight: '600' },
     recordMileage: { fontSize: 11, color: c.textFaint },
     recordMileageSelected: { color: 'rgba(255,255,255,0.75)' },
-    footer: { padding: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
+    footer: { padding: 16, paddingBottom: 16 + bottomInset, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
     nextBtnWrap: { marginTop: 16 },
     searchInput: {
       backgroundColor: c.surface, borderRadius: 10,

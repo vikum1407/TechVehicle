@@ -132,6 +132,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     })
     res.json(updated)
   } catch (error) {
+    console.error('PATCH /service-records error:', error)
     res.status(500).json({ error: 'Failed to update service record' })
   }
 })
@@ -150,6 +151,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await prisma.serviceRecord.delete({ where: { id } })
     res.json({ ok: true })
   } catch (error) {
+    console.error('DELETE /service-records error:', error)
     res.status(500).json({ error: 'Failed to delete service record' })
   }
 })
