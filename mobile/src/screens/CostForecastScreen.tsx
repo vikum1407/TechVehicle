@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, RefreshControl,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -85,7 +86,8 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   // tap only toggles its checkbox, nothing navigates.
   const [selectMode, setSelectMode] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const toggleSelect = (name: string) => {
@@ -275,7 +277,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { padding: 16, paddingBottom: 48 },
@@ -321,7 +323,7 @@ function makeStyles(c: Colors) {
     selectModeBtn: { fontSize: 14, color: c.primary, fontWeight: '700' },
     footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16, lineHeight: 18 },
     logSelectedBar: {
-      padding: 14, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border,
+      padding: 14, paddingBottom: 14 + bottomInset, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border,
     },
     logSelectedBtn: {
       backgroundColor: c.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center',
