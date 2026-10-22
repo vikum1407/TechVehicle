@@ -4,6 +4,7 @@ import {
   ScrollView, Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { parseDMY } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
@@ -1233,12 +1234,21 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
         keyboard-show event at once. Reported on-device (Motorola): fields in the
         Insurance "Add New Policy" modal couldn't be typed into, with visible flicker.
         Moved these 3 modals out from under the outer KeyboardAvoidingView entirely so
-        only their own internal one ever reacts to the keyboard. */}
+        only their own internal one ever reacts to the keyboard.
+
+        Fixed again 2026-10-22: that first fix solved the flicker/blocked-typing loop,
+        but not the underlying reason it happened - on Android, KeyboardAvoidingView's
+        'height' behavior only shrinks the available space when the keyboard opens, it
+        doesn't scroll to bring the focused field into view (iOS does this
+        automatically; Android doesn't). So any field below the very top of a modal
+        (Policy Number, Amount, Mileage) stayed hidden behind the keyboard - reported
+        on-device as the modal "not moving up properly". Replaced each modal's
+        KeyboardAvoidingView + ScrollView pair with KeyboardAwareScrollView (pure JS,
+        no native code, OTA-safe), which auto-scrolls the focused field into view. */}
     <Modal visible={showAddPolicy} animationType="slide" transparent onRequestClose={() => setShowAddPolicy(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowAddPolicy(false)}>
           <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>{editingCurrentPolicy ? t('common.edit') : t('vehicleTests.addNewPolicy')}</Text>
               <FormField label={t('vehicleTests.insuranceCompany')} value={newPolicyCompany} onChangeText={setNewPolicyCompany} placeholder="e.g. Union Assurance, AIA, Ceylinco" />
               <FormField label={t('vehicleTests.policyNumberLabel')} value={newPolicyNo} onChangeText={setNewPolicyNo} placeholder="e.g. POL-2024-001234" />
@@ -1261,17 +1271,15 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                   <Button title={t('common.save')} onPress={handleAddPolicy} loading={savingPolicy} />
                 </View>
               </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
-        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showAddLicence} animationType="slide" transparent onRequestClose={() => setShowAddLicence(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowAddLicence(false)}>
           <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>{editingCurrentLicence ? t('common.edit') : t('vehicleTests.addNewRenewal')}</Text>
               <DateField label={t('vehicleTests.expiryDateLabel')} value={newLicenceExpiry} onChange={setNewLicenceExpiry} />
               {!editingCurrentLicence && (
@@ -1292,17 +1300,15 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                   <Button title={t('common.save')} onPress={handleAddLicenceRenewal} loading={savingLicence} />
                 </View>
               </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
-        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showEditEmissionExpiry} animationType="slide" transparent onRequestClose={() => setShowEditEmissionExpiry(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowEditEmissionExpiry(false)}>
           <TouchableOpacity style={s.modalCard} activeOpacity={1} onPress={() => {}}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={s.modalTitle}>{t('common.edit')}</Text>
               <DateField label={t('vehicleTests.expiryDateLabel')} value={editEmissionExpiryValue} onChange={setEditEmissionExpiryValue} />
               <View style={s.modalActions}>
@@ -1313,10 +1319,9 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                   <Button title={t('common.save')} onPress={handleSaveEmissionExpiry} loading={savingEmissionExpiry} />
                 </View>
               </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
-        </KeyboardAvoidingView>
       </Modal>
     </>
   )
