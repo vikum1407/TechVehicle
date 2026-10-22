@@ -93,6 +93,16 @@ router.get('/:vehicleId/cost-forecast', async (req: AuthRequest, res) => {
       orderBy: { date: 'desc' },
     })
 
+    // Emission/Insurance/Revenue Licence are date-driven renewals tracked on the
+    // Vehicle model itself (emissionTestExpiry/insuranceExpiry/revenueLicenceExpiry),
+    // not in the mileage/date-interval database computePredictions draws from - so
+    // they never appeared in Cost Forecast at all until now. Insurance/Revenue
+    // Licence costs are logged as Expense rows (category 'Insurance'/'Revenue
+    // Licence'), not ServiceRecord, so a separate fetch is needed for them.
+    const expenses = await prisma.expense.findMany({
+      where: { vehicleId, category: { in: ['Insurance', 'Revenue Licence'] } },
+    })
+
     // Estimate avg daily km from recent fuel logs
     const fuelLogs = await prisma.fuelLog.findMany({
       where: { vehicleId },
@@ -143,9 +153,41 @@ router.get('/:vehicleId/cost-forecast', async (req: AuthRequest, res) => {
         }
       })
 
-    const totalEstimated = forecastItems.reduce((s, i) => s + (i.estimatedCost ?? 0), 0)
+    // Renewal items (see fetch above for why these need separate handling). Shared
+    // date math + output shape; cost is averaged from whichever cost source applies.
+    type RenewalOut = { name: string; status: 'overdue' | 'due_soon' | 'ok'; remainingKm: null; remainingDays: number; estimatedCost: number | null; basedOn: number }
+    const renewalFromCosts = (name: string, expiry: Date | null, costs: number[]): RenewalOut | null => {
+      if (!expiry) return null
+      const remainingDays = Math.round((expiry.getTime() - Date.now()) / 86400000)
+      if (remainingDays > FORECAST_DAYS) return null
+      const status: 'overdue' | 'due_soon' | 'ok' =
+        remainingDays < 0 ? 'overdue' : remainingDays <= 30 ? 'due_soon' : 'ok'
+      const estimatedCost = costs.length > 0
+        ? Math.round(costs.reduce((s, c) => s + c, 0) / costs.length)
+        : null
+      return { name, status, remainingKm: null, remainingDays, estimatedCost, basedOn: costs.length }
+    }
 
-    res.json({ items: forecastItems, totalEstimated, periodDays: FORECAST_DAYS })
+    const emissionCosts = records
+      .filter(r => r.description.toLowerCase().includes('emission') && r.cost != null && r.cost > 0)
+      .map(r => r.cost!)
+    const insuranceCosts = expenses
+      .filter(e => e.category === 'Insurance' && e.amount != null && e.amount > 0)
+      .map(e => e.amount!)
+    const licenceCosts = expenses
+      .filter(e => e.category === 'Revenue Licence' && e.amount != null && e.amount > 0)
+      .map(e => e.amount!)
+
+    const renewalItems = [
+      renewalFromCosts('Emission Test', vehicle!.emissionTestExpiry, emissionCosts),
+      renewalFromCosts('Insurance', vehicle!.insuranceExpiry, insuranceCosts),
+      renewalFromCosts('Revenue Licence', vehicle!.revenueLicenceExpiry, licenceCosts),
+    ].filter((i): i is RenewalOut => i !== null)
+
+    const allItems = [...forecastItems, ...renewalItems]
+    const totalEstimated = allItems.reduce((s, i) => s + (i.estimatedCost ?? 0), 0)
+
+    res.json({ items: allItems, totalEstimated, periodDays: FORECAST_DAYS })
   } catch (error) {
     console.error('GET /predictions/cost-forecast error:', error)
     res.status(500).json({ error: 'Failed to generate cost forecast' })

@@ -65,14 +65,16 @@ type Screen =
   | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
 
 // Shared by Predictions' onLogNow, Cost Forecast's onLogService/onLogServices - a
-// prediction/forecast item name that's Emission/Wheel Alignment/Chain-related routes
-// to the dedicated Vehicle Tests screen instead of Add Service (previously 3 separate
-// copies of this same substring check).
-function testsTabForServiceName(name: string): 'emission' | 'alignment' | 'chain' | null {
+// prediction/forecast item name that's Emission/Wheel Alignment/Chain/Insurance/
+// Revenue Licence-related routes to the dedicated Vehicle Tests screen instead of
+// Add Service (previously 3 separate copies of this same substring check).
+function testsTabForServiceName(name: string): 'emission' | 'alignment' | 'chain' | 'insurance' | 'licence' | null {
   const n = name.toLowerCase()
   if (n.includes('emission')) return 'emission'
   if (n.includes('wheel alignment')) return 'alignment'
   if (n.includes('chain')) return 'chain'
+  if (n.includes('insurance')) return 'insurance'
+  if (n.includes('revenue licence') || n.includes('revenue license')) return 'licence'
   return null
 }
 
@@ -734,7 +736,12 @@ export default function App() {
           onLogService={(serviceName) => {
             const testsTab = testsTabForServiceName(serviceName)
             if (testsTab) { setTestsReturnTo('costForecast'); setTestsInitialTab(testsTab); setScreen('vehicleTests') }
-            else { setAddServiceReturnTo('costForecast'); setAddServiceInitialNames([]); setPendingTestNames([]); setScreen('addServiceRecord') }
+            else {
+              setAddServiceReturnTo('costForecast')
+              setAddServiceInitialNames(PREDICTION_NAME_TO_SERVICE_ITEMS[serviceName] || [serviceName])
+              setPendingTestNames([])
+              setScreen('addServiceRecord')
+            }
           }}
           onLogServices={(serviceNames) => {
             // "Log selected" (2026-10-21): split the batch into Add-Service-type

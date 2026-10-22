@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image, TextInput, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, Image, TextInput,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -153,8 +154,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <ScreenHeader title={t('profile.title')} onBack={onBack} />
 
       <View style={styles.avatarSection}>
@@ -280,8 +280,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.8}>
         <Text style={styles.logoutBtnText}>{t('profile.logOut')}</Text>
       </TouchableOpacity>
-    </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   )
 }
 
