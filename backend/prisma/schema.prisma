@@ -11,6 +11,10 @@ model User {
   id                String    @id @default(cuid())
   phoneNumber       String    @unique
   email             String?   @unique
+  // Nullable at the DB level even though the EmailSetupScreen now requires it for new
+  // signups (2026-10-22) - existing users who already skipped can't be backfilled, so
+  // "mandatory" is enforced in the signup UI only, not here.
+  city              String?
   userType          String?
   pushToken         String?
   notificationPrefs String?

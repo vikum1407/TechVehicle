@@ -6,6 +6,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { getJwtSecret } from '../utils/jwtSecret'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
 import { normalizePhone, isValidPhone } from '../utils/phone'
+import { capText, SHORT_TEXT_LEN } from '../utils/validate'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -250,9 +251,11 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
   }
 })
 
-// PATCH /auth/email — save or update the user's email address
+// PATCH /auth/email — save or update the user's email address. Also optionally
+// accepts city (EmailSetupScreen's mandatory-for-new-signups step saves both in one
+// call; ProfileScreen's inline email-only edit just omits it, leaving city untouched).
 router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
-  const { email } = req.body
+  const { email, city } = req.body
   if (!email || typeof email !== 'string') {
     res.status(400).json({ error: 'email is required' }); return
   }
@@ -260,12 +263,17 @@ router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised) || normalised.length > 254) {
     res.status(400).json({ error: 'Please enter a valid email address' }); return
   }
+  if (city !== undefined && city !== null && typeof city !== 'string') {
+    res.status(400).json({ error: 'Invalid city' }); return
+  }
   try {
+    const data: any = { email: normalised }
+    if (city !== undefined) data.city = city?.trim() ? capText(city, SHORT_TEXT_LEN) : null
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },
-      data: { email: normalised },
+      data,
     })
-    res.json({ ok: true, email: normalised })
+    res.json({ ok: true, email: normalised, city: data.city ?? null })
   } catch (error: any) {
     if (error.code === 'P2002') {
       res.status(409).json({ error: 'This email is already linked to another account' }); return

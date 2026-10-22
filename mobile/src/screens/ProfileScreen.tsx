@@ -298,7 +298,7 @@ function StatCard({ value, label, icon, colors }: { value: number; label: string
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { paddingBottom: 48 },
+    content: { paddingBottom: 110 },
 
     avatarSection: { alignItems: 'center', paddingVertical: 28, backgroundColor: c.surface, marginBottom: 8 },
     avatar: {

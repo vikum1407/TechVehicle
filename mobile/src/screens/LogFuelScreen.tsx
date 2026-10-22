@@ -169,7 +169,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, vehicl
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 24, paddingBottom: 220 },
+    content: { padding: 24, paddingBottom: 100 },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 8, marginTop: 20 },
     historicalNote: {

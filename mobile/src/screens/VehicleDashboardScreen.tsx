@@ -22,6 +22,7 @@ const MORE_SHEET_ICONS: Record<string, { icon: AppIconSpec; color: string }> = {
   knowYourVehicle: { icon: { lib: 'mci', name: 'brain' }, color: '#8b5cf6' },
   costForecast: { icon: { lib: 'ion', name: 'cash' }, color: '#16a34a' },
   bookService: { icon: { lib: 'ion', name: 'calendar' }, color: '#2f6fed' },
+  shareRecords: { icon: { lib: 'mci', name: 'share-variant' }, color: '#0891b2' },
   chainService: { icon: { lib: 'mci', name: 'link-variant' }, color: '#64748b' },
   tripLog: { icon: { lib: 'mci', name: 'rickshaw' }, color: '#f97316' },
   familyAccess: { icon: { lib: 'ion', name: 'people' }, color: '#6366f1' },
@@ -1353,7 +1354,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
             <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>
@@ -1487,6 +1488,12 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onBookService() }}>
                 <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.bookService.icon} color={MORE_SHEET_ICONS.bookService.color} size={22} /></View>
                 <Text style={styles.moreSheetItemText}>{t('dashboard.bookServiceAppointment')}</Text>
+              </TouchableOpacity>
+            )}
+            {!vehicle.isShared && (
+              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onShare() }}>
+                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.shareRecords.icon} color={MORE_SHEET_ICONS.shareRecords.color} size={22} /></View>
+                <Text style={styles.moreSheetItemText}>{t('share.title')}</Text>
               </TouchableOpacity>
             )}
             {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (

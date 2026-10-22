@@ -724,11 +724,11 @@ export const api = {
     return data
   },
 
-  saveEmail: async (token: string, email: string) => {
+  saveEmail: async (token: string, email: string, city?: string) => {
     const res = await fetch(`${API_URL}/auth/email`, {
       method: 'PATCH',
       headers: authHeaders(token),
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(city !== undefined ? { email, city } : { email }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to save email')

@@ -967,13 +967,16 @@ const en = {
   'profile.emailBanner': 'Add your email for account recovery & reports',
   'profile.emailSaving': 'Saving...',
 
-  'emailSetup.title': 'Add Your Email',
-  'emailSetup.subtitle': 'Optional but recommended. Helps us keep your account safe and send you important vehicle reminders.',
+  'emailSetup.title': 'Complete Your Profile',
+  'emailSetup.subtitle': 'Just a couple of details to finish setting up your account.',
   'emailSetup.reason1': 'Account recovery if you lose access',
   'emailSetup.reason2': 'Service and renewal reminders via email',
   'emailSetup.reason3': 'Important updates about your vehicles',
   'emailSetup.save': 'Save & Continue',
   'emailSetup.skip': 'Skip for now',
+  'emailSetup.cityLabel': 'City',
+  'emailSetup.selectCity': 'Select your city',
+  'emailSetup.typeCityName': 'Type your city name',
 
   'knowledgeHub.title': 'Knowledge Hub',
   'knowledgeHub.myVehicle': 'My Vehicle',
