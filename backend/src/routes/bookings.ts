@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
-import { isValidDateInput, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
+import { isValidDateInput, isValidNumber, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 import { checkRateLimit } from '../utils/rateLimit'
 import { parseGarageSlots } from '../utils/garageSlots'
 
@@ -12,9 +12,30 @@ const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
+const REQUESTED_SERVICES_MAX = 20
+
+// Cost Forecast Improvement 2 (2026-10-22): the owner's selected predicted-service
+// names + their estimated cost at booking time, snapshotted (not looked up live later)
+// so it stays accurate to what the owner actually saw and picked, even as predictions
+// recompute with mileage. Returns null for anything malformed rather than erroring the
+// whole booking over it - this is a nice-to-have attached to the booking, not required.
+function parseRequestedServices(input: unknown): { name: string; estimatedCost: number | null }[] | null {
+  if (!Array.isArray(input) || input.length === 0) return null
+  const out: { name: string; estimatedCost: number | null }[] = []
+  for (const item of input.slice(0, REQUESTED_SERVICES_MAX)) {
+    if (!item || typeof item !== 'object' || typeof (item as any).name !== 'string' || !(item as any).name.trim()) continue
+    const cost = (item as any).estimatedCost
+    out.push({
+      name: capText((item as any).name, SHORT_TEXT_LEN),
+      estimatedCost: isValidNumber(cost, { min: 0, max: 100_000_000 }) ? Math.round(cost) : null,
+    })
+  }
+  return out.length > 0 ? out : null
+}
+
 // POST /bookings — owner creates a booking
 router.post('/', async (req: AuthRequest, res) => {
-  const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId, serviceType } = req.body
+  const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId, serviceType, requestedServices } = req.body
   if (!vehicleId || !garageId || !date) {
     res.status(400).json({ error: 'vehicleId, garageId and date are required' })
     return
@@ -87,6 +108,7 @@ router.post('/', async (req: AuthRequest, res) => {
         noteType: noteType || 'normal',
         serviceType: serviceType ? capText(serviceType, SHORT_TEXT_LEN) : null,
         shareSessionId: shareSessionId || null,
+        requestedServices: parseRequestedServices(requestedServices) ?? undefined,
       },
       include: { vehicle: true, garage: true },
     })

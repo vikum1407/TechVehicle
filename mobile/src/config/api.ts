@@ -559,6 +559,7 @@ export const api = {
     noteType?: string
     serviceType?: string
     shareSessionId?: string
+    requestedServices?: { name: string; estimatedCost: number | null }[]
   }) => {
     const res = await fetch(`${API_URL}/bookings`, {
       method: 'POST',

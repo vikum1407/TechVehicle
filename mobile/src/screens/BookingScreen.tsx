@@ -113,6 +113,16 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([])
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set())
+
+  // Request Services state (Cost Forecast Improvement 2, 2026-10-22) - deliberately
+  // separate from Share history above: that attaches past completed records, this
+  // requests specific upcoming/predicted services, a forward-looking ask rather than
+  // history. Kept as its own toggle + list, same pattern as Share history, so the
+  // garage sees it as its own distinct block (04-screens-style separation).
+  const [requestServicesEnabled, setRequestServicesEnabled] = useState(false)
+  const [forecastItems, setForecastItems] = useState<{ name: string; estimatedCost: number | null; status: string }[]>([])
+  const [forecastLoading, setForecastLoading] = useState(false)
+  const [selectedServiceNames, setSelectedServiceNames] = useState<Set<string>>(new Set())
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -142,6 +152,12 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         })
         .catch(() => {})
         .finally(() => setRecordsLoading(false))
+
+      setForecastLoading(true)
+      api.getCostForecast(token, vehicle.id)
+        .then(data => setForecastItems(data.items.map(i => ({ name: i.name, estimatedCost: i.estimatedCost, status: i.status }))))
+        .catch(() => {})
+        .finally(() => setForecastLoading(false))
     }
   }, [step])
 
@@ -150,6 +166,15 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      return next
+    })
+  }
+
+  const toggleServiceName = (name: string) => {
+    setSelectedServiceNames(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
       return next
     })
   }
@@ -216,6 +241,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         shareSessionId = share.id
       }
 
+      const requestedServices = requestServicesEnabled && selectedServiceNames.size > 0
+        ? forecastItems.filter(i => selectedServiceNames.has(i.name)).map(i => ({ name: i.name, estimatedCost: i.estimatedCost }))
+        : undefined
+
       await api.createBooking(token, {
         vehicleId: vehicle.id,
         garageId: selectedGarage.id,
@@ -225,6 +254,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         noteType,
         shareSessionId,
         serviceType: serviceType || undefined,
+        requestedServices,
       })
       Alert.alert(
         t('booking.bookingSent.title'),
@@ -777,6 +807,74 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                   )
                 })}
               </>
+            )}
+          </>
+        )}
+
+        {/* ── Request Services section (2026-10-22) — deliberately its own block,
+             separate from Share history above: this requests specific upcoming
+             services, not shared past history. ── */}
+        {forecastItems.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>{t('booking.requestServicesTitle')}</Text>
+
+            <TouchableOpacity
+              style={[styles.shareToggleCard, requestServicesEnabled && styles.shareToggleCardOn]}
+              onPress={() => setRequestServicesEnabled(prev => !prev)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.shareToggleLeft}>
+                <View style={styles.shareToggleIcon}>
+                  <AppIcon icon={{ lib: 'mci', name: 'wrench-outline' }} size={22} color={requestServicesEnabled ? '#fff' : colors.text} />
+                </View>
+                <View style={styles.shareToggleText}>
+                  <Text style={[styles.shareToggleTitle, requestServicesEnabled && styles.shareToggleTitleOn]}>
+                    {t('booking.requestServices')}
+                  </Text>
+                  <Text style={[styles.shareToggleDesc, requestServicesEnabled && styles.shareToggleDescOn]}>
+                    {t('booking.requestServicesDesc')}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.togglePill, requestServicesEnabled && styles.togglePillOn]}>
+                <Text style={[styles.togglePillText, requestServicesEnabled && styles.togglePillTextOn]}>{requestServicesEnabled ? t('booking.on') : t('booking.off')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            {requestServicesEnabled && (
+              forecastLoading ? (
+                <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+              ) : (
+                <>
+                  <Text style={styles.recordHint}>
+                    {t('booking.selectServicesHint', { count: selectedServiceNames.size })}
+                  </Text>
+                  {forecastItems.map(item => {
+                    const selected = selectedServiceNames.has(item.name)
+                    return (
+                      <TouchableOpacity
+                        key={item.name}
+                        style={[styles.recordCard, selected && styles.recordCardOn]}
+                        onPress={() => toggleServiceName(item.name)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.recordCheck, selected && styles.recordCheckOn]}>
+                          {selected && <Text style={styles.recordCheckMark}>✓</Text>}
+                        </View>
+                        <View style={styles.recordInfo}>
+                          <Text style={[styles.recordDesc, selected && styles.recordDescOn]} numberOfLines={1}>{item.name}</Text>
+                          <Text style={[styles.recordMileage, selected && styles.recordMileageOn]}>
+                            {item.status === 'overdue' ? t('costForecast.status.overdue') : item.status === 'due_soon' ? t('costForecast.status.dueSoon') : t('costForecast.status.upcoming')}
+                          </Text>
+                        </View>
+                        {item.estimatedCost != null && (
+                          <Text style={[styles.recordCost, selected && styles.recordCostOn]}>LKR {item.estimatedCost.toLocaleString()}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )
+                  })}
+                </>
+              )
             )}
           </>
         )}

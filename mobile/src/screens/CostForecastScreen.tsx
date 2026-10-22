@@ -75,6 +75,15 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
+  // "Select" mode (2026-10-22): a card used to double as both "tap to select" and "tap
+  // to log this one now", which meant the very first tap of a selection attempt (if it
+  // landed on the card body instead of the small checkbox) could redirect straight to
+  // Add Service before anything was actually selected - confusing, and it could also
+  // strand an in-progress multi-selection. Now selection is a deliberate mode entered
+  // via its own button, so there's never an ambiguous first tap: before entering it,
+  // every card tap logs that one item immediately (unchanged); once in it, every card
+  // tap only toggles its checkbox, nothing navigates.
+  const [selectMode, setSelectMode] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t } = useTranslation()
@@ -86,6 +95,11 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
       else next.add(name)
       return next
     })
+  }
+
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedNames(new Set())
   }
 
   const load = async (isRefresh = false) => {
@@ -110,7 +124,18 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={t('costForecast.title')} subtitle={vehicleName} onBack={onBack} />
+      <ScreenHeader
+        title={t('costForecast.title')}
+        subtitle={vehicleName}
+        onBack={onBack}
+        rightElement={
+          onLogServices && items.length > 0 ? (
+            <TouchableOpacity onPress={() => (selectMode ? exitSelectMode() : setSelectMode(true))}>
+              <Text style={styles.selectModeBtn}>{selectMode ? t('common.cancel') : t('costForecast.select')}</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} size="large" />
@@ -156,23 +181,18 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                 <TouchableOpacity
                   key={i}
                   style={[styles.itemCard, { backgroundColor: statusBg(item.status), borderLeftColor: statusColor(item.status) }]}
-                  onPress={() => onLogService?.(item.name)}
-                  disabled={!onLogService}
+                  onPress={() => (selectMode ? toggleSelect(item.name) : onLogService?.(item.name))}
+                  disabled={!onLogService && !selectMode}
                   activeOpacity={0.7}
                 >
                   <View style={styles.itemTop}>
                     <View style={styles.itemNameRow}>
-                      {onLogServices && (
-                        <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); toggleSelect(item.name) }}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <AppIcon
-                            icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
-                            size={20}
-                            color={selectedNames.has(item.name) ? colors.primary : statusColor(item.status)}
-                          />
-                        </TouchableOpacity>
+                      {selectMode && (
+                        <AppIcon
+                          icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
+                          size={20}
+                          color={selectedNames.has(item.name) ? colors.primary : statusColor(item.status)}
+                        />
                       )}
                       <Text style={[styles.itemName, { color: statusColor(item.status) }]}>{item.name}</Text>
                     </View>
@@ -191,7 +211,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   </View>
                   <View style={styles.itemBasedRow}>
                     <Text style={styles.itemBased}>{t('costForecast.basedOnRecords', { count: item.basedOn, s: item.basedOn !== 1 ? 's' : '' })}</Text>
-                    {onLogService && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
+                    {onLogService && !selectMode && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -205,23 +225,18 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                 <TouchableOpacity
                   key={i}
                   style={[styles.itemCard, styles.itemCardMuted, { borderLeftColor: statusColor(item.status) }]}
-                  onPress={() => onLogService?.(item.name)}
-                  disabled={!onLogService}
+                  onPress={() => (selectMode ? toggleSelect(item.name) : onLogService?.(item.name))}
+                  disabled={!onLogService && !selectMode}
                   activeOpacity={0.7}
                 >
                   <View style={styles.itemTop}>
                     <View style={styles.itemNameRow}>
-                      {onLogServices && (
-                        <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); toggleSelect(item.name) }}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <AppIcon
-                            icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
-                            size={20}
-                            color={selectedNames.has(item.name) ? colors.primary : colors.textMuted}
-                          />
-                        </TouchableOpacity>
+                      {selectMode && (
+                        <AppIcon
+                          icon={{ lib: 'ion', name: selectedNames.has(item.name) ? 'checkbox' : 'square-outline' }}
+                          size={20}
+                          color={selectedNames.has(item.name) ? colors.primary : colors.textMuted}
+                        />
                       )}
                       <Text style={styles.itemNameMuted}>{item.name}</Text>
                     </View>
@@ -234,7 +249,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
                   ) : null}
                   <View style={styles.itemNoCostRow}>
                     <Text style={styles.itemBased}>{t('costForecast.logToImprove')}</Text>
-                    {onLogService && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
+                    {onLogService && !selectMode && <Text style={styles.itemLogLink}>{t('costForecast.logService')} ›</Text>}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -250,7 +265,7 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
         <View style={styles.logSelectedBar}>
           <TouchableOpacity
             style={styles.logSelectedBtn}
-            onPress={() => { onLogServices?.(Array.from(selectedNames)); setSelectedNames(new Set()) }}
+            onPress={() => { onLogServices?.(Array.from(selectedNames)); exitSelectMode() }}
           >
             <Text style={styles.logSelectedBtnText}>{t('costForecast.logSelected', { count: selectedNames.size })}</Text>
           </TouchableOpacity>
@@ -303,6 +318,7 @@ function makeStyles(c: Colors) {
     itemBasedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     itemNoCostRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 8 },
     itemLogLink: { fontSize: 12, color: c.primary, fontWeight: '700' },
+    selectModeBtn: { fontSize: 14, color: c.primary, fontWeight: '700' },
     footer: { textAlign: 'center', fontSize: 12, color: c.textFaint, marginTop: 16, lineHeight: 18 },
     logSelectedBar: {
       padding: 14, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border,

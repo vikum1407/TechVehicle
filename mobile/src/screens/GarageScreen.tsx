@@ -138,6 +138,7 @@ type Booking = {
   notes: string | null
   ownerPhone: string
   vehicleId: string
+  requestedServices?: { name: string; estimatedCost: number | null }[] | null
   vehicle: {
     registrationNo: string
     make: string
@@ -1922,6 +1923,26 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </Text>
                 ) : null}
 
+                {/* Requested Services (2026-10-22) — deliberately its own distinct
+                    block, separate from "History attached" above (that's shared past
+                    records; this is a forward-looking request for specific upcoming
+                    work the owner wants done at this visit). */}
+                {booking.requestedServices && booking.requestedServices.length > 0 && (
+                  <View style={styles.requestedServicesBox}>
+                    <Text style={styles.requestedServicesTitle}>
+                      <AppIcon icon={{ lib: 'mci', name: 'wrench-outline' }} size={13} color="#1565c0" /> {t('garage.requestedServices')}
+                    </Text>
+                    {booking.requestedServices.map((s, i) => (
+                      <View key={i} style={styles.requestedServiceRow}>
+                        <Text style={styles.requestedServiceName}>• {s.name}</Text>
+                        {s.estimatedCost != null && (
+                          <Text style={styles.requestedServiceCost}>~LKR {s.estimatedCost.toLocaleString()}</Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 {isPending && (
                   <View style={styles.bookingActionRow}>
                     <TouchableOpacity
@@ -3217,6 +3238,11 @@ function makeStyles(c: Colors, topInset: number) {
     counterSuggestBtnText: { color: c.primary, fontSize: 14, fontWeight: '700' },
     counterSentNote: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10 },
     counterSentText: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
+    requestedServicesBox: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10, gap: 4 },
+    requestedServicesTitle: { fontSize: 12, color: '#1565c0', fontWeight: '700', marginBottom: 2 },
+    requestedServiceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    requestedServiceName: { fontSize: 12.5, color: '#0d47a1', flex: 1 },
+    requestedServiceCost: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
     counterModalContainer: { flex: 1, backgroundColor: c.background },
     counterModalHeader: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

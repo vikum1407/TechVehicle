@@ -215,6 +215,12 @@ model Booking {
   reminder1hSent Boolean       @default(false)
   counterDate    DateTime?
   counterSlot    String?
+  // Cost Forecast Improvement 2 (2026-10-22): predicted/upcoming services the owner
+  // explicitly requested at booking time, snapshotted as {name, estimatedCost} since
+  // predictions recompute as mileage changes - storing the live value would drift from
+  // what the owner actually saw and picked. Separate from shareSessionId (which attaches
+  // past completed records) - this is a forward-looking request, not history.
+  requestedServices Json?
   createdAt      DateTime      @default(now())
   vehicle        Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage         Garage        @relation(fields: [garageId], references: [id], onDelete: Cascade)
