@@ -29,6 +29,10 @@ type Props = {
   // "Select several, log them together" (2026-10-21) - bulk hand-off alongside the
   // existing single-tap-to-log, not instead of it.
   onLogServices?: (serviceNames: string[]) => void
+  // Lets the global FloatingHomeButton (rendered in App.tsx, fixed bottom-right on
+  // every screen) get out of the way while this screen's own bottom bar is showing -
+  // otherwise the two overlap in the same bottom-right corner.
+  onBottomBarVisible?: (visible: boolean) => void
 }
 
 function statusColor(status: string): string {
@@ -69,7 +73,7 @@ function remainingText(item: ForecastItem, t: (key: any, params?: Record<string,
   return parts.join('  ·  ')
 }
 
-export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onLogService, onLogServices }: Props) {
+export default function CostForecastScreen({ token, vehicleId, vehicleName, onBack, onLogService, onLogServices, onBottomBarVisible }: Props) {
   const [items, setItems] = useState<ForecastItem[]>([])
   const [total, setTotal] = useState(0)
   const [periodDays, setPeriodDays] = useState(365)
@@ -120,6 +124,11 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    onBottomBarVisible?.(selectedNames.size > 0)
+    return () => onBottomBarVisible?.(false)
+  }, [selectedNames.size])
 
   const itemsWithCost = items.filter(i => i.estimatedCost != null)
   const itemsNoCost   = items.filter(i => i.estimatedCost == null)

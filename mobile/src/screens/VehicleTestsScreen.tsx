@@ -1451,7 +1451,10 @@ function makeStyles(c: Colors, bottomInset: number) {
     modalCard: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 + bottomInset, maxHeight: '85%' },
     modalTitle: { fontSize: 17, fontWeight: '800', color: c.text, marginBottom: 12 },
     modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, alignItems: 'center' },
-    modalCancelBtn: { flex: 1, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+    modalCancelBtn: {
+      flex: 1, paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 12,
+    },
     modalCancelBtnText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
   })
 }

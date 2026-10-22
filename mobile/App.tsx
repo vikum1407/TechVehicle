@@ -139,6 +139,10 @@ export default function App() {
   // already dynamic) - so opening it from Cost Forecast or Predictions stranded the
   // owner on the Dashboard instead of bringing them back to see the list update.
   const [testsReturnTo, setTestsReturnTo] = useState<Screen>('vehicleDashboard')
+  // Cost Forecast's own "Log Selected" bar occupies the same bottom-right corner as
+  // the global FloatingHomeButton below - without this, they visually overlap while
+  // a selection is active (found on-device 2026-10-22).
+  const [costForecastBarShowing, setCostForecastBarShowing] = useState(false)
   // Cost Forecast "select several, log them together" (2026-10-21): a batch can mix
   // regular items (go to Add Service, pre-marked) and Emission/Alignment/Chain items
   // (go to Vehicle Tests instead) - addServiceInitialNames pre-marks the former;
@@ -726,6 +730,7 @@ export default function App() {
           vehicleId={selectedVehicle.id}
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
+          onBottomBarVisible={setCostForecastBarShowing}
           onLogService={(serviceName) => {
             const testsTab = testsTabForServiceName(serviceName)
             if (testsTab) { setTestsReturnTo('costForecast'); setTestsInitialTab(testsTab); setScreen('vehicleTests') }
@@ -839,7 +844,7 @@ export default function App() {
         />
       )}
 
-      {!NO_HOME_SCREENS.includes(screen) && (
+      {!NO_HOME_SCREENS.includes(screen) && !(screen === 'costForecast' && costForecastBarShowing) && (
         <FloatingHomeButton onPress={() => setScreen('vehicles')} />
       )}
     </LanguageProvider>
