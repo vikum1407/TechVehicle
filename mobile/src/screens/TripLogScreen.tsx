@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, Alert,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -98,10 +98,9 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   const endKmError = endKm && endNum < startNum ? t('tripLog.endLessThanStartError') : undefined
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title={t('tripLog.title')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{t('tripLog.subtitle')}</Text>
 
       <DateField label={t('common.date')} value={date} onChange={setDate} maximumDate={new Date()} />
@@ -207,9 +206,8 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       <View style={{ marginTop: 16 }}>
         <Button title={t('tripLog.saveTripLog')} onPress={handleSave} loading={loading} />
       </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

@@ -4,6 +4,7 @@ import {
   ScrollView, ActivityIndicator, Alert, Image, Modal,
   KeyboardAvoidingView, Platform,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -2717,10 +2718,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     {/* ── Walk-in service lookup modal ──────────────────────────────── */}
     {walkinOpen && (
         <Modal visible animationType="slide" transparent={false} onRequestClose={() => setWalkinOpen(false)}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.container}>
             <ScreenHeader title={t('garage.logWalkinService')} onBack={() => { setWalkinOpen(false); setWalkinRegNo(''); setWalkinResult(null) }} />
-            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
               <Text style={styles.walkinIntro}>
                 {t('garage.walkinIntro')}
               </Text>
@@ -2752,9 +2752,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                   </TouchableOpacity>
                 </View>
               )}
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
-          </KeyboardAvoidingView>
         </Modal>
       )}
 
@@ -2767,7 +2766,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               .map(s => ({ label: s.label, booked: 0, capacity: s.capacity, remaining: s.capacity, available: true }))
         return (
           <Modal visible animationType="slide" transparent={false} onRequestClose={() => setCounterModal(null)}>
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.counterModalContainer}>
               <View style={styles.counterModalHeader}>
                 <TouchableOpacity onPress={() => setCounterModal(null)}>
@@ -2777,7 +2775,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 <View style={{ width: 60 }} />
               </View>
 
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
+              <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
                 <Text style={styles.counterLabel}>{t('garage.selectNewDate')}</Text>
                 {loadingCounterDates ? (
                   <ActivityIndicator style={{ marginVertical: 20 }} color={colors.primary} />
@@ -2860,9 +2858,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     : <Text style={styles.counterSubmitBtnText}>{t('garage.sendSuggestionToOwner')}</Text>
                   }
                 </TouchableOpacity>
-              </ScrollView>
+              </KeyboardAwareScrollView>
             </View>
-            </KeyboardAvoidingView>
           </Modal>
         )
       })()}

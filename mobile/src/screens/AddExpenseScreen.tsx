@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -125,10 +125,9 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title={t('addExpense.title')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>{t('addExpense.subtitle')}</Text>
 
       <Text style={styles.label}>{t('addExpense.category')}</Text>
@@ -192,9 +191,8 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
       />
 
       <Button title={t('addExpense.saveExpense')} onPress={handleSubmit} loading={loading} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

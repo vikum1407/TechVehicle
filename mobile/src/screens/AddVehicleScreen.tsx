@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Modal, FlatList, Image,
+  ActivityIndicator, Alert, Modal, FlatList, Image,
   KeyboardAvoidingView, Platform,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -243,10 +244,9 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
   const modelDisplay = modelIsOther ? OTHER : (model || '')
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title={t('addVehicle.title')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{t('addVehicle.requiredNote')}</Text>
 
       {/* Registration */}
@@ -416,9 +416,8 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         onSelect={handleModelSelect}
         onClose={() => setShowModelPicker(false)}
       />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

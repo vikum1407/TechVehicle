@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image, Linking,
+  ScrollView, ActivityIndicator, Alert, Image, Linking,
   Modal, FlatList, Dimensions,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -270,10 +271,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
   // ── Step 1: Search garage ──────────────────────────────────────────────────
   if (step === 'search') {
     return (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <>
       <View style={styles.container}>
         <ScreenHeader title={t('booking.title')} onBack={onBack} />
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.vehicleBanner}>
             <Text style={styles.vehicleBannerReg}>{vehicle.registrationNo}</Text>
             <Text style={styles.vehicleBannerName}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
@@ -455,7 +456,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               </View>
             )
           })}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
 
       <Modal visible={!!photoViewer} transparent animationType="fade" onRequestClose={() => setPhotoViewer(null)} statusBarTranslucent>
@@ -490,17 +491,16 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
           )
         })()}
       </Modal>
-      </KeyboardAvoidingView>
+      </>
     )
   }
 
   // ── Step 2: Pick a date ────────────────────────────────────────────────────
   if (step === 'dates') {
     return (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
         <ScreenHeader title={t('booking.pickDate')} onBack={() => setStep('search')} />
-        <ScrollView contentContainerStyle={styles.content}>
+        <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
           </View>
@@ -591,19 +591,17 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               </View>
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
-      </KeyboardAvoidingView>
     )
   }
 
   // ── Step 3: Pick a time slot ───────────────────────────────────────────────
   if (step === 'slots') {
     return (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
         <ScreenHeader title={t('booking.pickTimeSlot')} onBack={() => setStep('dates')} />
-        <ScrollView contentContainerStyle={styles.content}>
+        <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content}>
           <View style={styles.selectedGarageBanner}>
             <Text style={styles.selectedGarageName}>{selectedGarage?.name}</Text>
             <Text style={styles.selectedDateLabel}>
@@ -655,22 +653,20 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
               </TouchableOpacity>
             )
           })}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
-      </KeyboardAvoidingView>
     )
   }
 
   // ── Step 4: Confirm ────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader
         title={t('booking.confirmBooking')}
         onBack={() => setStep(timeSlots.length > 0 ? 'slots' : 'dates')}
       />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {selectedDate?.message && (
           <View style={[styles.msgBanner, { borderLeftColor: selectedDate.messageColor || colors.orange }]}>
             <Text style={[styles.msgBannerText, { color: selectedDate.messageColor || colors.orange }]}>
@@ -924,9 +920,8 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         <Text style={styles.confirmNote}>
           {t('booking.confirmNoteText')}
         </Text>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

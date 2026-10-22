@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -122,10 +122,9 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={s.container}>
     <ScreenHeader title={t('logEmissionTest.title')} subtitle={t('logEmissionTest.subtitle')} onBack={onBack} />
-    <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
 
       <Text style={s.label}>{t('logEmissionTest.testResult')} <Text style={s.req}>*</Text></Text>
       <View style={s.chipRow}>
@@ -192,9 +191,8 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
       <View style={s.saveBtnWrap}>
         <Button title={t('logEmissionTest.saveEmissionTest')} onPress={handleSave} loading={loading} />
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

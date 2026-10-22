@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -87,10 +87,9 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, vehicl
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title={isElectric ? t('logFuel.titleCharging') : t('logFuel.title')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content}>
       <Text style={styles.subtitle}>{t('logFuel.lastRecorded', { mileage: currentMileage.toLocaleString() })}</Text>
 
       <FormField
@@ -162,9 +161,8 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, vehicl
       />
 
       <Button title={isElectric ? t('logFuel.saveCharge') : t('logFuel.saveFillup')} onPress={handleSubmit} loading={loading} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 

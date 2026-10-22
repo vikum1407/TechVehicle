@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, Image,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
@@ -319,10 +320,9 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const itemsWithStructured = selectedItems.filter(i => STRUCTURED_ITEMS[i.name])
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={styles.container}>
       <ScreenHeader title={t('addService.title')} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>
         {t('addService.subtitle')} <Text style={styles.requiredStar}>*</Text>
       </Text>
@@ -569,9 +569,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
       )}
 
       <Button title={t('addService.saveRecord')} onPress={handleSubmit} loading={loading} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
-    </KeyboardAvoidingView>
   )
 }
 
