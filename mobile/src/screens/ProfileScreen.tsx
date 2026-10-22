@@ -386,6 +386,7 @@ function makeStyles(c: Colors) {
     emailCancelBtn: {
       borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 10,
       paddingVertical: 13, paddingHorizontal: 16, alignItems: 'center',
+      flex: 1,
     },
     emailCancelBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
     emailInput: {
