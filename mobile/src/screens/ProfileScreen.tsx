@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, Image, TextInput,
+  ActivityIndicator, Alert, Image, TextInput, Share,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import * as ImagePicker from 'expo-image-picker'
@@ -33,6 +33,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [loggingOutAllDevices, setLoggingOutAllDevices] = useState(false)
   const [email, setEmail] = useState('')
   const [savedEmail, setSavedEmail] = useState<string | null>(null)
+  const [promoCode, setPromoCode] = useState<string | null>(null)
   const [savingEmail, setSavingEmail] = useState(false)
   const [editingEmail, setEditingEmail] = useState(false)
   const colors = useColors()
@@ -45,6 +46,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         setStats(data)
         setPhotoUrl(data.profilePhotoUrl)
         if (data.email) { setSavedEmail(data.email); setEmail(data.email) }
+        if (data.promoCode) setPromoCode(data.promoCode)
       })
       .catch(() => {})
       .finally(() => setLoadingStats(false))
@@ -125,6 +127,11 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
 
   const initials = phoneNumber.slice(-4)
 
+  const sharePromoCode = () => {
+    if (!promoCode) return
+    Share.share({ message: t('profile.promoShareMessage', { code: promoCode }) }).catch(() => {})
+  }
+
   const confirmLogout = () => {
     Alert.alert(t('profile.logOut'), t('profile.logOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -190,6 +197,19 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
           <StatCard value={stats.expenseCount} label={t('analytics.expensesLabel')} icon={{ lib: 'mci', name: 'clipboard-text-outline' }} colors={colors} />
         </View>
       ) : null}
+
+      {promoCode && (
+        <View style={styles.promoCard}>
+          <View style={styles.promoTextWrap}>
+            <Text style={styles.promoLabel}>{t('profile.yourPromoCode')}</Text>
+            <Text style={styles.promoCode}>{promoCode}</Text>
+          </View>
+          <TouchableOpacity style={styles.promoShareBtn} onPress={sharePromoCode} activeOpacity={0.8}>
+            <AppIcon icon={{ lib: 'mci', name: 'share-variant' }} size={16} color="#fff" />
+            <Text style={styles.promoShareBtnText}>{t('common.share')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {garageName ? (
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowLive]} onPress={onOpenGarage} activeOpacity={0.7}>
@@ -333,6 +353,20 @@ function makeStyles(c: Colors) {
       flexDirection: 'row', flexWrap: 'wrap', gap: 10,
       paddingHorizontal: 16,
     },
+    promoCard: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: c.primaryTint, borderRadius: 14, padding: 16,
+      marginHorizontal: 16, marginTop: 16,
+    },
+    promoTextWrap: { flex: 1 },
+    promoLabel: { fontSize: 11, color: c.primaryTintText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    promoCode: { fontSize: 20, color: c.primaryTintText, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
+    promoShareBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: c.primary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 10,
+    },
+    promoShareBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
     statCard: {
       flex: 1, minWidth: '44%', backgroundColor: c.surface, borderRadius: 12,
       padding: 16, alignItems: 'center',

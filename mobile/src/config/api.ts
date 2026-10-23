@@ -724,11 +724,14 @@ export const api = {
     return data
   },
 
-  saveEmail: async (token: string, email: string, city?: string) => {
+  saveEmail: async (token: string, email: string, city?: string, referredByCode?: string) => {
+    const body: Record<string, string> = { email }
+    if (city !== undefined) body.city = city
+    if (referredByCode !== undefined) body.referredByCode = referredByCode
     const res = await fetch(`${API_URL}/auth/email`, {
       method: 'PATCH',
       headers: authHeaders(token),
-      body: JSON.stringify(city !== undefined ? { email, city } : { email }),
+      body: JSON.stringify(body),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to save email')
@@ -782,7 +785,7 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to fetch stats')
-    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number; profilePhotoUrl: string | null }
+    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number; profilePhotoUrl: string | null; email: string | null; promoCode: string | null }
   },
 
   updateProfilePhoto: async (token: string, photoUrl: string | null) => {

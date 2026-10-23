@@ -25,6 +25,7 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
   const [city, setCity] = useState('')
   const [cityCustom, setCityCustom] = useState('')
   const [showCityPicker, setShowCityPicker] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const colors = useColors()
@@ -38,7 +39,7 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
     setError('')
     setSaving(true)
     try {
-      await api.saveEmail(token, email.trim(), actualCity)
+      await api.saveEmail(token, email.trim(), actualCity, promoCode.trim() || undefined)
       onDone()
     } catch (e: any) {
       setError(e.message || t('common.error'))
@@ -80,7 +81,6 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
           autoCorrect={false}
           autoFocus
         />
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <Text style={styles.cityLabel}>{t('emailSetup.cityLabel')}</Text>
         <TouchableOpacity style={styles.selectorRow} onPress={() => setShowCityPicker(true)} activeOpacity={0.7}>
@@ -98,6 +98,19 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
             autoCapitalize="words"
           />
         )}
+
+        <Text style={styles.cityLabel}>{t('emailSetup.promoCodeLabel')}</Text>
+        <TextInput
+          style={[styles.input, error ? styles.inputError : null]}
+          value={promoCode}
+          onChangeText={v => { setPromoCode(v.toUpperCase()); setError('') }}
+          placeholder={t('emailSetup.promoCodePlaceholder')}
+          placeholderTextColor={colors.textFaint}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={10}
+        />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <TouchableOpacity
           style={[styles.saveBtn, (!canSave || saving) && styles.saveBtnDisabled]}

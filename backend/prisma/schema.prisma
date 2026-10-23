@@ -15,6 +15,17 @@ model User {
   // signups (2026-10-22) - existing users who already skipped can't be backfilled, so
   // "mandatory" is enforced in the signup UI only, not here.
   city              String?
+  // Temporary promo/referral campaign (2026-10-23 - Vikum's own words: "this service
+  // is temporary... when I want to remove this from the app, we need to do this").
+  // promoCode: this user's own shareable code, auto-generated on login (verify-otp),
+  // idempotent - generated once, never regenerated. referredByCode: the code THIS
+  // user entered at their own signup (EmailSetupScreen), set once, never overwritten.
+  // Counting signups per code for payout is a manual SQL query against this table,
+  // not a built admin feature - deliberately no new endpoint/screen for something
+  // explicitly temporary. Removal later = delete these 2 columns + the Profile card +
+  // the EmailSetupScreen field + the generation call in verify-otp.
+  promoCode         String?   @unique
+  referredByCode    String?
   userType          String?
   pushToken         String?
   notificationPrefs String?

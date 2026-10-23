@@ -1354,7 +1354,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
             <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>

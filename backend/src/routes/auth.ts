@@ -7,6 +7,8 @@ import { getJwtSecret } from '../utils/jwtSecret'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit, resetOtpVerifyRateLimit } from '../utils/otpRateLimit'
 import { normalizePhone, isValidPhone } from '../utils/phone'
 import { capText, SHORT_TEXT_LEN } from '../utils/validate'
+import { ensurePromoCode } from '../utils/promoCode'
+import { checkRateLimit } from '../utils/rateLimit'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -124,6 +126,18 @@ router.post('/verify-otp', async (req, res) => {
       } else {
         isNewUser = true // ask them to pick a role
       }
+    }
+
+    // Temporary promo/referral campaign (2026-10-23) - every login ensures this user
+    // has their own shareable code, generated once and kept stable thereafter. See
+    // schema.prisma's User.promoCode comment for the full removal plan. Deliberately
+    // non-fatal: this is a side feature, not core to auth - it must never be able to
+    // block login if generation fails for any reason (DB hiccup, exhausted collision
+    // retries). Safe to just retry on the user's next login since it's idempotent.
+    try {
+      await ensurePromoCode(prisma, phoneNumber, (user as any).promoCode)
+    } catch (promoError) {
+      console.error('ensurePromoCode (verify-otp) error:', promoError)
     }
 
     const token = jwt.sign(
@@ -244,7 +258,17 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
       prisma.expense.count({ where: { vehicle: { ownerPhone: phone } } }),
       prisma.user.findUnique({ where: { phoneNumber: phone } }),
     ])
-    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null })
+    // Fallback generation for users already mid-session (30-day token) who won't hit
+    // verify-otp's own generation again until their token expires - see
+    // schema.prisma's User.promoCode comment. Non-fatal, same reasoning as verify-otp -
+    // the rest of the account summary must still load even if this fails.
+    let promoCode: string | null = (user as any)?.promoCode ?? null
+    try {
+      promoCode = await ensurePromoCode(prisma, phone, promoCode)
+    } catch (promoError) {
+      console.error('ensurePromoCode (/stats) error:', promoError)
+    }
+    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null, promoCode })
   } catch (error) {
     console.error('GET /auth/stats error:', error)
     res.status(500).json({ error: 'Failed to fetch stats' })
@@ -257,7 +281,7 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
 // required at the EmailSetupScreen UI level, but this route itself doesn't enforce
 // that - it's generic enough for ProfileScreen's email-only inline edit too.
 router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
-  const { email, city } = req.body
+  const { email, city, referredByCode } = req.body
   let normalised: string | undefined
   if (email) {
     if (typeof email !== 'string') { res.status(400).json({ error: 'Invalid email' }); return }
@@ -269,13 +293,32 @@ router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
   if (city !== undefined && city !== null && typeof city !== 'string') {
     res.status(400).json({ error: 'Invalid city' }); return
   }
-  if (normalised === undefined && city === undefined) {
+  if (normalised === undefined && city === undefined && !referredByCode) {
     res.status(400).json({ error: 'email or city is required' }); return
   }
   try {
     const data: any = {}
     if (normalised !== undefined) data.email = normalised
     if (city !== undefined) data.city = city?.trim() ? capText(city, SHORT_TEXT_LEN) : null
+
+    // Temporary promo/referral campaign (2026-10-23) - set once, never overwritten
+    // (first submission wins), same removal plan as schema.prisma's comment. Length
+    // cap enforced server-side even though the mobile UI already caps at 10 chars -
+    // client-side limits don't protect the backend from a direct API call.
+    if (referredByCode && typeof referredByCode === 'string' && referredByCode.trim()) {
+      if (referredByCode.length > 20) { res.status(400).json({ error: 'Invalid promo code' }); return }
+      const codeLimit = checkRateLimit('promo-code-attempt', req.phoneNumber!, 10, 60 * 60 * 1000)
+      if (!codeLimit.allowed) { res.status(429).json({ error: 'Too many attempts. Please try again later.' }); return }
+      const self = await prisma.user.findUnique({ where: { phoneNumber: req.phoneNumber! } })
+      if (!(self as any)?.referredByCode) {
+        const code = referredByCode.trim().toUpperCase()
+        const referrer = await prisma.user.findUnique({ where: { promoCode: code } as any })
+        if (!referrer) { res.status(400).json({ error: 'Invalid promo code' }); return }
+        if (referrer.phoneNumber === req.phoneNumber!) { res.status(400).json({ error: 'You cannot use your own promo code' }); return }
+        data.referredByCode = code
+      }
+    }
+
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },
       data,
