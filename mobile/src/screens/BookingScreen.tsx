@@ -56,6 +56,7 @@ type DateSlot = {
   isWorkDay: boolean
   status: string
   available: boolean
+  allSlotsPassed?: boolean
   remaining: number
   message: string | null
   messageColor: string | null
@@ -535,10 +536,11 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       slot.available && styles.dateCellAvailable,
                       slot.status === 'closed' && styles.dateCellOff,
                       slot.status === 'holiday' && styles.dateCellHoliday,
-                      slot.isWorkDay && !slot.available && slot.status === 'open' && styles.dateCellFull,
+                      slot.isWorkDay && !slot.available && slot.status === 'open' && !slot.allSlotsPassed && styles.dateCellFull,
                       hasMsg && slot.available && { borderColor: msgColor, borderWidth: 2 },
                       isToday && styles.dateCellToday,
                       isPast && styles.dateCellOff,
+                      slot.allSlotsPassed && styles.dateCellOff,
                     ]}
                     onPress={() => handleSelectDate(slot)}
                     disabled={!isSelectable}
@@ -551,7 +553,7 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       <Text style={[
                         styles.dateDayNum,
                         isSelectable && styles.dateDayNumAvailable,
-                        (slot.status === 'holiday' || (slot.isWorkDay && !slot.available && slot.status === 'open') || isPast) && styles.dateDayNumMuted,
+                        (slot.status === 'holiday' || (slot.isWorkDay && !slot.available && slot.status === 'open') || isPast || slot.allSlotsPassed) && styles.dateDayNumMuted,
                         isToday && styles.dateDayNumToday,
                       ]}>
                         {slot.dayNum}
@@ -564,9 +566,10 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
                       <Text style={styles.dateSlotsAvail}>{t('booking.remainingLeft', { count: slot.remaining })}</Text>
                     )}
                     {isPast && <Text style={styles.dateClosedText}>{t('booking.past')}</Text>}
-                    {!isPast && slot.status === 'closed' && <Text style={styles.dateClosedText}>{t('booking.closed')}</Text>}
-                    {!isPast && slot.status === 'holiday' && <Text style={styles.dateHolidayText}>{t('booking.holiday')}</Text>}
-                    {!isPast && slot.isWorkDay && slot.status === 'open' && !slot.available && (
+                    {!isPast && slot.allSlotsPassed && <Text style={styles.dateClosedText}>{t('booking.timePassed')}</Text>}
+                    {!isPast && !slot.allSlotsPassed && slot.status === 'closed' && <Text style={styles.dateClosedText}>{t('booking.closed')}</Text>}
+                    {!isPast && !slot.allSlotsPassed && slot.status === 'holiday' && <Text style={styles.dateHolidayText}>{t('booking.holiday')}</Text>}
+                    {!isPast && !slot.allSlotsPassed && slot.isWorkDay && slot.status === 'open' && !slot.available && (
                       <Text style={styles.dateFullText}>{t('booking.full')}</Text>
                     )}
                     {hasMsg && (

@@ -289,6 +289,14 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
         }
       })
 
+      // Today's date needs its own "every slot's time has passed" check, distinct
+      // from the normal capacity-based `available` - a date that's merely full
+      // should still say "Full", but a date where nothing is bookable purely
+      // because the clock moved past every slot shouldn't say that (misleading -
+      // it's not actually full). Only meaningful for i === 0 (today); slots.length
+      // check guards a garage with zero configured time slots.
+      const allSlotsPassed = i === 0 && slots.length > 0 && slots.every(s => s.timePassed)
+
       dates.push({
         date: dateStr,
         dayName: d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }),
@@ -296,7 +304,8 @@ router.get('/:garageId/dates', authMiddleware, async (req: AuthRequest, res) => 
         month: d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }),
         isWorkDay,
         status: effectiveStatus,
-        available: isOpen && totalBooked < effectiveMax,
+        available: isOpen && totalBooked < effectiveMax && !allSlotsPassed,
+        allSlotsPassed,
         remaining: Math.max(0, effectiveMax - totalBooked),
         message: override?.message || null,
         messageColor: override?.messageColor || null,
