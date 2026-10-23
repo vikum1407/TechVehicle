@@ -183,6 +183,7 @@ const en = {
   'dashboard.waitingForBuyer': 'Waiting for {phone} to accept',
   'dashboard.fullHistoryExpenses': '📋 Full History & Expenses',
   'dashboard.editVehicleDetails': 'Edit Vehicle Details',
+  'dashboard.manageElsewhere': 'Manage in Vehicle Tests',
   'dashboard.make': 'Make',
   'dashboard.model': 'Model',
   'dashboard.year': 'Year',

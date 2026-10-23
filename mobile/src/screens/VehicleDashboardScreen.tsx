@@ -10,7 +10,6 @@ import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
-import { VEHICLE_TYPE_OPTIONS } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -258,7 +257,17 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
     inputRange: [0, 1],
     outputRange: ['rgba(227,160,8,0.25)', 'rgba(227,160,8,1)'],
   })
-  const [draftVehicle, setDraftVehicle] = useState({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' })
+  // Edit Vehicle modal (2026-10-23, simplified) - was a 13-field form causing a
+  // severe scroll/freeze problem on lower-end devices (confirmed pre-existing on
+  // feature/mart's older implementation too, so not caused by any ScrollView fix
+  // attempted here - root cause never pinned down). Vikum's call: cut it down to
+  // just the one field that doesn't already have a proper home elsewhere -
+  // Make/Model/Year become a read-only title, Fuel Type/Vehicle Type/Purchase
+  // Date/Previous Owners are dropped entirely (rarely need changing after setup),
+  // and Emission/Revenue Licence/Insurance get redirect buttons to Vehicle Tests,
+  // which already has dedicated, better-built screens for those (history tracking,
+  // amounts, mileage) that this modal was just duplicating.
+  const [vehicleNotes, setVehicleNotes] = useState(vehicle.vehicleNotes ?? '')
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [photoViewer, setPhotoViewer] = useState<{ photos: string[]; index: number; label: string } | null>(null)
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0)
@@ -268,37 +277,19 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
   const [revokingShareId, setRevokingShareId] = useState<string | null>(null)
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const { width: windowWidth } = useWindowDimensions()
-  const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom), [colors, insets.top, insets.bottom])
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions()
+  const styles = useMemo(() => makeStyles(colors, insets.top, insets.bottom, windowHeight), [colors, insets.top, insets.bottom, windowHeight])
   const { t } = useTranslation()
   const openPhotos = (photos: string[], idx: number, label: string) => { setPhotoViewer({ photos, index: idx, label }); setPhotoViewerIndex(idx) }
 
   const handleSaveVehicle = async () => {
-    if (!draftVehicle.make.trim() || !draftVehicle.model.trim() || !draftVehicle.year || !draftVehicle.fuelType) {
-      Alert.alert(t('dashboard.required.title'), t('dashboard.required.message'))
-      return
-    }
     setSavingVehicle(true)
     try {
       const updated = await api.updateVehicle(token, vehicle.id, {
-        make: draftVehicle.make.trim(),
-        model: draftVehicle.model.trim(),
-        year: Number(draftVehicle.year),
-        fuelType: draftVehicle.fuelType,
-        vehicleType: draftVehicle.vehicleType || undefined,
-        vehicleNotes: draftVehicle.vehicleNotes.trim() || null,
-        purchaseDate: draftVehicle.purchaseDate.trim() || null,
-        ownerCount: draftVehicle.ownerCount.trim() ? Number(draftVehicle.ownerCount) : null,
-      })
-      await api.updateVehicleExpiry(token, vehicle.id, {
-        insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null,
-        insuranceCompany: draftVehicle.insuranceCompany.trim() || null,
-        insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null,
-        emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null,
-        revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null,
+        vehicleNotes: vehicleNotes.trim() || null,
       })
       setEditVehicleModal(false)
-      onVehicleUpdated?.({ ...updated, insuranceExpiry: draftVehicle.insuranceExpiry.trim() || null, insuranceCompany: draftVehicle.insuranceCompany.trim() || null, insurancePolicyNo: draftVehicle.insurancePolicyNo.trim() || null, emissionTestExpiry: draftVehicle.emissionTestExpiry.trim() || null, revenueLicenceExpiry: draftVehicle.revenueLicenceExpiry.trim() || null })
+      onVehicleUpdated?.(updated)
       loadRecords()
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message || t('dashboard.saveVehicleError'))
@@ -757,7 +748,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleBtnText}>{t('dashboard.viewOnly')}</Text>
               </View>
             ) : (
-              <TouchableOpacity onPress={() => { setDraftVehicle({ make: vehicle.make, model: vehicle.model, year: vehicle.year.toString(), fuelType: vehicle.fuelType, vehicleType: vehicle.vehicleType ?? '', purchaseDate: vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : '', ownerCount: vehicle.ownerCount?.toString() ?? '', vehicleNotes: vehicle.vehicleNotes ?? '', insuranceCompany: vehicle.insuranceCompany ?? '', insurancePolicyNo: vehicle.insurancePolicyNo ?? '', insuranceExpiry: vehicle.insuranceExpiry ? new Date(vehicle.insuranceExpiry).toISOString().split('T')[0] : '', emissionTestExpiry: vehicle.emissionTestExpiry ? new Date(vehicle.emissionTestExpiry).toISOString().split('T')[0] : '', revenueLicenceExpiry: vehicle.revenueLicenceExpiry ? new Date(vehicle.revenueLicenceExpiry).toISOString().split('T')[0] : '' }); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
+              <TouchableOpacity onPress={() => { setVehicleNotes(vehicle.vehicleNotes ?? ''); setEditVehicleModal(true) }} style={styles.editVehicleBtn}>
                 <Text style={styles.editVehicleBtnText}>{t('dashboard.edit')}</Text>
               </TouchableOpacity>
             )}
@@ -1355,106 +1346,41 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
-            <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>
-            <TextInput style={styles.editVehicleInput} value={draftVehicle.model} onChangeText={v => setDraftVehicle(p => ({ ...p, model: v }))} placeholder="e.g. Prius" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.year')}</Text>
-            <TextInput style={styles.editVehicleInput} value={draftVehicle.year} onChangeText={v => setDraftVehicle(p => ({ ...p, year: v }))} keyboardType="number-pad" placeholder="e.g. 2018" placeholderTextColor={colors.textFaint} />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.fuelType')}</Text>
-            <View style={styles.fuelTypeRow}>
-              {['Petrol 92', 'Petrol 95', 'Diesel', 'Electric', 'Petrol Hybrid', 'Diesel Hybrid'].map(ft => (
-                <TouchableOpacity key={ft} style={[styles.fuelTypeChip, draftVehicle.fuelType === ft && styles.fuelTypeChipActive]} onPress={() => setDraftVehicle(p => ({ ...p, fuelType: ft }))}>
-                  <Text style={[styles.fuelTypeChipText, draftVehicle.fuelType === ft && styles.fuelTypeChipTextActive]}>{ft}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.editVehicleLabel}>{t('dashboard.vehicleType')}</Text>
-            <View style={styles.vehicleTypeGrid}>
-              {VEHICLE_TYPE_OPTIONS.map(opt => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[styles.vehicleTypeChip, draftVehicle.vehicleType === opt.value && styles.vehicleTypeChipActive]}
-                  onPress={() => setDraftVehicle(p => ({ ...p, vehicleType: opt.value }))}
-                >
-                  <Text style={styles.vehicleTypeChipIcon}>{opt.icon}</Text>
-                  <Text style={[styles.vehicleTypeChipText, draftVehicle.vehicleType === opt.value && styles.vehicleTypeChipTextActive]}>{opt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.editVehicleLabel}>{t('dashboard.purchaseDate')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.purchaseDate}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, purchaseDate: v }))}
-              placeholder="e.g. 2021-06-15  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.previousOwners')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.ownerCount}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, ownerCount: v }))}
-              keyboardType="number-pad"
-              placeholder="e.g. 2  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
+            <Text style={styles.editVehicleSubtitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+
             <Text style={styles.editVehicleLabel}>{t('dashboard.vehicleNotes')}</Text>
             <TextInput
               style={[styles.editVehicleInput, { minHeight: 80, textAlignVertical: 'top' }]}
-              value={draftVehicle.vehicleNotes}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, vehicleNotes: v }))}
+              value={vehicleNotes}
+              onChangeText={setVehicleNotes}
               multiline
               placeholder="e.g. imported from Japan 2021, AC recently serviced..."
               placeholderTextColor={colors.textFaint}
             />
+
             <View style={styles.editSectionDivider} />
-            <Text style={styles.editSectionTitle}>{t('dashboard.renewalDates')}</Text>
-            <Text style={styles.editVehicleLabel}>{t('dashboard.emissionTestExpiry')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.emissionTestExpiry}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, emissionTestExpiry: v }))}
-              placeholder="e.g. 2026-06-30  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.revenueLicenceExpiry')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.revenueLicenceExpiry}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, revenueLicenceExpiry: v }))}
-              placeholder="e.g. 2026-12-31  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <View style={styles.editSectionDivider} />
-            <Text style={styles.editSectionTitle}>{t('dashboard.insuranceDetails')}</Text>
-            <Text style={styles.editVehicleLabel}>{t('dashboard.insuranceCompany')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.insuranceCompany}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, insuranceCompany: v }))}
-              placeholder="e.g. Ceylinco, Union, Allianz  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.policyNumber')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.insurancePolicyNo}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, insurancePolicyNo: v }))}
-              placeholder="e.g. POL-2024-001234  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <Text style={styles.editVehicleLabel}>{t('dashboard.insuranceExpiry')}</Text>
-            <TextInput
-              style={styles.editVehicleInput}
-              value={draftVehicle.insuranceExpiry}
-              onChangeText={v => setDraftVehicle(p => ({ ...p, insuranceExpiry: v }))}
-              placeholder="e.g. 2025-08-31  (optional)"
-              placeholderTextColor={colors.textFaint}
-            />
-            <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
-              {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>{t('dashboard.saveChanges')}</Text>}
+            <Text style={styles.editSectionTitle}>{t('dashboard.manageElsewhere')}</Text>
+            <TouchableOpacity style={styles.manageRow} onPress={() => { setEditVehicleModal(false); onVehicleTests('emission') }} activeOpacity={0.7}>
+              <Text style={styles.manageRowText}>{t('dashboard.emissionTest')}</Text>
+              <Text style={styles.manageRowArrow}>›</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={() => { setEditVehicleModal(false); onVehicleTests('licence') }} activeOpacity={0.7}>
+              <Text style={styles.manageRowText}>{t('dashboard.revenueLicence')}</Text>
+              <Text style={styles.manageRowArrow}>›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={() => { setEditVehicleModal(false); onVehicleTests('insurance') }} activeOpacity={0.7}>
+              <Text style={styles.manageRowText}>{t('dashboard.insurance')}</Text>
+              <Text style={styles.manageRowArrow}>›</Text>
+            </TouchableOpacity>
+
+            <View style={styles.editVehicleActions}>
+              <TouchableOpacity style={styles.editVehicleCancelBtn} onPress={() => setEditVehicleModal(false)}>
+                <Text style={styles.editVehicleCancelBtnText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
+                {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>{t('dashboard.saveChanges')}</Text>}
+              </TouchableOpacity>
+            </View>
             </KeyboardAwareScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -1718,7 +1644,7 @@ function FamilyShareModal({
   )
 }
 
-function makeStyles(c: Colors, topInset: number, bottomInset: number) {
+function makeStyles(c: Colors, topInset: number, bottomInset: number, windowHeight: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { paddingBottom: 40 },
@@ -2013,23 +1939,16 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     moreSheetItemText: { fontSize: 14, fontWeight: '600', color: c.text },
 
     editVehicleOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    editVehicleCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 + bottomInset, maxHeight: '90%' },
+    // maxHeight as a computed pixel value, not a '90%' string - percentage heights
+    // can fail to resolve reliably for a ScrollView nested this deep on Android,
+    // which was silently preventing any scroll (not just cutting content off).
+    editVehicleCard: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 + bottomInset, maxHeight: windowHeight * 0.9 },
     editVehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     editVehicleTitle: { fontSize: 17, fontWeight: '800', color: c.text },
     editVehicleClose: { fontSize: 18, color: c.textMuted, fontWeight: '700' },
+    editVehicleSubtitle: { fontSize: 15, fontWeight: '700', color: c.textSub, marginTop: -4 },
     editVehicleLabel: { fontSize: 12, fontWeight: '700', color: c.textMuted, marginBottom: 6, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
     editVehicleInput: { backgroundColor: c.surfaceAlt, borderRadius: 10, borderWidth: 1, borderColor: c.borderMid, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: c.text },
-    fuelTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-    fuelTypeChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: c.border, borderWidth: 1, borderColor: c.borderMid },
-    fuelTypeChipActive: { backgroundColor: c.primary, borderColor: c.primary },
-    fuelTypeChipText: { fontSize: 13, color: c.textSub, fontWeight: '600' },
-    fuelTypeChipTextActive: { color: '#fff' },
-    vehicleTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-    vehicleTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 20, backgroundColor: c.border, borderWidth: 1, borderColor: c.borderMid },
-    vehicleTypeChipActive: { backgroundColor: c.primary, borderColor: c.primary },
-    vehicleTypeChipIcon: { fontSize: 14 },
-    vehicleTypeChipText: { fontSize: 12, color: c.textSub, fontWeight: '600' },
-    vehicleTypeChipTextActive: { color: '#fff' },
     profileCard: {
       backgroundColor: c.surface, borderRadius: 14, marginHorizontal: 16, marginTop: 12, marginBottom: 10,
       padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
@@ -2040,11 +1959,20 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     profileStatLabel: { fontSize: 10, color: c.textFaint, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
     profileStatValue: { fontSize: 14, fontWeight: '700', color: c.text },
     profileNotes: { fontSize: 13, color: c.textSub, fontStyle: 'italic', marginTop: 8, lineHeight: 18, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 },
-    editVehicleSaveBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
+    editVehicleActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
+    editVehicleCancelBtn: { flex: 1, borderWidth: 1.5, borderColor: c.borderMid, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    editVehicleCancelBtnText: { fontSize: 15, fontWeight: '600', color: c.textMuted },
+    editVehicleSaveBtn: { flex: 1, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     editVehicleSaveBtnDisabled: { opacity: 0.6 },
     editVehicleSaveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     editSectionDivider: { height: 1, backgroundColor: c.border, marginVertical: 20 },
     editSectionTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 12 },
+    manageRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    manageRowText: { fontSize: 15, color: c.text, fontWeight: '600' },
+    manageRowArrow: { fontSize: 20, color: c.textFaint },
     photoModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' },
     photoModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: topInset + 8, paddingHorizontal: 20, paddingBottom: 12 },
     photoModalLabel: { color: '#fff', fontSize: 13, flex: 1, marginRight: 12 },

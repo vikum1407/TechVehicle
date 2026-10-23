@@ -185,6 +185,7 @@ const si: Record<TranslationKey, string> = {
   'dashboard.waitingForBuyer': '{phone} පිළිගැනීම සඳහා රැඳී සිටී',
   'dashboard.fullHistoryExpenses': '📋 සම්පූර්ණ ඉතිහාසය සහ වියදම්',
   'dashboard.editVehicleDetails': 'වාහන විස්තර සංස්කරණය කරන්න',
+  'dashboard.manageElsewhere': 'වාහන පරීක්ෂණ තුළ කළමනාකරණය කරන්න',
   'dashboard.make': 'සන්නාමය',
   'dashboard.model': 'මාදිලිය',
   'dashboard.year': 'වර්ෂය',
