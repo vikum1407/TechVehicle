@@ -27,16 +27,27 @@ function todayUTCMidnight(): Date {
 
 // Noted 2026-10-21: garage time slots are free-text labels (`GarageSlot.label`,
 // `garageSlots.ts`) with no structured time field — a garage can type "7:00",
-// "Morning", anything. Only labels that look like a clock time ("H:MM"/"HH:MM")
-// can be checked against the current time; anything else (e.g. "Morning") is left
-// alone, since there's no reliable way to know what time it means.
+// "Morning", anything. Labels that look like a clock time ("H:MM"/"HH:MM") are
+// checked exactly against the current time. For the common generic session
+// names, a reasonable default cutoff is used instead (there's no way to know a
+// specific garage's actual hours for "Morning", so this is a guess, not a real
+// time) - updated 2026-10-22 after a real garage (free-text "Morning"/
+// "Afternoon" labels) stayed fully bookable well past both sessions' end.
+const GENERIC_SLOT_CUTOFFS: Record<string, number> = {
+  morning: 12 * 60,
+  afternoon: 17 * 60,
+  evening: 21 * 60,
+}
 function parseTimeLabelMinutes(label: string): number | null {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(label.trim())
-  if (!m) return null
-  const hours = Number(m[1])
-  const minutes = Number(m[2])
-  if (hours > 23 || minutes > 59) return null
-  return hours * 60 + minutes
+  const trimmed = label.trim()
+  const m = /^(\d{1,2}):(\d{2})$/.exec(trimmed)
+  if (m) {
+    const hours = Number(m[1])
+    const minutes = Number(m[2])
+    if (hours > 23 || minutes > 59) return null
+    return hours * 60 + minutes
+  }
+  return GENERIC_SLOT_CUTOFFS[trimmed.toLowerCase()] ?? null
 }
 
 // Sri Lanka is a fixed UTC+5:30 offset (no DST) — computed explicitly rather than

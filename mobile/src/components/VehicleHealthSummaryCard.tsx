@@ -14,7 +14,8 @@ import Sparkline from './Sparkline'
 export type HealthSummary = {
   mileageTrend: { date: string; mileage: number }[]
   topPredictions: { name: string; status: 'overdue' | 'due_soon'; remainingKm: number | null; remainingDays: number | null }[]
-  recentServices: { date: string; description: string; category: 'service' | 'legal_compliance'; cost: number | null }[]
+  recentServices: { date: string; description: string; category: 'service' | 'legal_compliance'; mileage: number | null; cost: number | null }[]
+  showCosts: boolean
   totalSpend: number
   spendBreakdown: { category: string; amount: number }[]
 }
@@ -82,29 +83,36 @@ export default function VehicleHealthSummaryCard({ summary }: { summary: HealthS
             <View key={i} style={styles.serviceRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.serviceDesc} numberOfLines={1}>{r.description}</Text>
-                <Text style={styles.serviceDate}>{formatDate(r.date)}</Text>
+                <Text style={styles.serviceDate}>
+                  {formatDate(r.date)}{r.mileage != null ? `  ·  ${r.mileage.toLocaleString()} km` : ''}
+                </Text>
               </View>
-              {r.cost != null && <Text style={styles.serviceCost}>LKR {r.cost.toLocaleString()}</Text>}
+              {summary.showCosts && r.cost != null && <Text style={styles.serviceCost}>LKR {r.cost.toLocaleString()}</Text>}
             </View>
           ))
         )}
       </View>
 
-      {/* Total spend */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('healthSummary.totalSpend')}</Text>
-        <Text style={styles.bigValue}>LKR {summary.totalSpend.toLocaleString()}</Text>
-        {summary.spendBreakdown.length > 0 && (
-          <View style={styles.breakdownRow}>
-            {summary.spendBreakdown.map((b, i) => (
-              <View key={i} style={styles.breakdownChip}>
-                <Text style={styles.breakdownChipText}>{b.category}</Text>
-                <Text style={styles.breakdownChipAmount}>LKR {b.amount.toLocaleString()}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+      {/* Total spend — garage-facing summaries omit this entirely (showCosts
+          false), not just hide the number: what the owner paid elsewhere isn't
+          useful to a garage for the job at hand, and the owner doesn't want it
+          shown to them. */}
+      {summary.showCosts && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('healthSummary.totalSpend')}</Text>
+          <Text style={styles.bigValue}>LKR {summary.totalSpend.toLocaleString()}</Text>
+          {summary.spendBreakdown.length > 0 && (
+            <View style={styles.breakdownRow}>
+              {summary.spendBreakdown.map((b, i) => (
+                <View key={i} style={styles.breakdownChip}>
+                  <Text style={styles.breakdownChipText}>{b.category}</Text>
+                  <Text style={styles.breakdownChipAmount}>LKR {b.amount.toLocaleString()}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
     </View>
   )
 }

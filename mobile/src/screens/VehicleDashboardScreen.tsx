@@ -5,6 +5,7 @@ import {
   Image, ImageBackground, Modal, FlatList, useWindowDimensions, Animated,
   KeyboardAvoidingView, Platform,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -1345,7 +1346,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
       {/* ── Edit vehicle modal ─── */}
       <Modal visible={editVehicleModal} transparent animationType="slide" onRequestClose={() => setEditVehicleModal(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.editVehicleOverlay}>
           <View style={styles.editVehicleCard}>
             <View style={styles.editVehicleHeaderRow}>
@@ -1354,7 +1354,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
             <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>
@@ -1455,10 +1455,9 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
             <TouchableOpacity style={[styles.editVehicleSaveBtn, savingVehicle && styles.editVehicleSaveBtnDisabled]} onPress={handleSaveVehicle} disabled={savingVehicle}>
               {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>{t('dashboard.saveChanges')}</Text>}
             </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
-        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={moreActionsSheet} transparent animationType="slide" onRequestClose={() => setMoreActionsSheet(false)}>

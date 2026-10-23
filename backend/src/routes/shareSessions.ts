@@ -120,8 +120,13 @@ router.get('/incoming', async (req: AuthRequest, res) => {
         }
       }
 
-      const totalServiceCost = records.reduce((sum, r) => sum + (r.cost || 0), 0)
-      const healthSummary = await computeVehicleHealthSummary(session.vehicleId)
+      // Garage-facing: cost isn't sent at all (not just hidden in the UI) — see
+      // vehicleHealthSummary.ts's includeCosts note for why. The raw records list
+      // (the "Shared Service History" fallback detail view) needs the same
+      // treatment as healthSummary, since it carries cost independently.
+      const totalServiceCost = 0
+      const recordsForGarage = records.map(r => ({ ...r, cost: null }))
+      const healthSummary = await computeVehicleHealthSummary(session.vehicleId, false, recordIds)
 
       return {
         ...session,
@@ -137,7 +142,7 @@ router.get('/incoming', async (req: AuthRequest, res) => {
         avgFuelEfficiency,
         healthSummary,
         totalServiceCost,
-        records,
+        records: recordsForGarage,
       }
     }))
 

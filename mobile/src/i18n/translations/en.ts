@@ -974,6 +974,7 @@ const en = {
   'emailSetup.reason3': 'Important updates about your vehicles',
   'emailSetup.save': 'Save & Continue',
   'emailSetup.skip': 'Skip for now',
+  'emailSetup.emailLabel': 'Email (Optional)',
   'emailSetup.cityLabel': 'City',
   'emailSetup.selectCity': 'Select your city',
   'emailSetup.typeCityName': 'Type your city name',

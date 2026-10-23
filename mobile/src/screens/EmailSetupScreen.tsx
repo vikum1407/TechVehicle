@@ -48,7 +48,8 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
   }
 
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const canSave = isValidEmail && actualCity.length > 0
+  const emailOk = email.trim().length === 0 || isValidEmail
+  const canSave = emailOk && actualCity.length > 0
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -67,6 +68,7 @@ export default function EmailSetupScreen({ token, onDone }: Props) {
           <ReasonRow icon={{ lib: 'mci', name: 'bell-outline' }} text={t('emailSetup.reason3')} color={colors.primary} />
         </View>
 
+        <Text style={styles.cityLabel}>{t('emailSetup.emailLabel')}</Text>
         <TextInput
           style={[styles.input, error ? styles.inputError : null]}
           value={email}
@@ -191,6 +193,7 @@ function PickerModal({ visible, title, items, selected, onSelect, onClose }: Pic
             data={filtered}
             keyExtractor={item => item}
             keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={m.item}

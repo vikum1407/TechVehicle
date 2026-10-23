@@ -19,6 +19,15 @@
 // This restriction applies ONLY to this shared summary — the owner's own
 // Analytics/History screens, and a final Sell/Transfer handoff, are
 // unaffected and still show/transfer everything.
+//
+// includeCosts (added 2026-10-22): a garage seeing exactly what the owner
+// paid elsewhere isn't useful to them for the job at hand and the owner
+// doesn't want it shown - shareSessions.ts (the garage-facing call site,
+// covering both the standalone Share flow and a booking's attached history)
+// passes false. transfers.ts (the buyer's pre-sale preview) keeps it true -
+// real verified cost history there is a core trust-building feature of the
+// Sell/Transfer engine, not a leak. vehicleShares.ts (family) also keeps it
+// true, same reasoning as the owner's own view.
 
 import { PrismaClient } from '@prisma/client'
 import { computePredictions, VehicleInput } from './predictionEngine'
@@ -38,13 +47,15 @@ export type VehicleHealthSummary = {
     date: string
     description: string
     category: 'service' | 'legal_compliance'
+    mileage: number | null
     cost: number | null
   }[]
+  showCosts: boolean
   totalSpend: number
   spendBreakdown: { category: string; amount: number }[]
 }
 
-export async function computeVehicleHealthSummary(vehicleId: string): Promise<VehicleHealthSummary | null> {
+export async function computeVehicleHealthSummary(vehicleId: string, includeCosts: boolean = true, sharedRecordIds?: string[]): Promise<VehicleHealthSummary | null> {
   const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId } })
   if (!vehicle) return null
 
@@ -73,12 +84,22 @@ export async function computeVehicleHealthSummary(vehicleId: string): Promise<Ve
       remainingDays: p.remainingDays,
     }))
 
-  // Last 5 services as compact cards, not the full raw record.
-  const recentServices = serviceRecords.slice(0, 5).map(r => ({
+  // Last 5 services as compact cards, not the full raw record. Mileage is
+  // always included (not cost-gated) - a garage needs it to plan maintenance.
+  // sharedRecordIds (added 2026-10-22), when given, scopes this to exactly
+  // what the owner chose to share for this session - mileageTrend/
+  // topPredictions above stay vehicle-wide regardless, since they need full
+  // history to be accurate and aren't really "personal history" the owner's
+  // selective-share control was meant to gate.
+  const recentServicesSource = sharedRecordIds
+    ? serviceRecords.filter(r => sharedRecordIds.includes(r.id))
+    : serviceRecords
+  const recentServices = recentServicesSource.slice(0, 5).map(r => ({
     date: r.date.toISOString(),
     description: r.description,
     category: (classifyDescription(r.description)?.category ?? 'service') as 'service' | 'legal_compliance',
-    cost: r.cost,
+    mileage: r.mileage,
+    cost: includeCosts ? r.cost : null,
   }))
 
   // Spend: Service & Repairs + Legal & Compliance (from service records) +
@@ -93,13 +114,13 @@ export async function computeVehicleHealthSummary(vehicleId: string): Promise<Ve
     else serviceCost += cost
   }
   const fuelCost = fuelLogs.reduce((s, l) => s + (l.cost || 0), 0)
-  const totalSpend = serviceCost + legalComplianceCost + fuelCost
+  const totalSpend = includeCosts ? serviceCost + legalComplianceCost + fuelCost : 0
 
-  const spendBreakdown = [
+  const spendBreakdown = !includeCosts ? [] : [
     { category: 'Service & Repairs', amount: serviceCost },
     { category: 'Legal & Compliance', amount: legalComplianceCost },
     { category: isElectric ? 'Charging' : 'Fuel', amount: fuelCost },
   ].filter(c => c.amount > 0)
 
-  return { mileageTrend, topPredictions, recentServices, totalSpend, spendBreakdown }
+  return { mileageTrend, topPredictions, recentServices, showCosts: includeCosts, totalSpend, spendBreakdown }
 }

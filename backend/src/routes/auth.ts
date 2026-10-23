@@ -251,29 +251,36 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
   }
 })
 
-// PATCH /auth/email — save or update the user's email address. Also optionally
-// accepts city (EmailSetupScreen's mandatory-for-new-signups step saves both in one
-// call; ProfileScreen's inline email-only edit just omits it, leaving city untouched).
+// PATCH /auth/email — save or update the user's email address and/or city.
+// Email is optional (2026-10-23 - mandatory-email-at-signup was reconsidered as too
+// much friction for this market, validated only if actually given); city stays
+// required at the EmailSetupScreen UI level, but this route itself doesn't enforce
+// that - it's generic enough for ProfileScreen's email-only inline edit too.
 router.patch('/email', authMiddleware, async (req: AuthRequest, res) => {
   const { email, city } = req.body
-  if (!email || typeof email !== 'string') {
-    res.status(400).json({ error: 'email is required' }); return
-  }
-  const normalised = email.trim().toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised) || normalised.length > 254) {
-    res.status(400).json({ error: 'Please enter a valid email address' }); return
+  let normalised: string | undefined
+  if (email) {
+    if (typeof email !== 'string') { res.status(400).json({ error: 'Invalid email' }); return }
+    normalised = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised) || normalised.length > 254) {
+      res.status(400).json({ error: 'Please enter a valid email address' }); return
+    }
   }
   if (city !== undefined && city !== null && typeof city !== 'string') {
     res.status(400).json({ error: 'Invalid city' }); return
   }
+  if (normalised === undefined && city === undefined) {
+    res.status(400).json({ error: 'email or city is required' }); return
+  }
   try {
-    const data: any = { email: normalised }
+    const data: any = {}
+    if (normalised !== undefined) data.email = normalised
     if (city !== undefined) data.city = city?.trim() ? capText(city, SHORT_TEXT_LEN) : null
     await prisma.user.update({
       where: { phoneNumber: req.phoneNumber! },
       data,
     })
-    res.json({ ok: true, email: normalised, city: data.city ?? null })
+    res.json({ ok: true, email: normalised ?? null, city: data.city ?? null })
   } catch (error: any) {
     if (error.code === 'P2002') {
       res.status(409).json({ error: 'This email is already linked to another account' }); return

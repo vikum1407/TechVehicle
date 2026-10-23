@@ -976,6 +976,7 @@ const si: Record<TranslationKey, string> = {
   'emailSetup.reason3': 'ඔබේ වාහන ගැන වැදගත් යාවත්කාලීන',
   'emailSetup.save': 'සුරකා ඉදිරියට යන්න',
   'emailSetup.skip': 'මේ වේලාවේ මඟ හරින්න',
+  'emailSetup.emailLabel': 'ඊමේල් (අත්‍යවශ්‍ය නොවේ)',
   'emailSetup.cityLabel': 'නගරය',
   'emailSetup.selectCity': 'ඔබේ නගරය තෝරන්න',
   'emailSetup.typeCityName': 'ඔබේ නගරයේ නම ටයිප් කරන්න',
