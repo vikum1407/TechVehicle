@@ -1346,15 +1346,15 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
 
       {/* ── Edit vehicle modal ─── */}
       <Modal visible={editVehicleModal} transparent animationType="slide" onRequestClose={() => setEditVehicleModal(false)}>
-        <View style={styles.editVehicleOverlay}>
-          <View style={styles.editVehicleCard}>
+        <TouchableOpacity style={styles.editVehicleOverlay} activeOpacity={1} onPress={() => setEditVehicleModal(false)}>
+          <TouchableOpacity style={styles.editVehicleCard} activeOpacity={1} onPress={() => {}}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <View style={styles.editVehicleHeaderRow}>
               <Text style={styles.editVehicleTitle}>{t('dashboard.editVehicleDetails')}</Text>
               <TouchableOpacity onPress={() => setEditVehicleModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.editVehicleClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editVehicleLabel}>{t('dashboard.make')}</Text>
             <TextInput style={styles.editVehicleInput} value={draftVehicle.make} onChangeText={v => setDraftVehicle(p => ({ ...p, make: v }))} placeholder="e.g. Toyota" placeholderTextColor={colors.textFaint} />
             <Text style={styles.editVehicleLabel}>{t('dashboard.model')}</Text>
@@ -1456,8 +1456,8 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
               {savingVehicle ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.editVehicleSaveBtnText}>{t('dashboard.saveChanges')}</Text>}
             </TouchableOpacity>
             </KeyboardAwareScrollView>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       <Modal visible={moreActionsSheet} transparent animationType="slide" onRequestClose={() => setMoreActionsSheet(false)}>
