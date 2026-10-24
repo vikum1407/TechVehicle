@@ -86,29 +86,25 @@ router.get('/:vehicleId/cost-forecast', async (req: AuthRequest, res) => {
     if (!await canReadVehicle(prisma, vehicleId, req.phoneNumber!)) {
       res.status(404).json({ error: 'Vehicle not found' }); return
     }
-    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId } })
 
-    const records = await prisma.serviceRecord.findMany({
-      where: { vehicleId },
-      orderBy: { date: 'desc' },
-    })
+    // Independent queries - run concurrently instead of one round-trip each
+    // (this endpoint is on the Confirm Booking page's critical path; sequential
+    // awaits here were adding a visible delay - see CLAUDE.md's cross-feature
+    // consistency note, 2026-10-24).
+    const [vehicle, records, expenses, fuelLogs] = await Promise.all([
+      prisma.vehicle.findFirst({ where: { id: vehicleId } }),
+      prisma.serviceRecord.findMany({ where: { vehicleId }, orderBy: { date: 'desc' } }),
+      // Emission/Insurance/Revenue Licence are date-driven renewals tracked on the
+      // Vehicle model itself (emissionTestExpiry/insuranceExpiry/revenueLicenceExpiry),
+      // not in the mileage/date-interval database computePredictions draws from - so
+      // they never appeared in Cost Forecast at all until now. Insurance/Revenue
+      // Licence costs are logged as Expense rows (category 'Insurance'/'Revenue
+      // Licence'), not ServiceRecord, so a separate fetch is needed for them.
+      prisma.expense.findMany({ where: { vehicleId, category: { in: ['Insurance', 'Revenue Licence'] } } }),
+      prisma.fuelLog.findMany({ where: { vehicleId }, orderBy: { date: 'desc' }, take: 20 }),
+    ])
 
-    // Emission/Insurance/Revenue Licence are date-driven renewals tracked on the
-    // Vehicle model itself (emissionTestExpiry/insuranceExpiry/revenueLicenceExpiry),
-    // not in the mileage/date-interval database computePredictions draws from - so
-    // they never appeared in Cost Forecast at all until now. Insurance/Revenue
-    // Licence costs are logged as Expense rows (category 'Insurance'/'Revenue
-    // Licence'), not ServiceRecord, so a separate fetch is needed for them.
-    const expenses = await prisma.expense.findMany({
-      where: { vehicleId, category: { in: ['Insurance', 'Revenue Licence'] } },
-    })
-
-    // Estimate avg daily km from recent fuel logs
-    const fuelLogs = await prisma.fuelLog.findMany({
-      where: { vehicleId },
-      orderBy: { date: 'desc' },
-      take: 20,
-    })
+    // Estimate avg daily km from recent fuel logs (fetched above, in parallel)
     let avgKmPerDay: number | null = null
     if (fuelLogs.length >= 2) {
       const newest = fuelLogs[0]

@@ -1167,6 +1167,7 @@ const si: Record<TranslationKey, string> = {
   'garage.confirmed': 'තහවුරු කරන ලදී',
   'garage.historyAttached': 'ඉතිහාසය අමුණා ඇත',
   'garage.requestedServices': 'ඉල්ලූ සේවා',
+  'garage.requestedServicesMileage': 'වත්මන් සැතපුම් ගණන: {mileage} km',
   'garage.ownerLabel': 'හිමිකරු: {phone}',
   'garage.confirm': 'තහවුරු කරන්න',
   'garage.suggestSlot': 'වේලාවක් යෝජනා කරන්න',

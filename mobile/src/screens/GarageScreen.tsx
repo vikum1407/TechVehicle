@@ -1933,6 +1933,9 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     <Text style={styles.requestedServicesTitle}>
                       <AppIcon icon={{ lib: 'mci', name: 'wrench-outline' }} size={13} color="#1565c0" /> {t('garage.requestedServices')}
                     </Text>
+                    <Text style={styles.requestedServicesMileage}>
+                      {t('garage.requestedServicesMileage', { mileage: booking.vehicle.mileage.toLocaleString() })}
+                    </Text>
                     {booking.requestedServices.map((s, i) => (
                       <View key={i} style={styles.requestedServiceRow}>
                         <Text style={styles.requestedServiceName}>• {s.name}</Text>
@@ -2033,7 +2036,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                     {/* Health summary — default view */}
                     {attachedShare.healthSummary && (
                       <View style={{ marginBottom: 12 }}>
-                        <VehicleHealthSummaryCard summary={attachedShare.healthSummary} />
+                        <VehicleHealthSummaryCard summary={attachedShare.healthSummary} hideRecentServices />
                       </View>
                     )}
 
@@ -3237,6 +3240,7 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
     counterSentText: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
     requestedServicesBox: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 10, marginTop: 10, gap: 4 },
     requestedServicesTitle: { fontSize: 12, color: '#1565c0', fontWeight: '700', marginBottom: 2 },
+    requestedServicesMileage: { fontSize: 11.5, color: '#1565c0', marginBottom: 4 },
     requestedServiceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     requestedServiceName: { fontSize: 12.5, color: '#0d47a1', flex: 1 },
     requestedServiceCost: { fontSize: 12, color: '#1565c0', fontWeight: '600' },

@@ -24,7 +24,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function VehicleHealthSummaryCard({ summary }: { summary: HealthSummary }) {
+export default function VehicleHealthSummaryCard({ summary, hideRecentServices }: { summary: HealthSummary; hideRecentServices?: boolean }) {
   const colors = useColors()
   const { t } = useTranslation()
   const styles = useMemo(() => makeStyles(colors), [colors])
@@ -73,25 +73,30 @@ export default function VehicleHealthSummaryCard({ summary }: { summary: HealthS
         )}
       </View>
 
-      {/* Recent services */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('healthSummary.recentServices')}</Text>
-        {summary.recentServices.length === 0 ? (
-          <Text style={styles.emptyText}>{t('healthSummary.noServicesYet')}</Text>
-        ) : (
-          summary.recentServices.map((r, i) => (
-            <View key={i} style={styles.serviceRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.serviceDesc} numberOfLines={1}>{r.description}</Text>
-                <Text style={styles.serviceDate}>
-                  {formatDate(r.date)}{r.mileage != null ? `  ·  ${r.mileage.toLocaleString()} km` : ''}
-                </Text>
+      {/* Recent services — omitted when the caller already renders the same
+          shared records as its own expandable list right below this card
+          (GarageScreen's booking view), since for a small shared-record set
+          the two end up listing the identical records twice. */}
+      {!hideRecentServices && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('healthSummary.recentServices')}</Text>
+          {summary.recentServices.length === 0 ? (
+            <Text style={styles.emptyText}>{t('healthSummary.noServicesYet')}</Text>
+          ) : (
+            summary.recentServices.map((r, i) => (
+              <View key={i} style={styles.serviceRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.serviceDesc} numberOfLines={1}>{r.description}</Text>
+                  <Text style={styles.serviceDate}>
+                    {formatDate(r.date)}{r.mileage != null ? `  ·  ${r.mileage.toLocaleString()} km` : ''}
+                  </Text>
+                </View>
+                {summary.showCosts && r.cost != null && <Text style={styles.serviceCost}>LKR {r.cost.toLocaleString()}</Text>}
               </View>
-              {summary.showCosts && r.cost != null && <Text style={styles.serviceCost}>LKR {r.cost.toLocaleString()}</Text>}
-            </View>
-          ))
-        )}
-      </View>
+            ))
+          )}
+        </View>
+      )}
 
       {/* Total spend — garage-facing summaries omit this entirely (showCosts
           false), not just hide the number: what the owner paid elsewhere isn't

@@ -1165,6 +1165,7 @@ const en = {
   'garage.confirmed': 'Confirmed',
   'garage.historyAttached': 'History attached',
   'garage.requestedServices': 'Requested Services',
+  'garage.requestedServicesMileage': 'Current mileage: {mileage} km',
   'garage.ownerLabel': 'Owner: {phone}',
   'garage.confirm': 'Confirm',
   'garage.suggestSlot': 'Suggest Slot',

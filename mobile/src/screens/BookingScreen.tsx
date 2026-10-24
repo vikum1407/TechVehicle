@@ -24,6 +24,11 @@ type Vehicle = {
   mileage: number
 }
 
+// Cost Forecast's date-driven renewal items (predictions.ts's renewalItems) -
+// legal/admin costs paid to an insurer/DMV/testing station, not a garage fee.
+// Excluded from Request Specific Services below; see that call site for why.
+const RENEWAL_ONLY_NAMES = new Set(['Emission Test', 'Insurance', 'Revenue Licence'])
+
 type Props = {
   token: string
   vehicle: Vehicle
@@ -144,6 +149,29 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  // Prefetch the cost forecast as soon as the screen mounts, not when the user
+  // reaches the confirm step - by then they've already spent time on garage
+  // search + date/time selection, which hides this fetch's latency instead of
+  // making them watch a spinner for it on the page where they need it (2026-10-24).
+  useEffect(() => {
+    setForecastLoading(true)
+    api.getCostForecast(token, vehicle.id)
+      .then(data => setForecastItems(
+        // Emission Test / Insurance / Revenue Licence are date-driven legal/
+        // admin renewals, not something a garage performs or charges for -
+        // their "cost" here is what the owner paid an insurer/DMV/testing
+        // station, not a garage fee. Doesn't belong in a "request this from
+        // the garage" list (unlike Cost Forecast itself, where showing them
+        // is correct - this is the only place that needs the exclusion).
+        data.items
+          .filter(i => !RENEWAL_ONLY_NAMES.has(i.name))
+          .map(i => ({ name: i.name, estimatedCost: i.estimatedCost, status: i.status }))
+      ))
+      .catch(() => {})
+      .finally(() => setForecastLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Load service records when entering confirm step
   useEffect(() => {
     if (step === 'confirm') {
@@ -157,12 +185,6 @@ export default function BookingScreen({ token, vehicle, onBack, onBooked }: Prop
         })
         .catch(() => {})
         .finally(() => setRecordsLoading(false))
-
-      setForecastLoading(true)
-      api.getCostForecast(token, vehicle.id)
-        .then(data => setForecastItems(data.items.map(i => ({ name: i.name, estimatedCost: i.estimatedCost, status: i.status }))))
-        .catch(() => {})
-        .finally(() => setForecastLoading(false))
     }
   }, [step])
 

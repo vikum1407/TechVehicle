@@ -2,6 +2,18 @@
 
 ---
 
+## ⚠️ MANDATORY — Pre-build cross-feature consistency sweep (process fix, 2026-10-24)
+
+**Trigger:** Release 17 shipped with two inconsistencies between the newly-built "Request Specific Services" feature (`b40dc61`) and a cost-hiding rule that had *already been built and shipped in the same release cycle* (`9666208`, "hide costs from garage health summary"). Request Specific Services reused Cost Forecast's cost data directly (including Emission/Insurance/Revenue Licence, which a garage can't even perform) instead of applying the already-established "never show a garage what the owner paid elsewhere" rule. A second, related bug (the same shared records rendered twice — once in the Health Summary's "Recent Services", once in the raw "Shared Service History" list) shipped the same way: a new call site wasn't checked against an existing component's behavior. Neither was caught before the build — costing a wasted release cycle plus EAS build credits and Render usage to fix after the fact on real devices.
+
+**Root cause:** Each feature was checked in isolation against its own requirements, not cross-checked against rules already established elsewhere in the same codebase for the same category of data (cost visibility, share-permission scoping, garage-facing data in general).
+
+**Rule, effective immediately:** Before any commit is proposed as ready to build/release, do a cross-feature sweep — grep every other place in the codebase handling the same category of data the new/changed code touches (cost fields reaching a garage, share-permission scoping, safe-area handling, etc.) and confirm the new code matches established behavior, not just that it works on its own. This applies especially to anything garage-facing, buyer-facing, or family-share-facing, since those are exactly the surfaces with hard-won, easy-to-miss rules (see `vehicleHealthSummary.ts`'s `includeCosts` reasoning as the canonical example of a rule that must be checked against on every new call site).
+
+**Why this matters more than usual here:** Vikum pays per EAS build and Render usage — an inconsistency caught after a build ships costs real money and a full device-testing round, not just dev time. A cheap grep before the build is strictly cheaper than finding this on-device after release.
+
+---
+
 ## Fixed — Raw "invalid or expired token" error shown to real users (2026-10-21)
 
 **Found on the live production app** — a few testers hit a popup reading literally "Unauthorised — invalid or expired token" (screenshot: Garage registration screen, Sinhala UI chrome around an untranslated raw English error). Root cause: every login JWT expires after 30 days (`expiresIn: '30d'`, `backend/src/routes/auth.ts`); when that happens, `authMiddleware` (`backend/src/middleware/auth.ts`) returns that exact developer-facing string, and the mobile app had zero special handling anywhere for a 401 — every API error (including this one) flowed through the same generic "show whatever the backend said" path (`apiFail()` in `mobile/src/config/api.ts`). Not isolated to Garage registration — the same raw text could appear on any screen if a token expired mid-use.

@@ -33,6 +33,18 @@ function parseRequestedServices(input: unknown): { name: string; estimatedCost: 
   return out.length > 0 ? out : null
 }
 
+// Garage-facing: estimatedCost is the owner's own historical payment average,
+// not a garage fee - never send it to a garage, same "stripped server-side, not
+// just hidden in the UI" treatment as shareSessions.ts's recordsForGarage. Only
+// the owner's own views (POST create, GET /mine, accept-counter) keep cost.
+function stripCostForGarage<T extends { requestedServices?: unknown }>(booking: T): T {
+  if (!Array.isArray(booking.requestedServices)) return booking
+  return {
+    ...booking,
+    requestedServices: (booking.requestedServices as { name: string }[]).map(s => ({ name: s.name, estimatedCost: null })),
+  }
+}
+
 // POST /bookings — owner creates a booking
 router.post('/', async (req: AuthRequest, res) => {
   const { vehicleId, garageId, date, notes, noteType, slotLabel, shareSessionId, serviceType, requestedServices } = req.body
@@ -166,7 +178,7 @@ router.get('/garage', async (req: AuthRequest, res) => {
       include: { vehicle: true, _count: { select: { bookingNotes: true } } },
       orderBy: { date: 'asc' },
     })
-    res.json(bookings)
+    res.json(bookings.map(stripCostForGarage))
   } catch (error) {
     console.error('GET /bookings/garage error:', error)
     res.status(500).json({ error: 'Failed to fetch garage bookings' })
@@ -210,7 +222,7 @@ router.post('/:id/confirm', async (req: AuthRequest, res) => {
       { screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: booking.id }
     )
 
-    res.json(updated)
+    res.json(stripCostForGarage(updated))
   } catch (error) {
     console.error('POST /bookings/:id/confirm error:', error)
     res.status(500).json({ error: 'Failed to confirm booking' })
@@ -294,7 +306,7 @@ router.post('/:id/garage-cancel', async (req: AuthRequest, res) => {
       { screen: 'vehicleDashboard', vehicleId: booking.vehicleId }
     )
 
-    res.json(updated)
+    res.json(stripCostForGarage(updated))
   } catch (error) {
     console.error('POST /bookings/:id/garage-cancel error:', error)
     res.status(500).json({ error: 'Failed to cancel booking' })
@@ -343,7 +355,7 @@ router.post('/:id/counter', async (req: AuthRequest, res) => {
       screen: 'vehicleDashboard', vehicleId: booking.vehicleId, bookingId: id,
     })
 
-    res.json(updated)
+    res.json(stripCostForGarage(updated))
   } catch (error) {
     console.error('POST /bookings/:id/counter error:', error)
     res.status(500).json({ error: 'Failed to counter-suggest booking' })
