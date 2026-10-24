@@ -938,16 +938,18 @@ Added `expo-dev-client` to enable live local testing via a reusable dev-client b
 
 ---
 
-### Garage Customer Ledger (planned, not yet built)
+### Garage Customer Ledger
 
-**Idea (noted 2026-07-28):** Sri Lankan garages traditionally keep a physical book/file per regular customer — this is the garage-side mirror of the app's own origin story (owner's physical file of bills). The Garage/Service-Center Feature Pack already built a "Customers" tab (vehicles served, job count, revenue, last service date, due-for-service outreach) and a Revenue tab (flat feed of all completed jobs) — both already query the same underlying data (`ServiceSubmission` rows, which are never deleted, only flipped to `status: accepted`). Vikum wants a proper dedicated **Ledger** feature: a "⋯" More menu entry (garage/service accounts only) opening a per-customer, per-vehicle-type itemized service book — presentation-layer only, no new data-saving mechanism needed since the data already persists on both the owner side (`ServiceRecord`) and the garage side (`ServiceSubmission`, accepted status) independently once a submission is accepted.
+**Idea (noted 2026-07-28):** Sri Lankan garages traditionally keep a physical book/file per regular customer — this is the garage-side mirror of the app's own origin story (owner's physical file of bills). The Garage/Service-Center Feature Pack already built a "Customers" tab (vehicles served, job count, revenue, last service date, due-for-service outreach) — it already queries the same underlying data (`ServiceSubmission` rows, which are never deleted, only flipped to `status: accepted`).
 
-**Scope discussed so far:**
-- Ledger: itemized per-customer service history (date, service, cost, mileage), filterable/grouped by the 12 vehicle types
-- Business analytics/revenue forecasting for the garage's own business (same trend-projection approach as the owner's Cost Forecast screen)
-- Equipment/parts-needs forecasting — explicitly **deferred, not in first release**. Has a cold-start problem (needs real accumulated job/parts history before any prediction is meaningful) — same rule-based-first-then-AI philosophy as the main Prediction Engine's own phasing. Build only once there's real usage data.
+**Ledger itself — BUILT (confirmed 2026-10-24, full-stack, already shipped):** `mobile/src/screens/GarageLedgerScreen.tsx`, reached via the "⋯" More menu (garage accounts only) and deep-linked from the Customers tab's "View Full History" link. Per-customer cards (reg no, vehicle, job count, total revenue, last service date) filterable by the 12 vehicle types and searchable by reg no; tapping a card expands an itemized service history (date, description, cost, mileage, notes) fetched on demand via `api.getCustomerLedgerHistory`. Backend endpoints live in `backend/src/routes/garages.ts` (`getGarageCustomers`'s per-customer `totalRevenue` aggregation via `groupBy`, plus the ledger history endpoint). This earlier backlog note calling it "not yet built" was stale — presentation-layer only, no new data-saving mechanism was needed, matching the original plan.
 
-**Status:** Discussion in progress — not yet planned or built.
+**Still not built — business revenue forecasting for the garage's own business:**
+Distinct from the owner's per-vehicle Cost Forecast (which predicts *specific upcoming services* for *one vehicle* from mileage/date intervals) — a garage has no single vehicle to predict against, so this would instead be a **business-level trend projection**: aggregate the garage's own completed-job revenue (`ServiceSubmission`, `status: accepted`, same source the Ledger and Customers tab already use) by week/month, then project forward with a simple trend line or moving average (no AI needed for a first version — same rule-based-first philosophy as the main Prediction Engine's phasing). Useful outputs to aim for: "on track for ~LKR X this month" based on jobs so far, and a simple up/down trend indicator vs the prior period. No dedicated endpoint for this exists yet (confirmed via grep — only the flat per-customer `totalRevenue` sum exists, not a time-series/forecast). Would need: (1) a backend aggregation endpoint grouping `ServiceSubmission.cost` by period, (2) a simple projection calculation, (3) a mobile screen/section surfacing it — likely under the same "⋯" More menu as the Ledger, or as its own garage Analytics page per the "Analytics & Predictions Redesign" section above ("a new garage-side Analytics page" is already planned there — this revenue forecast is a natural piece of that page rather than a separate standalone feature).
+
+**Equipment/parts-needs forecasting** — explicitly **deferred, not in first release**. Has a cold-start problem (needs real accumulated job/parts history before any prediction is meaningful) — same rule-based-first-then-AI philosophy as the main Prediction Engine's own phasing. Build only once there's real usage data.
+
+**Status:** Ledger — done, shipped. Revenue forecasting — scoped above, not yet started, best built as part of the garage Analytics page work already planned in the Analytics & Predictions Redesign section above.
 
 ---
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal } from 'react-native'
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 
@@ -28,7 +29,8 @@ function formatDDMMYYYY(d: Date): string {
 export default function DateField({ label, value, onChange, required, maximumDate, minimumDate }: Props) {
   const [show, setShow] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
 
   const currentDate = parseDDMMYYYY(value) || new Date()
 
@@ -84,7 +86,7 @@ export default function DateField({ label, value, onChange, required, maximumDat
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     wrap: { marginBottom: 16 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 6 },
@@ -98,7 +100,7 @@ function makeStyles(c: Colors) {
     placeholderText: { fontSize: 15, color: c.textFaint },
 
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-    pickerSheet: { backgroundColor: c.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+    pickerSheet: { backgroundColor: c.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: bottomInset },
     pickerHeader: {
       flexDirection: 'row', justifyContent: 'flex-end',
       paddingHorizontal: 20, paddingVertical: 14,
