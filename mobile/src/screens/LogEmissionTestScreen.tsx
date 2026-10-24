@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -62,7 +63,8 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
   const [nextExpiry, setNextExpiry] = useState('')
   const [loading, setLoading] = useState(false)
   const colors = useColors()
-  const s = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const s = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const handleSave = async () => {
@@ -196,10 +198,10 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 20, paddingBottom: 48 },
+    content: { padding: 20, paddingBottom: 48 + bottomInset },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 6, marginTop: 14 },
     req: { color: c.error },
     sectionLabel: { fontSize: 13, fontWeight: '700', color: c.primary, marginTop: 20, marginBottom: 2 },

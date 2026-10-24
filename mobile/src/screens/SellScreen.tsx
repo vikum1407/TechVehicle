@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -39,7 +40,8 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [selling, setSelling] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const loadSummary = async () => {
@@ -187,10 +189,10 @@ export default function SellScreen({ token, vehicle, onBack, onTransferInitiated
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 20, paddingBottom: 56 },
+    content: { padding: 20, paddingBottom: 56 + bottomInset },
     vehicleBanner: {
       backgroundColor: c.primary, borderRadius: 12, padding: 16, marginBottom: 24,
     },

@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { getServiceCategories } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
@@ -97,7 +98,8 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   }, [serviceCategories, serviceSearchQuery])
   const [saving, setSaving] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const visibleMilestones = vehicle.vehicleType
@@ -403,10 +405,10 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 20, paddingBottom: 48 },
+    content: { padding: 20, paddingBottom: 48 + bottomInset },
     stepRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 52, marginBottom: 4 },
     stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.borderMid },
     stepDotActive: { backgroundColor: c.primary },

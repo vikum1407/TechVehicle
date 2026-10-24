@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -56,7 +57,8 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const handleSubmit = async () => {
@@ -196,10 +198,10 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 24, paddingBottom: 48 },
+    content: { padding: 24, paddingBottom: 48 + bottomInset },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     label: { fontSize: 13, fontWeight: '600', color: c.textSub, marginBottom: 10, marginTop: 20 },
     categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },

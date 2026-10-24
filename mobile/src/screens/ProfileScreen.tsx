@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Image, TextInput, Share,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { api } from '../config/api'
@@ -37,7 +38,8 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [savingEmail, setSavingEmail] = useState(false)
   const [editingEmail, setEditingEmail] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -315,10 +317,10 @@ function StatCard({ value, label, icon, colors }: { value: number; label: string
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number = 0) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { paddingBottom: 110 },
+    content: { paddingBottom: 110 + bottomInset },
 
     avatarSection: { alignItems: 'center', paddingVertical: 28, backgroundColor: c.surface, marginBottom: 8 },
     avatar: {

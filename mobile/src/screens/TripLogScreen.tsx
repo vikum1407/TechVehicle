@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Alert,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
@@ -44,7 +45,8 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const startNum = parseInt(startKm) || 0
@@ -211,10 +213,10 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 24, paddingBottom: 60 },
+    content: { padding: 24, paddingBottom: 60 + bottomInset },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 24 },
     notesInput: { minHeight: 72, textAlignVertical: 'top' },
     saveNote: {

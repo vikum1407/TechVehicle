@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
 import {
   SelectedItem, NO_BRAND_ITEMS, ITEM_BRANDS, CATEGORY_BRANDS,
@@ -122,7 +123,8 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const colors = useColors()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
   const isSelected = (name: string) => selectedItems.some(i => i.name === name)
@@ -574,10 +576,10 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
   )
 }
 
-function makeStyles(c: Colors) {
+function makeStyles(c: Colors, bottomInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    content: { padding: 20, paddingBottom: 56 },
+    content: { padding: 20, paddingBottom: 56 + bottomInset },
     subtitle: { fontSize: 14, color: c.textMuted, marginBottom: 16 },
     catLabel: { fontSize: 12, fontWeight: '700', color: c.textSub, marginTop: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
