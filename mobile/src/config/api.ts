@@ -748,6 +748,16 @@ export const api = {
     return data
   },
 
+  deleteAccount: async (token: string): Promise<{ ok: true; deletionDate: string }> => {
+    const res = await fetch(`${API_URL}/auth/account`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to request account deletion')
+    return data
+  },
+
   savePushToken: async (token: string, pushToken: string) => {
     const res = await fetch(`${API_URL}/auth/push-token`, {
       method: 'POST',

@@ -43,6 +43,12 @@ export default function OTPScreen({ phoneNumber, onVerified, onBack }: Props) {
     setLoading(true)
     try {
       const result = await api.verifyOTP(phoneNumber, otp)
+      // Account deletion (2026-10-25): logging back in during the 14-day grace
+      // period cancels a pending deletion - let the user know it happened, since
+      // otherwise there's no other signal anything changed.
+      if (result.deletionCancelled) {
+        Alert.alert(t('settings.deleteAccountCancelledTitle'), t('settings.deleteAccountCancelledMessage'))
+      }
       onVerified(result.token, result.phoneNumber, result.userType || null, result.isNewUser || false)
     } catch (error: any) {
       Alert.alert(t('common.error'), error.message)

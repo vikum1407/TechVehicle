@@ -1,6 +1,8 @@
-// One-off script: fully wipes a single account by phone number.
+// One-off script: immediately hard-deletes a single account by phone number,
+// bypassing the normal 14-day grace period (use for a manual/urgent request).
 // Run from backend/: npx ts-node src/scripts/deleteAccount.ts +94773574826
 import { PrismaClient } from '@prisma/client'
+import { hardDeleteAccount } from '../utils/accountDeletion'
 
 const prisma = new PrismaClient()
 
@@ -25,16 +27,9 @@ async function main() {
   console.log(`  Vehicles: ${vehicles.length} (${vehicles.map(v => v.registrationNo).join(', ') || 'none'})`)
   console.log(`  Garage: ${garage ? garage.name : 'none'}`)
   console.log(`  Notifications: ${notifCount}`)
-  console.log('Deleting (vehicles/garage cascade their service records, fuel logs, expenses, bookings, etc.)...')
+  console.log('Deleting (own exclusive data removed; any Booking/BookingNote shared with another party is kept, anonymized)...')
 
-  for (const v of vehicles) {
-    await prisma.vehicle.delete({ where: { id: v.id } })
-  }
-  if (garage) {
-    await prisma.garage.delete({ where: { id: garage.id } })
-  }
-  await prisma.appNotification.deleteMany({ where: { userPhone: phone } })
-  await prisma.user.delete({ where: { phoneNumber: phone } })
+  await hardDeleteAccount(prisma, phone)
 
   console.log(`Done. Account ${phone} fully removed.`)
 }

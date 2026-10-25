@@ -9,6 +9,9 @@ import { normalizePhone, isValidPhone } from '../utils/phone'
 import { capText, SHORT_TEXT_LEN } from '../utils/validate'
 import { ensurePromoCode } from '../utils/promoCode'
 import { checkRateLimit } from '../utils/rateLimit'
+import { sendPush } from '../utils/push'
+import { createNotification } from '../utils/appNotifications'
+import { cancelGarageBookingsNow, cancelVehicleBookingsNow } from '../utils/accountDeletion'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -128,6 +131,14 @@ router.post('/verify-otp', async (req, res) => {
       }
     }
 
+    // Account deletion (2026-10-25): logging back in during the 14-day grace period
+    // cancels the pending deletion - standard practice both app stores expect.
+    let deletionCancelled = false
+    if (user.pendingDeletionAt) {
+      await prisma.user.update({ where: { phoneNumber }, data: { pendingDeletionAt: null } })
+      deletionCancelled = true
+    }
+
     // Temporary promo/referral campaign (2026-10-23) - every login ensures this user
     // has their own shareable code, generated once and kept stable thereafter. See
     // schema.prisma's User.promoCode comment for the full removal plan. Deliberately
@@ -146,7 +157,7 @@ router.post('/verify-otp', async (req, res) => {
       { expiresIn: '30d', algorithm: 'HS256' }
     )
 
-    res.json({ token, phoneNumber, userType: user.userType, isNewUser })
+    res.json({ token, phoneNumber, userType: user.userType, isNewUser, deletionCancelled })
   } catch (error) {
     console.error('verify-otp error:', error)
     res.status(500).json({ error: 'Authentication failed' })
@@ -166,6 +177,47 @@ router.post('/logout-everywhere', authMiddleware, async (req: AuthRequest, res) 
   } catch (error) {
     console.error('logout-everywhere error:', error)
     res.status(500).json({ error: 'Failed to revoke sessions' })
+  }
+})
+
+const DELETION_GRACE_DAYS = 14
+
+// DELETE /auth/account — request account deletion (Apple 5.1.1(v) / Google Play
+// compliance). Not immediate: marks a 14-day grace period, during which logging
+// back in (verify-otp) cancels it. A daily job hard-deletes once it passes - see
+// jobs/accountDeletionSweep.ts and utils/accountDeletion.ts for the full flow.
+router.delete('/account', authMiddleware, async (req: AuthRequest, res) => {
+  // Per the security standards checklist: this can push-notify other people (booking
+  // cancellations), so it needs the same rate-limit treatment every other
+  // notification-triggering endpoint gets, even though it's authenticated - a repeat
+  // call just re-marks the same 14-day date, but would also re-fire those
+  // notifications each time without this.
+  const deletionLimit = checkRateLimit('account-deletion', req.phoneNumber!, 3, 60 * 60 * 1000)
+  if (!deletionLimit.allowed) {
+    res.status(429).json({ error: 'Too many requests. Please try again later.' }); return
+  }
+  try {
+    const phoneNumber = req.phoneNumber!
+    const deletionDate = new Date(Date.now() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000)
+
+    await prisma.user.update({ where: { phoneNumber }, data: { pendingDeletionAt: deletionDate } })
+
+    // Garage bookings other customers are relying on must be released right away,
+    // not left hanging until the grace period ends - same reasoning as the agreed
+    // design: an owner with a pending appointment shouldn't find out 14 days later.
+    const garage = await prisma.garage.findUnique({ where: { ownerPhone: phoneNumber } })
+    if (garage) {
+      await cancelGarageBookingsNow(prisma, garage.id, garage.name)
+    }
+    const vehicles = await prisma.vehicle.findMany({ where: { ownerPhone: phoneNumber }, select: { id: true } })
+    for (const vehicle of vehicles) {
+      await cancelVehicleBookingsNow(prisma, vehicle.id)
+    }
+
+    res.json({ ok: true, deletionDate: deletionDate.toISOString() })
+  } catch (error) {
+    console.error('DELETE /auth/account error:', error)
+    res.status(500).json({ error: 'Failed to request account deletion' })
   }
 })
 
@@ -350,6 +402,93 @@ router.patch('/profile-photo', authMiddleware, async (req: AuthRequest, res) => 
   } catch (error) {
     console.error('PATCH /auth/profile-photo error:', error)
     res.status(500).json({ error: 'Failed to update profile photo' })
+  }
+})
+
+// ── Public, unauthenticated account-deletion request page ──────────────────────
+// Required separately from the in-app flow above: Google Play's account-deletion
+// policy specifically requires a path that works for someone who has already
+// uninstalled the app. Hosted here on the existing Render backend rather than a
+// new domain/service (2026-10-25 design decision - no new infra needed).
+//
+// There's no OTP available here (the visitor isn't authenticated), so this can't
+// safely prove the submitter owns the phone number - the same trade-off any
+// "email us to delete your account" flow has. Mitigated the same way: this reuses
+// the exact same pendingDeletionAt + 14-day-grace-period mechanism as the in-app
+// button (not an instant delete), and the account's real owner gets an immediate
+// push + in-app notification, so a bad-faith submission by someone else is both
+// rate-limited and trivially reversible (the real owner just logs in to cancel it,
+// exactly as if they'd requested it themselves and changed their mind).
+const deleteAccountPageHtml = (message?: string) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete Your Vocksy Account</title>
+</head>
+<body>
+<h1>Delete Your Vocksy Account</h1>
+<p>If you no longer have the Vocksy app installed, you can request account deletion here using your registered mobile number.</p>
+<p>What happens next:</p>
+<ul>
+<li>Your account is scheduled for deletion in 14 days.</li>
+<li>If this request wasn't made by you, simply log back in to the Vocksy app within those 14 days to cancel it - we'll also notify your account immediately when a request like this is made.</li>
+<li>After 14 days, your account, vehicles, and all associated history are permanently deleted. Any booking history shared with a garage or vehicle owner you've interacted with is kept on their side, with your identifying details removed.</li>
+</ul>
+${message ? `<p><strong>${message}</strong></p>` : ''}
+<form method="POST" action="/auth/account-deletion-request">
+<label for="phoneNumber">Registered mobile number (international format, e.g. +94771234567)</label><br>
+<input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="+94771234567"><br><br>
+<button type="submit">Request Account Deletion</button>
+</form>
+<p>If you still have the app installed, it's faster to use "Delete my account" from the Profile/Settings screen instead.</p>
+</body>
+</html>`
+
+router.get('/delete-account', (_req, res) => {
+  res.type('html').send(deleteAccountPageHtml())
+})
+
+router.post('/account-deletion-request', express.urlencoded({ extended: true }), async (req, res) => {
+  const rawPhone = req.body?.phoneNumber
+  const requestLimit = checkRateLimit('account-deletion-request', req.ip || 'unknown', 5, 60 * 60 * 1000)
+  if (!requestLimit.allowed) {
+    res.status(429).type('html').send(deleteAccountPageHtml('Too many requests from this network. Please try again later.'))
+    return
+  }
+  if (!rawPhone) {
+    res.status(400).type('html').send(deleteAccountPageHtml('Please enter a phone number.'))
+    return
+  }
+  const phoneNumber = normalizePhone(String(rawPhone).trim())
+  if (!isValidPhone(phoneNumber)) {
+    res.status(400).type('html').send(deleteAccountPageHtml('Please enter a valid phone number in international format, e.g. +94771234567.'))
+    return
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { phoneNumber } })
+    // Same response either way, regardless of whether an account exists for this
+    // number - avoids letting this page be used to check which phone numbers have
+    // a Vocksy account.
+    if (user) {
+      const deletionDate = new Date(Date.now() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000)
+      await prisma.user.update({ where: { phoneNumber }, data: { pendingDeletionAt: deletionDate } })
+
+      const garage = await prisma.garage.findUnique({ where: { ownerPhone: phoneNumber } })
+      if (garage) await cancelGarageBookingsNow(prisma, garage.id, garage.name)
+      const vehicles = await prisma.vehicle.findMany({ where: { ownerPhone: phoneNumber }, select: { id: true } })
+      for (const vehicle of vehicles) await cancelVehicleBookingsNow(prisma, vehicle.id)
+
+      const title = 'Account Deletion Requested'
+      const body = `A deletion request for your account was made from the web. If this wasn't you, log in within 14 days to cancel it.`
+      await sendPush(user.pushToken, title, body, { screen: 'profile' })
+      await createNotification(prisma, phoneNumber, 'account_deletion_requested', title, body, { screen: 'profile' })
+    }
+    res.type('html').send(deleteAccountPageHtml('If an account exists for that number, deletion has been requested. You can cancel it anytime in the next 14 days by logging back into the app.'))
+  } catch (error) {
+    console.error('POST /auth/account-deletion-request error:', error)
+    res.status(500).type('html').send(deleteAccountPageHtml('Something went wrong. Please try again later.'))
   }
 })
 

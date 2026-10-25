@@ -796,8 +796,10 @@ export default function App() {
       )}
       {screen === 'settings' && (
         <SettingsScreen
+          token={token}
           onBack={() => setScreen('profile')}
           onNotificationPrefs={() => { setNotifPrefsReturnTo('settings'); setScreen('notificationPrefs') }}
+          onAccountDeleted={handleLogout}
         />
       )}
       {screen === 'notificationPrefs' && (

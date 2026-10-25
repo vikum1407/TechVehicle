@@ -31,6 +31,10 @@ model User {
   notificationPrefs String?
   profilePhotoUrl   String?
   tokenVersion      Int       @default(0)
+  // Account deletion (2026-10-25): set at request time to now+14 days. A scheduled job
+  // hard-deletes once this passes; logging back in before then clears it (cancels the
+  // pending deletion). See backend/src/utils/accountDeletion.ts for the full flow.
+  pendingDeletionAt DateTime?
   createdAt         DateTime  @default(now())
   vehicles          Vehicle[]
   garage            Garage?

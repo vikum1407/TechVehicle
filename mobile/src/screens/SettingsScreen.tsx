@@ -1,20 +1,51 @@
-import React, { useMemo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
+import { api } from '../config/api'
 import ScreenHeader from '../components/ScreenHeader'
 import AppIcon from '../components/AppIcon'
 
 type Props = {
+  token: string
   onBack: () => void
   onNotificationPrefs: () => void
+  onAccountDeleted: () => void
 }
 
-export default function SettingsScreen({ onBack, onNotificationPrefs }: Props) {
+export default function SettingsScreen({ token, onBack, onNotificationPrefs, onAccountDeleted }: Props) {
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t, language, setLanguage } = useTranslation()
+  const [deletingAccount, setDeletingAccount] = useState(false)
+
+  const handleDeleteAccount = () => {
+    // Plain confirm dialog, deliberately not an OTP re-verification step (agreed
+    // design, 2026-10-25) - the account is already authenticated via the current
+    // session token, and the 14-day grace period + "log in to cancel" safety net
+    // is the actual protection against an accidental or impulsive tap.
+    Alert.alert(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.deleteAccount'),
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingAccount(true)
+          try {
+            await api.deleteAccount(token)
+            Alert.alert(t('settings.deleteAccountScheduled'), t('settings.deleteAccountScheduledMessage'), [
+              { text: t('common.ok'), onPress: onAccountDeleted },
+            ])
+          } catch (e: any) {
+            Alert.alert(t('common.error'), e.message || t('settings.deleteAccountFailed'))
+          } finally {
+            setDeletingAccount(false)
+          }
+        },
+      },
+    ])
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -61,6 +92,20 @@ export default function SettingsScreen({ onBack, onNotificationPrefs }: Props) {
         </View>
       </View>
 
+      <Text style={styles.sectionLabel}>{t('settings.account')}</Text>
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.7}
+          disabled={deletingAccount}
+        >
+          <View style={styles.rowIcon}><AppIcon icon={{ lib: 'mci', name: 'account-remove-outline' }} size={18} color={colors.error} /></View>
+          <Text style={[styles.rowLabel, styles.rowLabelDanger]}>{t('settings.deleteAccount')}</Text>
+          {deletingAccount && <ActivityIndicator size="small" color={colors.error} />}
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.version}>Vocksy · v1.0.0</Text>
     </ScrollView>
   )
@@ -82,6 +127,7 @@ function makeStyles(c: Colors) {
     },
     rowIcon: {},
     rowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
+    rowLabelDanger: { color: c.error },
     rowChevron: { fontSize: 18, color: c.textMuted },
 
     sectionLabel: {

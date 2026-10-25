@@ -4,6 +4,7 @@ import { startRenewalReminderJob } from './jobs/renewalReminders'
 import { startServiceNotificationJob } from './jobs/serviceNotifications'
 import { startBookingReminderJob } from './jobs/bookingReminders'
 import { startMileageReminderJob } from './jobs/mileageReminders'
+import { startAccountDeletionJob } from './jobs/accountDeletionSweep'
 import { getJwtSecret } from './utils/jwtSecret'
 
 dotenv.config()
@@ -21,4 +22,5 @@ app.listen(PORT, () => {
   startServiceNotificationJob()
   startBookingReminderJob()
   startMileageReminderJob()
+  startAccountDeletionJob()
 })
