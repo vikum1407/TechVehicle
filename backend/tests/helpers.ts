@@ -29,12 +29,19 @@ export async function loginAsNewUser(phoneNumber = nextTestPhone()): Promise<{ p
   return { phoneNumber, token: verifyRes.body.token as string }
 }
 
+// registrationNo has a unique constraint. A 6-digit random suffix (0-999999)
+// had a non-negligible birthday-paradox collision chance once the suite grew
+// past ~150 createTestVehicle calls across all files combined (observed as a
+// real, intermittent "already registered" 400 in an unrelated file on
+// 2026-10-25) - crypto.randomInt over a much larger range, same approach as
+// nextTestPhone, makes a collision practically impossible at any realistic
+// suite size.
 export async function createTestVehicle(token: string, overrides: Partial<Record<string, unknown>> = {}) {
   const res = await request(app)
     .post('/vehicles')
     .set('Authorization', `Bearer ${token}`)
     .send({
-      registrationNo: `WP TEST-${Math.floor(Math.random() * 1e6)}`,
+      registrationNo: `WP TEST-${crypto.randomInt(1_000_000, 999_999_999)}`,
       make: 'Toyota',
       model: 'Corolla',
       year: 2015,

@@ -1,4 +1,5 @@
 import request from 'supertest'
+import crypto from 'crypto'
 import { app, loginAsNewUser, createTestVehicle, createTestGarage } from '../helpers'
 
 // Shared logged-in identities across the whole file (not beforeAll-per-describe) -
@@ -75,7 +76,7 @@ describe('Vehicles — list, create validation, edit, photo, lookup, progress, a
 
     it('rejects a duplicate registration number', async () => {
       const o = owner()
-      const regNo = `WP DUP-${Math.floor(Math.random() * 1e6)}`
+      const regNo = `WP DUP-${crypto.randomInt(1_000_000, 999_999_999)}`
       await createTestVehicle(o.token, { registrationNo: regNo })
       const res = await request(app).post('/vehicles').set('Authorization', `Bearer ${o.token}`)
         .send({ registrationNo: regNo, make: 'Honda', model: 'Fit', year: 2018, fuelType: 'Petrol 92', mileage: 2000 })
