@@ -25,7 +25,7 @@ export function isValidDateInput(value: unknown, opts: { allowFuture?: boolean }
 // Sri Lankan LKR amounts and km readings don't legitimately need more than this —
 // caps guard against fat-finger/garbage input (e.g. a stray extra digit) and abuse.
 export const MAX_AMOUNT = 100_000_000
-export const MAX_MILEAGE = 5_000_000
+export const MAX_MILEAGE = 1_000_000
 export const MAX_LITRES = 10_000
 export const MAX_KWH = 10_000
 

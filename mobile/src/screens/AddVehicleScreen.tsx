@@ -21,6 +21,7 @@ import Chip from '../components/Chip'
 import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -352,7 +353,7 @@ export default function AddVehicleScreen({ token, onVehicleAdded, onBack }: Prop
         placeholder="e.g. 45000"
         keyboardType="number-pad"
         value={mileage}
-        onChangeText={setMileage}
+        onChangeText={v => setMileage(sanitizeMileageInput(v))}
       />
 
       <View style={styles.divider} />

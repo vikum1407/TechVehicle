@@ -15,6 +15,7 @@ import DateField from '../components/DateField'
 import Button from '../components/Button'
 import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -759,7 +760,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </View>
               <View style={s.half}>
                 <FormField
-                  label={t('addService.mileage')} value={eMileage} onChangeText={setEMileage}
+                  label={t('addService.mileage')} value={eMileage} onChangeText={v => setEMileage(sanitizeMileageInput(v))}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
@@ -865,7 +866,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </View>
               <View style={s.half}>
                 <FormField
-                  label={t('addService.mileage')} value={aMileage} onChangeText={setAMileage}
+                  label={t('addService.mileage')} value={aMileage} onChangeText={v => setAMileage(sanitizeMileageInput(v))}
                   placeholder="e.g. 45000" keyboardType="number-pad"
                 />
               </View>
@@ -1022,7 +1023,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
               </View>
               <View style={s.half}>
                 <FormField
-                  label={t('addService.mileage')} value={cMileage} onChangeText={setCMileage}
+                  label={t('addService.mileage')} value={cMileage} onChangeText={v => setCMileage(sanitizeMileageInput(v))}
                   placeholder="e.g. 18000" keyboardType="number-pad"
                 />
               </View>
@@ -1259,7 +1260,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                     <FormField label={t('addExpense.amount')} value={newPolicyAmount} onChangeText={setNewPolicyAmount} keyboardType="number-pad" placeholder="e.g. 45000" />
                   </View>
                   <View style={s.half}>
-                    <FormField label={t('addExpense.mileage')} value={newPolicyMileage} onChangeText={setNewPolicyMileage} keyboardType="number-pad" placeholder="e.g. 45000" />
+                    <FormField label={t('addExpense.mileage')} value={newPolicyMileage} onChangeText={v => setNewPolicyMileage(sanitizeMileageInput(v))} keyboardType="number-pad" placeholder="e.g. 45000" />
                   </View>
                 </View>
               )}
@@ -1288,7 +1289,7 @@ export default function VehicleTestsScreen({ token, vehicleId, vehicleName, curr
                     <FormField label={t('addExpense.amount')} value={newLicenceAmount} onChangeText={setNewLicenceAmount} keyboardType="number-pad" placeholder="e.g. 7500" />
                   </View>
                   <View style={s.half}>
-                    <FormField label={t('addExpense.mileage')} value={newLicenceMileage} onChangeText={setNewLicenceMileage} keyboardType="number-pad" placeholder="e.g. 45000" />
+                    <FormField label={t('addExpense.mileage')} value={newLicenceMileage} onChangeText={v => setNewLicenceMileage(sanitizeMileageInput(v))} keyboardType="number-pad" placeholder="e.g. 45000" />
                   </View>
                 </View>
               )}

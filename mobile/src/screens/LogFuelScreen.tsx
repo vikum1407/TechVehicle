@@ -12,6 +12,7 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -98,7 +99,7 @@ export default function LogFuelScreen({ token, vehicleId, currentMileage, vehicl
         label={t('logFuel.odometerReading')}
         required
         value={mileage}
-        onChangeText={setMileage}
+        onChangeText={v => setMileage(sanitizeMileageInput(v))}
         keyboardType="number-pad"
         placeholder={t('logFuel.currentOdometerReading')}
       />

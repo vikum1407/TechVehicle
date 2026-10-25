@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 import type { TranslationKey } from '../i18n/translations/en'
 
 type Tab = 'service' | 'expenses' | 'fuel'
@@ -592,7 +593,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     placeholder={t('history.minKm')}
                     placeholderTextColor={colors.textFaint}
                     value={mileageMin}
-                    onChangeText={setMileageMin}
+                    onChangeText={v => setMileageMin(sanitizeMileageInput(v))}
                     keyboardType="number-pad"
                   />
                   <Text style={s.mileageSep}>—</Text>
@@ -601,7 +602,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
                     placeholder={t('history.maxKm')}
                     placeholderTextColor={colors.textFaint}
                     value={mileageMax}
-                    onChangeText={setMileageMax}
+                    onChangeText={v => setMileageMax(sanitizeMileageInput(v))}
                     keyboardType="number-pad"
                   />
                   {(mileageMin || mileageMax) && (
@@ -929,7 +930,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <TextInput
                 style={s.editInput}
                 value={quickDraft.mileage}
-                onChangeText={v => setQuickDraft(p => ({ ...p, mileage: v }))}
+                onChangeText={v => setQuickDraft(p => ({ ...p, mileage: sanitizeMileageInput(v) }))}
                 placeholder={t('history.optional')}
                 placeholderTextColor={colors.textFaint}
                 keyboardType="number-pad"
@@ -977,7 +978,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <Text style={s.editLabel}>{t('history.editService.servicesDone')}</Text>
               <TextInput style={s.editInput} value={draftService.description} onChangeText={v => setDraftService(p => ({ ...p, description: v }))} placeholder="Oil Change, Air Filter" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
-              <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
+              <TextInput style={s.editInput} value={draftService.mileage} onChangeText={v => setDraftService(p => ({ ...p, mileage: sanitizeMileageInput(v) }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.editService.parts')}</Text>
               <TextInput style={s.editInput} value={draftService.parts} onChangeText={v => setDraftService(p => ({ ...p, parts: v }))} placeholder="e.g. NGK Spark Plug" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.editService.brand')}</Text>
@@ -1014,7 +1015,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <Text style={s.editLabel}>{t('history.editExpense.description')}</Text>
               <TextInput style={s.editInput} value={draftExpense.description} onChangeText={v => setDraftExpense(p => ({ ...p, description: v }))} placeholder={t('history.optionalDescription')} placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
-              <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
+              <TextInput style={s.editInput} value={draftExpense.mileage} onChangeText={v => setDraftExpense(p => ({ ...p, mileage: sanitizeMileageInput(v) }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.notes')}</Text>
               <TextInput style={[s.editInput, s.editInputMulti]} value={draftExpense.notes} onChangeText={v => setDraftExpense(p => ({ ...p, notes: v }))} multiline placeholder={t('history.additionalNotesPlaceholder')} placeholderTextColor={colors.textFaint} />
               <TouchableOpacity style={[s.editSaveBtn, savingEdit && s.editSaveBtnDisabled]} onPress={handleSaveExpense} disabled={savingEdit}>
@@ -1039,7 +1040,7 @@ export default function VehicleHistoryScreen({ token, vehicle, onBack, initialEd
               <Text style={s.editLabel}>{t('history.dateYMD')}</Text>
               <TextInput style={s.editInput} value={draftFuel.date} onChangeText={v => setDraftFuel(p => ({ ...p, date: v }))} placeholder="2024-01-15" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t('history.odometerKm')}</Text>
-              <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: v }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
+              <TextInput style={s.editInput} value={draftFuel.mileage} onChangeText={v => setDraftFuel(p => ({ ...p, mileage: sanitizeMileageInput(v) }))} keyboardType="number-pad" placeholder="e.g. 45200" placeholderTextColor={colors.textFaint} />
               <Text style={s.editLabel}>{t(isElectric ? 'logFuel.energyAdded' : 'history.litres')}</Text>
               {isElectric ? (
                 <TextInput style={s.editInput} value={draftFuel.kWh} onChangeText={v => setDraftFuel(p => ({ ...p, kWh: v }))} keyboardType="decimal-pad" placeholder="e.g. 32" placeholderTextColor={colors.textFaint} />

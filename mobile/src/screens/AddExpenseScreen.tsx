@@ -14,6 +14,7 @@ import Button from '../components/Button'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -175,7 +176,7 @@ export default function AddExpenseScreen({ token, vehicleId, currentMileage, onE
           <FormField
             label={t('addExpense.mileage')}
             value={mileage}
-            onChangeText={setMileage}
+            onChangeText={v => setMileage(sanitizeMileageInput(v))}
             keyboardType="number-pad"
             placeholder={t('addExpense.mileageOptional')}
           />

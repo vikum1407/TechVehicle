@@ -12,6 +12,7 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -110,7 +111,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
       <FormField
         label={t('tripLog.startOdometer')}
         value={startKm}
-        onChangeText={setStartKm}
+        onChangeText={v => setStartKm(sanitizeMileageInput(v))}
         keyboardType="number-pad"
         placeholder="e.g. 142000"
       />
@@ -120,7 +121,7 @@ export default function TripLogScreen({ token, vehicleId, currentMileage, onLogg
         required
         error={endKmError}
         value={endKm}
-        onChangeText={setEndKm}
+        onChangeText={v => setEndKm(sanitizeMileageInput(v))}
         keyboardType="number-pad"
         placeholder="e.g. 142180"
       />

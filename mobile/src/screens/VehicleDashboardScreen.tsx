@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ScreenHeader from '../components/ScreenHeader'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 const MORE_SHEET_ICONS: Record<string, { icon: AppIconSpec; color: string }> = {
   vehicleTests: { icon: { lib: 'ion', name: 'flask' }, color: '#06b6d4' },
@@ -769,7 +770,7 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <TextInput
                   style={styles.mileageInput}
                   value={mileageInput}
-                  onChangeText={setMileageInput}
+                  onChangeText={v => setMileageInput(sanitizeMileageInput(v))}
                   keyboardType="number-pad"
                   placeholder={vehicle.mileage.toLocaleString()}
                   placeholderTextColor="rgba(255,255,255,0.5)"

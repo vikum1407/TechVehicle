@@ -12,6 +12,7 @@ import FormField from '../components/FormField'
 import DateField from '../components/DateField'
 import Button from '../components/Button'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 
 type Props = {
   token: string
@@ -149,7 +150,7 @@ export default function LogEmissionTestScreen({ token, vehicleId, currentMileage
           <DateField label={t('logEmissionTest.testDate')} value={date} onChange={setDate} maximumDate={new Date()} />
         </View>
         <View style={s.half}>
-          <FormField label={t('addService.mileage')} value={mileage} onChangeText={setMileage} placeholder="e.g. 45000" keyboardType="number-pad" />
+          <FormField label={t('addService.mileage')} value={mileage} onChangeText={v => setMileage(sanitizeMileageInput(v))} placeholder="e.g. 45000" keyboardType="number-pad" />
         </View>
       </View>
 

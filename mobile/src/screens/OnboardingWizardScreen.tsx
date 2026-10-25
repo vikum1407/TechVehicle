@@ -9,6 +9,7 @@ import { getServiceCategories } from '../constants/serviceData'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 import type { TranslationKey } from '../i18n/translations/en'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 
@@ -245,7 +246,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                   </View>
                   <View style={styles.fieldHalf}>
                     <Text style={styles.fieldLabel}>{t('history.quickAdd.mileageAtTime')}</Text>
-                    <TextInput style={styles.input} value={s.mileage} onChangeText={v => updateMilestone(m.id, 'mileage', v)} placeholder="e.g. 40000" keyboardType="number-pad" placeholderTextColor="#bbb" />
+                    <TextInput style={styles.input} value={s.mileage} onChangeText={v => updateMilestone(m.id, 'mileage', sanitizeMileageInput(v))} placeholder="e.g. 40000" keyboardType="number-pad" placeholderTextColor="#bbb" />
                   </View>
                 </View>
                 <Text style={styles.fieldHint}>{t('onboarding.fieldHint')}</Text>
@@ -312,7 +313,7 @@ export default function OnboardingWizardScreen({ token, vehicle, onDone }: Props
                 </View>
                 <View style={styles.fieldHalf}>
                   <Text style={styles.fieldLabel}>{t('addService.mileage')}</Text>
-                  <TextInput style={styles.input} value={newRecord.mileage} onChangeText={v => setNewRecord(p => ({ ...p, mileage: v }))} placeholder={t('history.optional')} keyboardType="number-pad" placeholderTextColor="#bbb" />
+                  <TextInput style={styles.input} value={newRecord.mileage} onChangeText={v => setNewRecord(p => ({ ...p, mileage: sanitizeMileageInput(v) }))} placeholder={t('history.optional')} keyboardType="number-pad" placeholderTextColor="#bbb" />
                 </View>
               </View>
               <Text style={styles.fieldLabel}>{t('history.costLkr')}</Text>

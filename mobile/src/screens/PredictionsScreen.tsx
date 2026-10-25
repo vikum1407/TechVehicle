@@ -12,6 +12,7 @@ import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 import type { TranslationKey } from '../i18n/translations/en'
 
 type ExtraFieldConfig = {
@@ -335,7 +336,7 @@ export default function PredictionsScreen({ token, vehicleId, vehicleName, curre
               placeholder="e.g. 54000"
               placeholderTextColor={colors.textFaint}
               value={entry.mileage}
-              onChangeText={t => setEntry(p.id, 'mileage', t.replace(/[^0-9]/g, ''))}
+              onChangeText={t => setEntry(p.id, 'mileage', sanitizeMileageInput(t))}
               keyboardType="number-pad"
             />
           </View>

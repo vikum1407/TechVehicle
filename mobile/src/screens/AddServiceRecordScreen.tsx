@@ -20,6 +20,7 @@ import DateField from '../components/DateField'
 import Button from '../components/Button'
 import AppIcon from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 import type { TranslationKey } from '../i18n/translations/en'
 
 type Props = {
@@ -492,7 +493,7 @@ export default function AddServiceRecordScreen({ token, vehicleId, vehicleType, 
             label={t('addService.mileage')}
             required
             value={mileage}
-            onChangeText={setMileage}
+            onChangeText={v => setMileage(sanitizeMileageInput(v))}
             placeholder="e.g. 45000"
             keyboardType="number-pad"
           />

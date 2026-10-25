@@ -20,6 +20,7 @@ import {
   getServiceCategories, todayDMY, parseDMY,
 } from '../constants/serviceData'
 import { useTranslation } from '../i18n/LanguageContext'
+import { sanitizeMileageInput } from '../utils/mileage'
 import type { TranslationKey } from '../i18n/translations/en'
 import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
 import AppIcon from '../components/AppIcon'
@@ -1113,7 +1114,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               label={t('addService.mileage')}
               required
               value={subMileage}
-              onChangeText={setSubMileage}
+              onChangeText={v => setSubMileage(sanitizeMileageInput(v))}
               placeholder="e.g. 45000"
               keyboardType="number-pad"
             />
