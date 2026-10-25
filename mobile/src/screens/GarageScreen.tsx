@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert, Image, Modal,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, FlatList,
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import * as ImagePicker from 'expo-image-picker'
@@ -23,6 +23,13 @@ import { useTranslation } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations/en'
 import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
 import AppIcon from '../components/AppIcon'
+import { SRI_LANKA_CITIES } from '../constants/cities'
+
+// Reuses the same curated town list as the owner signup's City picker
+// (Improvement 1, 2026-10-25) - previously free text, which left town names
+// wildly inconsistent for backend search-by-town to match against.
+const TOWN_OTHER = 'Other'
+const TOWN_ITEMS = [...SRI_LANKA_CITIES, TOWN_OTHER]
 import DonutChart from '../components/DonutChart'
 
 type Props = {
@@ -204,7 +211,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [newSlot, setNewSlot] = useState('')
   const [savingSchedule, setSavingSchedule] = useState(false)
   const [scheduleLoaded, setScheduleLoaded] = useState(false)
-  const [savingPriceList, setSavingPriceList] = useState(false)
 
   // Calendar override state
   const [calMonth, setCalMonth] = useState(() => {
@@ -246,6 +252,8 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
   const [addressLine, setAddressLine] = useState('')
   const [village, setVillage] = useState('')
   const [town, setTown] = useState('')
+  const [townIsOther, setTownIsOther] = useState(false)
+  const [showTownPicker, setShowTownPicker] = useState(false)
   const [brNumber, setBrNumber] = useState('')
   const [priceListRows, setPriceListRows] = useState<{ service: string; price: string }[]>([])
   const [profilePhotos, setProfilePhotos] = useState<string[]>([])
@@ -291,6 +299,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
         setAddressLine(data.addressLine || '')
         setVillage(data.village || '')
         setTown(data.town || '')
+        setTownIsOther(!!data.town && !SRI_LANKA_CITIES.includes(data.town))
         setBrNumber(data.brNumber || '')
       })
       .catch(e => {
@@ -516,16 +525,42 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
     }
   }
 
+  // Combined into one Save covering both schedule settings and price list
+  // (2026-10-25) - these used to be two separate buttons on the same scroll,
+  // which read as "did I save everything?" confusion since they hit two
+  // different backend resources (GarageAvailability vs Garage.priceList) but
+  // looked like one continuous form. Cancel discards both sets of unsaved
+  // local edits by reloading from the last-saved state.
   const handleSaveSchedule = async () => {
+    if (!garage) return
     setSavingSchedule(true)
     try {
-      await api.setAvailability(token, schedWorkDays, schedSlots)
+      const priceList = priceListRows
+        .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
+        .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
+      const [, updatedGarage] = await Promise.all([
+        api.setAvailability(token, schedWorkDays, schedSlots),
+        api.updateGarage(token, {
+          name: garage.name,
+          addressLine: garage.addressLine ?? undefined,
+          village: garage.village ?? undefined,
+          town: garage.town ?? undefined,
+          brNumber: garage.brNumber ?? undefined,
+          priceList,
+        }),
+      ])
+      setGarage(updatedGarage)
       Alert.alert(t('logEmissionTest.saved.title'), t('garage.scheduleSaved'))
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message)
     } finally {
       setSavingSchedule(false)
     }
+  }
+
+  const handleCancelSchedule = () => {
+    loadSchedule()
+    setPriceListRows((garage?.priceList || []).map(p => ({ service: p.service, price: String(p.price) })))
   }
 
   const openOverrideEditor = (dateStr: string, displayDate: string) => {
@@ -630,9 +665,36 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       Alert.alert(t('garage.nameRequired.title'), t('garage.villageTownRequired'))
       return
     }
+    if (contactPhone.trim() && !/^0?7\d{8}$/.test(contactPhone.replace(/[\s-]/g, ''))) {
+      Alert.alert(t('garage.nameRequired.title'), t('garage.contactPhoneInvalid'))
+      return
+    }
     setSaving(true)
     try {
-      const data = await api.registerGarage(token, { name, addressLine, village, town, brNumber })
+      let data = await api.registerGarage(token, { name, addressLine, village, town, brNumber })
+
+      // The profile fields below (About/Services/Phone/Promo/Website/Maps/Photos)
+      // are shown on this same form during initial signup too, not just when
+      // editing later - POST /garages/register doesn't accept them (it only
+      // takes the core identity fields), so anything the owner filled in here
+      // must be saved with a follow-up update call, or it would silently be
+      // lost the moment they finished signing up (2026-10-25 fix).
+      const services = servicesText.split(',').map(s => s.trim()).filter(Boolean)
+      const hasExtraProfileData = aboutBio.trim() || services.length > 0 || contactPhone.trim() ||
+        promoText.trim() || websiteUrl.trim() || googleMapsUrl.trim() || profilePhotos.length > 0
+      if (hasExtraProfileData) {
+        data = await api.updateGarage(token, {
+          name, addressLine, village, town, brNumber,
+          photos: profilePhotos,
+          aboutBio,
+          services,
+          contactPhone,
+          promoText,
+          websiteUrl,
+          googleMapsUrl,
+        })
+      }
+
       setGarage(data)
       setEditing(false)
       setTab('schedule')
@@ -714,30 +776,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
       Alert.alert(t('addService.uploadFailed.title'), e.message || t('addService.uploadFailed.message'))
     } finally {
       setUploadingProfilePhoto(false)
-    }
-  }
-
-  const handleSavePriceList = async () => {
-    if (!garage) return
-    setSavingPriceList(true)
-    try {
-      const priceList = priceListRows
-        .filter(r => r.service.trim() && r.price.trim() && !isNaN(Number(r.price)))
-        .map(r => ({ service: r.service.trim(), price: Number(r.price) }))
-      const data = await api.updateGarage(token, {
-        name: garage.name,
-        addressLine: garage.addressLine ?? undefined,
-        village: garage.village ?? undefined,
-        town: garage.town ?? undefined,
-        brNumber: garage.brNumber ?? undefined,
-        priceList,
-      })
-      setGarage(data)
-      Alert.alert(t('logEmissionTest.saved.title'), t('garage.priceListSaved'))
-    } catch (e: any) {
-      Alert.alert(t('common.error'), e.message)
-    } finally {
-      setSavingPriceList(false)
     }
   }
 
@@ -1479,7 +1517,19 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
               <TextInput style={styles.input} value={village} onChangeText={setVillage} placeholder="e.g. Kelaniya" />
 
               <Text style={styles.label}>{t('garage.townLabel')} <Text style={styles.requiredStar}>*</Text></Text>
-              <TextInput style={styles.input} value={town} onChangeText={setTown} placeholder="e.g. Colombo" />
+              <TouchableOpacity style={styles.input} onPress={() => setShowTownPicker(true)} activeOpacity={0.7}>
+                <Text style={town ? styles.townSelectedText : styles.townPlaceholderText}>
+                  {town && !townIsOther ? town : t('garage.selectTown')}
+                </Text>
+              </TouchableOpacity>
+              {townIsOther && (
+                <TextInput
+                  style={[styles.input, { marginTop: 8 }]}
+                  value={town}
+                  onChangeText={setTown}
+                  placeholder={t('garage.typeTownName')}
+                />
+              )}
 
               <Text style={styles.label}>{t('garage.brNumberOptional')}</Text>
               <TextInput style={styles.input} value={brNumber} onChangeText={setBrNumber} placeholder="e.g. PV 00123456" autoCapitalize="characters" />
@@ -1490,9 +1540,7 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                 </Text>
               </View>
 
-              {garage && (
-                <>
-                  <Text style={styles.label}>{t('garage.aboutBioOptional')}</Text>
+              <Text style={styles.label}>{t('garage.aboutBioOptional')}</Text>
                   <TextInput
                     style={[styles.input, styles.inputMultiline]}
                     value={aboutBio}
@@ -1565,8 +1613,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
                       </View>
                     )}
                   </View>
-                </>
-              )}
 
               {editing && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
@@ -1671,17 +1717,6 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             </>
           )}
 
-          <TouchableOpacity
-            style={[styles.saveBtn, savingSchedule && styles.saveBtnDisabled]}
-            onPress={handleSaveSchedule}
-            disabled={savingSchedule}
-          >
-            {savingSchedule
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.saveBtnText}>{t('garage.saveScheduleSettings')}</Text>
-            }
-          </TouchableOpacity>
-
           {/* ── Price list ── */}
           <Text style={styles.schedSection}>{t('garage.priceListOptional')}</Text>
           <Text style={styles.formSubtitleSmall}>{t('garage.priceListNote')}</Text>
@@ -1715,14 +1750,25 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
             <Text style={styles.priceAddBtnText}>{t('garage.addServicePrice')}</Text>
           </TouchableOpacity>
 
+          {/* Single Cancel/Save pair for the whole Schedule tab (slots + price
+              list together) - two separate buttons here used to read as
+              "did I save everything?" confusion, even though they hit two
+              different backend resources under the hood. */}
           <TouchableOpacity
-            style={[styles.saveBtn, savingPriceList && styles.saveBtnDisabled]}
-            onPress={handleSavePriceList}
-            disabled={savingPriceList}
+            style={styles.cancelBtn}
+            onPress={handleCancelSchedule}
+            disabled={savingSchedule}
           >
-            {savingPriceList
+            <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveBtn, savingSchedule && styles.saveBtnDisabled]}
+            onPress={handleSaveSchedule}
+            disabled={savingSchedule}
+          >
+            {savingSchedule
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.saveBtnText}>{t('garage.savePriceList')}</Text>
+              : <Text style={styles.saveBtnText}>{t('garage.saveScheduleSettings')}</Text>
             }
           </TouchableOpacity>
 
@@ -2866,8 +2912,133 @@ export default function GarageScreen({ token, focusBookingId, onMessageCountChan
           </Modal>
         )
       })()}
+
+      <TownPickerModal
+        visible={showTownPicker}
+        selected={town}
+        onSelect={item => {
+          if (item === TOWN_OTHER) {
+            setTownIsOther(true)
+            setTown('')
+          } else {
+            setTownIsOther(false)
+            setTown(item)
+          }
+          setShowTownPicker(false)
+        }}
+        onClose={() => setShowTownPicker(false)}
+      />
     </>
   )
+}
+
+// Self-contained searchable picker, mirroring EmailSetupScreen's own PickerModal
+// (kept separate rather than shared, same reasoning as that one: avoid touching
+// another screen for this).
+type TownPickerModalProps = {
+  visible: boolean
+  selected: string
+  onSelect: (item: string) => void
+  onClose: () => void
+}
+
+function TownPickerModal({ visible, selected, onSelect, onClose }: TownPickerModalProps) {
+  const [search, setSearch] = useState('')
+  const colors = useColors()
+  const insets = useSafeAreaInsets()
+  const m = useMemo(() => makeTownPickerStyles(colors, insets.top), [colors, insets.top])
+  const { t } = useTranslation()
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return q ? TOWN_ITEMS.filter(i => i.toLowerCase().includes(q)) : TOWN_ITEMS
+  }, [search])
+
+  const handleClose = () => {
+    setSearch('')
+    onClose()
+  }
+
+  const handleSelect = (item: string) => {
+    setSearch('')
+    onSelect(item)
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={m.container}>
+          <View style={m.header}>
+            <Text style={m.title}>{t('garage.townLabel')}</Text>
+            <TouchableOpacity onPress={handleClose} style={m.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={m.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={m.searchWrap}>
+            <TextInput
+              style={m.search}
+              placeholder={t('addVehicle.searchFor', { title: t('garage.townLabel') })}
+              value={search}
+              onChangeText={setSearch}
+              autoFocus
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+          </View>
+
+          <FlatList
+            data={filtered}
+            keyExtractor={item => item}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={m.item} onPress={() => handleSelect(item)} activeOpacity={0.6}>
+                <Text style={[m.itemText, item === TOWN_OTHER && m.otherText]}>{item}</Text>
+                {selected === item && <Text style={m.check}>✓</Text>}
+              </TouchableOpacity>
+            )}
+            ItemSeparatorComponent={() => <View style={m.sep} />}
+            ListEmptyComponent={
+              <Text style={m.empty}>{t('addVehicle.noResultsFor', { query: search })}</Text>
+            }
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  )
+}
+
+function makeTownPickerStyles(c: Colors, topInset: number) {
+  return StyleSheet.create({
+    container:  { flex: 1, backgroundColor: c.surface },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: topInset + 12, paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    title:    { fontSize: 18, fontWeight: '700', color: c.text },
+    closeBtn: { padding: 4 },
+    closeText:{ fontSize: 20, color: c.textSub },
+    searchWrap: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
+    search: {
+      backgroundColor: c.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: c.text,
+      borderWidth: 1, borderColor: c.borderMid,
+    },
+    item: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 16,
+    },
+    itemText:  { fontSize: 15, color: c.text, flex: 1 },
+    otherText: { color: c.primary, fontStyle: 'italic' },
+    check:     { fontSize: 16, color: c.primary, fontWeight: '700', marginLeft: 8 },
+    sep:       { height: 1, backgroundColor: c.border, marginHorizontal: 20 },
+    empty:     { textAlign: 'center', color: c.textFaint, marginTop: 40, fontSize: 14 },
+  })
 }
 
 function makeStyles(c: Colors, topInset: number, bottomInset: number) {
@@ -3024,6 +3195,8 @@ function makeStyles(c: Colors, topInset: number, bottomInset: number) {
       fontSize: 15, color: c.text, borderWidth: 1, borderColor: c.borderMid,
     },
     inputMultiline: { height: 80, textAlignVertical: 'top' },
+    townSelectedText: { fontSize: 15, color: c.text },
+    townPlaceholderText: { fontSize: 15, color: c.textFaint },
     promoBanner: {
       backgroundColor: c.primaryTint, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14,
       marginTop: 10, marginBottom: 6,

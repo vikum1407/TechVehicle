@@ -1415,12 +1415,6 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.moreSheetItemText}>{t('dashboard.bookServiceAppointment')}</Text>
               </TouchableOpacity>
             )}
-            {!vehicle.isShared && (
-              <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onShare() }}>
-                <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.shareRecords.icon} color={MORE_SHEET_ICONS.shareRecords.color} size={22} /></View>
-                <Text style={styles.moreSheetItemText}>{t('share.title')}</Text>
-              </TouchableOpacity>
-            )}
             {!vehicle.isShared && CHAIN_VEHICLE_TYPES.has(vehicle.vehicleType ?? '') && (
               <TouchableOpacity style={styles.moreSheetItem} onPress={() => { setMoreActionsSheet(false); onChainService() }}>
                 <View style={styles.moreSheetIcon}><AppIcon icon={MORE_SHEET_ICONS.chainService.icon} color={MORE_SHEET_ICONS.chainService.color} size={22} /></View>

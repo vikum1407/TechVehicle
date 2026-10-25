@@ -1119,6 +1119,8 @@ const si: Record<TranslationKey, string> = {
   'garage.addressLineOptional': 'නිවස / පටුමග (විකල්ප)',
   'garage.villageLabel': 'ගම්මානය',
   'garage.townLabel': 'නගරය',
+  'garage.selectTown': 'ඔබේ නගරය තෝරන්න',
+  'garage.typeTownName': 'ඔබේ නගරයේ නම ටයිප් කරන්න',
   'garage.villageTownRequired': 'හිමිකරුවන්ට ඔබව ප්‍රදේශය අනුව සොයාගත හැකි වන පරිදි ගම්මානය සහ නගරය යන දෙකම ඇතුළත් කරන්න.',
   'garage.brNumberOptional': 'BR අංකය (විකල්ප)',
   'garage.aboutBioOptional': 'ඔබේ ගරාජය ගැන (විකල්ප)',
