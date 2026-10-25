@@ -1,0 +1,50 @@
+name: Backend tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      # A dedicated, throwaway Neon database used ONLY for tests - never
+      # production. backend/tests/globalSetup.ts has a hard safeguard: it
+      # refuses to run (and TRUNCATEs tables on every run) unless this
+      # database's name contains "test", so even a misconfigured secret here
+      # can't point this workflow at the real database.
+      DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      # Not a real secret - this only ever signs JWTs against the throwaway
+      # test database above, and carries zero value against production (which
+      # has its own separate JWT_SECRET). Safe to commit in plain text.
+      JWT_SECRET: 'ci-test-only-not-a-real-secret-6f3a9c2e8b41d57f90134aa2'
+      # Deliberately NOT setting any R2_* variable here, even though this repo
+      # already has real R2 secrets configured for the db-backup workflow.
+      # Leaving them completely unset means uploads.ts's isPlaceholder() check
+      # always trips, so a test can never write to the real production R2
+      # bucket - see the 2026-10-25 R2 upload incident documented in the
+      # backend_test_suite_status memory note.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run backend test suite
+        run: npm test
