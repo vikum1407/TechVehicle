@@ -14,7 +14,9 @@ function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
-async function checkSetupReminders() {
+// Exported so tests can call the actual check logic directly, without going
+// through startServiceNotificationJob() (which would also start real timers).
+export async function checkSetupReminders() {
   const users = await prisma.user.findMany({
     where: { pushToken: { not: null } },
   })
@@ -60,7 +62,7 @@ async function checkSetupReminders() {
   }
 }
 
-async function checkServicesDue() {
+export async function checkServicesDue() {
   const users = await prisma.user.findMany({
     where: { pushToken: { not: null } },
   })

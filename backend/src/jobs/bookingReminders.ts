@@ -4,7 +4,9 @@ import { createNotification } from '../utils/appNotifications'
 
 const prisma = new PrismaClient()
 
-async function checkBookingReminders() {
+// Exported so tests can call the actual check logic directly, without going
+// through startBookingReminderJob() (which would also start real timers).
+export async function checkBookingReminders() {
   const now = new Date()
   // Window: 8h from now to 32h from now — catches "tomorrow" regardless of job fire time
   const windowStart = new Date(now.getTime() + 8  * 60 * 60 * 1000)
@@ -63,7 +65,13 @@ function slotDateTime(date: Date, slotLabel: string | null): Date {
   return dt
 }
 
-async function checkOneHourReminders() {
+// Exported for the same reason as checkBookingReminders above. Not currently
+// exercised by a test: it fires only in a ~20-minute real-world window per day
+// (appointmentAt is always a fixed slot-anchor hour - see slotDateTime - so
+// "45-65 minutes from now" is only true around 08:xx/13:xx local time), which
+// would need Date.now() mocking to test reliably rather than real wall-clock
+// timing. Worth picking up if this job's logic needs changing.
+export async function checkOneHourReminders() {
   const now = new Date()
   // Look at bookings within the next ~2 days; narrow down to the 1h window in code
   // (slot anchor times mean we can't filter this precisely at the DB query level).

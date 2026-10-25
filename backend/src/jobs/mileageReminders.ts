@@ -13,7 +13,9 @@ function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
-async function checkMileageReminders() {
+// Exported so tests can call the actual check logic directly, without going
+// through startMileageReminderJob() (which would also start a real setInterval).
+export async function checkMileageReminders() {
   const since7Days = new Date(Date.now() - DAYS_7)
 
   const users = await prisma.user.findMany({

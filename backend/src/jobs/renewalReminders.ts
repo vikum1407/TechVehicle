@@ -17,7 +17,9 @@ function parsePrefs(raw: string | null | undefined): Record<string, boolean> {
   try { return { ...defaults, ...JSON.parse(raw) } } catch { return defaults }
 }
 
-async function checkRenewals() {
+// Exported so tests can call the actual check logic directly, without going
+// through startRenewalReminderJob() (which would also start a real setInterval).
+export async function checkRenewals() {
   const now = new Date()
   const in30Days = new Date(now.getTime() + DAYS_30)
 
