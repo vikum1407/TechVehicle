@@ -6,6 +6,7 @@ import { createNotification } from '../utils/appNotifications'
 import { isValidDateInput, isValidNumber, capText, SHORT_TEXT_LEN, LONG_TEXT_LEN } from '../utils/validate'
 import { checkRateLimit } from '../utils/rateLimit'
 import { parseGarageSlots } from '../utils/garageSlots'
+import { utcDayKey, utcDayBounds } from '../utils/dateUtils'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -78,11 +79,8 @@ router.post('/', async (req: AuthRequest, res) => {
     const garageSlots = parseGarageSlots(availability?.timeSlots, maxPerDay)
 
     const bookingDate = new Date(date)
-    const startOfDay = new Date(bookingDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(bookingDate)
-    endOfDay.setHours(23, 59, 59, 999)
-    const dateKey = startOfDay.toISOString().split('T')[0]
+    const { start: startOfDay, end: endOfDay } = utcDayBounds(bookingDate)
+    const dateKey = utcDayKey(bookingDate)
 
     const override = await prisma.garageCalendarOverride.findUnique({
       where: { garageId_date: { garageId, date: dateKey } },

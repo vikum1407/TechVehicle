@@ -3,27 +3,15 @@ import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { isValidNumber, capText, SHORT_TEXT_LEN } from '../utils/validate'
 import { parseGarageSlots, validateGarageSlots } from '../utils/garageSlots'
+// See dateUtils.ts's own header for the timezone bug this guards against -
+// originally fixed only here, then found independently broken the same way
+// in bookings.ts (2026-10-25), so both now share one implementation.
+import { todayUTCMidnight } from '../utils/dateUtils'
 
 const VALID_OVERRIDE_STATUSES = ['open', 'closed', 'holiday']
 
 const router = express.Router()
 const prisma = new PrismaClient()
-
-// Bookings are stored as a calendar date represented by UTC midnight (e.g.
-// "2026-09-14T00:00:00.000Z" *is* the 14th, not an instant to convert to local
-// time). Building "today" via `new Date(); setHours(0,0,0,0)` then
-// `.toISOString()` instead sets midnight in whatever timezone the Node process
-// happens to be running under, then converts that to UTC — which silently
-// shifts the resulting date string backward by a day on any server not
-// running in UTC (confirmed locally: this dev machine runs GMT+2, which
-// mislabelled a Monday as the previous Sunday in the generated date list).
-// Building every day directly via Date.UTC() keeps the calendar-date string
-// identical to the actual stored booking dates, regardless of server OS
-// timezone.
-function todayUTCMidnight(): Date {
-  const now = new Date()
-  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
-}
 
 // Noted 2026-10-21: garage time slots are free-text labels (`GarageSlot.label`,
 // `garageSlots.ts`) with no structured time field — a garage can type "7:00",
