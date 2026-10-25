@@ -19,9 +19,12 @@ module.exports = {
   // default 5s timeout is too tight. Some setup chains (e.g. a booking flow:
   // 2 logins + create vehicle/garage/booking/confirm) make 10+ sequential
   // network round-trips before the test body even starts, which can exceed
-  // 15s under normal latency variance - bumped after that was observed to
-  // time out a genuinely-passing test, not a real hang.
-  testTimeout: 30000,
+  // 15s under normal latency variance - bumped from 15000 after that was
+  // observed to time out a genuinely-passing test, not a real hang. Bumped
+  // again 2026-10-25 (30000 -> 45000) after the same class of flake recurred
+  // on a different heavy-setup test as the suite grew - this is latency
+  // variance against a real remote DB, not a logic bug, each time it's hit.
+  testTimeout: 45000,
   // Route files each new up their own PrismaClient; many open connections at once
   // against one small test container can be flaky. Running test FILES serially
   // (not test cases within a file) keeps this predictable without slowing things
