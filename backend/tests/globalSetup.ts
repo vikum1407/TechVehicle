@@ -7,7 +7,11 @@ import { PrismaClient } from '@prisma/client'
 // from the test files themselves). DATABASE_URL here must point at a dedicated,
 // free Neon branch/project used ONLY for tests - never production. See .env.test.
 export default async function globalSetup() {
-  dotenv.config({ path: path.join(__dirname, '..', '.env.test') })
+  // override: true - something on this machine (a global dotenvx hook, or a
+  // pre-set system env var) was already setting DATABASE_URL before this ran,
+  // and dotenv's default silently keeps the existing value instead of this
+  // file's. .env.test must always win here, not whatever got there first.
+  dotenv.config({ path: path.join(__dirname, '..', '.env.test'), override: true })
 
   // This script TRUNCATEs every table below - running it against the real
   // production database would destroy real user data. "Looks like Neon" alone

@@ -4,6 +4,13 @@ module.exports = {
   testEnvironment: 'node',
   rootDir: '.',
   testMatch: ['<rootDir>/tests/**/*.test.ts'],
+  // Main tsconfig.json only includes src/**/* (rootDir: ./src, used for the
+  // production build) - it never sees tests/**/* or @types/jest, so Jest's
+  // globals (describe/it/expect) don't resolve. This dedicated config covers
+  // both without touching the production build's tsconfig at all.
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
+  },
   setupFiles: ['<rootDir>/tests/setupEnv.ts'],
   globalSetup: '<rootDir>/tests/globalSetup.ts',
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',

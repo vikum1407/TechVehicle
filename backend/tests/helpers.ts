@@ -1,15 +1,18 @@
+import crypto from 'crypto'
 import request from 'supertest'
 import { createApp } from '../src/app'
 
 export const app = createApp()
 
-let phoneCounter = 0
-// Each call gets a fresh, valid-looking Sri Lankan number - distinct phone
-// numbers per test avoid colliding with the OTP send rate limit (5/phone/hour)
-// and keep tests independent of each other's data.
+// Random, not sequential - a per-file counter looked unique within one test
+// file but Jest gives each test FILE its own fresh module instance, so every
+// file's counter restarted at 1, generating the same phone number across
+// files. Since all files share one physical test database (only reset once,
+// at suite start), that collided real data between unrelated tests. Random
+// 7-digit suffix makes cross-file collisions astronomically unlikely instead.
 export function nextTestPhone(): string {
-  phoneCounter += 1
-  return `+9477${String(1000000 + phoneCounter).slice(-7)}`
+  const suffix = crypto.randomInt(1000000, 10000000)
+  return `+9477${suffix}`
 }
 
 // Drives the real OTP flow end-to-end (send -> dev-otp -> verify) to get a
