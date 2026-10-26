@@ -150,5 +150,10 @@ export async function hardDeleteAccount(prisma: PrismaClient, phoneNumber: strin
   }
 
   await prisma.appNotification.deleteMany({ where: { userPhone: phoneNumber } })
+  // Admin panel (2026-10-26): no relation/cascade from User (deliberately, to keep
+  // the User model untouched - see UserActiveDay's own comment in schema.prisma),
+  // so this needs an explicit delete here. Covers both the manual CLI script and the
+  // 14-day sweep, since both call this same function.
+  await prisma.userActiveDay.deleteMany({ where: { userId: user.id } })
   await prisma.user.delete({ where: { phoneNumber } })
 }

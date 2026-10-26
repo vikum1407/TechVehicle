@@ -35,9 +35,52 @@ model User {
   // hard-deletes once this passes; logging back in before then clears it (cancels the
   // pending deletion). See backend/src/utils/accountDeletion.ts for the full flow.
   pendingDeletionAt DateTime?
+  // Admin panel (2026-10-26): written once-per-user-per-day in authMiddleware from the
+  // X-App-Version/X-Platform request headers. Used by M9 (app health) to show the real
+  // version spread among recently-active users - never blocks or slows the request.
+  lastAppVersion    String?
+  lastPlatform      String?
   createdAt         DateTime  @default(now())
   vehicles          Vehicle[]
   garage            Garage?
+}
+
+// Admin panel (2026-10-26) - one row per user per day they made an authenticated
+// request, written (fire-and-forget, never awaited) from authMiddleware. Deliberately
+// no relation to User (keeps the User model itself untouched) - userId is just a plain
+// string, looked up separately wherever needed. Powers M7 (retention) and M8 (DAU/MAU).
+model UserActiveDay {
+  id     String @id @default(cuid())
+  userId String
+  day    String // "2026-10-25" in Asia/Colombo, not UTC
+  @@unique([userId, day])
+  @@index([day])
+}
+
+// Admin panel (2026-10-26) - one row per 5xx response, written fire-and-forget from a
+// global Express middleware. route is always the route PATTERN (e.g. "/vehicles/:id"),
+// never the real URL - no bodies, query strings, phone numbers, or tokens are ever
+// stored here. Rows older than 30 days are pruned by the first /admin/health call of
+// each day. Powers M9 (app health).
+model ApiErrorLog {
+  id        String   @id @default(cuid())
+  method    String
+  route     String
+  status    Int
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
+
+// Admin panel (2026-10-26) - one row per daily backup run, written at the end of
+// dbBackupToR2.ts (success or failure). Writing this row must never mask a real
+// failure - the GitHub Actions workflow still exits non-zero on failure regardless
+// of whether this row was written successfully. Powers M9's "last backup" status.
+model BackupRun {
+  id        String   @id @default(cuid())
+  status    String   // "ok" | "failed"
+  sizeBytes Int?
+  note      String?
+  createdAt DateTime @default(now())
 }
 
 model Vehicle {

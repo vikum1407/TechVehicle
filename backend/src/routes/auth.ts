@@ -12,6 +12,7 @@ import { checkRateLimit } from '../utils/rateLimit'
 import { sendPush } from '../utils/push'
 import { createNotification } from '../utils/appNotifications'
 import { cancelGarageBookingsNow, cancelVehicleBookingsNow } from '../utils/accountDeletion'
+import { isAdminPhone } from '../middleware/admin'
 
 const router = express.Router()
 const prisma = new PrismaClient()
@@ -320,7 +321,9 @@ router.get('/stats', authMiddleware, async (req: AuthRequest, res) => {
     } catch (promoError) {
       console.error('ensurePromoCode (/stats) error:', promoError)
     }
-    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null, promoCode })
+    // Admin panel (2026-10-26): lets ProfileScreen/SettingsScreen show or hide the
+    // admin entry. An older app build simply ignores this extra field.
+    res.json({ vehicleCount, serviceCount, fuelCount, expenseCount, profilePhotoUrl: user?.profilePhotoUrl || null, email: (user as any)?.email || null, promoCode, isAdmin: isAdminPhone(phone) })
   } catch (error) {
     console.error('GET /auth/stats error:', error)
     res.status(500).json({ error: 'Failed to fetch stats' })
