@@ -1,4 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy'
+import Constants from 'expo-constants'
+import { Platform } from 'react-native'
 
 // ── Never let a raw network/parsing failure reach the user as a JS error ──
 // Every api.* function below follows the same fetch → res.json() → throw
@@ -40,9 +42,14 @@ Response.prototype.json = function (this: Response) {
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'
 
+// Admin panel (2026-10-26): lets the backend track the real app-version/platform
+// spread among active users (M9) - purely informational, never required by any
+// endpoint, so an older app build without these headers still works unchanged.
 const authHeaders = (token: string) => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${token}`,
+  'X-App-Version': Constants.expoConfig?.version ?? 'unknown',
+  'X-Platform': Platform.OS,
 })
 
 export const api = {
@@ -795,7 +802,7 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to fetch stats')
-    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number; profilePhotoUrl: string | null; email: string | null; promoCode: string | null }
+    return data as { vehicleCount: number; serviceCount: number; fuelCount: number; expenseCount: number; profilePhotoUrl: string | null; email: string | null; promoCode: string | null; isAdmin: boolean }
   },
 
   updateProfilePhoto: async (token: string, photoUrl: string | null) => {
@@ -1201,6 +1208,56 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to revoke share')
+    return data
+  },
+
+  // Admin panel (2026-10-26) - all read-only, behind authMiddleware + requireAdmin.
+  getAdminOverview: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/overview`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load overview')
+    return data
+  },
+  getAdminCities: async (token: string, type: 'owner' | 'garage') => {
+    const res = await fetch(`${API_URL}/admin/cities?type=${type}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load cities')
+    return data
+  },
+  getAdminFeatures: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/features`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load feature usage')
+    return data
+  },
+  getAdminPromoCodes: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/promo-codes`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load promo codes')
+    return data
+  },
+  getAdminPromoCodeDetail: async (token: string, code: string) => {
+    const res = await fetch(`${API_URL}/admin/promo-codes/${encodeURIComponent(code)}`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load promo code detail')
+    return data
+  },
+  getAdminGrowth: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/growth`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load growth metrics')
+    return data
+  },
+  getAdminRetention: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/retention`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load retention')
+    return data
+  },
+  getAdminHealth: async (token: string) => {
+    const res = await fetch(`${API_URL}/admin/health`, { headers: authHeaders(token) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to load health')
     return data
   },
 }

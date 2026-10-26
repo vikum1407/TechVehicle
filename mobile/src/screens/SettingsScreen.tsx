@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native'
+import Constants from 'expo-constants'
 import { useColors } from '../theme/ThemeContext'
 import { Colors } from '../theme/colors'
 import { useTranslation } from '../i18n/LanguageContext'
@@ -12,13 +13,23 @@ type Props = {
   onBack: () => void
   onNotificationPrefs: () => void
   onAccountDeleted: () => void
+  onAdmin: () => void
 }
 
-export default function SettingsScreen({ token, onBack, onNotificationPrefs, onAccountDeleted }: Props) {
+export default function SettingsScreen({ token, onBack, onNotificationPrefs, onAccountDeleted, onAdmin }: Props) {
   const colors = useColors()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { t, language, setLanguage } = useTranslation()
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Admin panel (2026-10-26) - lightweight, infrequent screen, so a dedicated fetch
+  // here is simpler and lower-risk than threading isAdmin through ProfileScreen/App.tsx's
+  // own separate stats fetch. Silently stays false on any error - this is purely
+  // "show or hide one row," never worth surfacing an error for.
+  useEffect(() => {
+    api.getAccountStats(token).then(s => setIsAdmin(s.isAdmin)).catch(() => {})
+  }, [token])
 
   const handleDeleteAccount = () => {
     // Plain confirm dialog, deliberately not an OTP re-verification step (agreed
@@ -92,6 +103,19 @@ export default function SettingsScreen({ token, onBack, onNotificationPrefs, onA
         </View>
       </View>
 
+      {isAdmin && (
+        <>
+          <Text style={styles.sectionLabel}>Admin</Text>
+          <View style={styles.card}>
+            <TouchableOpacity style={styles.row} onPress={onAdmin} activeOpacity={0.7}>
+              <View style={styles.rowIcon}><AppIcon icon={{ lib: 'mci', name: 'shield-account-outline' }} size={18} color={colors.text} /></View>
+              <Text style={styles.rowLabel}>Admin</Text>
+              <Text style={styles.rowChevron}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
       <Text style={styles.sectionLabel}>{t('settings.account')}</Text>
       <View style={styles.card}>
         <TouchableOpacity
@@ -106,7 +130,7 @@ export default function SettingsScreen({ token, onBack, onNotificationPrefs, onA
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>Vocksy · v1.0.0</Text>
+      <Text style={styles.version}>Vocksy · Version {Constants.expoConfig?.version ?? 'unknown'}</Text>
     </ScrollView>
   )
 }

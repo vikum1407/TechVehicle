@@ -35,6 +35,7 @@ import KnowledgeHubScreen from './src/screens/KnowledgeHubScreen'
 import CostForecastScreen from './src/screens/CostForecastScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import SettingsScreen from './src/screens/SettingsScreen'
+import AdminScreen from './src/screens/AdminScreen'
 import BottomTabBar from './src/components/BottomTabBar'
 import FloatingHomeButton from './src/components/FloatingHomeButton'
 
@@ -62,7 +63,7 @@ type Screen =
   | 'vehicles' | 'garage' | 'garageLedger'
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
-  | 'profile' | 'settings' | 'notificationPrefs' | 'notifications'
+  | 'profile' | 'settings' | 'notificationPrefs' | 'notifications' | 'admin'
 
 // Shared by Predictions' onLogNow, Cost Forecast's onLogService/onLogServices - a
 // prediction/forecast item name that's Emission/Wheel Alignment/Chain/Insurance/
@@ -800,7 +801,11 @@ export default function App() {
           onBack={() => setScreen('profile')}
           onNotificationPrefs={() => { setNotifPrefsReturnTo('settings'); setScreen('notificationPrefs') }}
           onAccountDeleted={handleLogout}
+          onAdmin={() => setScreen('admin')}
         />
+      )}
+      {screen === 'admin' && (
+        <AdminScreen token={token} onBack={() => setScreen('settings')} />
       )}
       {screen === 'notificationPrefs' && (
         <NotificationPrefsScreen
