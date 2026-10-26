@@ -31,6 +31,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [isPicking, setIsPicking] = useState(false)
   const [garageName, setGarageName] = useState<string | null>(null)
+  const [loadingGarage, setLoadingGarage] = useState(true)
   const [loggingOutAllDevices, setLoggingOutAllDevices] = useState(false)
   const [email, setEmail] = useState('')
   const [savedEmail, setSavedEmail] = useState<string | null>(null)
@@ -56,6 +57,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
     api.getGarage(token)
       .then(g => setGarageName(g.name))
       .catch(() => setGarageName(null))
+      .finally(() => setLoadingGarage(false))
   }, [])
 
   const pickPhoto = async () => {
@@ -213,7 +215,7 @@ export default function ProfileScreen({ token, phoneNumber, userType, onBack, on
         </View>
       )}
 
-      {garageName ? (
+      {loadingGarage ? null : garageName ? (
         <TouchableOpacity style={[styles.settingsRow, styles.garageRowLive]} onPress={onOpenGarage} activeOpacity={0.7}>
           <View style={styles.settingsRowIcon}><AppIcon icon={{ lib: 'mci', name: 'garage' }} size={18} color={colors.text} /></View>
           <Text style={styles.settingsRowLabel}>{garageName}</Text>
