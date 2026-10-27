@@ -683,6 +683,7 @@ export default function App() {
           token={token}
           vehicleId={selectedVehicle.id}
           vehicleType={selectedVehicle.vehicleType}
+          isShared={selectedVehicle.isShared}
           onBack={() => setScreen('vehicleDashboard')}
           onKnowledgeHub={() => { setKnowledgeHubReturnTo('analytics'); setScreen('knowledgeHub') }}
           onPredictions={() => setScreen('predictions')}
@@ -720,7 +721,12 @@ export default function App() {
           vehicleName={`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}
           onBack={() => setScreen('vehicleDashboard')}
           onBottomBarVisible={setCostForecastBarShowing}
-          onLogService={(serviceName) => {
+          // A shared (view-only) user can now reach Cost Forecast from the dashboard
+          // (2026-10-27), but must only ever see the estimates - never log anything
+          // through it, same as Insights/Predictions already being read-only for them.
+          // Omitting these two makes CostForecastScreen render every card non-tappable
+          // and hides its own "Select" button, with no change needed in that screen.
+          onLogService={selectedVehicle.isShared ? undefined : (serviceName) => {
             const testsTab = testsTabForServiceName(serviceName)
             if (testsTab) { setTestsReturnTo('costForecast'); setTestsInitialTab(testsTab); setScreen('vehicleTests') }
             else {
@@ -730,7 +736,7 @@ export default function App() {
               setScreen('addServiceRecord')
             }
           }}
-          onLogServices={(serviceNames) => {
+          onLogServices={selectedVehicle.isShared ? undefined : (serviceNames) => {
             // "Log selected" (2026-10-21): split the batch into Add-Service-type
             // items (pre-marked in one session) and Emission/Alignment/Chain items
             // (visited in Vehicle Tests after Add Service's own save, or directly if

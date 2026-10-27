@@ -791,8 +791,13 @@ export default function VehicleDashboardScreen({ token, phoneNumber, vehicle, on
                 <Text style={styles.quickBtnText}>{t('dashboard.insights')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickBtn} onPress={onPredictions}>
-                <Text style={styles.quickBtnText}>{t('dashboard.predictions')}</Text>
+                <Text style={styles.quickBtnText}>{t('dashboard.upcomingServices')}</Text>
               </TouchableOpacity>
+              {onCostForecast && (
+                <TouchableOpacity style={styles.quickBtn} onPress={onCostForecast}>
+                  <Text style={styles.quickBtnText}>{t('dashboard.costForecast')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View style={styles.quickActions}>

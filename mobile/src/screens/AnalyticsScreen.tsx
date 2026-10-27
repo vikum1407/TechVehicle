@@ -14,11 +14,13 @@ import ScreenHeader from '../components/ScreenHeader'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import DonutChart from '../components/DonutChart'
 import { useTranslation } from '../i18n/LanguageContext'
+import VehicleHealthSummaryCard, { HealthSummary } from '../components/VehicleHealthSummaryCard'
 
 type Props = {
   token: string
   vehicleId: string
   vehicleType?: string | null
+  isShared?: boolean
   onBack: () => void
   onKnowledgeHub?: () => void
   onPredictions?: () => void
@@ -533,11 +535,12 @@ function CostForecastCard({ forecast, onPress }: { forecast: Forecast; onPress?:
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 
-export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack, onKnowledgeHub, onPredictions, onCostForecast }: Props) {
+export default function AnalyticsScreen({ token, vehicleId, vehicleType, isShared, onBack, onKnowledgeHub, onPredictions, onCostForecast }: Props) {
   const isElectric = vehicleType === 'electric'
   const [data, setData] = useState<Analytics | null>(null)
   const [forecast, setForecast] = useState<Forecast | null>(null)
   const [anomalies, setAnomalies] = useState<Anomaly[]>([])
+  const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
@@ -552,11 +555,19 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
       api.getAnalytics(token, vehicleId),
       api.getCostForecast(token, vehicleId).catch(() => null),
       api.getAnomalies(token, vehicleId).catch(() => []),
+      // Family-share's "at a glance" health snapshot (2026-10-27) - reuses the
+      // already-audited /vehicle-shares/received endpoint rather than adding a
+      // new one, per vehicleHealthSummary.ts's own "no new access surface"
+      // design note. Owner's own view skips this call entirely - they already
+      // get the full detailed breakdown below, this card is only useful as a
+      // quick summary for someone who doesn't own the vehicle.
+      isShared ? api.getReceivedVehicleShares(token).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([analytics, fore, anom]) => {
+      .then(([analytics, fore, anom, shares]) => {
         setData(analytics)
         setForecast(fore)
         setAnomalies(anom ?? [])
+        setHealthSummary(shares.find((s: any) => s.vehicleId === vehicleId)?.healthSummary ?? null)
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
@@ -598,6 +609,15 @@ export default function AnalyticsScreen({ token, vehicleId, vehicleType, onBack,
     <View style={styles.container}>
       <ScreenHeader title={t('analytics.title')} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
+
+      {/* Family-share health snapshot - shown above the owner's own detailed
+          breakdown below, not instead of it; gives a shared viewer the same
+          at-a-glance summary a garage/buyer already gets elsewhere. */}
+      {isShared && healthSummary && (
+        <View style={{ marginBottom: 20 }}>
+          <VehicleHealthSummaryCard summary={healthSummary} />
+        </View>
+      )}
 
       {/* Trip-ready snapshot */}
       {forecast && forecast.items.length > 0 && (
