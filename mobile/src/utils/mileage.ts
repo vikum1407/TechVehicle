@@ -7,7 +7,13 @@ export const MAX_MILEAGE = 1_000_000
 export function sanitizeMileageInput(text: string): string {
   const digitsOnly = text.replace(/[^0-9]/g, '')
   if (digitsOnly === '') return ''
-  const num = parseInt(digitsOnly, 10)
-  if (num > MAX_MILEAGE) return String(MAX_MILEAGE)
-  return digitsOnly
+  // Reject the keystroke(s) that would push the value over the cap, rather than
+  // snapping straight to MAX_MILEAGE - dropping trailing digits until the number
+  // fits leaves whatever was already validly typed in place (e.g. appending a 0
+  // to 608750 just gets ignored, instead of the field jumping to 1000000).
+  let result = digitsOnly
+  while (result !== '' && parseInt(result, 10) > MAX_MILEAGE) {
+    result = result.slice(0, -1)
+  }
+  return result
 }
