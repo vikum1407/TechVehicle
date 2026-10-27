@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
 import { api, setUnauthorizedHandler } from './src/config/api'
-import { PREDICTION_NAME_TO_SERVICE_ITEMS } from './src/constants/serviceData'
+import { PREDICTION_NAME_TO_SERVICE_ITEMS, testsTabForServiceName } from './src/constants/serviceData'
 import { ThemeProvider } from './src/theme/ThemeContext'
 import { LanguageProvider, useTranslation } from './src/i18n/LanguageContext'
 import LoginScreen from './src/screens/LoginScreen'
@@ -64,20 +64,6 @@ type Screen =
   | 'addVehicle' | 'onboardingWizard' | 'vehicleDashboard' | 'addServiceRecord'
   | 'logFuel' | 'tripLog' | 'addExpense' | 'vehicleTests' | 'vehicleHistory' | 'analytics' | 'predictions' | 'share' | 'sell' | 'booking' | 'knowledgeHub' | 'costForecast'
   | 'profile' | 'settings' | 'notificationPrefs' | 'notifications' | 'admin'
-
-// Shared by Predictions' onLogNow, Cost Forecast's onLogService/onLogServices - a
-// prediction/forecast item name that's Emission/Wheel Alignment/Chain/Insurance/
-// Revenue Licence-related routes to the dedicated Vehicle Tests screen instead of
-// Add Service (previously 3 separate copies of this same substring check).
-function testsTabForServiceName(name: string): 'emission' | 'alignment' | 'chain' | 'insurance' | 'licence' | null {
-  const n = name.toLowerCase()
-  if (n.includes('emission')) return 'emission'
-  if (n.includes('wheel alignment')) return 'alignment'
-  if (n.includes('chain')) return 'chain'
-  if (n.includes('insurance')) return 'insurance'
-  if (n.includes('revenue licence') || n.includes('revenue license')) return 'licence'
-  return null
-}
 
 type Vehicle = {
   id: string

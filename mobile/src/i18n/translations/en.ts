@@ -757,6 +757,10 @@ const en = {
   'costForecast.logSelected': 'Log Selected ({count})',
   'costForecast.select': 'Select',
   'costForecast.footer': 'Log service costs consistently to improve forecast accuracy over time.',
+  'costForecast.mixBlockedTitle': "Can't combine these",
+  'costForecast.mixBlockedMessage': 'Regular services are logged together on one form, but Emission Test, Wheel Alignment, Chain Service, Insurance and Revenue Licence each open their own screen — they can’t be selected together. Deselect the other type first, or log them one at a time.',
+  'costForecast.testLimitTitle': 'One at a time',
+  'costForecast.testLimitMessage': 'Only one of Emission Test, Wheel Alignment, Chain Service, Insurance or Revenue Licence can be selected at once, since each opens its own screen. Deselect the current one first.',
 
   'vehicleTests.title': 'Vehicle Tests',
   'vehicleTests.tab.emission': 'Emission',

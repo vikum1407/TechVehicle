@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, RefreshControl,
+  ScrollView, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../config/api'
@@ -10,6 +10,7 @@ import { Colors } from '../theme/colors'
 import ScreenHeader from '../components/ScreenHeader'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
+import { testsTabForServiceName } from '../constants/serviceData'
 
 type ForecastItem = {
   name: string
@@ -94,11 +95,38 @@ export default function CostForecastScreen({ token, vehicleId, vehicleName, onBa
   const styles = useMemo(() => makeStyles(colors, insets.bottom), [colors, insets.bottom])
   const { t } = useTranslation()
 
+  // Selection rules (2026-10-27): a batch can only be ALL regular (Add-Service-routed)
+  // items or a SINGLE Vehicle-Tests-routed item (Emission/Alignment/Chain/Insurance/
+  // Licence) - never both, and never two test items together. Mixing used to silently
+  // confuse the Add-Service/Vehicle-Tests hand-off in App.tsx's onLogServices (a test
+  // item selected alongside a regular one never showed up on the Add Service form the
+  // owner was looking at; a second test item selected alongside a first was silently
+  // dropped since Vehicle Tests can only open one tab at a time) - blocking it here,
+  // with an explanation, is simpler than trying to support a multi-screen hand-off.
   const toggleSelect = (name: string) => {
     setSelectedNames(prev => {
+      if (prev.has(name)) {
+        const next = new Set(prev)
+        next.delete(name)
+        return next
+      }
+
+      const tappedTestTab = testsTabForServiceName(name)
+      if (prev.size > 0) {
+        const existingName = Array.from(prev)[0]
+        const existingTestTab = testsTabForServiceName(existingName)
+        if (tappedTestTab && existingTestTab) {
+          Alert.alert(t('costForecast.testLimitTitle'), t('costForecast.testLimitMessage'))
+          return prev
+        }
+        if (!!tappedTestTab !== !!existingTestTab) {
+          Alert.alert(t('costForecast.mixBlockedTitle'), t('costForecast.mixBlockedMessage'))
+          return prev
+        }
+      }
+
       const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
+      next.add(name)
       return next
     })
   }

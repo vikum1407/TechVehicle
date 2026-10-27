@@ -404,6 +404,21 @@ const EXTRA_BY_TYPE: Partial<Record<string, ExtraItems>> = {
   ],
 }
 
+// Shared by App.tsx's Predictions/Cost Forecast routing and CostForecastScreen's own
+// selection rules (2026-10-27) - a prediction/forecast item name that's Emission/Wheel
+// Alignment/Chain/Insurance/Revenue Licence-related routes to the dedicated Vehicle
+// Tests screen instead of Add Service. Moved here (was a local App.tsx function) so
+// both call sites share one definition instead of a second copy of the same check.
+export function testsTabForServiceName(name: string): 'emission' | 'alignment' | 'chain' | 'insurance' | 'licence' | null {
+  const n = name.toLowerCase()
+  if (n.includes('emission')) return 'emission'
+  if (n.includes('wheel alignment')) return 'alignment'
+  if (n.includes('chain')) return 'chain'
+  if (n.includes('insurance')) return 'insurance'
+  if (n.includes('revenue licence') || n.includes('revenue license')) return 'licence'
+  return null
+}
+
 export function getServiceCategories(vehicleType?: string | null, fuelType?: string | null) {
   const excludeSet = vehicleType
     ? (FUEL_BASED_TYPES.has(vehicleType) ? fuelExclusions(fuelType) : (EXCLUDE_BY_TYPE[vehicleType] ?? new Set<string>()))
