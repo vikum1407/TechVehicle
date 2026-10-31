@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme, Alert } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, BackHandler, AppState, useColorScheme, Alert, Dimensions } from 'react-native'
+import * as ScreenOrientation from 'expo-screen-orientation'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { storage } from './src/utils/storage'
 import { registerForPushNotifications, Notifications } from './src/utils/notifications'
@@ -55,6 +56,37 @@ function SessionGuard({ onExpire }: { onExpire: () => void }) {
     })
     return () => setUnauthorizedHandler(null)
   }, [t, onExpire])
+  return null
+}
+
+// app.json's orientation is "default" (not locked) so Android doesn't letterbox the
+// app on tablets/foldables - large screens rendered the whole app in a tiny portrait
+// box otherwise, confirmed across 4 emulator form factors. This restores the intended
+// portrait-only behavior on phones at runtime instead, where it doesn't trigger that
+// OS-level letterboxing. 600dp (smallest-width) matches Android's own sw600dp tablet
+// breakpoint.
+//
+// Deliberately reads Dimensions.get('screen') (the real physical display), not
+// useWindowDimensions()/'window' - on some boundary-sized devices (confirmed: a 7in
+// WSVGA 1024x600 tablet, exactly at the sw600dp cutoff) Android hands React Native an
+// already-shrunk WINDOW size before this ever runs, which fed this logic a false
+// "phone-sized" reading and caused it to request the very portrait lock that keeps it
+// shrunk. 'screen' isn't affected by that.
+function OrientationGuard() {
+  useEffect(() => {
+    const apply = () => {
+      const { width, height } = Dimensions.get('screen')
+      const isPhoneSized = Math.min(width, height) < 600
+      if (isPhoneSized) {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {})
+      } else {
+        ScreenOrientation.unlockAsync().catch(() => {})
+      }
+    }
+    apply()
+    const sub = Dimensions.addEventListener('change', apply)
+    return () => sub.remove()
+  }, [])
   return null
 }
 
@@ -429,6 +461,7 @@ export default function App() {
     <SafeAreaProvider>
     <ThemeProvider>
     <LanguageProvider>
+      <OrientationGuard />
       <SessionGuard onExpire={handleLogout} />
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
 
