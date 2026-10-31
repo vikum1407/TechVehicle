@@ -3,7 +3,7 @@
     "name": "Vocksy",
     "slug": "techvehicle",
     "version": "1.0.5",
-    "orientation": "default",
+    "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "icon": "./assets/icon.png",

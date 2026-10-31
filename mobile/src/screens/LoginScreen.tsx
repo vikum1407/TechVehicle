@@ -11,7 +11,6 @@ import { Colors } from '../theme/colors'
 import { COUNTRY_CODES, isoToFlag, CountryCode } from '../constants/countryCodes'
 import AppIcon, { AppIconSpec } from '../components/AppIcon'
 import { useTranslation } from '../i18n/LanguageContext'
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout'
 
 type Props = {
   onOTPSent: (phoneNumber: string) => void
@@ -24,8 +23,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
   const [loading, setLoading] = useState(false)
   const colors = useColors()
   const insets = useSafeAreaInsets()
-  const { maxContentWidth, scale } = useResponsiveLayout()
-  const styles = useMemo(() => makeStyles(colors, insets.top, maxContentWidth, scale), [colors, insets.top, maxContentWidth, scale])
+  const styles = useMemo(() => makeStyles(colors, insets.top), [colors, insets.top])
   const { t } = useTranslation()
 
   const PERKS: { icon: AppIconSpec; label: string }[] = [
@@ -68,16 +66,14 @@ export default function LoginScreen({ onOTPSent }: Props) {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
-          <View style={styles.heroInner}>
-            <View style={styles.heroRoad} />
-            <Text style={styles.logo}>Vocksy</Text>
-            <Text style={styles.tagline}>{t('login.tagline')}</Text>
-          </View>
+          <View style={styles.heroRoad} />
+          <Text style={styles.logo}>Vocksy</Text>
+          <Text style={styles.tagline}>{t('login.tagline')}</Text>
         </View>
 
         <View style={styles.badgeWrap}>
           <View style={styles.badge}>
-            <AppIcon icon={{ lib: 'mci', name: 'car' }} size={scale(28)} color="#fff" />
+            <AppIcon icon={{ lib: 'mci', name: 'car' }} size={28} color="#fff" />
           </View>
         </View>
 
@@ -117,7 +113,7 @@ export default function LoginScreen({ onOTPSent }: Props) {
           <View style={styles.perksRow}>
             {PERKS.map(perk => (
               <View key={perk.label} style={styles.perk}>
-                <View style={styles.perkIcon}><AppIcon icon={perk.icon} size={scale(18)} color={colors.primary} /></View>
+                <View style={styles.perkIcon}><AppIcon icon={perk.icon} size={18} color={colors.primary} /></View>
                 <Text style={styles.perkLabel}>{perk.label}</Text>
               </View>
             ))}
@@ -213,7 +209,7 @@ function CountryPickerModal({ visible, selected, onSelect, onClose }: CountryPic
   )
 }
 
-function makeStyles(c: Colors, topInset: number, maxContentWidth: number, scale: (n: number) => number) {
+function makeStyles(c: Colors, topInset: number) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     scrollContent: { flexGrow: 1 },
@@ -223,18 +219,17 @@ function makeStyles(c: Colors, topInset: number, maxContentWidth: number, scale:
       paddingTop: topInset + 40, paddingBottom: 56, paddingHorizontal: 24,
       alignItems: 'center', overflow: 'hidden', position: 'relative',
     },
-    heroInner: { width: '100%', maxWidth: maxContentWidth, alignItems: 'center' },
     heroRoad: {
       position: 'absolute', bottom: 34, left: -20, right: -20, height: 3,
       backgroundColor: 'rgba(255,255,255,0.25)', transform: [{ rotate: '-2deg' }],
     },
-    logo: { fontSize: scale(26), fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-    tagline: { fontSize: scale(13), color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
+    logo: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+    tagline: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
 
     badgeWrap: { alignItems: 'center', height: 0 },
     badge: {
-      position: 'absolute', top: -scale(32), alignSelf: 'center',
-      width: scale(64), height: scale(64), borderRadius: scale(32),
+      position: 'absolute', top: -32, alignSelf: 'center',
+      width: 64, height: 64, borderRadius: 32,
       backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center',
       borderWidth: 4, borderColor: c.background,
       shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6,
@@ -242,26 +237,25 @@ function makeStyles(c: Colors, topInset: number, maxContentWidth: number, scale:
 
     card: {
       backgroundColor: c.surface, borderRadius: 20,
-      alignSelf: 'center', width: '100%', maxWidth: maxContentWidth,
       marginHorizontal: 20, marginTop: 40,
       paddingTop: 24, paddingHorizontal: 24, paddingBottom: 20,
       shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 14, elevation: 4,
     },
-    title: { fontSize: scale(20), fontWeight: '800', color: c.text, textAlign: 'center' },
-    subtitle: { fontSize: scale(13), color: c.textMuted, textAlign: 'center', marginTop: 4, marginBottom: 22 },
+    title: { fontSize: 20, fontWeight: '800', color: c.text, textAlign: 'center' },
+    subtitle: { fontSize: 13, color: c.textMuted, textAlign: 'center', marginTop: 4, marginBottom: 22 },
     inputRow: { flexDirection: 'row', marginBottom: 20 },
     prefix: {
       flexDirection: 'row', alignItems: 'center', gap: 4,
       backgroundColor: c.border, borderRadius: 10,
       paddingHorizontal: 12, justifyContent: 'center', marginRight: 8,
     },
-    prefixFlag: { fontSize: scale(16) },
-    prefixText: { fontSize: scale(16), fontWeight: '600', color: c.textBody },
-    prefixChevron: { fontSize: scale(11), color: c.textMuted, marginLeft: 1 },
+    prefixFlag: { fontSize: 16 },
+    prefixText: { fontSize: 16, fontWeight: '600', color: c.textBody },
+    prefixChevron: { fontSize: 11, color: c.textMuted, marginLeft: 1 },
     input: {
       flex: 1, backgroundColor: c.border, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 14,
-      fontSize: scale(16), color: c.text, letterSpacing: 0,
+      fontSize: 16, color: c.text, letterSpacing: 0,
     },
     button: {
       backgroundColor: c.primary, borderRadius: 10,
@@ -269,7 +263,7 @@ function makeStyles(c: Colors, topInset: number, maxContentWidth: number, scale:
       shadowColor: c.primary, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3,
     },
     buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontSize: scale(16), fontWeight: '700' },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
     perksRow: {
       flexDirection: 'row', justifyContent: 'space-between',
@@ -277,7 +271,7 @@ function makeStyles(c: Colors, topInset: number, maxContentWidth: number, scale:
     },
     perk: { flex: 1, alignItems: 'center' },
     perkIcon: {},
-    perkLabel: { fontSize: scale(10), color: c.textMuted, fontWeight: '600', textAlign: 'center', marginTop: 4, lineHeight: scale(13) },
+    perkLabel: { fontSize: 10, color: c.textMuted, fontWeight: '600', textAlign: 'center', marginTop: 4, lineHeight: 13 },
   })
 }
 
