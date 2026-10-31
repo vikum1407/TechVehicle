@@ -2,6 +2,37 @@
 
 ---
 
+## Release Scope Decisions (2026-10-31) — what's in vs deferred for the next release
+
+**Pre-release QA, done:** full backend regression suite passing — 202/202 tests, 30/30 suites, 71% statement coverage, run against the real Neon test DB. Security checklist (2026-09-04 standards) re-audited against the newest code (admin panel, account deletion) — no findings. No code was changed for this pass, check only.
+
+**Deferred to the release AFTER this one:**
+- **Real SMS provider for OTP delivery.** Found during this pass: there is currently NO real SMS provider wired up anywhere, including production — `auth.ts`'s `send-otp` only ever `console.log`s the code. A real user other than Vikum cannot currently log in at all (OTP never reaches their phone). This is the actual launch blocker, ranked above DB cleanup and Redis. Vikum wants to research options first (Firebase Phone Auth vs Twilio vs a Sri Lanka-local gateway e.g. Notify.lk/Dialog) before deciding — explicitly deferred, not forgotten. Note for whoever picks this up: Firebase Phone Auth requires a linked Cloud Billing account and is normally a client-SDK-driven flow (phone app talks to Firebase directly), which does NOT drop straight into the existing custom `send-otp`/`verify-otp` backend flow — a plain SMS-sending API (Twilio, Notify.lk, Dialog) fits the current architecture with much less rework.
+- **Scheduling the DB backup job.** `backend/src/scripts/dbBackupToR2.ts` (pg_dump → R2) is written, tested, and works — it just isn't triggered by anything. No cron, no Render Cron Job service. Two options when this is picked up: add as a 7th in-process cron job (free, same pattern as the existing 6 in `backend/src/jobs/`, same "may skip if Render is asleep" caveat the others already have) vs a native Render Cron Job (reliable regardless of sleep state, roughly ~$1/mo, not confirmed from Render's own pricing page).
+
+**Deferred indefinitely — not tied to next release, revisit once this testing round wraps:**
+- **Production database cleanup** (removing accumulated test/dev data). Explicitly held off 2026-10-31 — Vikum and his testers are still actively testing and need the existing data in place.
+
+**Not urgent, no action needed:**
+- Redis for the OTP store/rate limiter — only becomes necessary once Render runs 2+ instances; fine on the current single-instance setup, unlike the SMS gap this is not a correctness problem today.
+- Consolidating the 26 separate `PrismaClient` instances into one shared client — pre-~1,000-user scaling task (see "Scalability Fixes Needed Before Multi-Instance Deploy" below), not touched this round.
+
+---
+
+## Fixed — False alarm: "Could not connect" on a stale installed build, mistaken for a backend outage (2026-10-31)
+
+**Symptom:** Vikum's Motorola dev phone showed "Could not connect. Please check your internet connection and try again." on every screen right after the last bug-fix push — looked like the whole app/backend was down, reported as urgent.
+
+**Investigation before the real cause was found:** The backend itself checked out healthy (`/health` returned 200 directly via curl), and a genuine Render free-tier cold-boot delay was reproduced once (first request timed out at 20s with zero response, retry succeeded in 0.35s). Along the way a real, separate, still-open scaling risk surfaced: 26 separate `new PrismaClient()` instances across the backend (every route file, every cron job, plus `app.ts`'s error logger and `middleware/auth.ts`'s `trackActivity()` added in the 2026-10-26 admin panel commit), and the app fires 6 concurrent authenticated requests the instant My Vehicles mounts (`getVehicles`, `getIncomingTransfers`, `getReceivedVehicleShares`, `getAccountStats`, `getNotifUnreadCount`, `getGarage`) — a real aggravating factor for cold starts, since Render's own `/health` check never touches the database, so a "healthy" deploy says nothing about whether Neon's compute is actually awake. A manual redeploy still showed the same error, which looked like it ruled out simple sleep/cold-start.
+
+**Actual root cause:** none of the above — the phone had a stale installed build (an older dev-client/APK install, not the current Play Store build). `api.ts`'s global `fetch` patch (the same one that turns any raw network/parsing failure into a friendly message — see the 2026-10-21 "invalid or expired token" fix below) shows the *identical* "Could not connect" text for three completely different situations: a genuinely unreachable backend, a stale/wrong `EXPO_PUBLIC_API_URL` baked into an old installed build, and a real cold-start timeout. They are indistinguishable from the error message alone. Uninstalling and reinstalling from the real Play Store URL fixed it immediately.
+
+**Lesson for next time:** before any backend-side investigation (logs, Prisma, Neon, Render dashboards) for a "whole app can't connect" report, first rule out a stale installed build on that specific test device — uninstall and reinstall from the actual distribution URL (Play Store / current EAS build). This is a 2-minute check and must happen before spending time on backend diagnosis, especially on a phone that's been side-loaded with many different dev-client/APK profiles across sessions (true of all three test phones — Motorola, Samsung J4, Samsung J5). Same spirit as the "Cannot find native module" lesson (`npx expo install --check` first) and the OTA channel-wiring lesson elsewhere in this file — check the device/build state before assuming the code or infra is broken.
+
+**Separately — still real, still open, not urgent, not the cause of this incident:** the 26-PrismaClient count and the 6-call concurrent launch burst remain a genuine risk for an *actual* cold start on a correctly-installed build. Already covered by "Scalability Fixes Needed Before Multi-Instance Deploy" below — worth folding into that pass (shared `lib/prisma.ts` instance) when it's picked up, but this incident is not a reason to bump its priority.
+
+---
+
 ## ⚠️ MANDATORY — Pre-build cross-feature consistency sweep (process fix, 2026-10-24)
 
 **Trigger:** Release 17 shipped with two inconsistencies between the newly-built "Request Specific Services" feature (`b40dc61`) and a cost-hiding rule that had *already been built and shipped in the same release cycle* (`9666208`, "hide costs from garage health summary"). Request Specific Services reused Cost Forecast's cost data directly (including Emission/Insurance/Revenue Licence, which a garage can't even perform) instead of applying the already-established "never show a garage what the owner paid elsewhere" rule. A second, related bug (the same shared records rendered twice — once in the Health Summary's "Recent Services", once in the raw "Shared Service History" list) shipped the same way: a new call site wasn't checked against an existing component's behavior. Neither was caught before the build — costing a wasted release cycle plus EAS build credits and Render usage to fix after the fact on real devices.
